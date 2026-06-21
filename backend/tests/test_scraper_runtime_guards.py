@@ -1,0 +1,362 @@
+import asyncio
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+import run_alt_sync
+import run_sync
+from app.scrapers.autolanka import AutoLankaScraper
+from app.scrapers.ikman import IkmanCarScraper
+from app.scrapers.riyasewana import RiyasewanaScraper
+from bs4 import BeautifulSoup
+
+
+class _DummyDB:
+    def close(self):
+        return None
+
+    def rollback(self):
+        return None
+
+
+class _DummyScraper:
+    SOURCE = "dummy"
+    init_count = 0
+    scrape_count = 0
+
+    def __init__(self, _db):
+        type(self).init_count += 1
+
+    async def scrape(self, max_pages: int = 5):
+        type(self).scrape_count += 1
+
+
+class _DummyAggregator:
+    init_count = 0
+    compute_count = 0
+    update_count = 0
+
+    def __init__(self, _db):
+        type(self).init_count += 1
+        return None
+
+    def compute_aggregates(self, _year, _month):
+        type(self).compute_count += 1
+        return None
+
+    def update_deal_scores(self):
+        type(self).update_count += 1
+        return None
+
+
+
+def _reset_dummy_scraper_counts():
+    _DummyScraper.init_count = 0
+    _DummyScraper.scrape_count = 0
+
+
+def _reset_dummy_aggregator_counts():
+    _DummyAggregator.init_count = 0
+    _DummyAggregator.compute_count = 0
+    _DummyAggregator.update_count = 0
+
+
+def test_run_sync_skips_source_when_max_pages_is_zero(monkeypatch):
+    _reset_dummy_scraper_counts()
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+
+    asyncio.run(run_sync._run_source(_DummyScraper, max_pages=0, source_timeout_seconds=1))
+
+    assert _DummyScraper.init_count == 0
+    assert _DummyScraper.scrape_count == 0
+
+
+def test_run_alt_sync_skips_source_when_max_pages_is_zero(monkeypatch):
+    _reset_dummy_scraper_counts()
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+
+    asyncio.run(run_alt_sync._run_source(_DummyScraper, max_pages=0, source_timeout_seconds=1))
+
+    assert _DummyScraper.init_count == 0
+    assert _DummyScraper.scrape_count == 0
+
+
+def test_run_sync_main_falls_back_for_non_positive_page_values_and_runs_sequentially(monkeypatch):
+    calls = []
+    in_flight = 0
+    max_in_flight = 0
+
+    async def fake_run_source(scraper_cls, max_pages: int, source_timeout_seconds: int):
+        nonlocal in_flight, max_in_flight
+        calls.append((scraper_cls.SOURCE, max_pages, source_timeout_seconds))
+        in_flight += 1
+        max_in_flight = max(max_in_flight, in_flight)
+        await asyncio.sleep(0.01)
+        in_flight -= 1
+
+    monkeypatch.setattr(run_sync, "_run_source", fake_run_source)
+    monkeypatch.setattr(run_sync, "init_db", lambda: None)
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(run_sync, "_try_acquire_market_analysis_lock", lambda _db: False)
+    monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
+    monkeypatch.setenv("SCRAPE_PROFILE", "daily")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES", "12")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_IKMAN", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_RIYASEWANA", "-7")
+    monkeypatch.setenv("SCRAPE_SOURCE_TIMEOUT_SECONDS", "45")
+
+    asyncio.run(run_sync.main())
+
+    call_map = {source: pages for source, pages, _timeout in calls}
+    assert call_map == {
+        "ikman": 12,
+        "riyasewana": 12,
+        "carshop": 12,
+        "saleme": 12,
+        "riyahub": 12,
+        "dimo": 12,
+    }
+    assert all(timeout == 45 for _source, _pages, timeout in calls)
+    assert max_in_flight == 1
+
+
+def test_unified_all_profile_includes_new_scheduled_listing_sources():
+    expected = {"carshop", "saleme", "riyahub", "dimo"}
+
+    assert expected <= set(run_sync.SOURCE_PROFILES["all"])
+    assert expected <= set(run_sync.SOURCE_PROFILES["daily"])
+    assert expected <= set(run_sync.SOURCE_PROFILES["alt"])
+    assert expected <= set(run_sync.SOURCE_REGISTRY.keys())
+    assert expected <= run_sync.ALT_SOURCES
+
+
+def test_run_sync_can_skip_market_analysis_without_skipping_sources(monkeypatch):
+    _reset_dummy_aggregator_counts()
+    calls = []
+
+    async def fake_run_source(scraper_cls, max_pages: int, source_timeout_seconds: int):
+        calls.append((scraper_cls.SOURCE, max_pages, source_timeout_seconds))
+        await asyncio.sleep(0)
+
+    monkeypatch.setattr(run_sync, "_run_source", fake_run_source)
+    monkeypatch.setattr(run_sync, "init_db", lambda: None)
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(run_sync, "_try_acquire_market_analysis_lock", lambda _db: True)
+    monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
+    monkeypatch.setenv("SCRAPE_PROFILE", "daily")
+    monkeypatch.setenv("RUN_MARKET_ANALYSIS", "false")
+
+    asyncio.run(run_sync.main())
+
+    assert [source for source, _pages, _timeout in calls] == [
+        "ikman",
+        "riyasewana",
+        "carshop",
+        "saleme",
+        "riyahub",
+        "dimo",
+    ]
+    assert _DummyAggregator.init_count == 0
+    assert _DummyAggregator.compute_count == 0
+    assert _DummyAggregator.update_count == 0
+
+
+def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
+    _reset_dummy_aggregator_counts()
+    calls = []
+
+    async def fake_run_source(scraper_cls, max_pages: int, source_timeout_seconds: int):
+        calls.append((scraper_cls.SOURCE, max_pages, source_timeout_seconds))
+        await asyncio.sleep(0)
+
+    monkeypatch.setattr(run_sync, "_run_source", fake_run_source)
+    monkeypatch.setattr(run_sync, "init_db", lambda: None)
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(run_sync, "_try_acquire_market_analysis_lock", lambda _db: True)
+    monkeypatch.setattr(run_sync, "_release_market_analysis_lock", lambda _db: None)
+    monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
+    monkeypatch.setenv("SCRAPE_PROFILE", "daily")
+    monkeypatch.setenv("RUN_SCRAPERS", "false")
+    monkeypatch.setenv("RUN_MARKET_ANALYSIS", "true")
+    monkeypatch.setenv("RUN_MARKET_SIGNALS", "false")
+
+    asyncio.run(run_sync.main())
+
+    assert calls == []
+    assert _DummyAggregator.init_count == 1
+    assert _DummyAggregator.compute_count == 1
+    assert _DummyAggregator.update_count == 1
+
+
+def test_run_alt_sync_main_falls_back_for_non_positive_source_page_values(monkeypatch):
+    calls = []
+
+    async def fake_run_source(scraper_cls, max_pages: int, source_timeout_seconds: int):
+        calls.append((scraper_cls.SOURCE, max_pages, source_timeout_seconds))
+        await asyncio.sleep(0)
+
+    monkeypatch.setattr(run_sync, "_run_source", fake_run_source)
+    monkeypatch.setattr(run_sync, "init_db", lambda: None)
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(run_sync, "_try_acquire_market_analysis_lock", lambda _db: False)
+    monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
+    monkeypatch.setenv("SCRAPE_MAX_PAGES", "9")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_ALT", "7")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_AUTOLANKA", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_PATPAT", "-1")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_AUTODIRECT", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_AUTO_LANKA_SITE", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_AUTOSTREAM", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_CARSHOP", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_SALEME", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_RIYAHUB", "0")
+    monkeypatch.setenv("SCRAPE_MAX_PAGES_DIMO", "0")
+    monkeypatch.setenv("SCRAPE_SOURCE_TIMEOUT_SECONDS", "60")
+
+    asyncio.run(run_alt_sync.main())
+
+    call_map = {source: pages for source, pages, _timeout in calls}
+    assert call_map == {
+        "autolanka": 7,
+        "patpat": 7,
+        "auto-lanka": 7,
+        "autodirect": 7,
+        "autostream": 7,
+        "carshop": 7,
+        "saleme": 7,
+        "riyahub": 7,
+        "dimo": 7,
+    }
+    assert all(timeout == 60 for _source, _pages, timeout in calls)
+
+
+def test_run_alt_sync_enabled_sources_prefers_exact_token(monkeypatch):
+    monkeypatch.setenv("SCRAPE_ENABLED_SOURCES", "auto-lanka")
+
+    enabled = run_alt_sync._resolve_enabled_sources(
+        ("autolanka", "patpat", "auto-lanka", "autodirect", "autostream")
+    )
+
+    assert enabled == {"auto-lanka"}
+
+
+def test_riyasewana_scraper_uses_async_playwright_api():
+    source = Path(__file__).resolve().parents[1] / "app" / "scrapers" / "riyasewana.py"
+    text = source.read_text(encoding="utf-8")
+
+    assert "playwright.sync_api" not in text
+    assert "async_playwright" in text
+
+
+def test_autodirect_scraper_uses_direct_api_strategy():
+    source = Path(__file__).resolve().parents[1] / "app" / "scrapers" / "autodirect.py"
+    text = source.read_text(encoding="utf-8")
+
+    assert "playwright.sync_api" not in text
+    assert "api.autodirect.lk" in text
+
+
+def test_riyasewana_detects_cloudflare_challenge_pages():
+    challenge_soup = BeautifulSoup(
+        """
+        <html>
+          <head><title>Attention Required! | Cloudflare</title></head>
+          <body>Please verify you are human</body>
+        </html>
+        """,
+        "lxml",
+    )
+    normal_soup = BeautifulSoup(
+        """
+        <html>
+          <head><title>Cars for Sale on the Largest Car Marketplace in Sri Lanka</title></head>
+          <body>Normal listing content</body>
+        </html>
+        """,
+        "lxml",
+    )
+
+    assert RiyasewanaScraper._is_challenge_page(challenge_soup) is True
+    assert RiyasewanaScraper._is_challenge_page(normal_soup) is False
+
+
+def test_riyasewana_extract_cards_falls_back_to_buy_links():
+    soup = BeautifulSoup(
+        """
+        <html>
+          <body>
+            <article class="result-card">
+              <a href="/buy/toyota-prius-123">Toyota Prius 2017</a>
+            </article>
+          </body>
+        </html>
+        """,
+        "lxml",
+    )
+
+    cards = RiyasewanaScraper._extract_cards(soup)
+
+    assert len(cards) == 1
+    assert cards[0].name == "article"
+
+
+def test_autolanka_pagination_hint_detects_only_real_page_navigation():
+    no_pagination_soup = BeautifulSoup(
+        """
+        <html>
+          <body>
+            <a href="/colombo/cars/toyota/prius/2017-toyota-prius-used-123.html">listing</a>
+          </body>
+        </html>
+        """,
+        "lxml",
+    )
+    pagination_soup = BeautifulSoup(
+        """
+        <html>
+          <body>
+            <a href="/cars/2/">2</a>
+          </body>
+        </html>
+        """,
+        "lxml",
+    )
+
+    assert AutoLankaScraper._has_pagination_hint(no_pagination_soup, current_page=1) is False
+    assert AutoLankaScraper._has_pagination_hint(pagination_soup, current_page=1) is True
+
+
+def test_ikman_detail_thumbnail_parser_extracts_real_image_from_meta():
+    html = """
+    <html>
+      <head>
+        <meta property="og:image" content="//img.ikman.lk/sample-car.jpg" />
+      </head>
+      <body></body>
+    </html>
+    """
+
+    assert (
+        IkmanCarScraper._extract_thumbnail_from_detail_html(html)
+        == "https://img.ikman.lk/sample-car.jpg"
+    )
+
+
+def test_ikman_detail_thumbnail_parser_skips_placeholder_and_uses_json_ld():
+    html = """
+    <html>
+      <head>
+        <meta property="og:image" content="https://ikman.lk/assets/no-image.png" />
+        <script type="application/ld+json">
+          {"@type":"Product","image":["https://img.ikman.lk/car-1.jpg"]}
+        </script>
+      </head>
+      <body></body>
+    </html>
+    """
+
+    assert (
+        IkmanCarScraper._extract_thumbnail_from_detail_html(html)
+        == "https://img.ikman.lk/car-1.jpg"
+    )

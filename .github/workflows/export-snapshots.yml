@@ -1,0 +1,50 @@
+name: Export Public Snapshots
+
+on:
+  workflow_dispatch:
+
+jobs:
+  export-snapshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt boto3
+
+      - name: Export public snapshots
+        env:
+          COLD_DATABASE_URL: ${{ secrets.COLD_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: python export_public_snapshots.py --output snapshots/latest
+
+      - name: Upload snapshots to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ secrets.R2_PREFIX }}
+          SNAPSHOT_SOURCE_DIR: snapshots/latest
+        run: python upload_snapshots_r2.py
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-snapshot-manifest-${{ github.run_id }}
+          path: backend/snapshots/latest/manifest.json
+          retention-days: 14

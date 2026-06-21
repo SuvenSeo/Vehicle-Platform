@@ -1,0 +1,61 @@
+name: Deploy Backend → HuggingFace Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push backend to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Clone the HF Space repo
+          git clone https://Seo292:${HF_TOKEN}@huggingface.co/spaces/Seo292/vehicle-platform-backend hf-space
+
+          # Wipe and replace with current backend folder (exclude local dev artifacts)
+          rm -rf hf-space/*
+          rsync -a backend/. hf-space/ \
+            --exclude=venv/ \
+            --exclude=__pycache__/ \
+            --exclude="*.pyc" \
+            --exclude="*.pyo" \
+            --exclude="*.db" \
+            --exclude="autolens.db" \
+            --exclude=".env" \
+            --exclude=".env.local" \
+            --exclude="rescue_exports/" \
+            --exclude="snapshots/" \
+            --exclude="tmp-snapshots/" \
+            --exclude="debug_*.html" \
+            --exclude="*.log"
+
+          # HuggingFace requires a README.md with SDK metadata to recognise Docker spaces
+          printf '%s\n' '---' 'title: Vehicle Platform Backend' 'emoji: 🚗' 'colorFrom: blue' 'colorTo: green' 'sdk: docker' 'pinned: false' 'app_port: 7860' '---' > hf-space/README.md
+
+          cd hf-space
+          git add -A
+
+          # Only commit if there are actual changes
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+          else
+            git commit -m "deploy: sync from GitHub $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+            echo "Deployed to HuggingFace."
+          fi

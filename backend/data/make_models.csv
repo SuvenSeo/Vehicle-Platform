@@ -1,0 +1,60 @@
+make,model,body_type
+Toyota,Aqua,hatchback
+Toyota,Vitz,hatchback
+Toyota,Corolla,sedan
+Toyota,Premio,sedan
+Toyota,Allion,sedan
+Toyota,Prius,hatchback
+Toyota,Land Cruiser,suv
+Toyota,Prado,suv
+Toyota,Hilux,pickup
+Toyota,CH-R,suv
+Toyota,Raize,suv
+Toyota,Axio,sedan
+Suzuki,Alto,hatchback
+Suzuki,Wagon R,hatchback
+Suzuki,Spacia,hatchback
+Suzuki,Swift,hatchback
+Suzuki,Every,van
+Suzuki,Vitara,suv
+Honda,Vezel,suv
+Honda,Fit,hatchback
+Honda,Grace,sedan
+Honda,Civic,sedan
+Honda,CR-V,suv
+Honda,Insight,sedan
+Honda,Shuttle,wagon
+Nissan,X-Trail,suv
+Nissan,Leaf,hatchback
+Nissan,Dayz,hatchback
+Nissan,Sunny,sedan
+Nissan,Patrol,suv
+Nissan,Navara,pickup
+Mitsubishi,Montero,suv
+Mitsubishi,Lancer,sedan
+Mitsubishi,Outlander,suv
+Mitsubishi,Pajero,suv
+Mitsubishi,L200,pickup
+Mazda,Axela,sedan
+Mazda,CX-5,suv
+Mazda,Demio,hatchback
+Hyundai,Tucson,suv
+Hyundai,Santa Fe,suv
+Hyundai,Ioniq,hatchback
+Kia,Sportage,suv
+Kia,Sorento,suv
+Kia,Picanto,hatchback
+Kia,Rio,sedan
+Mercedes-Benz,C-Class,sedan
+Mercedes-Benz,E-Class,sedan
+Mercedes-Benz,GLA,suv
+BMW,3 Series,sedan
+BMW,5 Series,sedan
+BMW,X5,suv
+Audi,A4,sedan
+Audi,A6,sedan
+Audi,Q7,suv
+Micro,Panda,hatchback
+Perodua,Axia,hatchback
+Mahindra,KUV100,suv
+Tata,Nano,hatchback
