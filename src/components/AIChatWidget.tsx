@@ -1,0 +1,634 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Bot,
+  Car,
+  Check,
+  Copy,
+  Database,
+  ExternalLink,
+  Gauge,
+  Loader2,
+  MessageCircle,
+  Search,
+  Send,
+  Settings2,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { type ChatListingResult, sendChatMessage, formatPrice } from "@/services/api";
+import { useAppPreferences } from "@/lib/appPreferences";
+
+const STORAGE_KEY = "autolens_chat_v2";
+const TOOLTIP_KEY = "autolens_chat_tooltip_seen";
+const genId = () => Math.random().toString(36).slice(2, 10);
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  id: string;
+  listings?: ChatListingResult[];
+};
+
+type PromptAction = {
+  label: string;
+  value: string;
+};
+
+type PageContext = {
+  label: string;
+  summary: string;
+  prompts: PromptAction[];
+};
+
+const DEFAULT_PROMPTS: PromptAction[] = [
+  { label: "Find a car", value: "Find practical cars under Rs. 8 million with strong value retention." },
+  { label: "Best deals", value: "Show me the best deal opportunities right now." },
+  { label: "Market snapshot", value: "Give me a live market snapshot and explain what changed." },
+  { label: "Budget shortlist", value: "Build a shortlist for a family buyer with a realistic Sri Lanka budget." },
+];
+
+const CAPABILITIES = [
+  { icon: Search, title: "Find", copy: "Shortlist cars by budget, model, fuel, year, district, and source." },
+  { icon: Gauge, title: "Value", copy: "Explain fair price, confidence, comps, and negotiation room." },
+  { icon: Database, title: "Operate", copy: "Read source freshness, pipeline status, and data gaps." },
+];
+
+function pageContextFor(pathname: string, search: string): PageContext {
+  if (pathname.startsWith("/estimate")) {
+    return {
+      label: "Valuation studio",
+      summary: "The user is on the valuation page and may need help choosing inputs, interpreting confidence, or negotiating from a price range.",
+      prompts: [
+        { label: "Explain inputs", value: "Help me choose valuation inputs and avoid bad assumptions." },
+        { label: "Negotiation angle", value: "If the estimate comes back high or low, how should I negotiate?" },
+        { label: "Confidence", value: "Explain valuation confidence and comparable depth in plain English." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/calculator")) {
+    return {
+      label: "Finance desk",
+      summary: "The user is using lease, duty, and tax planning tools and may need ownership-cost guidance.",
+      prompts: [
+        { label: "Lease plan", value: "Help me plan a lease around a realistic Sri Lankan vehicle budget." },
+        { label: "Duty risk", value: "Explain how engine capacity and duty assumptions can change my decision." },
+        { label: "Monthly cost", value: "Help me estimate total monthly ownership cost beyond the listing price." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/trends")) {
+    return {
+      label: "Trend studio",
+      summary: "The user is studying make/model price movement and may need help reading trends, sample size, and district effects.",
+      prompts: [
+        { label: "Read trend", value: "Explain how to read this make/model trend before buying." },
+        { label: "Depreciation", value: "Which signals suggest a model is holding value or weakening?" },
+        { label: "District effect", value: "How should I compare national and district-level movement?" },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/dealer")) {
+    return {
+      label: "Dealer command center",
+      summary: "The user is in dealer mode and may need help with lead quality, stock pricing, arbitrage, and district demand.",
+      prompts: [
+        { label: "Price stock", value: "Help a dealer price inventory using demand and competitor gaps." },
+        { label: "Lead priority", value: "Which lead and demand signals should I prioritize today?" },
+        { label: "Arbitrage", value: "Explain current arbitrage opportunities by district and model." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/pro")) {
+    return {
+      label: "Pro intelligence",
+      summary: "The user is in the protected Pro dashboard reviewing KPI, district, segment, source, trend, and deal-score analytics.",
+      prompts: [
+        { label: "Read dashboard", value: "Explain the Pro dashboard and call out the most important market signals." },
+        { label: "Find risk", value: "Where could this market data be misleading, and what should I verify first?" },
+        { label: "Export brief", value: "Turn the current Pro analytics into a concise dealer or investor brief." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/blogs")) {
+    return {
+      label: "Research brief",
+      summary: "The user is reading market research and may need a decision checklist or a summary tied back to inventory.",
+      prompts: [
+        { label: "Summarize", value: "Summarize the current market brief into buyer actions." },
+        { label: "Apply it", value: "Turn this insight into a shortlist and negotiation checklist." },
+        { label: "Risk checks", value: "What should I verify before trusting this market signal?" },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/best-picks")) {
+    return {
+      label: "Best picks",
+      summary: "The user is reviewing deal-score filtered listings and may need help comparing picks or spotting weak signals.",
+      prompts: [
+        { label: "Rank picks", value: "Rank the current best-pick style options by buyer usefulness." },
+        { label: "Avoid traps", value: "What deal-score traps should I watch for before contacting a seller?" },
+        { label: "Shortlist", value: "Build a 3-car shortlist from strong value signals." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/map")) {
+    return {
+      label: "Geo intelligence",
+      summary: "The user is studying district pricing and supply concentration.",
+      prompts: [
+        { label: "District read", value: "Explain how district pricing should change my search strategy." },
+        { label: "Colombo vs outside", value: "Compare Colombo and outstation pricing tradeoffs." },
+        { label: "Find district deals", value: "Find districts where the market may have better value." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/listing/")) {
+    return {
+      label: "Listing detail",
+      summary: "The user is inspecting one listing and may need seller, price, finance, and comparable checks.",
+      prompts: [
+        { label: "Check this listing", value: "Help me inspect this listing for price, seller, mileage, and hidden risk." },
+        { label: "Negotiate", value: "Give me a negotiation script for this vehicle." },
+        { label: "Compare peers", value: "Compare this listing against similar market peers." },
+      ],
+    };
+  }
+
+  if (pathname.startsWith("/settings")) {
+    return {
+      label: "Preferences",
+      summary: "The user is adjusting language and theme preferences.",
+      prompts: [
+        { label: "Set up workflow", value: "Suggest the best AutoLens workflow for a buyer this week." },
+        { label: "What can you do?", value: "Explain what you can help me do across this platform." },
+        { label: "Start search", value: "Start a vehicle search from my budget and priorities." },
+      ],
+    };
+  }
+
+  return {
+    label: search ? "Filtered dashboard" : "Market cockpit",
+    summary: search
+      ? `The user is on the main dashboard with URL filters: ${search}.`
+      : "The user is on the main dashboard, browsing live inventory, market concentration, trends, and priced listings.",
+    prompts: DEFAULT_PROMPTS,
+  };
+}
+
+function formatMessage(content: string) {
+  const lines = content.split("\n").filter((line) => line.trim() !== "");
+  const elements: React.ReactNode[] = [];
+  let bullets: string[] = [];
+
+  const flush = (key: string) => {
+    if (!bullets.length) return;
+    elements.push(
+      <ul key={key} className="mt-2 list-disc space-y-1 pl-4">
+        {bullets.map((bullet, index) => (
+          <li key={index}>{bullet}</li>
+        ))}
+      </ul>,
+    );
+    bullets = [];
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) {
+      bullets.push(trimmed.replace(/^(-|\*|•)\s*/, ""));
+      return;
+    }
+
+    flush(`b-${index}`);
+    elements.push(
+      <p key={`p-${index}`} className="mb-2 last:mb-0">
+        {line}
+      </p>,
+    );
+  });
+
+  flush("b-final");
+  return <div>{elements}</div>;
+}
+
+function ListingResults({ messageId, listings }: { messageId: string; listings?: ChatListingResult[] }) {
+  if (!Array.isArray(listings) || listings.length === 0) return null;
+
+  return (
+    <div className="grid w-full max-w-[330px] gap-2">
+      {listings.slice(0, 3).map((item) => (
+        <div key={`${messageId}-${item.id}`} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+          <p className="line-clamp-2 text-xs font-bold leading-snug text-white">{item.title}</p>
+          <p className="mt-1 ui-caption text-zinc-400">
+            {item.price_lkr ? formatPrice(item.price_lkr) : "Price unavailable"}
+            {item.district ? ` · ${item.district}` : ""}
+            {typeof item.deal_score === "number" ? ` · ${item.deal_score.toFixed(0)} score` : ""}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {item.detail_url && (
+              <Link
+                to={item.detail_url}
+                className="tech-label font-bold text-amber-300 no-underline hover:text-amber-200"
+              >
+                Open listing
+              </Link>
+            )}
+            {item.external_url && (
+              <a
+                href={item.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 tech-label font-bold text-zinc-400 no-underline hover:text-zinc-200"
+              >
+                Source
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AIChatWidget() {
+  const { t } = useAppPreferences();
+  const { pathname, search } = useLocation();
+  const pageContext = useMemo(
+    () => pageContextFor(pathname, search),
+    [pathname, search],
+  );
+
+  const [open, setOpen] = useState(false);
+  const [animOut, setAnimOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipOut, setTooltipOut] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
+
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const dismissTooltip = useCallback(() => {
+    setTooltipOut(true);
+    window.setTimeout(() => {
+      setShowTooltip(false);
+      setTooltipOut(false);
+    }, 200);
+    try {
+      localStorage.setItem(TOOLTIP_KEY, "1");
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, []);
+
+  const closePanel = useCallback(() => {
+    setAnimOut(true);
+    window.setTimeout(() => {
+      setOpen(false);
+      setAnimOut(false);
+      setLoading(false);
+      setShowGuide(false);
+    }, 220);
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setMessages(parsed.slice(-24));
+      }
+    } catch {
+      // Ignore storage read failures.
+    }
+
+    const seen = localStorage.getItem(TOOLTIP_KEY);
+    if (!seen) {
+      const timer = window.setTimeout(() => setShowTooltip(true), 2000);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showTooltip) return;
+    const timer = window.setTimeout(() => dismissTooltip(), 8000);
+    return () => window.clearTimeout(timer);
+  }, [showTooltip, dismissTooltip]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-24)));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [messages, mounted]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => textareaRef.current?.focus(), 120);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  const clearChat = () => {
+    setMessages([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage write failures.
+    }
+  };
+
+  const copyMessage = async (id: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId(null), 1200);
+    } catch {
+      // Ignore clipboard errors.
+    }
+  };
+
+  const sendPrompt = async (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed || loading) return;
+
+    const userMsg: Message = { role: "user", content: trimmed, id: genId() };
+    const next = [...messages, userMsg];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const history = next.map((message) => ({ role: message.role, content: message.content }));
+      const response = await sendChatMessage(trimmed, history, {
+        pageContext: {
+          route: `${location.pathname}${location.search}`,
+          page: pageContext.label,
+          summary: pageContext.summary,
+        },
+      });
+      setMessages([
+        ...next,
+        { role: "assistant", content: response.response, id: genId(), listings: response.listings || [] },
+      ]);
+    } catch (err: any) {
+      const fallback =
+        typeof err?.message === "string" && err.message.includes("API error")
+          ? t("chat.error.serviceUnavailable", "The assistant service is temporarily unavailable. Please try again in a moment.")
+          : t("chat.error.connection", "Connection issue. Please try again.");
+      setMessages([...next, { role: "assistant", content: fallback, id: genId() }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const promptActions = pageContext.prompts.length ? pageContext.prompts : DEFAULT_PROMPTS;
+
+  return (
+    <div className="aw">
+      {open && <div className="aw-backdrop" />}
+
+      {showTooltip && !open && (
+        <div
+          className={`${tooltipOut ? "aw-tooltip-out" : "aw-tooltip-in"} fixed bottom-7 right-[92px] z-[9998] hidden max-w-[250px] items-center gap-3 rounded-xl border border-amber-400/25 bg-[#0d1110]/95 px-3 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:flex`}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-500/12 text-amber-300">
+            <Bot className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="m-0 text-xs font-bold text-white">{t("chat.tooltip.title", "Ask AutoLens Copilot")}</p>
+            <p className="m-0 mt-1 ui-caption leading-snug text-zinc-500">
+              {t("chat.tooltip.subtitle", "Find, value, compare, and inspect cars")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        aria-label={open ? t("chat.close", "Close AutoLens Copilot") : t("chat.open", "Open AutoLens Copilot")}
+        aria-expanded={open}
+        onClick={() => {
+          if (showTooltip) dismissTooltip();
+          if (open) closePanel();
+          else setOpen(true);
+        }}
+        className="aw-fab aw-fab-wrapper group flex h-14 w-14 items-center justify-center rounded-full border border-amber-400/30 bg-[#101414] text-amber-300 shadow-[0_18px_50px_rgba(0,0,0,0.45)]"
+      >
+        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+      </button>
+
+      {open && (
+        <section
+          className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-xl border border-white/[0.1] bg-[#090b0b] text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)]`}
+          aria-label="AutoLens Copilot"
+        >
+          <header className="border-b border-white/[0.07] px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-500/12 text-amber-300">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold tracking-tight">{t("chat.header.title", "AutoLens Copilot")}</p>
+                  <p className="mt-0.5 truncate tech-label font-bold text-zinc-500">
+                    {t("chat.header.status", "Live market assistant")}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGuide((value) => !value)}
+                  className={`aw-ctrl flex h-9 w-9 items-center justify-center rounded-xl border ${
+                    showGuide
+                      ? "border-amber-400/35 bg-amber-500/12 text-amber-200"
+                      : "border-white/10 bg-white/[0.03] text-zinc-400"
+                  }`}
+                  aria-label="Show assistant guide"
+                >
+                  <Settings2 className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={closePanel}
+                  className="aw-ctrl flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400"
+                  aria-label={t("chat.close", "Close AutoLens Copilot")}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {showGuide && (
+              <div className="mt-4 grid gap-2 rounded-xl border border-white/[0.08] bg-black/25 p-3">
+                {CAPABILITIES.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={item.title} className="flex gap-3 rounded-xl bg-white/[0.025] p-2.5">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                      <div>
+                        <p className="text-xs font-bold text-white">{item.title}</p>
+                        <p className="mt-0.5 ui-caption leading-snug text-zinc-500">{item.copy}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </header>
+
+          <div className="aw-scroll flex-1 overflow-y-auto px-4 py-4">
+            {messages.length === 0 && (
+              <div className="aw-msg rounded-xl border border-white/[0.08] bg-white/[0.035] p-4">
+                <div className="flex items-center gap-2 tech-label font-bold text-amber-300">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {pageContext.label}
+                </div>
+                <h2 className="mt-3 text-xl font-bold tracking-tight text-white">
+                  {t("chat.intro", "Ask the market copilot before you decide.")}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  {t(
+                    "chat.introBody",
+                    "I can search live listings, explain fair value, compare options, surface deal risk, and read pipeline freshness.",
+                  )}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {promptActions.map((action) => (
+                    <button
+                      key={action.label}
+                      type="button"
+                      onClick={() => sendPrompt(action.value)}
+                      className="aw-chip rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-left text-label font-mono font-bold text-zinc-200"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 space-y-4">
+              {messages.map((message) => {
+                const assistant = message.role === "assistant";
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex flex-col gap-2 ${assistant ? "items-start" : "items-end"}`}
+                  >
+                    <div
+                      className={`max-w-[88%] rounded-xl border px-4 py-3 text-sm leading-relaxed ${
+                        assistant
+                          ? "border-white/[0.08] bg-white/[0.035] text-zinc-100"
+                          : "border-amber-400/25 bg-amber-500/12 text-amber-50"
+                      }`}
+                    >
+                      {assistant ? formatMessage(message.content) : message.content}
+                    </div>
+
+                    {assistant && <ListingResults messageId={message.id} listings={message.listings} />}
+
+                    {assistant && (
+                      <button
+                        type="button"
+                        onClick={() => copyMessage(message.id, message.content)}
+                        className="inline-flex items-center gap-1 tech-label font-bold text-zinc-500 transition-colors hover:text-zinc-300"
+                      >
+                        {copiedId === message.id ? <Check className="h-3 w-3 text-amber-300" /> : <Copy className="h-3 w-3" />}
+                        {copiedId === message.id ? t("chat.copied", "Copied") : t("chat.copy", "Copy")}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {loading && (
+                <div className="inline-flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-200">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t("chat.thinking", "Reading live market context...")}
+                </div>
+              )}
+            </div>
+            <div ref={bottomRef} />
+          </div>
+
+          <footer className="border-t border-white/[0.07] p-4">
+            <div className="mb-3 flex flex-wrap gap-2">
+              {promptActions.slice(0, 2).map((action) => (
+                <button
+                  key={`footer-${action.label}`}
+                  type="button"
+                  onClick={() => sendPrompt(action.value)}
+                  className="aw-chip rounded-xl border border-white/[0.08] bg-white/[0.035] px-2.5 py-1.5 tech-label font-bold text-zinc-400"
+                >
+                  {action.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={clearChat}
+                className="aw-chip rounded-xl border border-white/[0.08] bg-white/[0.025] px-2.5 py-1.5 tech-label font-bold text-zinc-500"
+              >
+                {t("chat.quick.clear", "Clear")}
+              </button>
+            </div>
+
+            <div className={`aw-input-wrap flex items-end gap-2 rounded-xl border border-white/10 bg-black/40 p-2 ${focused ? "focused" : ""}`}>
+              <Car className="mb-2.5 h-4 w-4 shrink-0 text-zinc-600" />
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    sendPrompt(input);
+                  }
+                }}
+                placeholder={t("chat.placeholder", "Ask about budget, value, listings, or seller risk...")}
+                rows={1}
+                className="min-h-10 flex-1 resize-none bg-transparent py-2 text-sm text-white outline-none placeholder:text-zinc-600"
+              />
+              <button
+                type="button"
+                onClick={() => sendPrompt(input)}
+                disabled={!input.trim() || loading}
+                className="aw-send flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-400 text-black disabled:bg-white/[0.06] disabled:text-zinc-600"
+                aria-label={t("chat.send", "Send message")}
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-2 tech-label font-bold text-zinc-600">
+              {t("chat.enterHint", "Enter to send · Shift+Enter for new line")}
+            </p>
+          </footer>
+        </section>
+      )}
+    </div>
+  );
+}

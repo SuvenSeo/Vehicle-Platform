@@ -1,0 +1,1380 @@
+import {
+  CarListing,
+  StatsOverview,
+  PriceEstimate,
+  PriceTrendPoint,
+  PriceTrendSeries,
+  DistrictPrice,
+  FilterState,
+  PipelineStatusResponse,
+  PipelineRunsResponse,
+  PipelineRunRecord,
+  PipelineTriggerJob,
+  PipelineTriggerResponse,
+  DashboardInsights,
+  DistrictQuickInsight,
+  LiveMarketSnapshot,
+  SellerTrustProfile,
+} from "@/types/car";
+import type {
+  ProDetailPayload,
+  ProDistrictProfile,
+  ProMarketSnapshot,
+  ProVehicleLane,
+  ProVehicleLaneFilters,
+} from "@/types/pro";
+import { normalizeVehicleImageUrlWithBase, pickVehicleImageUrl } from "@/lib/listingImage";
+import { formatPriceLkrMillions } from "@/lib/formatting";
+
+const LEGACY_HF_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
+const VERCEL_COLLOCATED_API = "/_/backend/api/v1";
+const HF_COLD_START_TIMEOUT_MS = 60_000;
+
+function isAbsoluteHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+function normalizeApiBasePath(raw: string): string {
+  const trimmed = raw.replace(/\/+$/, "");
+  if (trimmed.endsWith("/api") || trimmed.endsWith("/api/v1")) return trimmed;
+  return `${trimmed}/api/v1`;
+}
+
+function resolveApiBase() {
+  const configured = String(import.meta.env.VITE_API_URL || "").trim();
+
+  if (import.meta.env.DEV) {
+    return normalizeApiBasePath(configured || "/api/v1");
+  }
+
+  if (!configured) {
+    return normalizeApiBasePath(VERCEL_COLLOCATED_API);
+  }
+
+  if (isAbsoluteHttpUrl(configured)) {
+    // Legacy HF default is often unreachable; prefer the Vercel co-located API.
+    if (configured.replace(/\/+$/, "") === LEGACY_HF_API.replace(/\/+$/, "")) {
+      return normalizeApiBasePath(VERCEL_COLLOCATED_API);
+    }
+    return normalizeApiBasePath(configured);
+  }
+
+  return normalizeApiBasePath(configured);
+}
+
+export const API_BASE = resolveApiBase();
+export const LISTINGS_PAGE_SIZE = 12;
+const USE_MOCK = false;
+const REQUEST_TIMEOUT_MS = 25000;
+const MIN_REASONABLE_PRICE_LKR = 100_000;
+
+function resolveSnapshotBase() {
+  const configured = String(import.meta.env.VITE_SNAPSHOT_BASE_URL || "").trim();
+  return configured ? configured.replace(/\/+$/, "") : "";
+}
+
+export const SNAPSHOT_BASE = resolveSnapshotBase();
+
+const SOURCE_LABELS: Record<string, string> = {
+  ikman: "Ikman",
+  riyasewana: "Riyasewana",
+  autolanka: "AutoLanka",
+  autodirect: "AutoDirect",
+  patpat: "Patpat",
+  autostream: "AutoStream",
+  carshop: "Carshop",
+  saleme: "SaleMe",
+  riyahub: "Riyahub",
+  dimo: "Cars at DIMO",
+};
+
+export class APIError extends Error {
+  status: number;
+  detail: string;
+
+  constructor(status: number, detail: string) {
+    super(`API error ${status}: ${detail || "Request failed"}`);
+    this.name = "APIError";
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatRequestOptions {
+  model?: string;
+  pageContext?: {
+    route: string;
+    page: string;
+    summary: string;
+  };
+}
+
+export interface ChatListingResult {
+  id: number;
+  title: string;
+  price_lkr: number | null;
+  district?: string | null;
+  deal_score?: number | null;
+  source?: string | null;
+  detail_url?: string | null;
+  external_url?: string | null;
+}
+
+export interface CustomVehicleComparable {
+  id: number;
+  title: string;
+  price_lkr: number | null;
+  district?: string | null;
+  deal_score?: number | null;
+  detail_url?: string | null;
+  external_url?: string | null;
+}
+
+export interface CustomVehicleEstimateResult {
+  vehicle_label: string;
+  estimated_low_lkr: number;
+  estimated_median_lkr: number;
+  estimated_high_lkr: number;
+  comparable_count: number;
+  confidence: "high" | "medium" | "low";
+  verdict: string;
+  verdict_label: string;
+  delta_pct?: number | null;
+  methodology: string;
+  comparables: CustomVehicleComparable[];
+}
+
+export interface CustomVehicleEstimateInput {
+  make: string;
+  model: string;
+  year: number;
+  mileage_km?: number;
+  condition?: string;
+  transmission?: string;
+  fuel_type?: string;
+  body_type?: string;
+  district?: string;
+  asking_price_lkr?: number;
+}
+
+export interface ListingSourceStat {
+  source: string;
+  label: string;
+  count: number;
+}
+
+export interface ListingSearchSuggestion {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  district?: string;
+  price_lkr?: number | null;
+  source: string;
+  thumbnail_url?: string;
+  url?: string;
+}
+
+export interface FeedbackInput {
+  category: "bug" | "idea" | "data" | "ux" | "general";
+  route?: string;
+  message: string;
+  email?: string;
+}
+
+export interface FeedbackReceipt {
+  id: number;
+  category: string;
+  route?: string | null;
+  status: string;
+  created_at: string;
+}
+
+function canonicalSource(value: unknown): string | null {
+  const compact = String(value || "").trim().toLowerCase().replace(/[-_.\s]/g, "");
+  if (!compact) return null;
+  if (compact.startsWith("ikman")) return "ikman";
+  if (compact.startsWith("riyasewana")) return "riyasewana";
+  if (["autolanka", "autolankacom", "autolankalk", "autolankasite"].includes(compact)) return "autolanka";
+  if (compact.startsWith("autodirect")) return "autodirect";
+  if (compact.startsWith("patpat")) return "patpat";
+  if (compact.startsWith("autostream")) return "autostream";
+  if (compact.startsWith("carshop")) return "carshop";
+  if (["saleme", "salemelk"].includes(compact)) return "saleme";
+  if (["riyahub", "riyahublk"].includes(compact)) return "riyahub";
+  if (["dimo", "carsatdimo", "dimoautomobiles"].includes(compact)) return "dimo";
+  return compact;
+}
+
+function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] || source.replace(/[-_.]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function normalizeConditionFilter(condition?: string): string | undefined {
+  const compact = String(condition || "").trim().toLowerCase().replace(/[-_\s]/g, "");
+  if (!compact || compact === "all") return undefined;
+  if (["brandnew", "new", "unregistered", "zeromileage"].includes(compact)) return "new";
+  if (["reconditioned", "recon"].includes(compact)) return "reconditioned";
+  if (["used", "preowned", "secondowner"].includes(compact)) return "used";
+  return String(condition || "").trim().toLowerCase();
+}
+
+async function parseApiError(response: Response): Promise<APIError> {
+  const raw = await response.text().catch(() => "");
+  let detail = raw || response.statusText || "Request failed";
+
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.detail === "string") {
+        detail = parsed.detail;
+      } else if (Array.isArray(parsed?.detail)) {
+        detail = parsed.detail
+          .map((item: any) => (typeof item?.msg === "string" ? item.msg : JSON.stringify(item)))
+          .join("; ");
+      }
+    } catch {
+      // Keep original text payload as API detail when JSON parsing fails.
+    }
+  }
+
+  return new APIError(response.status, detail);
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeConditionValue(value: unknown): string | undefined {
+  const compact = String(value || "").trim().toLowerCase().replace(/[-_\s]/g, "");
+  if (!compact) return undefined;
+  if (["brandnew", "new", "unregistered", "zerokm", "zeromileage"].includes(compact)) return "brand_new";
+  if (["reconditioned", "recon", "recondition"].includes(compact)) return "reconditioned";
+  if (["used", "preowned", "secondowner"].includes(compact)) return "used";
+  return undefined;
+}
+
+function normalizeTransmissionValue(value: unknown): string | undefined {
+  const compact = String(value || "").trim().toLowerCase().replace(/[-_\s]/g, "");
+  if (!compact) return undefined;
+  if (compact.includes("tiptronic")) return "tiptronic";
+  if (compact.includes("cvt")) return "cvt";
+  if (compact.includes("manual")) return "manual";
+  if (compact.includes("auto")) return "automatic";
+  return undefined;
+}
+
+function normalizeFuelValue(value: unknown): string | undefined {
+  const compact = String(value || "").trim().toLowerCase().replace(/[-_\s]/g, "");
+  if (!compact) return undefined;
+  if (compact.includes("pluginhybrid") || compact.includes("phev")) return "plugin_hybrid";
+  if (compact.includes("hybrid")) return "hybrid";
+  if (compact.includes("diesel")) return "diesel";
+  if (compact.includes("petrol") || compact.includes("gasoline")) return "petrol";
+  if (compact.includes("electric") || compact.includes("ev")) return "electric";
+  return undefined;
+}
+
+function normalizeBodyTypeValue(value: unknown): string | undefined {
+  const compact = String(value || "").trim().toLowerCase().replace(/[-_\s]/g, "");
+  if (!compact) return undefined;
+  if (compact.includes("hatchback")) return "hatchback";
+  if (compact.includes("suv")) return "suv";
+  if (compact.includes("pickup")) return "pickup";
+  if (compact.includes("truck")) return "truck";
+  if (compact.includes("van") || compact.includes("mpv")) return "van";
+  if (compact.includes("wagon")) return "wagon";
+  if (compact.includes("coupe")) return "coupe";
+  if (compact.includes("convertible") || compact.includes("cabriolet")) return "convertible";
+  if (compact.includes("sedan") || compact.includes("saloon")) return "sedan";
+  return undefined;
+}
+
+function normalizeListing(raw: any): CarListing {
+  const sourceUrls = [raw?.url, raw?.detail_url, raw?.external_url];
+  const images = Array.isArray(raw?.images)
+    ? raw.images
+        .map((url: unknown) => normalizeVehicleImageUrlWithBase(url, sourceUrls))
+        .filter((url: string | null): url is string => Boolean(url))
+    : undefined;
+  const thumbnailUrl = pickVehicleImageUrl([raw?.thumbnail_url, ...(images || [])], sourceUrls) || undefined;
+  const listingUrl = String(raw?.url || raw?.detail_url || raw?.external_url || "").trim() || undefined;
+  const detailUrl = String(raw?.detail_url || listingUrl || "").trim() || undefined;
+  const externalUrl = String(raw?.external_url || listingUrl || "").trim() || undefined;
+
+  const condition = normalizeConditionValue(raw?.condition);
+  const transmission = normalizeTransmissionValue(raw?.transmission);
+  const fuelType = normalizeFuelValue(raw?.fuel_type);
+  const bodyType = normalizeBodyTypeValue(raw?.body_type);
+
+  return {
+    ...raw,
+    url: listingUrl,
+    detail_url: detailUrl,
+    external_url: externalUrl,
+    year: Number(raw?.year) || 0,
+    mileage_km: toNumberOrNull(raw?.mileage_km ?? raw?.mileage),
+    engine_cc: toNumberOrNull(raw?.engine_cc ?? raw?.engine_capacity) ?? undefined,
+    price_lkr: toNumberOrNull(raw?.price_lkr),
+    deal_score: toNumberOrNull(raw?.deal_score),
+    market_median_lkr: toNumberOrNull(raw?.market_median_lkr) ?? undefined,
+    condition,
+    transmission,
+    fuel_type: fuelType,
+    body_type: bodyType,
+    thumbnail_url: thumbnailUrl,
+    images,
+  } as CarListing;
+}
+
+const snapshotJsonCache = new Map<string, Promise<unknown>>();
+let snapshotCatalogPromise: Promise<CarListing[] | null> | null = null;
+
+async function fetchSnapshotJSON<T>(fileName: string): Promise<T> {
+  if (!SNAPSHOT_BASE) {
+    throw new Error("Snapshot base is not configured");
+  }
+
+  const normalizedFile = fileName.replace(/^\/+/, "");
+  const url = new URL(`${SNAPSHOT_BASE}/${normalizedFile}`, window.location.origin).toString();
+  const cached = snapshotJsonCache.get(url);
+  if (cached) return cached as Promise<T>;
+
+  const request = fetch(url, {
+    headers: { Accept: "application/json" },
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Snapshot ${normalizedFile} failed with ${response.status}`);
+      }
+      return response.json() as Promise<T>;
+    })
+    .catch((error) => {
+      snapshotJsonCache.delete(url);
+      throw error;
+    });
+
+  snapshotJsonCache.set(url, request);
+  return request as Promise<T>;
+}
+
+async function readSnapshot<T>(fileName: string): Promise<T | null> {
+  if (!SNAPSHOT_BASE) return null;
+  try {
+    return await fetchSnapshotJSON<T>(fileName);
+  } catch {
+    return null;
+  }
+}
+
+function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
+  if (!SNAPSHOT_BASE) return Promise.resolve(null);
+  if (!snapshotCatalogPromise) {
+    snapshotCatalogPromise = readSnapshot<{ items?: unknown[] }>("listing-catalog.json").then((snapshot) => {
+      if (!snapshot || !Array.isArray(snapshot.items)) return null;
+      return snapshot.items.map(normalizeListing);
+    });
+  }
+  return snapshotCatalogPromise;
+}
+
+function normalizeStatsOverview(data: any): StatsOverview {
+  return {
+    total_listings: Number(data?.total_listings ?? data?.priced_listings ?? data?.offers_count) || 0,
+    avg_price_lkr: toNumberOrNull(data?.avg_price_lkr ?? data?.average_price_lkr ?? data?.avg_price) ?? 0,
+    listings_this_week: Number(data?.listings_this_week ?? data?.new_listings_this_week) || 0,
+    price_change_mom: toNumberOrNull(data?.price_change_mom ?? data?.mom_change_pct) ?? 0,
+    top_makes: Array.isArray(data?.top_makes) ? data.top_makes : [],
+    district_count: Number(data?.district_count ?? data?.districts_covered) || 0,
+    good_deals_count: Number(data?.good_deals_count ?? data?.hot_deals_count) || 0,
+    source_count: Number(data?.source_count ?? data?.sources_count) || 0,
+    last_updated: data?.last_updated || data?.last_scrape_at || data?.updated_at
+      ? String(data.last_updated ?? data.last_scrape_at ?? data.updated_at)
+      : null,
+  };
+}
+
+function normalizeLiveMarketData(data: any): LiveMarketSnapshot {
+  return {
+    generated_at: String(data?.generated_at || new Date().toISOString()),
+    total_listings: Number(data?.total_listings || 0),
+    priced_listings: Number(data?.priced_listings || 0),
+    unavailable_price_listings: Number(data?.unavailable_price_listings || 0),
+    avg_price_lkr: toNumberOrNull(data?.avg_price_lkr),
+    latest_listing_at: data?.latest_listing_at ? String(data.latest_listing_at) : null,
+    active_scrape_sources: Array.isArray(data?.active_scrape_sources)
+      ? data.active_scrape_sources.map((row: unknown) => String(row)).filter(Boolean)
+      : [],
+    latest_run: data?.latest_run
+      ? {
+          source: String(data.latest_run.source || "unknown"),
+          status: String(data.latest_run.status || "UNKNOWN"),
+          started_at: data.latest_run.started_at ? String(data.latest_run.started_at) : null,
+          finished_at: data.latest_run.finished_at ? String(data.latest_run.finished_at) : null,
+          listings_found: Number(data.latest_run.listings_found || 0),
+          listings_new: Number(data.latest_run.listings_new || 0),
+          error_message: data.latest_run.error_message ? String(data.latest_run.error_message) : null,
+        }
+      : null,
+    source_status: Array.isArray(data?.source_status)
+      ? data.source_status.map((row: any) => ({
+          source: String(row?.source || "unknown"),
+          status: String(row?.status || "UNKNOWN"),
+          started_at: row?.started_at ? String(row.started_at) : null,
+          finished_at: row?.finished_at ? String(row.finished_at) : null,
+          listings_found: Number(row?.listings_found || 0),
+          listings_new: Number(row?.listings_new || 0),
+          error_message: row?.error_message ? String(row.error_message) : null,
+        }))
+      : [],
+  };
+}
+
+function normalizeDistrictPricesPayload(data: any): DistrictPrice[] {
+  return (data?.points || []).map((p: any) => ({
+    district: p.district,
+    avg_price: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? 0,
+    listing_count: Number(p.count ?? p.listing_count) || 0,
+    lat: toNumberOrNull(p.lat) ?? 0,
+    lng: toNumberOrNull(p.lng) ?? 0,
+    top_make: p?.top_make ? String(p.top_make) : undefined,
+    top_model: p?.top_model ? String(p.top_model) : undefined,
+    top_model_count: toNumberOrNull(p?.top_model_count) ?? undefined,
+  })).filter((p: DistrictPrice) => p.district && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+}
+
+function normalizeListingSourceRows(rows: unknown): ListingSourceStat[] {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => {
+      const item = row as Record<string, unknown>;
+      const source = canonicalSource(item.source || item.label);
+      if (!source) return null;
+      return {
+        source,
+        label: String(item.label || sourceLabel(source)),
+        count: Number(item.count || 0),
+      };
+    })
+    .filter((row): row is ListingSourceStat => Boolean(row && row.source));
+}
+
+function normalizeDashboardInsights(data: Record<string, unknown>): DashboardInsights {
+  const segmentPerformance = Array.isArray(data.segment_performance)
+    ? data.segment_performance.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          segment: String(item.segment || "unknown"),
+          listing_count: Number(item.listing_count || 0),
+          avg_price_lkr: toNumberOrNull(item.avg_price_lkr) ?? 0,
+          change_pct_30d: toNumberOrNull(item.change_pct_30d),
+        };
+      })
+    : [];
+
+  const trendingModels = Array.isArray(data.trending_models)
+    ? data.trending_models.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          make: String(item.make || ""),
+          model: String(item.model || ""),
+          listing_count: Number(item.listing_count || 0),
+          avg_price_lkr: toNumberOrNull(item.avg_price_lkr) ?? 0,
+          movement_pct: toNumberOrNull(item.movement_pct),
+          thumbnail_url: item.thumbnail_url ? String(item.thumbnail_url) : null,
+        };
+      })
+    : [];
+
+  const hotDeals = Array.isArray(data.hot_deals)
+    ? data.hot_deals.reduce<DashboardInsights["hot_deals"]>((acc, row) => {
+        const item = row as Record<string, unknown>;
+        const id = Number(item.id || 0);
+        const price = toNumberOrNull(item.price_lkr);
+
+        if (!Number.isFinite(id) || id <= 0 || price === null || price <= 0) {
+          return acc;
+        }
+
+        acc.push({
+          id,
+          make: String(item.make || ""),
+          model: String(item.model || ""),
+          year: Number(item.year || 0),
+          district: item.district ? String(item.district) : null,
+          source: String(item.source || "unknown"),
+          price_lkr: price,
+          deal_score: toNumberOrNull(item.deal_score) ?? 0,
+          thumbnail_url: item.thumbnail_url ? String(item.thumbnail_url) : null,
+        });
+        return acc;
+      }, [])
+    : [];
+
+  return {
+    new_listings_24h: Number(data.new_listings_24h || 0),
+    segment_performance: segmentPerformance,
+    trending_models: trendingModels,
+    hot_deals: hotDeals,
+  };
+}
+
+function textIncludes(value: unknown, needle: string): boolean {
+  return String(value || "").toLowerCase().includes(needle);
+}
+
+function isPricedListing(listing: CarListing): boolean {
+  const price = toNumberOrNull(listing.price_lkr);
+  return price !== null && price >= MIN_REASONABLE_PRICE_LKR;
+}
+
+function listingTimestamp(listing: CarListing): number {
+  const parsed = Date.parse(String(listing.scraped_at || listing.first_seen_at || ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function matchesSnapshotFilters(listing: CarListing, filters: FilterState): boolean {
+  const q = String(filters.q || "").trim().toLowerCase();
+  if (q) {
+    const haystack = [
+      listing.title,
+      listing.make,
+      listing.model,
+      listing.variant,
+      listing.district,
+      listing.city,
+      listing.source,
+      listing.year,
+    ];
+    if (!haystack.some((value) => textIncludes(value, q))) return false;
+  }
+
+  const listingSource = canonicalSource(listing.source);
+  const filterSource = canonicalSource(filters.source);
+  if (filterSource && listingSource !== filterSource) return false;
+
+  if (filters.make && String(listing.make || "").toLowerCase() !== String(filters.make).toLowerCase()) return false;
+  if (filters.model && String(listing.model || "").toLowerCase() !== String(filters.model).toLowerCase()) return false;
+  if (filters.district && String(listing.district || "").toLowerCase() !== String(filters.district).toLowerCase()) return false;
+  if (filters.year_min && Number(listing.year || 0) < filters.year_min) return false;
+  if (filters.year_max && Number(listing.year || 0) > filters.year_max) return false;
+  if (filters.mileage_max && Number(listing.mileage_km || 0) > filters.mileage_max) return false;
+
+  if (filters.condition && normalizeConditionValue(listing.condition) !== filters.condition) return false;
+  if (filters.body_type && normalizeBodyTypeValue(listing.body_type) !== filters.body_type) return false;
+  if (filters.transmission && normalizeTransmissionValue(listing.transmission) !== filters.transmission) return false;
+  if (filters.fuel_type && normalizeFuelValue(listing.fuel_type) !== filters.fuel_type) return false;
+
+  const price = toNumberOrNull(listing.price_lkr);
+  if (filters.price_availability === "priced" && !isPricedListing(listing)) return false;
+  if (filters.price_availability === "unavailable" && isPricedListing(listing)) return false;
+  if (filters.price_min !== undefined && filters.price_min !== null && (price === null || price < filters.price_min)) return false;
+  if (filters.price_max !== undefined && filters.price_max !== null && (price === null || price > filters.price_max)) return false;
+
+  return true;
+}
+
+function sortSnapshotListings(listings: CarListing[], sort: FilterState["sort"]): CarListing[] {
+  return [...listings].sort((a, b) => {
+    if (sort === "deal_score") {
+      return (toNumberOrNull(b.deal_score) ?? -Infinity) - (toNumberOrNull(a.deal_score) ?? -Infinity)
+        || listingTimestamp(b) - listingTimestamp(a)
+        || Number(b.id || 0) - Number(a.id || 0);
+    }
+    if (sort === "price_asc") {
+      return (toNumberOrNull(a.price_lkr) ?? Infinity) - (toNumberOrNull(b.price_lkr) ?? Infinity)
+        || listingTimestamp(b) - listingTimestamp(a);
+    }
+    if (sort === "price_desc") {
+      return (toNumberOrNull(b.price_lkr) ?? -Infinity) - (toNumberOrNull(a.price_lkr) ?? -Infinity)
+        || listingTimestamp(b) - listingTimestamp(a);
+    }
+    if (sort === "mileage_asc") {
+      return (toNumberOrNull(a.mileage_km) ?? Infinity) - (toNumberOrNull(b.mileage_km) ?? Infinity)
+        || listingTimestamp(b) - listingTimestamp(a);
+    }
+    return listingTimestamp(b) - listingTimestamp(a) || Number(b.id || 0) - Number(a.id || 0);
+  });
+}
+
+function filterSnapshotListings(
+  catalog: CarListing[],
+  filters: FilterState,
+  pageSize = LISTINGS_PAGE_SIZE,
+): { listings: CarListing[]; total: number } {
+  const matched = catalog.filter((listing) => matchesSnapshotFilters(listing, filters));
+  const sorted = sortSnapshotListings(matched, filters.sort || "newest");
+  const page = Math.max(1, Number(filters.page || 1));
+  const size = Math.max(1, pageSize);
+  const start = (page - 1) * size;
+  return {
+    listings: sorted.slice(start, start + size),
+    total: matched.length,
+  };
+}
+
+function deriveMakes(catalog: CarListing[]): { make: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const listing of catalog) {
+    const make = String(listing.make || "").trim();
+    if (!make) continue;
+    counts.set(make, (counts.get(make) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([make, count]) => ({ make, count }))
+    .sort((a, b) => b.count - a.count || a.make.localeCompare(b.make));
+}
+
+function deriveModels(catalog: CarListing[], make: string): { model: string; count: number }[] {
+  const makeKey = String(make || "").trim().toLowerCase();
+  const counts = new Map<string, number>();
+  for (const listing of catalog) {
+    if (makeKey && String(listing.make || "").toLowerCase() !== makeKey) continue;
+    const model = String(listing.model || "").trim();
+    if (!model) continue;
+    counts.set(model, (counts.get(model) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([model, count]) => ({ model, count }))
+    .sort((a, b) => b.count - a.count || a.model.localeCompare(b.model));
+}
+
+function deriveSources(catalog: CarListing[]): ListingSourceStat[] {
+  const counts = new Map<string, number>();
+  for (const listing of catalog) {
+    const source = canonicalSource(listing.source);
+    if (!source) continue;
+    counts.set(source, (counts.get(source) || 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([source, count]) => ({ source, label: sourceLabel(source), count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function searchSuggestionsFromCatalog(catalog: CarListing[], q: string, limit: number): ListingSearchSuggestion[] {
+  const query = String(q || "").trim().toLowerCase();
+  if (!query) return [];
+  return sortSnapshotListings(catalog.filter((listing) => matchesSnapshotFilters(listing, {
+    q: query,
+    sort: "newest",
+    page: 1,
+  })), "newest")
+    .slice(0, Math.max(1, limit))
+    .map((listing) => ({
+      id: Number(listing.id),
+      make: String(listing.make || "").trim(),
+      model: String(listing.model || "").trim(),
+      year: Number(listing.year) || 0,
+      district: listing.district ? String(listing.district) : undefined,
+      price_lkr: toNumberOrNull(listing.price_lkr),
+      source: canonicalSource(listing.source) || String(listing.source || "unknown").trim().toLowerCase(),
+      thumbnail_url: listing.thumbnail_url ? String(listing.thumbnail_url) : undefined,
+      url: listing.url ? String(listing.url) : undefined,
+    }))
+    .filter((row) => row.id > 0 && row.make && row.model && row.year > 0);
+}
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function buildSnapshotTrendSeries(
+  catalog: CarListing[],
+  make: string,
+  model: string,
+  condition?: string,
+  district?: string,
+): PriceTrendSeries {
+  const makeKey = String(make || "").trim().toLowerCase();
+  const modelKey = String(model || "").trim().toLowerCase();
+  const conditionKey = normalizeConditionValue(condition) || normalizeConditionValue(normalizeConditionFilter(condition));
+  const districtKey = String(district || "").trim().toLowerCase();
+
+  const rows = catalog.filter((listing) => {
+    if (makeKey && String(listing.make || "").toLowerCase() !== makeKey) return false;
+    if (modelKey && String(listing.model || "").toLowerCase() !== modelKey) return false;
+    if (conditionKey && normalizeConditionValue(listing.condition) !== conditionKey) return false;
+    if (districtKey && String(listing.district || "").toLowerCase() !== districtKey) return false;
+    return isPricedListing(listing);
+  });
+
+  const prices = rows
+    .map((listing) => toNumberOrNull(listing.price_lkr))
+    .filter((price): price is number => price !== null && price >= MIN_REASONABLE_PRICE_LKR);
+
+  if (prices.length === 0) {
+    return {
+      points: [],
+      coverage_scope: "none",
+      coverage_note: "No matching listings in the current public snapshot.",
+    };
+  }
+
+  const now = new Date();
+  const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const avg = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+
+  return {
+    points: [{
+      month,
+      median_price: Math.round(median(prices)),
+      avg_price: Math.round(avg),
+      sample_count: prices.length,
+    }],
+    coverage_scope: "current_snapshot",
+    coverage_note: "Current public snapshot only; historical trend data needs the live API.",
+  };
+}
+
+async function fetchJSON<T>(path: string, params?: Record<string, any>): Promise<T> {
+  if (USE_MOCK) throw new Error("Mock mode is disabled");
+
+  const url = new URL(`${API_BASE}${path}`, window.location.origin);
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
+    });
+  }
+
+  const timeoutMs = API_BASE.includes("hf.space") ? HF_COLD_START_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url.toString(), {
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw await parseApiError(response);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      if (!isAbort || attempt === 1) {
+        throw error;
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError;
+}
+
+async function postJSON<T>(path: string, body: Record<string, any>, headers?: Record<string, string>): Promise<T> {
+  if (USE_MOCK) throw new Error("Mock mode is disabled");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  const response = await fetch(new URL(`${API_BASE}${path}`, window.location.origin).toString(), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(headers || {}),
+    },
+    body: JSON.stringify(body),
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
+
+  if (!response.ok) {
+    throw await parseApiError(response);
+  }
+
+  return response.json();
+}
+
+export const getStats = async (): Promise<StatsOverview> => {
+  const snapshot = await readSnapshot<any>("stats-summary.json");
+  if (snapshot) return normalizeStatsOverview(snapshot);
+
+  const data = await fetchJSON<any>("/stats/summary");
+  return normalizeStatsOverview(data);
+};
+
+export const getLiveMarketSnapshot = async (): Promise<LiveMarketSnapshot> => {
+  const snapshot = await readSnapshot<any>("live-market.json");
+  if (snapshot) return normalizeLiveMarketData(snapshot);
+
+  const data = await fetchJSON<any>("/stats/live");
+  return normalizeLiveMarketData(data);
+};
+
+export const getLiveMarketStreamUrl = (): string => {
+  return new URL(`${API_BASE}/stats/live/stream`, window.location.origin).toString();
+};
+
+export const getListings = async (filters: FilterState): Promise<{ listings: CarListing[]; total: number }> => {
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return filterSnapshotListings(catalog, filters);
+
+  const data = await fetchJSON<any>("/listings", {
+    ...filters,
+    size: LISTINGS_PAGE_SIZE,
+  });
+  return {
+    listings: (data.items || []).map(normalizeListing),
+    total: data.total || 0
+  };
+};
+
+export const sendFeedback = async (payload: FeedbackInput): Promise<FeedbackReceipt> => {
+  const data = await postJSON<any>("/feedback", {
+    category: payload.category,
+    route: payload.route,
+    message: payload.message,
+    email: payload.email || undefined,
+  });
+
+  return {
+    id: Number(data?.id || 0),
+    category: String(data?.category || payload.category),
+    route: data?.route ? String(data.route) : null,
+    status: String(data?.status || "new"),
+    created_at: String(data?.created_at || new Date().toISOString()),
+  };
+};
+
+export const getListing = async (id: string | number) => {
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) {
+    const match = catalog.find((listing) => String(listing.id) === String(id));
+    if (match) return match;
+  }
+
+  const data = await fetchJSON<any>(`/listings/${id}`);
+  return normalizeListing(data);
+};
+
+export const getSellerTrustProfile = async (id: string | number): Promise<SellerTrustProfile> => {
+  const data = await fetchJSON<any>(`/listings/${id}/seller-profile`);
+  const sellerTypeRaw = String(data?.seller_type || "").toLowerCase();
+  const sellerType: SellerTrustProfile["seller_type"] =
+    sellerTypeRaw === "dealer" || sellerTypeRaw === "private" ? sellerTypeRaw : "unknown";
+
+  return {
+    source: String(data?.source || ""),
+    source_url: String(data?.source_url || ""),
+    seller_name: data?.seller_name ? String(data.seller_name) : undefined,
+    seller_type: sellerType,
+    member_since: data?.member_since ? String(data.member_since) : undefined,
+    listing_count: toNumberOrNull(data?.listing_count) ?? undefined,
+    review_count: toNumberOrNull(data?.review_count) ?? undefined,
+    rating: toNumberOrNull(data?.rating) ?? undefined,
+    phone_numbers: Array.isArray(data?.phone_numbers)
+      ? data.phone_numbers.map((row: unknown) => String(row)).filter(Boolean)
+      : [],
+    whatsapp_numbers: Array.isArray(data?.whatsapp_numbers)
+      ? data.whatsapp_numbers.map((row: unknown) => String(row)).filter(Boolean)
+      : [],
+    verified_badges: Array.isArray(data?.verified_badges)
+      ? data.verified_badges.map((row: unknown) => String(row)).filter(Boolean)
+      : [],
+    fetched_at: data?.fetched_at ? String(data.fetched_at) : undefined,
+  };
+};
+
+export const getSimilarListings = async (id: string | number) => {
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) {
+    const base = catalog.find((listing) => String(listing.id) === String(id));
+    if (base) {
+      return sortSnapshotListings(
+        catalog.filter((listing) => (
+          listing.id !== base.id
+          && String(listing.make || "").toLowerCase() === String(base.make || "").toLowerCase()
+          && String(listing.model || "").toLowerCase() === String(base.model || "").toLowerCase()
+        )),
+        "deal_score",
+      ).slice(0, 8);
+    }
+  }
+
+  const data = await fetchJSON<any[]>(`/listings/${id}/similar`);
+  return (data || []).map(normalizeListing);
+};
+
+export const getDistrictPrices = async (): Promise<DistrictPrice[]> => {
+  const snapshot = await readSnapshot<any>("district-prices.json");
+  if (snapshot) return normalizeDistrictPricesPayload(snapshot);
+
+  const data = await fetchJSON<any>("/stats/district-prices");
+  return normalizeDistrictPricesPayload(data);
+};
+
+export const getMakes = async () => {
+  const snapshot = await readSnapshot<unknown>("listing-makes.json");
+  if (Array.isArray(snapshot)) return snapshot as { make: string; count: number }[];
+
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return deriveMakes(catalog);
+
+  return fetchJSON<{ make: string; count: number }[]>("/listings/makes");
+};
+
+export const getListingSearchSuggestions = async (
+  q: string,
+  limit = 8,
+): Promise<ListingSearchSuggestion[]> => {
+  const query = String(q || "").trim();
+  if (!query) return [];
+
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return searchSuggestionsFromCatalog(catalog, query, limit);
+
+  const data = await fetchJSON<any[]>("/listings/search-suggestions", { q: query, limit });
+  if (!Array.isArray(data)) return [];
+
+  return data
+    .map((row) => {
+      const source = canonicalSource(row?.source) || String(row?.source || "unknown").trim().toLowerCase();
+      return {
+        id: Number(row?.id),
+        make: String(row?.make || "").trim(),
+        model: String(row?.model || "").trim(),
+        year: Number(row?.year) || 0,
+        district: row?.district ? String(row.district) : undefined,
+        price_lkr: toNumberOrNull(row?.price_lkr),
+        source,
+        thumbnail_url: row?.thumbnail_url ? String(row.thumbnail_url) : undefined,
+        url: row?.url ? String(row.url) : undefined,
+      };
+    })
+    .filter((row) => row.id > 0 && row.make && row.model && row.year > 0);
+};
+
+export const getListingSources = async (): Promise<ListingSourceStat[]> => {
+  const snapshot = await readSnapshot<unknown>("listing-sources.json");
+  const snapshotRows = normalizeListingSourceRows(snapshot);
+  if (snapshotRows.length > 0) return snapshotRows;
+
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return deriveSources(catalog);
+
+  try {
+    const rows = await fetchJSON<Array<Record<string, unknown>>>("/listings/sources");
+    if (!Array.isArray(rows)) return [];
+    const normalized = normalizeListingSourceRows(rows);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  } catch {
+    // Fall through to client-side source derivation for older backend deployments.
+  }
+
+  const data = await fetchJSON<any>("/listings", { page: 1, size: 200, sort: "newest" });
+  const counts = new Map<string, number>();
+  for (const item of Array.isArray(data?.items) ? data.items : []) {
+    const source = canonicalSource(item?.source);
+    if (!source) continue;
+    counts.set(source, (counts.get(source) || 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([source, count]) => ({ source, label: sourceLabel(source), count }))
+    .sort((a, b) => b.count - a.count);
+};
+
+export const getModels = async (make: string) => {
+  const snapshot = await readSnapshot<Record<string, { model: string; count: number }[]>>("listing-models.json");
+  if (snapshot) {
+    const makeKey = Object.keys(snapshot).find((key) => key.toLowerCase() === String(make || "").toLowerCase());
+    if (makeKey && Array.isArray(snapshot[makeKey])) return snapshot[makeKey];
+  }
+
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return deriveModels(catalog, make);
+
+  return fetchJSON<{ model: string; count: number }[]>("/listings/models", { make });
+};
+
+export const estimatePrice = async (params: any): Promise<PriceEstimate> => {
+  const normalizedCondition = normalizeConditionFilter(params?.condition);
+  const payload = {
+    ...params,
+    condition: normalizedCondition,
+    mileage: params.mileage ?? params.mileage_km,
+  };
+
+  try {
+    const data = await fetchJSON<any>("/listings/estimate", payload);
+    const comparableCount = Number(data?.comparable_listings || 0);
+    return {
+      median: toNumberOrNull(data?.estimated_price_lkr) ?? 0,
+      low: toNumberOrNull(data?.price_range_low) ?? 0,
+      high: toNumberOrNull(data?.price_range_high) ?? 0,
+      comparable_count: comparableCount,
+      confidence: comparableCount > 10 ? "high" : (comparableCount > 3 ? "medium" : "low"),
+      currency: "LKR",
+      methodology: "exact make-model-year estimate",
+      mileage_adjusted: Boolean(params?.mileage ?? params?.mileage_km),
+    };
+  } catch (error) {
+    // Legacy /estimate is strict. Fall back to calibrated custom-estimate for better coverage.
+    if (!(error instanceof APIError) || ![404, 422].includes(error.status)) {
+      throw error;
+    }
+
+    const fallback = await postJSON<any>("/listings/custom-estimate", {
+      make: params?.make,
+      model: params?.model,
+      year: params?.year,
+      mileage_km: params?.mileage_km ?? params?.mileage,
+      condition: normalizedCondition,
+      transmission: params?.transmission,
+      fuel_type: params?.fuel_type,
+      body_type: params?.body_type,
+      district: params?.district,
+      asking_price_lkr: params?.asking_price_lkr,
+    });
+
+    const comparableCount = Number(fallback?.comparable_count || 0);
+    const confidence = String(fallback?.confidence || "").toLowerCase();
+    const normalizedConfidence: PriceEstimate["confidence"] =
+      confidence === "high" || confidence === "medium" || confidence === "low"
+        ? confidence
+        : (comparableCount > 10 ? "high" : (comparableCount > 3 ? "medium" : "low"));
+
+    return {
+      median: toNumberOrNull(fallback?.estimated_median_lkr) ?? 0,
+      low: toNumberOrNull(fallback?.estimated_low_lkr) ?? 0,
+      high: toNumberOrNull(fallback?.estimated_high_lkr) ?? 0,
+      comparable_count: comparableCount,
+      confidence: normalizedConfidence,
+      currency: "LKR",
+      methodology: String(fallback?.methodology || "fallback custom-estimate strategy"),
+      mileage_adjusted: Boolean(params?.mileage ?? params?.mileage_km),
+    };
+  }
+};
+
+export const estimateCustomVehicle = async (
+  params: CustomVehicleEstimateInput,
+): Promise<CustomVehicleEstimateResult> => {
+  const data = await postJSON<any>("/listings/custom-estimate", params);
+  return {
+    vehicle_label: String(data?.vehicle_label || `${params.make} ${params.model}`),
+    estimated_low_lkr: toNumberOrNull(data?.estimated_low_lkr) ?? 0,
+    estimated_median_lkr: toNumberOrNull(data?.estimated_median_lkr) ?? 0,
+    estimated_high_lkr: toNumberOrNull(data?.estimated_high_lkr) ?? 0,
+    comparable_count: Number(data?.comparable_count) || 0,
+    confidence: (data?.confidence as CustomVehicleEstimateResult["confidence"]) || "low",
+    verdict: String(data?.verdict || ""),
+    verdict_label: String(data?.verdict_label || ""),
+    delta_pct: toNumberOrNull(data?.delta_pct),
+    methodology: String(data?.methodology || ""),
+    comparables: Array.isArray(data?.comparables)
+      ? data.comparables.map((row: any) => ({
+          id: Number(row?.id),
+          title: String(row?.title || "Listing"),
+          price_lkr: toNumberOrNull(row?.price_lkr),
+          district: row?.district ? String(row.district) : null,
+          deal_score: toNumberOrNull(row?.deal_score),
+          detail_url: row?.detail_url ? String(row.detail_url) : null,
+          external_url: row?.external_url ? String(row.external_url) : null,
+        }))
+      : [],
+  };
+};
+
+export const getListingThumbnailProxyUrl = (listingId: number | string): string => {
+  return `${API_BASE}/listings/${listingId}/thumbnail-proxy`;
+};
+
+export const getPriceTrendSeries = async (
+  make: string,
+  model: string,
+  condition?: string,
+  district?: string
+): Promise<PriceTrendSeries> => {
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return buildSnapshotTrendSeries(catalog, make, model, condition, district);
+
+  const normalizedCondition = normalizeConditionFilter(condition);
+  const normalizedDistrict = String(district || "").trim() || undefined;
+  const data = await fetchJSON<any>("/stats/trends", {
+    make,
+    model,
+    ...(normalizedCondition ? { condition: normalizedCondition } : {}),
+    ...(normalizedDistrict ? { district: normalizedDistrict } : {}),
+  });
+  const points = (data.points || []).map((p: any) => ({
+    month: `${p.year}-${String(p.month).padStart(2, "0")}`,
+    median_price: toNumberOrNull(p.median_price_lkr ?? p.avg_price_lkr) ?? 0,
+    avg_price: toNumberOrNull(p.avg_price_lkr) ?? 0,
+    sample_count: Number(p.listing_count) || 0,
+  })).sort((a: PriceTrendPoint, b: PriceTrendPoint) => a.month.localeCompare(b.month));
+
+  const rawScope = String(data?.coverage_scope || "exact");
+  const allowedScopes = new Set<PriceTrendSeries["coverage_scope"]>([
+    "exact",
+    "condition_fallback",
+    "district_fallback",
+    "national_fallback",
+    "partial",
+    "current_snapshot",
+    "current_snapshot_fallback",
+    "none",
+  ]);
+
+  return {
+    points,
+    coverage_scope: allowedScopes.has(rawScope as PriceTrendSeries["coverage_scope"])
+      ? (rawScope as PriceTrendSeries["coverage_scope"])
+      : "exact",
+    coverage_note: data?.coverage_note ? String(data.coverage_note) : null,
+  };
+};
+
+export const getPriceTrends = async (
+  make: string,
+  model: string,
+  condition?: string,
+  district?: string
+): Promise<PriceTrendPoint[]> => {
+  const series = await getPriceTrendSeries(make, model, condition, district);
+  return series.points;
+};
+
+export const getPipelineStatus = async () => {
+  const snapshot = await readSnapshot<PipelineStatusResponse>("pipeline-status.json");
+  if (snapshot) return snapshot;
+  return fetchJSON<PipelineStatusResponse>("/pipeline/status");
+};
+
+export const getPipelineRuns = async (limit = 20): Promise<PipelineRunsResponse> => {
+  const data = await fetchJSON<Record<string, unknown>>("/pipeline/runs", { limit });
+  const runs: PipelineRunRecord[] = Array.isArray(data.runs)
+    ? data.runs.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          id: Number(item.id || 0),
+          source: String(item.source || "unknown"),
+          status: String(item.status || "UNKNOWN"),
+          started_at: item.started_at ? String(item.started_at) : null,
+          finished_at: item.finished_at ? String(item.finished_at) : null,
+          listings_found: Number(item.listings_found || 0),
+          listings_new: Number(item.listings_new || 0),
+          error_message: item.error_message ? String(item.error_message) : null,
+        };
+      })
+    : [];
+
+  return {
+    count: Number(data.count || runs.length),
+    runs,
+  };
+};
+
+export const triggerPipelineJob = async (job: PipelineTriggerJob, adminKey?: string): Promise<PipelineTriggerResponse> => {
+  const data = await postJSON<Record<string, unknown>>(
+    "/pipeline/trigger",
+    { job },
+    adminKey ? { "X-Admin-Key": adminKey } : undefined,
+  );
+
+  return {
+    accepted: Boolean(data.accepted),
+    job: (String(data.job || job) as PipelineTriggerJob),
+    pid: Number(data.pid || 0),
+    command: String(data.command || ""),
+    started_at: String(data.started_at || new Date().toISOString()),
+  };
+};
+
+export const getDashboardInsights = async (): Promise<DashboardInsights> => {
+  const snapshot = await readSnapshot<Record<string, unknown>>("dashboard-insights.json");
+  if (snapshot) return normalizeDashboardInsights(snapshot);
+
+  const data = await fetchJSON<Record<string, unknown>>("/stats/insights");
+  return normalizeDashboardInsights(data);
+};
+
+export const getProMarketSnapshot = async (): Promise<ProMarketSnapshot> => {
+  return fetchJSON<ProMarketSnapshot>("/pro/market-snapshot");
+};
+
+export const getProVehicleLanes = async (
+  filters: ProVehicleLaneFilters = {},
+): Promise<ProVehicleLane[]> => {
+  return fetchJSON<ProVehicleLane[]>("/pro/vehicle-lanes", filters);
+};
+
+export const getProDistricts = async (): Promise<ProDistrictProfile[]> => {
+  return fetchJSON<ProDistrictProfile[]>("/pro/districts");
+};
+
+export const getProVehicleLaneDetail = async (
+  params: Pick<ProVehicleLaneFilters, "make" | "model" | "district" | "condition">,
+): Promise<ProDetailPayload> => {
+  return fetchJSON<ProDetailPayload>("/pro/vehicle-lane-detail", params);
+};
+
+export const getProDistrictDetail = async (district: string): Promise<ProDetailPayload> => {
+  return fetchJSON<ProDetailPayload>("/pro/district-detail", { district });
+};
+
+export const getListingsForExport = async (
+  filters: FilterState,
+  maxRows = 100,
+): Promise<{ listings: CarListing[]; total: number }> => {
+  const size = Math.max(1, Math.min(100, Math.floor(maxRows)));
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
+
+  const data = await fetchJSON<any>("/listings", {
+    ...filters,
+    page: 1,
+    size,
+  });
+
+  return {
+    listings: (data.items || []).map(normalizeListing),
+    total: Number(data.total || 0),
+  };
+};
+
+export const getDistrictQuickInsight = async (district: string): Promise<DistrictQuickInsight> => {
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) {
+    const districtKey = String(district || "").trim().toLowerCase();
+    const rows = catalog.filter((listing) => String(listing.district || "").toLowerCase() === districtKey);
+    if (rows.length > 0) {
+      const priced = rows.map((listing) => toNumberOrNull(listing.price_lkr)).filter((price): price is number => price !== null);
+      const sortedPrices = [...priced].sort((a, b) => a - b);
+      const modelCounts = new Map<string, { make: string; model: string; count: number; total: number }>();
+      for (const listing of rows) {
+        const price = toNumberOrNull(listing.price_lkr);
+        const make = String(listing.make || "").trim();
+        const model = String(listing.model || "").trim();
+        if (!make || !model || price === null) continue;
+        const key = `${make}\u0000${model}`;
+        const existing = modelCounts.get(key) || { make, model, count: 0, total: 0 };
+        existing.count += 1;
+        existing.total += price;
+        modelCounts.set(key, existing);
+      }
+
+      return {
+        district,
+        listing_count: rows.length,
+        avg_price_lkr: priced.length ? priced.reduce((sum, price) => sum + price, 0) / priced.length : null,
+        median_price_lkr: sortedPrices.length ? sortedPrices[Math.floor(sortedPrices.length / 2)] : null,
+        change_pct_30d: null,
+        top_models: Array.from(modelCounts.values())
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+          .map((row) => ({
+            make: row.make,
+            model: row.model,
+            listing_count: row.count,
+            avg_price_lkr: row.total / row.count,
+          })),
+      };
+    }
+  }
+
+  const data = await fetchJSON<Record<string, unknown>>("/stats/district-insight", { district });
+
+  const topModels = Array.isArray(data.top_models)
+    ? data.top_models.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          make: String(item.make || ""),
+          model: String(item.model || ""),
+          listing_count: Number(item.listing_count || 0),
+          avg_price_lkr: toNumberOrNull(item.avg_price_lkr) ?? 0,
+        };
+      })
+    : [];
+
+  return {
+    district: String(data.district || district),
+    listing_count: Number(data.listing_count || 0),
+    avg_price_lkr: toNumberOrNull(data.avg_price_lkr),
+    median_price_lkr: toNumberOrNull(data.median_price_lkr),
+    change_pct_30d: toNumberOrNull(data.change_pct_30d),
+    top_models: topModels,
+  };
+};
+
+export const formatPrice = (price: number | null): string => {
+  return formatPriceLkrMillions(price);
+};
+
+export const formatNumber = (num: number): string => {
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+};
+
+export const sendChatMessage = async (
+  message: string,
+  history: ChatMessage[],
+  options?: ChatRequestOptions,
+) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  const model = String(options?.model || "").trim();
+  const pageContext = options?.pageContext;
+
+  const response = await fetch(new URL(`${API_BASE}/chat`, window.location.origin).toString(), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message,
+      history,
+      ...(model ? { model } : {}),
+      ...(pageContext ? { page_context: pageContext } : {}),
+    }),
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`API error ${response.status}: ${errorText || response.statusText}`);
+  }
+
+  const data = await response.json().catch(() => ({}));
+  return {
+    response: String(data?.response || data?.message || "No response available"),
+    listings: Array.isArray(data?.listings)
+      ? data.listings
+          .map((row: any) => ({
+            id: Number(row?.id),
+            title: String(row?.title || "Listing"),
+            price_lkr: toNumberOrNull(row?.price_lkr),
+            district: row?.district ? String(row.district) : null,
+            deal_score: toNumberOrNull(row?.deal_score),
+            source: row?.source ? String(row.source) : null,
+            detail_url: row?.detail_url ? String(row.detail_url) : null,
+            external_url: row?.external_url ? String(row.external_url) : null,
+          }))
+          .filter((row: ChatListingResult) => Number.isFinite(row.id) && row.id > 0)
+      : [],
+  };
+};
