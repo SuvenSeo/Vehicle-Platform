@@ -1,125 +1,74 @@
 import { useState } from "react";
 import { formatPrice } from "@/services/api";
 import { Input } from "@/components/ui/input";
-import { Calculator as CalcIcon, Banknote, Gauge, ShieldCheck, WalletCards } from "lucide-react";
+import { Banknote, Gauge, ShieldCheck, WalletCards } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { TaxBreakdown } from "@/components/TaxBreakdown";
-import { PlatformPageHero } from "@/components/PlatformPageHero";
-import { PageCanvas } from "@/components/PageCanvas";
 
 export default function Calculator() {
-  const [price, setPrice] = useState<number>(15000000);
-  const [engineCapacity, setEngineCapacity] = useState<number>(1500);
+  const [price, setPrice] = useState(15000000);
+  const [engineCapacity, setEngineCapacity] = useState(1500);
   const dutyRisk = engineCapacity > 2000 ? "High" : engineCapacity > 1500 ? "Medium" : "Low";
-  const monthlyPlanningBaseline = Math.round(price * 0.018 / 1000) * 1000;
+  const monthlyBaseline = Math.round(price * 0.018 / 1000) * 1000;
+  const dutyTone = dutyRisk === "High" ? "text-rose-400" : dutyRisk === "Medium" ? "text-amber-400" : "text-emerald-400";
 
-  const dutyTone =
-    dutyRisk === "High"
-      ? "text-rose-400"
-      : dutyRisk === "Medium"
-        ? "text-amber-400"
-        : "text-emerald-400";
-
-  const planningTiles = [
-    {
-      label: "Planning reserve",
-      value: formatPrice(Math.round(price * 0.12)),
-      icon: WalletCards,
-      tone: "text-white",
-    },
-    {
-      label: "Duty sensitivity",
-      value: dutyRisk,
-      icon: ShieldCheck,
-      tone: dutyTone,
-    },
-    {
-      label: "Monthly buffer",
-      value: formatPrice(monthlyPlanningBaseline),
-      icon: Gauge,
-      tone: "text-white",
-    },
+  const tiles = [
+    { label: "Planning reserve", value: formatPrice(Math.round(price * 0.12)), icon: WalletCards },
+    { label: "Duty sensitivity", value: dutyRisk, icon: ShieldCheck, tone: dutyTone },
+    { label: "Monthly buffer", value: formatPrice(monthlyBaseline), icon: Gauge },
   ];
 
   return (
-    <PageCanvas>
-      <PlatformPageHero
-        eyebrow="Finance desk"
-        title="Lease, duty, and tax desk."
-        icon={CalcIcon}
-        metrics={[
-          { label: "Vehicle value", value: formatPrice(price) },
-          { label: "Engine", value: `${engineCapacity.toLocaleString()} cc` },
-          { label: "Mode", value: "Live" },
-        ]}
-      />
+    <div className="min-h-screen">
+      <section className="border-b border-white/[0.04]">
+        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Finance desk</p>
+          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Lease, duty & tax.</h1>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">Import duty estimation, lease scenario modeling, and ownership cost planning.</p>
+        </div>
+      </section>
 
-      <section className="layout-shell space-y-10 py-10 md:py-14">
-        {/* Workbench: baseline assumptions (left) + finance modules (right) */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-          {/* Baseline assumptions — anchored, sticky on desktop */}
-          <div className="asset-surface rounded-[14px] p-5 md:p-6 lg:sticky lg:top-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-amber-400/25 bg-amber-500/10">
-                <Banknote className="h-5 w-5 text-amber-300" aria-hidden="true" />
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+          {/* Inputs */}
+          <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5 sm:p-6 lg:sticky lg:top-20">
+            <div className="mb-6 flex items-center gap-3 border-b border-white/[0.04] pb-5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                <Banknote className="h-3.5 w-3.5 text-amber-400/70" />
               </div>
               <div>
-                <p className="tech-label">Vehicle baseline</p>
-            <h2 className="text-lg font-semibold tracking-tight text-white">Primary assumptions</h2>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Baseline</p>
+                <h2 className="text-[14px] font-semibold text-foreground">Vehicle assumptions</h2>
               </div>
             </div>
 
-            <div className="mt-6 space-y-5">
-              <div className="space-y-2">
-                <label htmlFor="vehicle-value" className="field-label">
-                  Vehicle value / CIF (LKR)
-                </label>
-                <Input
-                  id="vehicle-value"
-                  type="number"
-                  min={0}
-                  value={price}
-                  onChange={(e) => setPrice(Number(e.target.value))}
-                  className="h-12 rounded-[10px] border-white/15 bg-black/40 text-lg font-medium text-white num focus-visible:ring-amber-400/50"
-                />
-                <p className="ui-caption num">{formatPrice(price)}</p>
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label htmlFor="calc-price" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Vehicle value / CIF (LKR)</label>
+                <Input id="calc-price" type="number" min={0} value={price} onChange={(e) => setPrice(Number(e.target.value))} className="h-11 rounded-lg border-white/[0.06] bg-[hsl(220,8%,5%)] text-base font-semibold text-foreground num" />
+                <p className="text-[10px] text-zinc-600 num">{formatPrice(price)}</p>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="engine-capacity" className="field-label">
-                  Engine capacity (CC)
-                </label>
-                <Input
-                  id="engine-capacity"
-                  type="number"
-                  min={0}
-                  value={engineCapacity}
-                  onChange={(e) => setEngineCapacity(Number(e.target.value))}
-                  className="h-12 rounded-[10px] border-white/15 bg-black/40 text-lg font-medium text-white num focus-visible:ring-amber-400/50"
-                />
-                <p className="ui-caption">
-                  {engineCapacity.toLocaleString()} cc &middot; duty sensitivity{" "}
-                  <span className={dutyTone}>{dutyRisk}</span>
-                </p>
+              <div className="space-y-1.5">
+                <label htmlFor="calc-cc" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Engine capacity (CC)</label>
+                <Input id="calc-cc" type="number" min={0} value={engineCapacity} onChange={(e) => setEngineCapacity(Number(e.target.value))} className="h-11 rounded-lg border-white/[0.06] bg-[hsl(220,8%,5%)] text-base font-semibold text-foreground num" />
+                <p className="text-[10px] text-zinc-600">{engineCapacity.toLocaleString()} cc · sensitivity <span className={dutyTone}>{dutyRisk}</span></p>
               </div>
             </div>
 
-            <div className="mt-6 border-t border-border pt-5">
-              <div className="metric-tile flex items-center justify-between gap-4 rounded-[10px]">
-                <span className="field-label">Working value</span>
-                <span className="text-xl font-bold tracking-tight text-white num">{formatPrice(price)}</span>
-              </div>
+            <div className="mt-6 flex items-center justify-between rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] px-4 py-3">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Working value</span>
+              <span className="text-lg font-bold text-foreground num">{formatPrice(price)}</span>
             </div>
           </div>
 
-          {/* Finance modules — lease + tax, stacked */}
+          {/* Modules */}
           <div className="space-y-6">
             <div>
-              <p className="tech-label mb-3">Lease scenario</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Lease scenario</p>
               <LeaseCalculator price={price} />
             </div>
             <div>
-              <p className="tech-label mb-3">Import duty and tax</p>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Import duty & tax</p>
               <TaxBreakdown price={price} engineCapacity={engineCapacity} />
             </div>
           </div>
@@ -127,28 +76,23 @@ export default function Calculator() {
 
         {/* Planning tiles */}
         <div>
-          <div className="mb-4 flex items-baseline justify-between gap-4">
-            <h2 className="text-base font-bold tracking-tight text-white">Ownership planning</h2>
-            <p className="tech-label hidden sm:block">Derived from baseline</p>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {planningTiles.map((item) => {
-              const Icon = item.icon;
+          <h2 className="mb-4 font-display text-sm font-semibold tracking-tight text-foreground">Ownership planning</h2>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {tiles.map((t) => {
+              const Icon = t.icon;
               return (
-                <article key={item.label} className="data-card rounded-[10px] p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="field-label">{item.label}</p>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background/50">
-                      <Icon className="h-4 w-4 text-amber-400" aria-hidden="true" />
-                    </span>
+                <div key={t.label} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">{t.label}</p>
+                    <p className={`mt-1.5 text-lg font-bold num ${t.tone || "text-foreground"}`}>{t.value}</p>
                   </div>
-                  <p className={`mt-4 text-2xl font-bold num ${item.tone}`}>{item.value}</p>
-                </article>
+                  <Icon className="h-4 w-4 shrink-0 text-zinc-600" />
+                </div>
               );
             })}
           </div>
         </div>
-      </section>
-    </PageCanvas>
+      </div>
+    </div>
   );
 }

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { HeroPill } from "@/components/ui/hero-pill";
 import { Surface } from "@/components/Surface";
 
 type PlatformMetric = {
@@ -42,30 +41,35 @@ export function PlatformPageHero({
     <section className={cn("platform-hero auto-page-hero", className)}>
       <AmbientBackground variant="hero" />
 
-      <div className="layout-shell relative z-10 py-10 sm:py-12 md:py-14">
-        <HeroPill
-          icon={Icon ? <Icon className="h-3.5 w-3.5" /> : undefined}
-          className="platform-hero-pill mb-4 animate-fade-up"
-        >
-          {eyebrow}
-        </HeroPill>
+      <div className="layout-shell relative z-10 py-12 sm:py-16 md:py-20">
+        {/* Eyebrow */}
+        <div className="animate-fade-up mb-5 inline-flex items-center gap-2.5 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5">
+          {Icon ? <Icon className="h-3.5 w-3.5 text-amber-400/80" /> : null}
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">{eyebrow}</span>
+        </div>
 
         <div
           className={cn(
-            "grid gap-8 lg:items-start",
-            hasSidePanel ? "lg:grid-cols-[minmax(0,1.12fr)_minmax(280px,380px)]" : "max-w-3xl",
+            "grid gap-10 lg:items-start",
+            hasSidePanel ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,380px)]" : "max-w-3xl",
           )}
         >
-          <div className="space-y-5 animate-fade-up" style={{ animationDelay: "50ms" }}>
-            <h1 className="headline-display max-w-3xl text-[2rem] leading-[1.08] text-balance sm:text-[2.35rem] lg:text-[2.75rem]">
+          {/* Main content */}
+          <div className="space-y-6 animate-fade-up" style={{ animationDelay: "40ms" }}>
+            <h1 className="font-display max-w-3xl text-[2rem] font-semibold leading-[1.04] tracking-tight text-foreground sm:text-[2.5rem] lg:text-[3rem]">
               {title}
             </h1>
-            {description ? <p className="text-lead max-w-xl">{description}</p> : null}
+            {description ? (
+              <p className="max-w-xl text-[15px] leading-relaxed text-zinc-500 sm:text-base">
+                {description}
+              </p>
+            ) : null}
             {children ? <div className="space-y-4 pt-1">{children}</div> : null}
           </div>
 
+          {/* Side panel */}
           {aside ? (
-            <div className="animate-fade-up lg:sticky lg:top-24 lg:self-start" style={{ animationDelay: "110ms" }}>
+            <div className="animate-fade-up lg:sticky lg:top-24 lg:self-start" style={{ animationDelay: "100ms" }}>
               {aside}
             </div>
           ) : null}
@@ -74,15 +78,15 @@ export function PlatformPageHero({
             <Surface
               variant="glass"
               className="animate-fade-up space-y-4 p-4 lg:sticky lg:top-24 lg:self-start"
-              style={{ animationDelay: "110ms" }}
+              style={{ animationDelay: "100ms" }}
             >
               {metrics.length > 0 ? (
                 <dl className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                   {metrics.map((metric) => (
                     <div key={metric.label} className="platform-metric-tile px-3 py-3">
-                      <dt className="tech-label">{metric.label}</dt>
-                      <dd className="mt-1 text-xl font-semibold tracking-tight text-foreground num">{metric.value}</dd>
-                      {metric.detail ? <dd className="mt-1 text-xs text-muted-foreground">{metric.detail}</dd> : null}
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{metric.label}</dt>
+                      <dd className="mt-1.5 text-xl font-semibold tracking-tight text-foreground num">{metric.value}</dd>
+                      {metric.detail ? <dd className="mt-1 text-[11px] text-zinc-500">{metric.detail}</dd> : null}
                     </div>
                   ))}
                 </dl>
@@ -93,7 +97,7 @@ export function PlatformPageHero({
         </div>
 
         {footer ? (
-          <div className="mt-10 flex justify-center animate-fade-up" style={{ animationDelay: "160ms" }}>
+          <div className="mt-12 flex justify-center animate-fade-up" style={{ animationDelay: "140ms" }}>
             {footer}
           </div>
         ) : null}

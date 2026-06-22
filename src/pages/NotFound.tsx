@@ -1,53 +1,42 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, BarChart3, MapPin, SearchX, TrendingUp } from "lucide-react";
-import { PlatformPageHero } from "@/components/PlatformPageHero";
-import { PageCanvas } from "@/components/PageCanvas";
+import { ArrowLeft, BarChart3, MapPin, TrendingUp } from "lucide-react";
 
-const recoveryLinks = [
-  { to: "/", label: "Inventory cockpit", icon: TrendingUp },
+const links = [
+  { to: "/", label: "Inventory", icon: TrendingUp },
   { to: "/trends", label: "Price trends", icon: BarChart3 },
   { to: "/map", label: "District map", icon: MapPin },
 ];
 
 const NotFound = () => {
   return (
-    <PageCanvas>
-      <PlatformPageHero
-        eyebrow="Route unavailable"
-        title="Page not found."
-        icon={SearchX}
-        metrics={[
-          { label: "Status", value: "404" },
-          { label: "Recovery", value: "3" },
-          { label: "Shell", value: "Ready" },
-        ]}
-        actions={
-          <Link
-            to="/"
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-500/12 px-4 text-label font-mono font-bold uppercase text-amber-100 no-underline transition-colors hover:bg-amber-500/20"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to dashboard
+    <div className="min-h-screen">
+      <section className="border-b border-white/[0.04]">
+        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">404</p>
+          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Page not found.</h1>
+          <p className="mt-2 text-sm text-zinc-500">This route doesn't exist. Try one of the links below.</p>
+          <Link to="/" className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] px-4 py-2 text-[11px] font-semibold text-zinc-300 no-underline transition-colors hover:bg-white/[0.03]">
+            <ArrowLeft className="h-3 w-3" /> Back to dashboard
           </Link>
-        }
-      />
+        </div>
+      </section>
 
-      <section className="layout-shell py-10 md:py-12">
-        <div className="grid gap-4 md:grid-cols-3">
-          {recoveryLinks.map((item) => {
-            const Icon = item.icon;
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6">
+        <div className="grid gap-2 sm:grid-cols-3">
+          {links.map((l) => {
+            const Icon = l.icon;
             return (
-              <Link key={item.to} to={item.to} className="asset-surface rounded-xl p-5 no-underline transition-colors hover:border-amber-400/25">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
-                  <Icon className="h-5 w-5 text-amber-300" />
+              <Link key={l.to} to={l.to} className="flex items-center gap-3 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4 no-underline transition-colors hover:border-white/[0.08]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                  <Icon className="h-3.5 w-3.5 text-amber-400/70" />
                 </div>
-                <h2 className="mt-5 text-lg font-semibold tracking-tight text-white">{item.label}</h2>
+                <span className="text-[13px] font-semibold text-foreground">{l.label}</span>
               </Link>
             );
           })}
         </div>
-      </section>
-    </PageCanvas>
+      </div>
+    </div>
   );
 };
 

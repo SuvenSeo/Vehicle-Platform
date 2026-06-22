@@ -18,13 +18,9 @@ interface ListingCardProps {
 }
 
 function getDealBadgeClasses(label: ReturnType<typeof getListingDealLabel>): string {
-  if (label === "Good Deal") {
-    return "bg-emerald-500/12 border-emerald-500/30 text-emerald-300";
-  }
-  if (label === "Overpriced") {
-    return "bg-rose-500/12 border-rose-500/30 text-rose-300";
-  }
-  return "bg-white/[0.035] border-white/10 text-zinc-300";
+  if (label === "Good Deal") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-300";
+  if (label === "Overpriced") return "bg-rose-500/10 border-rose-500/20 text-rose-300";
+  return "bg-white/[0.03] border-white/[0.08] text-zinc-400";
 }
 
 function formatToken(value: string | undefined): string {
@@ -93,144 +89,142 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={`${listingTitle || "Vehicle"} listing card`}
-      className="vehicle-card surface surface--interactive group relative isolate h-full"
+      className="group relative isolate h-full overflow-hidden rounded-xl border border-white/[0.06] bg-[hsl(220,8%,6%)] transition-all duration-300 hover:border-white/[0.1] hover:bg-[hsl(220,8%,7%)]"
     >
       <Link
         to={`/listing/${listing.id}`}
         aria-label={`Open ${listingTitle || "vehicle listing"}`}
         className="absolute inset-0 z-10 rounded-xl"
       />
-      <div className="pointer-events-none relative z-20 flex h-full flex-col space-y-4 p-4 sm:p-5">
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-            <span className="tech-label flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-zinc-400">
-                {formatToken(listing.condition)}
+
+      <div className="pointer-events-none relative z-20 flex h-full flex-col">
+        {/* Image */}
+        <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
+          <VehicleThumbnail
+            src={imageUrl}
+            listingId={listing.id}
+            alt={`${listing.make} ${listing.model}`}
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220,8%,6%)] via-black/20 to-transparent" />
+
+          {/* Overlay badges */}
+          <div className="absolute left-3 top-3 flex items-center gap-1.5">
+            <span className="rounded-md border border-white/[0.1] bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-300 backdrop-blur-sm">
+              {formatToken(listing.condition)}
             </span>
-            <FairPriceIndicator score={dealScore} condition={listing.condition} />
-            {integrityScore > 75 && (
-              <span className="tech-label flex items-center gap-1 rounded-md border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-amber-200">
-                High confidence
-              </span>
-            )}
-           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="tech-label rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-zinc-200">
-              {integrityScore}/100
+            <span className="rounded-md border border-white/[0.1] bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-zinc-400 backdrop-blur-sm">
+              {recency}
             </span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="absolute right-3 top-3 flex items-center gap-1.5">
             {onWatchlistToggle && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onWatchlistToggle(listing);
-                }}
-                className={`pointer-events-auto relative z-30 flex h-9 w-9 items-center justify-center rounded-lg border transition-[border-color,background-color,color,box-shadow,transform,opacity] ${
+                onClick={(e) => { e.stopPropagation(); onWatchlistToggle(listing); }}
+                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur-sm transition-all ${
                   isWatchlisted
-                    ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                    : "text-zinc-400 border-white/10 hover:text-amber-200 hover:border-amber-300/25"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/25"
+                    : "bg-black/40 text-zinc-400 border-white/[0.1] hover:text-amber-200 hover:border-amber-300/20"
                 }`}
                 aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
               >
-                <Heart className={`w-4 h-4 ${isWatchlisted ? "fill-current" : ""}`} />
+                <Heart className={`w-3.5 h-3.5 ${isWatchlisted ? "fill-current" : ""}`} />
               </button>
             )}
             {onCompareToggle && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCompareToggle(listing);
-                }}
-                className={`pointer-events-auto relative z-30 flex h-9 w-9 items-center justify-center rounded-lg border transition-[border-color,background-color,color,box-shadow,transform,opacity] ${
+                onClick={(e) => { e.stopPropagation(); onCompareToggle(listing); }}
+                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur-sm transition-all ${
                   isComparing
                     ? "bg-amber-500 text-black border-amber-500"
-                    : "text-zinc-400 border-white/10 hover:text-white hover:border-white/20"
+                    : "bg-black/40 text-zinc-400 border-white/[0.1] hover:text-white hover:border-white/[0.15]"
                 }`}
                 aria-label={isComparing ? "Remove from comparison" : "Add to comparison"}
               >
-                {isComparing ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {isComparing ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
               </button>
             )}
           </div>
+
+          {/* Price overlay */}
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
+            {hasKnownPrice ? (
+              <p className="text-xl font-bold tracking-tight text-white num leading-none">
+                {formatPrice(priceValue)}
+              </p>
+            ) : (
+              <PriceUnavailableBadge
+                label="Price unavailable"
+                className="bg-black/50 border-amber-300/40 text-amber-100 px-2 py-0.5 text-[10px] tracking-[0.1em]"
+              />
+            )}
+            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
+              {dealScore >= 0 ? "+" : ""}{dealScore.toFixed(0)} deal
+            </span>
+          </div>
         </div>
 
-        {/* IMAGE */}
-        <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-white/10 bg-black/30 transition-colors group-hover:border-amber-300/25">
-          <VehicleThumbnail
-            src={imageUrl}
-            listingId={listing.id}
-            alt={`${listing.make} ${listing.model}`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-           <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/14 to-transparent opacity-85" />
-           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-40" />
-           <div className="tech-label absolute left-3 top-3 rounded-md border border-white/15 bg-black/50 px-2.5 py-1 text-zinc-200 backdrop-blur">
-              Scraped {recency}
-           </div>
-           
-           <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
-              {hasKnownPrice ? (
-                <p className="text-[20px] font-bold text-white tracking-tight leading-none num">
-                  {formatPrice(priceValue)}
-                </p>
-              ) : (
-                <PriceUnavailableBadge
-                  label="Price unavailable"
-                  className="bg-black/55 border-amber-300/55 text-amber-100 px-2 py-1 tracking-[0.1em]"
-                />
-              )}
-              <span className={`tech-label num rounded-md border px-2.5 py-1 ${getDealBadgeClasses(dealLabel)}`}>
-                {dealScore >= 0 ? "+" : ""}{dealScore.toFixed(0)}
-              </span>
-           </div>
-        </div>
-
-        {/* DETAILS */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <h3 className="headline-display truncate text-[19px] transition-colors group-hover:text-amber-50">
-                {listingTitle}
+        {/* Content */}
+        <div className="flex flex-1 flex-col p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground transition-colors group-hover:text-amber-50 truncate">
+              {listingTitle}
             </h3>
-            <span className="text-[13px] font-bold text-zinc-300 num">{listing.year || "N/A"}</span>
+            <span className="shrink-0 text-[13px] font-bold text-zinc-400 num">{listing.year || "N/A"}</span>
           </div>
-          <div className="tech-label grid grid-cols-2 gap-2 text-zinc-300">
-            <span className="flex items-center gap-1.5"><Gauge className="h-3 w-3" /> {formatToken(listing.transmission)}</span>
-            <span>{formatMileage(listing.mileage_km)}</span>
-            <span>{formatToken(listing.fuel_type)}</span>
-            <span>{formatEngineCc(listing.engine_cc)}</span>
-            <span>{formatToken(listing.body_type)}</span>
-            <span className="text-zinc-400">{listing.is_dealer ? "Dealer" : "Private"}</span>
-          </div>
-          <div className="data-card p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="tech-label">Market Position</p>
-              <p className={`text-label font-bold num ${marketDeltaPct === null ? "text-zinc-500" : marketDeltaPct <= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-                {marketDeltaPct === null
-                  ? "Median pending"
-                  : `${Math.abs(marketDeltaPct).toFixed(1)}% ${marketDeltaPct <= 0 ? "below" : "above"} median`}
-              </p>
-            </div>
-            <div className="relative h-1.5 overflow-hidden rounded-full bg-zinc-800">
-              <div className={`absolute inset-y-0 left-0 rounded-full ${marketDeltaPct === null ? "bg-zinc-600" : marketDeltaPct <= 0 ? "bg-emerald-500" : "bg-rose-500"}`} style={{ width: `${marketPosition}%` }} />
-            </div>
-          </div>
-        </div>
 
-        {/* FOOTER */}
-        <div className="mt-auto flex items-center justify-between border-t border-white/[0.08] pt-4">
-            <div>
-            <p className="tech-label flex items-center gap-1.5 text-zinc-300">
-                  <MapPin className="h-3 w-3" />
-                  {listing.district || "District N/A"}
-              </p>
-            <p className="tech-label text-zinc-500">
-                  {listing.source} · {recency}
+          {/* Spec grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] font-medium text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              <Gauge className="h-3 w-3 text-zinc-600" />
+              {formatToken(listing.transmission)}
+            </span>
+            <span className="num">{formatMileage(listing.mileage_km)}</span>
+            <span>{formatToken(listing.fuel_type)}</span>
+            <span className="num">{formatEngineCc(listing.engine_cc)}</span>
+          </div>
+
+          {/* Market position bar */}
+          <div className="rounded-lg border border-white/[0.05] bg-[hsl(220,8%,5%)] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600">Market position</p>
+              <p className={`text-[10px] font-bold num ${
+                marketDeltaPct === null ? "text-zinc-600" : marketDeltaPct <= 0 ? "text-emerald-400" : "text-rose-400"
+              }`}>
+                {marketDeltaPct === null
+                  ? "Pending"
+                  : `${Math.abs(marketDeltaPct).toFixed(1)}% ${marketDeltaPct <= 0 ? "below" : "above"}`}
               </p>
             </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.1] bg-white/[0.03] transition-colors group-hover:border-amber-300/25 group-hover:bg-amber-500/10">
-            <ArrowRight className="h-3.5 w-3.5 text-zinc-300 transition-transform group-hover:translate-x-0.5" />
+            <div className="relative h-1 overflow-hidden rounded-full bg-zinc-800/60">
+              <div
+                className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
+                  marketDeltaPct === null ? "bg-zinc-700" : marketDeltaPct <= 0 ? "bg-emerald-500/70" : "bg-rose-500/70"
+                }`}
+                style={{ width: `${marketPosition}%` }}
+              />
             </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-auto flex items-center justify-between pt-3 border-t border-white/[0.04]">
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 truncate">
+                <MapPin className="h-3 w-3 shrink-0 text-zinc-600" />
+                {listing.district || "District N/A"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-zinc-600 truncate">
+                {listing.source} · Score {integrityScore}/100
+              </p>
+            </div>
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.06] transition-all group-hover:border-amber-400/15 group-hover:bg-amber-500/8">
+              <ArrowRight className="h-3 w-3 text-zinc-500 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-amber-300" />
+            </div>
+          </div>
         </div>
       </div>
     </article>
@@ -238,5 +232,3 @@ export const ListingCard = memo(function ListingCard({
 });
 
 ListingCard.displayName = "ListingCard";
-
-

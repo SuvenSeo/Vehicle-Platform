@@ -5,7 +5,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
-import { AmbientBackground } from "@/components/AmbientBackground";
 import { AppFooter } from "@/components/AppFooter";
 import { Loader } from "@/components/Loader";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
@@ -84,8 +83,7 @@ const MinimalLoader = () => (
 
 function MainLayout({ chatMounted }: { chatMounted: boolean }) {
   return (
-    <div className="min-h-screen app-shell selection:bg-primary/25">
-      <AmbientBackground variant="subtle" className="fixed inset-0" />
+    <div className="min-h-screen app-shell selection:bg-primary/25 bg-[hsl(220,10%,3%)]">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Navbar />
       <ScrollToHash />
@@ -96,7 +94,7 @@ function MainLayout({ chatMounted }: { chatMounted: boolean }) {
           <AIChatWidget />
         </Suspense>
       )}
-      <main id="main-content" className="relative z-[1] pt-[4.5rem]">
+      <main id="main-content" className="relative z-[1] pt-[4rem]">
         <Outlet />
       </main>
       <AppFooter />

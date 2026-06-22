@@ -2,267 +2,132 @@ import { useState, useEffect } from "react";
 import { getMakes, getModels, getPriceTrendSeries } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
-import { PlatformPageHero } from "@/components/PlatformPageHero";
-import { PageCanvas } from "@/components/PageCanvas";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
-import { Activity, SlidersHorizontal, MapPin, Layers, Car, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import type { PriceTrendPoint } from "@/types/car";
+
+const selectClass = "h-10 rounded-lg border-white/[0.06] bg-[hsl(220,8%,5%)] text-sm text-foreground";
 
 export default function Trends() {
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [modelsList, setModelsList] = useState<{ model: string; count: number }[]>([]);
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [condition, setCondition] = useState<string>("all");
-  const [district, setDistrict] = useState<string>("all");
+  const [condition, setCondition] = useState("all");
+  const [district, setDistrict] = useState("all");
   const [trendData, setTrendData] = useState<PriceTrendPoint[]>([]);
   const [coverageNote, setCoverageNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    getMakes()
-      .then((items) => {
-        if (cancelled) return;
-        setMakes(items);
-        setSelectedMake((current) => current || items[0]?.make || "");
-      })
-      .catch(() => {
-        if (!cancelled) setMakes([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    let c = false;
+    getMakes().then((items) => { if (!c) { setMakes(items); setSelectedMake((cur) => cur || items[0]?.make || ""); } }).catch(() => { if (!c) setMakes([]); });
+    return () => { c = true; };
   }, []);
 
   useEffect(() => {
-    if (!selectedMake) {
-      setModelsList([]);
-      setSelectedModel("");
-      return;
-    }
-
-    let cancelled = false;
-    setModelsList([]);
-    setSelectedModel("");
-
-    getModels(selectedMake)
-      .then((items) => {
-        if (cancelled) return;
-        setModelsList(items);
-        setSelectedModel((current) => current || items[0]?.model || "");
-      })
-      .catch(() => {
-        if (!cancelled) setModelsList([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    if (!selectedMake) { setModelsList([]); setSelectedModel(""); return; }
+    let c = false;
+    setModelsList([]); setSelectedModel("");
+    getModels(selectedMake).then((items) => { if (!c) { setModelsList(items); setSelectedModel((cur) => cur || items[0]?.model || ""); } }).catch(() => { if (!c) setModelsList([]); });
+    return () => { c = true; };
   }, [selectedMake]);
 
   useEffect(() => {
-    if (!selectedMake || !selectedModel) {
-      setTrendData([]);
-      setCoverageNote(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    getPriceTrendSeries(
-      selectedMake,
-      selectedModel,
-      condition && condition !== "all" ? condition : undefined,
-      district && district !== "all" ? district : undefined
-    )
-      .then((series) => {
-        if (cancelled) return;
-        setTrendData(series.points);
-        setCoverageNote(series.coverage_note);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setTrendData([]);
-        setCoverageNote("Historical trend stream is temporarily unavailable. Re-run shortly for trajectory analytics.");
-        setError("Unable to load trend data right now.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    if (!selectedMake || !selectedModel) { setTrendData([]); setCoverageNote(null); return; }
+    let c = false;
+    setLoading(true); setError(null);
+    getPriceTrendSeries(selectedMake, selectedModel, condition !== "all" ? condition : undefined, district !== "all" ? district : undefined)
+      .then((s) => { if (!c) { setTrendData(s.points); setCoverageNote(s.coverage_note); } })
+      .catch(() => { if (!c) { setTrendData([]); setCoverageNote("Trend data temporarily unavailable."); setError("Unable to load trend data."); } })
+      .finally(() => { if (!c) setLoading(false); });
+    return () => { c = true; };
   }, [selectedMake, selectedModel, condition, district]);
 
-  const chartTitle = selectedMake && selectedModel
-    ? `Sri Lanka - ${selectedMake} ${selectedModel}`
-    : "Select a market lane";
-  const emptyMessage = !selectedMake || !selectedModel
-    ? "Select a make and model to build a price history view."
-    : error || "No trend data is available for this filter combination yet.";
-
-  const conditionLabel = condition === "all" ? "Any condition" : condition.replace("_", " ");
-  const districtLabel = district === "all" ? "All districts" : district;
-  const hasNarrowFilters = district !== "all" || condition !== "all";
-  const laneReady = Boolean(selectedMake && selectedModel);
-
-  const resetFilters = () => {
-    setDistrict("all");
-    setCondition("all");
-  };
+  const chartTitle = selectedMake && selectedModel ? `${selectedMake} ${selectedModel}` : "Select a lane";
+  const emptyMessage = !selectedMake || !selectedModel ? "Select make and model to load price history." : error || "No trend data for this combination yet.";
+  const hasNarrow = district !== "all" || condition !== "all";
 
   return (
-    <PageCanvas>
-      <PlatformPageHero
-        eyebrow="Trend studio"
-        title="Price trends by lane."
-        icon={Activity}
-        metrics={[
-          { label: "Makes", value: makes.length.toLocaleString() },
-          { label: "Models", value: selectedMake ? modelsList.length.toLocaleString() : "—" },
-          { label: "Districts", value: SRI_LANKA_DISTRICTS.length.toLocaleString() },
-        ]}
-      />
+    <div className="min-h-screen">
+      <section className="border-b border-white/[0.04]">
+        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Trend studio</p>
+          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Price trends.</h1>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">Track median price movement for any vehicle lane across Sri Lanka.</p>
+        </div>
+      </section>
 
-      <section className="layout-shell space-y-5 py-10 md:py-12">
-        {/* Command surface — integrated controls above the chart workspace */}
-        <div className="console-section p-4 sm:p-5 md:p-6">
-          <div className="flex flex-col gap-4 border-b border-white/[0.06] pb-5 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-2">
-              <div className="headline-kicker text-zinc-400">
-                <SlidersHorizontal className="h-3.5 w-3.5 text-amber-300" />
-                Trend controls
-              </div>
-              <h2 className="headline-display text-2xl leading-tight md:text-3xl">Build a lane</h2>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <label htmlFor="trend-make" className="field-label flex items-center gap-1.5">
-                <Car className="h-3.5 w-3.5 text-zinc-500" />
-                Make
-              </label>
+      <div className="mx-auto max-w-[1320px] space-y-5 px-5 py-8 sm:px-6 lg:py-10">
+        {/* Controls */}
+        <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <label htmlFor="t-make" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Make</label>
               <Select value={selectedMake} onValueChange={setSelectedMake}>
-                <SelectTrigger id="trend-make" className="control-dark w-full">
-                  <SelectValue placeholder="Select make" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#111] border-white/10">
-                  {makes.map((make) => (
-                    <SelectItem key={make.make} value={make.make}>{make.make}</SelectItem>
-                  ))}
+                <SelectTrigger id="t-make" className={selectClass}><SelectValue placeholder="Select make" /></SelectTrigger>
+                <SelectContent className="border-white/[0.06] bg-[hsl(220,8%,5%)] text-foreground">
+                  {makes.map((m) => <SelectItem key={m.make} value={m.make}>{m.make}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <label htmlFor="trend-model" className="field-label flex items-center gap-1.5">
-                <Layers className="h-3.5 w-3.5 text-zinc-500" />
-                Model
-              </label>
-              <Select value={selectedModel} onValueChange={setSelectedModel} disabled={!selectedMake || modelsList.length === 0}>
-                <SelectTrigger id="trend-model" className="control-dark w-full">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#111] border-white/10">
-                  {modelsList.map((model) => (
-                    <SelectItem key={model.model} value={model.model}>{model.model}</SelectItem>
-                  ))}
+            <div className="space-y-1.5">
+              <label htmlFor="t-model" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Model</label>
+              <Select value={selectedModel} onValueChange={setSelectedModel} disabled={!selectedMake || !modelsList.length}>
+                <SelectTrigger id="t-model" className={`${selectClass} disabled:opacity-50`}><SelectValue placeholder="Select model" /></SelectTrigger>
+                <SelectContent className="border-white/[0.06] bg-[hsl(220,8%,5%)] text-foreground">
+                  {modelsList.map((m) => <SelectItem key={m.model} value={m.model}>{m.model}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <label htmlFor="trend-condition" className="field-label flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5 text-zinc-500" />
-                Condition
-              </label>
+            <div className="space-y-1.5">
+              <label htmlFor="t-cond" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Condition</label>
               <Select value={condition} onValueChange={setCondition}>
-                <SelectTrigger id="trend-condition" className="control-dark w-full">
-                  <SelectValue placeholder="Any condition" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#111] border-white/10">
-                  <SelectItem value="all">Any condition</SelectItem>
-                  <SelectItem value="used">Used</SelectItem>
-                  <SelectItem value="reconditioned">Reconditioned</SelectItem>
-                  <SelectItem value="brand_new">Brand new</SelectItem>
+                <SelectTrigger id="t-cond" className={selectClass}><SelectValue /></SelectTrigger>
+                <SelectContent className="border-white/[0.06] bg-[hsl(220,8%,5%)] text-foreground">
+                  <SelectItem value="all">Any</SelectItem><SelectItem value="used">Used</SelectItem>
+                  <SelectItem value="reconditioned">Reconditioned</SelectItem><SelectItem value="brand_new">Brand new</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <label htmlFor="trend-district" className="field-label flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-zinc-500" />
-                District
-              </label>
+            <div className="space-y-1.5">
+              <label htmlFor="t-dist" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">District</label>
               <Select value={district} onValueChange={setDistrict}>
-                <SelectTrigger id="trend-district" className="control-dark w-full">
-                  <SelectValue placeholder="All districts" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#111] border-white/10">
+                <SelectTrigger id="t-dist" className={selectClass}><SelectValue /></SelectTrigger>
+                <SelectContent className="border-white/[0.06] bg-[hsl(220,8%,5%)] text-foreground">
                   <SelectItem value="all">All districts</SelectItem>
-                  {SRI_LANKA_DISTRICTS.map((name) => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                  ))}
+                  {SRI_LANKA_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Active lane summary */}
-          <div className="mt-5 flex flex-col gap-3 border-t border-white/[0.06] pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="field-label mr-1 text-zinc-500">Active lane</span>
-              <span className="status-chip">{selectedMake || "No make"}</span>
-              <span className="status-chip">{selectedModel || "No model"}</span>
-              <span className="status-chip">{conditionLabel}</span>
-              <span className="status-chip">{districtLabel}</span>
-            </div>
-            {hasNarrowFilters && (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="action-soft h-9 self-start py-0 sm:self-auto"
-              >
-                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                Reset filters
-              </button>
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-4">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600">Lane:</span>
+            {[selectedMake || "—", selectedModel || "—", condition === "all" ? "Any" : condition, district === "all" ? "All LK" : district].map((chip) => (
+              <span key={chip} className="rounded-md border border-white/[0.05] bg-[hsl(220,8%,5%)] px-2 py-1 text-[10px] font-semibold text-zinc-400">{chip}</span>
+            ))}
+            {hasNarrow && (
+              <button type="button" onClick={() => { setDistrict("all"); setCondition("all"); }}
+                className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-zinc-500 transition-colors hover:text-zinc-300"
+              ><RotateCcw className="h-3 w-3" /> Reset filters</button>
             )}
           </div>
         </div>
 
-        {/* Chart workspace */}
-        <div className="min-h-[520px]">
-          <PriceHistoryChart
-            title={chartTitle}
-            points={trendData}
-            isLoading={loading}
-            coverageNote={coverageNote}
-            emptyMessage={emptyMessage}
-            emptyActionLabel={hasNarrowFilters ? "Show broader lane" : undefined}
-            onEmptyAction={hasNarrowFilters ? resetFilters : undefined}
-          />
+        {/* Chart */}
+        <div className="min-h-[480px]">
+          <PriceHistoryChart title={chartTitle} points={trendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? "Broaden filters" : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
         </div>
 
-        {/* Coverage / methodology footnote */}
-        <div className="data-card flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <p className="text-xs leading-relaxed text-zinc-500">
-            {laneReady
-              ? "Trajectory reflects median advertised prices from the public Sri Lanka snapshot, grouped by month for the selected lane."
-              : "Choose a make and model to render the price trajectory for that lane."}
+        <div className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5.5%)] px-4 py-3">
+          <p className="text-[11px] text-zinc-500">
+            {selectedMake && selectedModel ? "Median advertised prices grouped by month from the public Sri Lanka snapshot." : "Choose a make and model to render the trajectory."}
           </p>
-          <span className="tech-label text-cyan-400">
-            Public snapshot data
-          </span>
+          <span className="text-[10px] font-semibold text-cyan-400/60 num">Public data</span>
         </div>
-      </section>
-    </PageCanvas>
+      </div>
+    </div>
   );
 }

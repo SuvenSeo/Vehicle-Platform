@@ -1,44 +1,15 @@
 import { Link } from "react-router-dom";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  BarChart3,
-  Car,
-  Crown,
-  Download,
-  FileText,
-  Lock,
-  MapPin,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
-import { PlatformPageHero } from "@/components/PlatformPageHero";
-import { PageCanvas } from "@/components/PageCanvas";
-import { SectionHeader } from "@/components/SectionHeader";
-import { Surface } from "@/components/Surface";
-import { Button } from "@/components/ui/button";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { BarChart3, Crown, Download, FileText, Lock, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 
-const PREVIEW_METRICS = [
-  { label: "Market depth", value: "18.4K" },
-  { label: "Source mix", value: "5" },
-  { label: "Hot deals", value: "342" },
-];
-
-const PREVIEW_LANES = [
+const LANES = [
   { name: "Toyota Aqua", listings: 824, median: "Rs. 7.8M", district: "Colombo" },
   { name: "Honda Vezel", listings: 612, median: "Rs. 11.2M", district: "Gampaha" },
   { name: "Suzuki Wagon R", listings: 589, median: "Rs. 5.4M", district: "Kandy" },
   { name: "Nissan Leaf", listings: 311, median: "Rs. 6.1M", district: "Colombo" },
 ];
 
-const PREVIEW_CHART = [
+const CHART_DATA = [
   { label: "Ikman", count: 9400 },
   { label: "Riyasewana", count: 5100 },
   { label: "AutoLanka", count: 1800 },
@@ -46,14 +17,14 @@ const PREVIEW_CHART = [
   { label: "AutoDirect", count: 800 },
 ];
 
-const LOCKED_REPORTS = ["Executive PDF", "Editable Word brief", "CSV data pack", "JSON API snapshot", "Print-ready report"];
+const REPORTS = ["Executive PDF", "Editable Word brief", "CSV data pack", "JSON API snapshot", "Print-ready report"];
 
 function LockedOverlay() {
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-background/60 backdrop-blur-[3px]">
-      <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-center">
-        <Lock className="mx-auto mb-2 h-5 w-5 text-primary" />
-        <p className="tech-label font-semibold text-foreground">Unlock with Pro</p>
+    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-[hsl(220,8%,4%)]/70 backdrop-blur-[3px]">
+      <div className="rounded-lg border border-amber-400/15 bg-amber-400/5 px-4 py-3 text-center">
+        <Lock className="mx-auto mb-1.5 h-4 w-4 text-amber-400/70" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-300/80">Unlock with Pro</p>
       </div>
     </div>
   );
@@ -61,126 +32,105 @@ function LockedOverlay() {
 
 export default function ProPreview() {
   return (
-    <PageCanvas>
-      <PlatformPageHero
-        eyebrow="Pro preview"
-        title="Pro workspace preview."
-        description="See the depth of lane drill-downs, district profiles, and export packs before you sign in."
-        icon={Crown}
-        metrics={PREVIEW_METRICS}
-        actions={
-          <div className="grid gap-2">
-            <Button asChild className="h-11 w-full">
-              <Link to="/sign-in">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Sign in to unlock
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-11 w-full">
-              <Link to="/">Browse public data</Link>
-            </Button>
+    <div className="min-h-screen bg-[hsl(220,10%,3%)]">
+      <section className="border-b border-white/[0.04]">
+        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
+          <div className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1 mb-4">
+            <Crown className="h-3 w-3 text-amber-400/70" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-300/80">Pro Preview</span>
           </div>
-        }
-      />
-
-      <section className="layout-shell grid gap-6 py-10 md:py-12 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6">
-          <Surface variant="elevated" className="relative p-5">
-            <LockedOverlay />
-            <SectionHeader eyebrow="Vehicle intelligence" title="Pro lane drill-downs" />
-            <div className="mt-4 overflow-hidden rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40">
-                  <tr>
-                    {["Vehicle", "Listings", "Median", "Top area"].map((heading) => (
-                      <th key={heading} className="field-label px-4 py-3 text-left text-muted-foreground">{heading}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PREVIEW_LANES.map((lane) => (
-                    <tr key={lane.name} className="border-t border-border">
-                      <td className="px-4 py-3 font-medium text-foreground">{lane.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground num">{lane.listings}</td>
-                      <td className="px-4 py-3 text-primary num">{lane.median}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{lane.district}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Surface>
-
-          <Surface variant="elevated" className="relative p-5">
-            <LockedOverlay />
-            <div className="flex items-center justify-between gap-4">
-              <SectionHeader eyebrow="Source and area intelligence" title="Coverage quality preview" className="mb-0" />
-              <BarChart3 className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-            </div>
-            <div className="mt-5 h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={PREVIEW_CHART}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 10 }} />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Surface>
-        </div>
-
-        <aside className="space-y-6">
-          <Surface variant="elevated" className="p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <h2 className="mt-4 text-xl font-semibold text-foreground">What Pro adds</h2>
-            <div className="mt-4 space-y-2">
-              {[
-                "Vehicle lane drill-downs with live sample listings",
-                "District opportunity profiles and source mix",
-                "Trend studio with exportable price history",
-                "Data quality and freshness coverage",
-                "Download packs for PDF, Word, CSV, JSON, and print",
-              ].map((item) => (
-                <div key={item} className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-3">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                  <p className="text-sm leading-relaxed text-muted-foreground">{item}</p>
-                </div>
-              ))}
-            </div>
-          </Surface>
-
-          <Surface variant="elevated" className="p-5">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold text-foreground">Report formats</h2>
-            </div>
-            <div className="mt-4 grid gap-2">
-              {LOCKED_REPORTS.map((report) => (
-                <button
-                  key={report}
-                  type="button"
-                  disabled
-                  className="flex h-10 items-center justify-between rounded-lg border border-border bg-muted/20 px-3 text-left text-xs font-medium text-muted-foreground"
-                >
-                  <span>{report}</span>
-                  <Download className="h-3.5 w-3.5" />
-                </button>
-              ))}
-            </div>
-          </Surface>
-
-          <Button asChild className="h-11 w-full">
-            <Link to="/sign-in">
-              <MapPin className="h-3.5 w-3.5" />
-              Unlock live Pro workspace
+          <h1 className="font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Pro workspace preview.</h1>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">See the depth of lane drill-downs, district profiles, and export packs before you sign in.</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link to="/sign-in" className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black no-underline hover:bg-[var(--gold-bright)]">
+              <ShieldCheck className="h-3 w-3" /> Sign in to unlock
             </Link>
-          </Button>
-        </aside>
+            <Link to="/" className="flex h-9 items-center rounded-lg border border-white/[0.06] px-4 text-[10px] font-semibold text-zinc-400 no-underline hover:text-zinc-200">Browse public data</Link>
+          </div>
+        </div>
       </section>
-    </PageCanvas>
+
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10">
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-5">
+            {/* Lane table */}
+            <div className="relative rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5">
+              <LockedOverlay />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500 mb-4">Lane drill-downs</p>
+              <div className="overflow-hidden rounded-lg border border-white/[0.04]">
+                <table className="w-full text-[12px]">
+                  <thead><tr className="bg-[hsl(220,8%,5%)]">
+                    {["Vehicle", "Listings", "Median", "Top area"].map((h) => <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">{h}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {LANES.map((l) => (
+                      <tr key={l.name} className="border-t border-white/[0.03]">
+                        <td className="px-4 py-2.5 font-semibold text-foreground">{l.name}</td>
+                        <td className="px-4 py-2.5 text-zinc-400 num">{l.listings}</td>
+                        <td className="px-4 py-2.5 text-amber-400 num">{l.median}</td>
+                        <td className="px-4 py-2.5 text-zinc-500">{l.district}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div className="relative rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5">
+              <LockedOverlay />
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Source coverage</p>
+                <BarChart3 className="h-3.5 w-3.5 text-amber-400/60" />
+              </div>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={CHART_DATA}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: "#52525b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#52525b", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: "hsl(220,8%,6%)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 11 }} />
+                    <Bar dataKey="count" fill="var(--gold)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <aside className="space-y-5">
+            <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5">
+              <Sparkles className="mb-3 h-4 w-4 text-amber-400/60" />
+              <h2 className="font-display text-sm font-semibold text-foreground">What Pro adds</h2>
+              <div className="mt-4 space-y-1.5">
+                {["Lane drill-downs with live samples", "District opportunity profiles", "Trend studio with exportable history", "Data quality coverage", "PDF, Word, CSV, JSON exports"].map((i) => (
+                  <div key={i} className="flex items-start gap-2 rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-3">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-400/60" />
+                    <p className="text-[11px] text-zinc-400">{i}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-3.5 w-3.5 text-amber-400/60" />
+                <h2 className="text-[13px] font-semibold text-foreground">Report formats</h2>
+              </div>
+              <div className="space-y-1.5">
+                {REPORTS.map((r) => (
+                  <div key={r} className="flex h-9 items-center justify-between rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] px-3 text-[11px] text-zinc-500">
+                    <span>{r}</span><Download className="h-3 w-3" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Link to="/sign-in" className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[var(--gold)] text-[10px] font-bold uppercase tracking-[0.08em] text-black no-underline hover:bg-[var(--gold-bright)]">
+              <MapPin className="h-3 w-3" /> Unlock Pro workspace
+            </Link>
+          </aside>
+        </div>
+      </div>
+    </div>
   );
 }

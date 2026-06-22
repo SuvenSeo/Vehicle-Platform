@@ -1,52 +1,30 @@
-import { lazy, startTransition, Suspense, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { startTransition, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { FilterState, CarListing, DistrictPrice, DashboardInsights, DistrictQuickInsight, PriceTrendPoint } from "@/types/car";
-import { 
-  getStats, getListings, getDistrictPrices, getMakes, getModels,
-  getPriceTrendSeries, formatPrice, getDashboardInsights, getDistrictQuickInsight, LISTINGS_PAGE_SIZE
+import { FilterState, CarListing, DashboardInsights } from "@/types/car";
+import {
+  getStats, getListings, getMakes,
+  formatPrice, getDashboardInsights, LISTINGS_PAGE_SIZE
 } from "@/services/api";
-import { usePipelineStatus } from "@/hooks/usePipelineStatus";
 import { useLiveMarketSnapshot } from "@/hooks/useLiveMarketSnapshot";
 import { ListingCard } from "@/components/ListingCard";
-import { PriceHistoryChart } from "@/components/PriceHistoryChart";
-import { MarketPredictor } from "@/components/MarketPredictor";
 import { ComparisonModal } from "@/components/ComparisonModal";
 import { FilterSidebar } from "@/components/FilterSidebar";
-import { PipelineStatusBar } from "@/components/PipelineStatusBar";
-import { PlatformPageHero } from "@/components/PlatformPageHero";
-import { AmbientBackground } from "@/components/AmbientBackground";
-import { SectionHeader } from "@/components/SectionHeader";
-import { RevealSection } from "@/components/RevealSection";
-import { DecisionIntelligenceGrid } from "@/components/DecisionIntelligenceGrid";
-import { Surface } from "@/components/Surface";
-import { BadgeDelta } from "@/components/ui/badge-delta";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  Activity,
+  ArrowRight,
   ArrowUpRight,
-  BarChart3,
-  Calculator,
-  Car,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   Database,
   ExternalLink,
   Flame,
-  Gauge,
-  Layers,
   LayoutGrid,
   List,
-  MapPin,
   MapPinned,
   Radio,
   Scale,
   Search,
-  SlidersHorizontal,
-  Sparkles,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -64,8 +42,6 @@ import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
 import { loadMarketAlerts, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
 
-const LazyMarketMap = lazy(() => import("@/components/MarketMap").then((m) => ({ default: m.MarketMap })));
-
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
 
 function parseOptionalNumber(value: string | null) {
@@ -79,18 +55,15 @@ function isSortValue(value: string | null): value is FilterState["sort"] {
 }
 
 function formatFreshnessLabel(value: string | null | undefined): string {
-  if (!value) return "Live refresh pending";
+  if (!value) return "Awaiting";
   const ts = new Date(value).getTime();
-  if (!Number.isFinite(ts)) return "Live refresh pending";
-
+  if (!Number.isFinite(ts)) return "Awaiting";
   const elapsedMinutes = Math.max(0, Math.round((Date.now() - ts) / 60_000));
-  if (elapsedMinutes < 1) return "Updated just now";
-  if (elapsedMinutes < 60) return `Updated ${elapsedMinutes}m ago`;
-
+  if (elapsedMinutes < 1) return "Just now";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`;
   const elapsedHours = Math.round(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `Updated ${elapsedHours}h ago`;
-
-  return `Updated ${new Date(value).toLocaleDateString("en-LK")}`;
+  if (elapsedHours < 24) return `${elapsedHours}h ago`;
+  return new Date(value).toLocaleDateString("en-LK");
 }
 
 function normalizeSourceValue(value: string | null | undefined): string | undefined {
@@ -113,7 +86,6 @@ function normalizeSourceValue(value: string | null | undefined): string | undefi
 function parseFilters(params: URLSearchParams): FilterState {
   const sort = params.get("sort");
   const priceAvailability = params.get("price_availability");
-
   return {
     q: params.get("q") || undefined,
     source: normalizeSourceValue(params.get("source")),
@@ -135,52 +107,27 @@ function parseFilters(params: URLSearchParams): FilterState {
   };
 }
 
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState<FilterState>(() => {
-    return parseFilters(searchParams);
-  });
+  const [filters, setFilters] = useState<FilterState>(() => parseFilters(searchParams));
 
   useEffect(() => {
     const nextFilters = parseFilters(searchParams);
     setFilters((prev) => {
       const keys = Object.keys(nextFilters) as (keyof FilterState)[];
-      const changed = keys.some((k) => prev[k] !== nextFilters[k]);
-      return changed ? nextFilters : prev;
+      return keys.some((k) => prev[k] !== nextFilters[k]) ? nextFilters : prev;
     });
   }, [searchParams]);
 
-  // Global Data
   const [stats, setStats] = useState<StatsOverview | null>(null);
-  const [districtPrices, setDistrictPrices] = useState<DistrictPrice[]>([]);
   const [listings, setListings] = useState<CarListing[]>([]);
   const [total, setTotal] = useState(0);
   const [loadingListings, setLoadingListings] = useState(true);
-  const pipelineStatus = usePipelineStatus();
   const liveMarketSnapshot = useLiveMarketSnapshot();
   const [dashboardInsights, setDashboardInsights] = useState<DashboardInsights | null>(null);
-  const [districtQuickInsight, setDistrictQuickInsight] = useState<DistrictQuickInsight | null>(null);
-  const [loadingDistrictInsight, setLoadingDistrictInsight] = useState(false);
-
-  // Make options (powers hero search matching + quick valuation model chips)
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
-
-  // Price History Tracking
-  const [trendMakes, setTrendMakes] = useState<{ make: string; count: number }[]>([]);
-  const [trendModels, setTrendModels] = useState<{ model: string; count: number }[]>([]);
-  const [trendMake, setTrendMake] = useState("");
-  const [trendModel, setTrendModel] = useState("");
-  const [trendData, setTrendData] = useState<PriceTrendPoint[]>([]);
-  const [trendLoading, setTrendLoading] = useState(false);
-  const [trendCoverageNote, setTrendCoverageNote] = useState<string | null>(null);
-
-  const districtTrendSeed = useMemo(() => {
-    if (!filters.district) return null;
-    const match = districtPrices.find((point) => point.district === filters.district);
-    if (!match?.top_make || !match?.top_model) return null;
-    return { make: match.top_make, model: match.top_model };
-  }, [districtPrices, filters.district]);
-
   const [compareListings, setCompareListings] = useState<CarListing[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [watchlistIds, setWatchlistIds] = useState<number[]>([]);
@@ -194,200 +141,94 @@ export default function Dashboard() {
   const [savedListingsLoading, setSavedListingsLoading] = useState(false);
   const [savedListingsError, setSavedListingsError] = useState<string | null>(null);
   const [marketView, setMarketView] = useState<"grid" | "list">("grid");
-  const [marketModels, setMarketModels] = useState<{ model: string; count: number }[]>([]);
-  const [quickValuationModel, setQuickValuationModel] = useState("");
-  const [quickValuationResult, setQuickValuationResult] = useState<{
-    estimateLabel: string;
-    sampleSize: number;
-  } | null>(null);
   const [newLiveListingsAvailable, setNewLiveListingsAvailable] = useState(false);
   const [marketAlerts, setMarketAlerts] = useState<MarketAlert[]>([]);
   const [showMarketAlerts, setShowMarketAlerts] = useState(false);
   const [alertPriceInput, setAlertPriceInput] = useState("");
   const liveListingAtRef = useRef<string | null>(null);
-
-  const [loadingMap, setLoadingMap] = useState(true);
   const [marketDataUnavailable, setMarketDataUnavailable] = useState(false);
 
-  // FETCH CORE DATA
+  // ── Data fetching ──────────────────────────────────────────────
+
   useEffect(() => {
     getStats()
-      .then((data) => {
-        setStats(data);
-        setMarketDataUnavailable(false);
-      })
+      .then((data) => { setStats(data); setMarketDataUnavailable(false); })
       .catch(() => setMarketDataUnavailable(true));
-    setLoadingMap(true);
-    getDistrictPrices()
-      .then(setDistrictPrices)
-      .catch(() => {})
-      .finally(() => setLoadingMap(false));
-    getMakes().then((m) => { setMakes(m); setTrendMakes(m); }).catch(() => {});
+    getMakes().then(setMakes).catch(() => {});
     setWatchlistIds(loadWatchlistIds());
     setMarketAlerts(loadMarketAlerts());
   }, []);
 
   useEffect(() => {
-    const refreshInsights = () => {
-      getDashboardInsights().then(setDashboardInsights).catch(() => {});
-    };
-
-    refreshInsights();
-    const interval = window.setInterval(refreshInsights, 120_000);
+    const refresh = () => { getDashboardInsights().then(setDashboardInsights).catch(() => {}); };
+    refresh();
+    const interval = window.setInterval(refresh, 120_000);
     return () => window.clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    saveWatchlistIds(watchlistIds);
-  }, [watchlistIds]);
+  useEffect(() => { saveWatchlistIds(watchlistIds); }, [watchlistIds]);
 
   useEffect(() => {
     const query = heroSearch.trim();
     if (!query) {
-      setHeroSuggestions([]);
-      setHeroSuggestionsOpen(false);
-      setHeroSuggestionsLoading(false);
-      setHeroSearchMessage(null);
+      setHeroSuggestions([]); setHeroSuggestionsOpen(false);
+      setHeroSuggestionsLoading(false); setHeroSearchMessage(null);
       return;
     }
-
     let cancelled = false;
     const timer = window.setTimeout(() => {
       setHeroSuggestionsLoading(true);
       getListingSearchSuggestions(query, 8)
-        .then((rows) => {
-          if (cancelled) return;
-          setHeroSuggestions(rows);
-          setHeroSuggestionsOpen(true);
-          setHeroSearchMessage(null);
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setHeroSuggestions([]);
-        })
-        .finally(() => {
-          if (!cancelled) {
-            setHeroSuggestionsLoading(false);
-          }
-        });
+        .then((rows) => { if (!cancelled) { setHeroSuggestions(rows); setHeroSuggestionsOpen(true); setHeroSearchMessage(null); } })
+        .catch(() => { if (!cancelled) setHeroSuggestions([]); })
+        .finally(() => { if (!cancelled) setHeroSuggestionsLoading(false); });
     }, 180);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [heroSearch]);
 
   useEffect(() => {
     if (!showSavedListings) return;
-
-    if (!watchlistIds.length) {
-      setSavedListings([]);
-      setSavedListingsError(null);
-      setSavedListingsLoading(false);
-      return;
-    }
-
+    if (!watchlistIds.length) { setSavedListings([]); setSavedListingsError(null); setSavedListingsLoading(false); return; }
     let cancelled = false;
-    setSavedListingsLoading(true);
-    setSavedListingsError(null);
-
-    Promise.all(
-      watchlistIds.map(async (savedId) => {
-        try {
-          return await getListing(savedId);
-        } catch {
-          return null;
-        }
-      }),
-    )
+    setSavedListingsLoading(true); setSavedListingsError(null);
+    Promise.all(watchlistIds.map(async (id) => { try { return await getListing(id); } catch { return null; } }))
       .then((rows) => {
         if (cancelled) return;
-
-        const availableById = new Map<number, CarListing>();
-        rows.forEach((row) => {
-          if (row?.id) {
-            availableById.set(row.id, row);
-          }
-        });
-
-        const hydrated = watchlistIds
-          .map((savedId) => availableById.get(savedId))
-          .filter((row): row is CarListing => Boolean(row));
-
+        const map = new Map<number, CarListing>();
+        rows.forEach((r) => { if (r?.id) map.set(r.id, r); });
+        const hydrated = watchlistIds.map((id) => map.get(id)).filter((r): r is CarListing => Boolean(r));
         setSavedListings(hydrated);
-
-        if (!hydrated.length) {
-          setSavedListingsError("Saved listings are currently unavailable from live sources.");
-        } else if (hydrated.length < watchlistIds.length) {
-          setSavedListingsError("Some saved listings are no longer available in source feeds.");
-        }
+        if (!hydrated.length) setSavedListingsError("Saved listings are currently unavailable.");
+        else if (hydrated.length < watchlistIds.length) setSavedListingsError("Some saved listings are no longer available.");
       })
-      .catch(() => {
-        if (cancelled) return;
-        setSavedListings([]);
-        setSavedListingsError("Unable to load saved listings right now.");
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setSavedListingsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      .catch(() => { if (!cancelled) { setSavedListings([]); setSavedListingsError("Unable to load saved listings."); } })
+      .finally(() => { if (!cancelled) setSavedListingsLoading(false); });
+    return () => { cancelled = true; };
   }, [showSavedListings, watchlistIds]);
-
-  useEffect(() => {
-    if (!filters.district) {
-      setDistrictQuickInsight(null);
-      return;
-    }
-
-    setLoadingDistrictInsight(true);
-    getDistrictQuickInsight(filters.district)
-      .then(setDistrictQuickInsight)
-      .catch(() => setDistrictQuickInsight(null))
-      .finally(() => setLoadingDistrictInsight(false));
-  }, [filters.district]);
 
   const fetchListings = useCallback(async () => {
     setLoadingListings(true);
-    try {
-      const result = await getListings(filters);
-      setListings(result.listings);
-      setTotal(result.total);
-    } catch {
-      setListings([]);
-      setTotal(0);
-    } finally {
-      setLoadingListings(false);
-    }
+    try { const result = await getListings(filters); setListings(result.listings); setTotal(result.total); }
+    catch { setListings([]); setTotal(0); }
+    finally { setLoadingListings(false); }
   }, [filters]);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
 
   useEffect(() => {
-    const latestListingAt = liveMarketSnapshot?.latest_listing_at || null;
-    if (!latestListingAt) return;
-
+    const latestAt = liveMarketSnapshot?.latest_listing_at || null;
+    if (!latestAt) return;
     const previous = liveListingAtRef.current;
-    liveListingAtRef.current = latestListingAt;
-    if (!previous || previous === latestListingAt) return;
-
+    liveListingAtRef.current = latestAt;
+    if (!previous || previous === latestAt) return;
     getStats().then(setStats).catch(() => {});
     getDashboardInsights().then(setDashboardInsights).catch(() => {});
-
-    if (filters.page === 1 && filters.sort === "newest") {
-      fetchListings();
-      setNewLiveListingsAvailable(false);
-    } else {
-      setNewLiveListingsAvailable(true);
-    }
+    if (filters.page === 1 && filters.sort === "newest") { fetchListings(); setNewLiveListingsAvailable(false); }
+    else setNewLiveListingsAvailable(true);
   }, [fetchListings, filters.page, filters.sort, liveMarketSnapshot?.latest_listing_at]);
 
-  // Sync URL
+  // ── URL sync ───────────────────────────────────────────────────
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (filters.q) params.set("q", filters.q);
@@ -407,115 +248,71 @@ export default function Dashboard() {
     if (filters.price_availability === "unavailable") params.set("price_availability", filters.price_availability);
     if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
     if (filters.page > 1) params.set("page", String(filters.page));
-
-    const nextSearch = params.toString();
-    const currentSearch = searchParams.toString();
-    if (nextSearch === currentSearch) {
-      return;
-    }
-
-    setSearchParams(params, { replace: true });
+    const next = params.toString();
+    if (next !== searchParams.toString()) setSearchParams(params, { replace: true });
   }, [filters, searchParams, setSearchParams]);
 
-  // QUICK VALUATION — model chips for the make currently in play
-  useEffect(() => {
-    if (!filters.make) {
-      setMarketModels([]);
-      return;
-    }
+  // ── Derived data ───────────────────────────────────────────────
 
-    getModels(filters.make)
-      .then(setMarketModels)
-      .catch(() => setMarketModels([]));
-  }, [filters.make]);
+  const fallbackTrendingModels = useMemo(() => {
+    const grouped = new Map<string, { make: string; model: string; count: number; total: number; thumbnail?: string }>();
+    listings.forEach((l) => {
+      const p = Number(l.price_lkr || 0);
+      if (!isReasonableListingPrice(p)) return;
+      const key = `${l.make}-${l.model}`;
+      const item = grouped.get(key);
+      const img = l.thumbnail_url || l.images?.[0];
+      if (item) { item.count++; item.total += p; if (!item.thumbnail && img) item.thumbnail = img; }
+      else grouped.set(key, { make: l.make, model: l.model, count: 1, total: p, thumbnail: img });
+    });
+    return Array.from(grouped.values())
+      .map((i) => ({ ...i, avgPrice: i.total / i.count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [listings]);
 
-  // TRENDS LOGIC
-  useEffect(() => {
-    if (!trendMake) return;
-    setTrendModel("");
-    getModels(trendMake)
-      .then(setTrendModels)
-      .catch(() => setTrendModels([]));
-  }, [trendMake]);
+  const fallbackHotDeals = useMemo(
+    () => [...listings]
+      .filter((l) => Number(l.deal_score || 0) >= 8 && isReasonableListingPrice(Number(l.price_lkr || 0)))
+      .sort((a, b) => Number(b.deal_score || 0) - Number(a.deal_score || 0))
+      .slice(0, 4),
+    [listings],
+  );
 
-  useEffect(() => {
-    if (filters.make) {
-      if (trendMake !== filters.make) {
-        setTrendMake(filters.make);
-      }
-      return;
-    }
+  const trendingModels = useMemo(() => {
+    const rows = dashboardInsights?.trending_models?.length
+      ? dashboardInsights.trending_models.map((r) => ({
+          ...r, thumbnail_url: pickVehicleImageUrl([r.thumbnail_url]),
+        }))
+      : fallbackTrendingModels.map((r) => ({
+          make: r.make, model: r.model, listing_count: r.count,
+          avg_price_lkr: r.avgPrice, movement_pct: 0, thumbnail_url: r.thumbnail || null,
+        }));
+    return rows;
+  }, [dashboardInsights?.trending_models, fallbackTrendingModels]);
 
-    if (filters.district && districtTrendSeed?.make) {
-      if (trendMake !== districtTrendSeed.make) {
-        setTrendMake(districtTrendSeed.make);
-      }
-      return;
-    }
+  const hotDeals = useMemo(() => {
+    const rows = dashboardInsights?.hot_deals?.length
+      ? dashboardInsights.hot_deals.filter((r) => isReasonableListingPrice(Number(r.price_lkr || 0)))
+      : fallbackHotDeals.map((r) => ({
+          id: r.id, make: r.make, model: r.model, year: r.year, district: r.district || null,
+          source: r.source, price_lkr: r.price_lkr, deal_score: Number(r.deal_score || 0),
+          thumbnail_url: r.thumbnail_url || r.images?.[0] || null,
+        }));
+    return rows.map((r) => ({ ...r, thumbnail_url: pickVehicleImageUrl([r.thumbnail_url]) }));
+  }, [dashboardInsights?.hot_deals, fallbackHotDeals]);
 
-    if (!trendMake && trendMakes.length > 0) {
-      setTrendMake(trendMakes[0].make);
-    }
-  }, [districtTrendSeed, filters.district, filters.make, trendMake, trendMakes]);
-
-  useEffect(() => {
-    if (!trendModels.length) return;
-
-    if (filters.model && trendModels.some((item) => item.model === filters.model)) {
-      if (trendModel !== filters.model) {
-        setTrendModel(filters.model);
-      }
-      return;
-    }
-
-    if (
-      filters.district &&
-      districtTrendSeed?.make === trendMake &&
-      districtTrendSeed?.model &&
-      trendModels.some((item) => item.model === districtTrendSeed.model)
-    ) {
-      if (trendModel !== districtTrendSeed.model) {
-        setTrendModel(districtTrendSeed.model);
-      }
-      return;
-    }
-
-    if (!trendModel) {
-      setTrendModel(trendModels[0].model);
-    }
-  }, [districtTrendSeed, filters.district, filters.model, trendMake, trendModel, trendModels]);
-
-  useEffect(() => {
-    if (trendMake && trendModel) {
-      setTrendLoading(true);
-      getPriceTrendSeries(trendMake, trendModel, filters.condition, filters.district)
-        .then((series) => {
-          setTrendData(series.points);
-          setTrendCoverageNote(series.coverage_note);
-        })
-        .catch(() => {
-          setTrendData([]);
-          setTrendCoverageNote("Historical trend stream is temporarily unavailable. Re-run shortly for trajectory analytics.");
-        })
-        .finally(() => { setTrendLoading(false); });
-    }
-  }, [trendMake, trendModel, filters.condition, filters.district]);
+  // ── Actions ────────────────────────────────────────────────────
 
   const toggleCompare = useCallback((listing: CarListing) => {
     setCompareListings((prev) => {
-      if (prev.some((item) => item.id === listing.id)) {
-        return prev.filter((item) => item.id !== listing.id);
-      }
-
-      if (prev.length >= 3) {
-        return prev;
-      }
-
+      if (prev.some((i) => i.id === listing.id)) return prev.filter((i) => i.id !== listing.id);
+      if (prev.length >= 3) return prev;
       return [...prev, listing];
     });
   }, []);
 
-  const compareIds = useMemo(() => compareListings.map((listing) => listing.id), [compareListings]);
+  const compareIds = useMemo(() => compareListings.map((l) => l.id), [compareListings]);
   const compareIdSet = useMemo(() => new Set(compareIds), [compareIds]);
   const watchlistIdSet = useMemo(() => new Set(watchlistIds), [watchlistIds]);
 
@@ -527,1403 +324,480 @@ export default function Dashboard() {
     document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const applyHeroSuggestion = useCallback(
-    (suggestion: ListingSearchSuggestion) => {
-      setHeroSearch(`${suggestion.make} ${suggestion.model}`);
-      setHeroSuggestionsOpen(false);
-      startTransition(() => {
-        setFilters((prev) => ({
-          ...prev,
-          q: undefined,
-          make: suggestion.make,
-          model: suggestion.model,
-          page: 1,
-        }));
-      });
-      setHeroSearchMessage(null);
-      scrollToMarket();
-    },
-    [scrollToMarket],
-  );
+  const applyHeroSuggestion = useCallback((s: ListingSearchSuggestion) => {
+    setHeroSearch(`${s.make} ${s.model}`);
+    setHeroSuggestionsOpen(false);
+    startTransition(() => { setFilters((prev) => ({ ...prev, q: undefined, make: s.make, model: s.model, page: 1 })); });
+    setHeroSearchMessage(null);
+    scrollToMarket();
+  }, [scrollToMarket]);
 
   const runHeroSearch = useCallback(() => {
     const query = heroSearch.trim();
     if (!query) return;
-
-    if (heroSuggestions.length > 0) {
-      applyHeroSuggestion(heroSuggestions[0]);
-      return;
-    }
-
+    if (heroSuggestions.length > 0) { applyHeroSuggestion(heroSuggestions[0]); return; }
     const normalizedQuery = query.toLowerCase();
-    const makeMatch = makes.find((entry) => entry.make.toLowerCase().includes(normalizedQuery));
-    const modelMatch = listings.find((listing) => {
-      const makeModel = `${listing.make} ${listing.model}`.toLowerCase();
-      return makeModel.includes(normalizedQuery);
-    });
-
+    const makeMatch = makes.find((e) => e.make.toLowerCase().includes(normalizedQuery));
     startTransition(() => {
-      setFilters((prev) => ({
-        ...prev,
-        q: query,
-        make: makeMatch?.make ?? modelMatch?.make ?? prev.make,
-        model: makeMatch ? undefined : modelMatch?.model ?? prev.model,
-        page: 1,
-      }));
+      setFilters((prev) => ({ ...prev, q: query, make: makeMatch?.make ?? prev.make, model: makeMatch ? undefined : prev.model, page: 1 }));
     });
-
     setHeroSuggestionsOpen(false);
-    setHeroSearchMessage(
-      makeMatch || modelMatch
-        ? null
-        : "Searching the vehicle index only. If this is not a vehicle make, model, year, or listing title, the result set will stay empty.",
-    );
-
+    setHeroSearchMessage(makeMatch ? null : "Searching vehicle index only.");
     scrollToMarket();
-  }, [applyHeroSuggestion, heroSearch, heroSuggestions, listings, makes, scrollToMarket]);
+  }, [applyHeroSuggestion, heroSearch, heroSuggestions, makes, scrollToMarket]);
 
-  const focusModel = useCallback(
-    (make: string, model?: string) => {
-      startTransition(() => {
-        setFilters((prev) => ({
-          ...prev,
-          q: undefined,
-          make,
-          model: model || undefined,
-          page: 1,
-        }));
-      });
-      scrollToMarket();
-    },
-    [scrollToMarket],
-  );
+  const focusModel = useCallback((make: string, model?: string) => {
+    startTransition(() => { setFilters((prev) => ({ ...prev, q: undefined, make, model: model || undefined, page: 1 })); });
+    scrollToMarket();
+  }, [scrollToMarket]);
 
-  const focusSegment = useCallback(
-    (segment: string) => {
-      startTransition(() => {
-        setFilters((prev) => ({
-          ...prev,
-          q: undefined,
-          body_type: segment as FilterState["body_type"],
-          page: 1,
-        }));
-      });
-      scrollToMarket();
-    },
-    [scrollToMarket],
-  );
-
-  const onDistrictSelect = useCallback((district: string) => {
-    startTransition(() => {
-      setFilters((prev) => ({
-        ...prev,
-        district: prev.district === district ? undefined : district,
-        page: 1,
-      }));
-    });
-  }, []);
-
-  const fallbackTrendingModels = useMemo(() => {
-    const grouped = new Map<string, { make: string; model: string; count: number; avgPriceTotal: number; avgDealTotal: number; thumbnail?: string }>();
-
-    listings.forEach((listing) => {
-      const listingPrice = Number(listing.price_lkr || 0);
-      if (!isReasonableListingPrice(listingPrice)) return;
-      const key = `${listing.make}-${listing.model}`;
-      const item = grouped.get(key);
-      const image = listing.thumbnail_url || listing.images?.[0];
-
-      if (item) {
-        item.count += 1;
-        item.avgPriceTotal += listingPrice;
-        item.avgDealTotal += Number(listing.deal_score || 0);
-        if (!item.thumbnail && image) {
-          item.thumbnail = image;
-        }
-      } else {
-        grouped.set(key, {
-          make: listing.make,
-          model: listing.model,
-          count: 1,
-          avgPriceTotal: listingPrice,
-          avgDealTotal: Number(listing.deal_score || 0),
-          thumbnail: image,
-        });
-      }
-    });
-
-    return Array.from(grouped.values())
-      .map((item) => ({
-        ...item,
-        avgPrice: item.avgPriceTotal / item.count,
-        movementPct: item.avgDealTotal / item.count,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 4);
-  }, [listings]);
-
-  const fallbackHotDeals = useMemo(
-    () =>
-      [...listings]
-        .filter((listing) => Number(listing.deal_score || 0) >= 8 && isReasonableListingPrice(Number(listing.price_lkr || 0)))
-        .sort((a, b) => Number(b.deal_score || 0) - Number(a.deal_score || 0))
-        .slice(0, 5),
-    [listings],
-  );
-
-  const fallbackNewListingsToday = useMemo(() => {
-    const oneDayAgo = Date.now() - 24 * 3_600_000;
-    return listings.filter((listing) => {
-      const base = listing.first_seen_at || listing.scraped_at;
-      if (!base) return false;
-      const ts = new Date(base).getTime();
-      return Number.isFinite(ts) && ts >= oneDayAgo;
-    }).length;
-  }, [listings]);
-
-  const fallbackSegmentPerformance = useMemo(() => {
-    const grouped = new Map<string, { count: number; totalPrice: number; totalScore: number }>();
-
-    listings.forEach((listing) => {
-      const key = String(listing.body_type || "unknown").toLowerCase();
-      const prev = grouped.get(key) || { count: 0, totalPrice: 0, totalScore: 0 };
-      grouped.set(key, {
-        count: prev.count + 1,
-        totalPrice: prev.totalPrice + Number(listing.price_lkr || 0),
-        totalScore: prev.totalScore + Number(listing.deal_score || 0),
-      });
-    });
-
-    return Array.from(grouped.entries())
-      .map(([segment, value]) => ({
-        segment,
-        listing_count: value.count,
-        avg_price_lkr: value.count > 0 ? value.totalPrice / value.count : 0,
-        change_pct_30d: value.count > 0 ? Number((value.totalScore / value.count).toFixed(1)) : null,
-      }))
-      .sort((a, b) => b.listing_count - a.listing_count)
-      .slice(0, 6);
-  }, [listings]);
-
-  const segmentPerformance = dashboardInsights?.segment_performance?.length
-    ? dashboardInsights.segment_performance
-    : fallbackSegmentPerformance;
-
-  const trendingModelRows = dashboardInsights?.trending_models?.length
-    ? dashboardInsights.trending_models
-    : fallbackTrendingModels.map((row) => ({
-        make: row.make,
-        model: row.model,
-        listing_count: row.count,
-        avg_price_lkr: row.avgPrice,
-        movement_pct: row.movementPct,
-        thumbnail_url: row.thumbnail || null,
-      }));
-
-  const normalizedTrendingRows = useMemo(
-    () =>
-      trendingModelRows.map((row) => ({
-        ...row,
-        thumbnail_url: pickVehicleImageUrl([row.thumbnail_url]),
-      })),
-    [trendingModelRows],
-  );
-
-  const runQuickValuation = useCallback(() => {
-    const query = quickValuationModel.trim().toLowerCase();
-    if (!query) {
-      setQuickValuationResult(null);
-      return;
-    }
-
-    const matchingPrices = listings
-      .filter((item) => {
-        const makeModel = `${item.make} ${item.model}`.toLowerCase();
-        return makeModel.includes(query) && isReasonableListingPrice(Number(item.price_lkr));
-      })
-      .map((item) => Number(item.price_lkr))
-      .filter((value) => Number.isFinite(value))
-      .sort((a, b) => a - b);
-
-    if (matchingPrices.length > 0) {
-      const medianIndex = Math.floor(matchingPrices.length / 2);
-      const median =
-        matchingPrices.length % 2 === 0
-          ? (matchingPrices[medianIndex - 1] + matchingPrices[medianIndex]) / 2
-          : matchingPrices[medianIndex];
-
-      setQuickValuationResult({
-        estimateLabel: formatPrice(median),
-        sampleSize: matchingPrices.length,
-      });
-      return;
-    }
-
-    const trendMatch = trendingModelRows.find((item) => {
-      const makeModel = `${item.make} ${item.model}`.toLowerCase();
-      return makeModel.includes(query) && Number(item.avg_price_lkr) > 0;
-    });
-
-    if (trendMatch) {
-      setQuickValuationResult({
-        estimateLabel: formatPrice(Number(trendMatch.avg_price_lkr)),
-        sampleSize: Number(trendMatch.listing_count || 0),
-      });
-      return;
-    }
-
-    setQuickValuationResult({
-      estimateLabel: "No direct model match yet",
-      sampleSize: 0,
-    });
-  }, [listings, quickValuationModel, trendingModelRows]);
-
-  const hotDealRows = dashboardInsights?.hot_deals?.length
-    ? dashboardInsights.hot_deals.filter((row) => isReasonableListingPrice(Number(row.price_lkr || 0)))
-    : fallbackHotDeals.map((row) => ({
-        id: row.id,
-        make: row.make,
-        model: row.model,
-        year: row.year,
-        district: row.district || null,
-        source: row.source,
-        price_lkr: row.price_lkr,
-        deal_score: Number(row.deal_score || 0),
-        thumbnail_url: row.thumbnail_url || row.images?.[0] || null,
-      }));
-
-  const normalizedHotDeals = useMemo(
-    () =>
-      hotDealRows.map((row) => ({
-        ...row,
-        thumbnail_url: pickVehicleImageUrl([row.thumbnail_url]),
-      })),
-    [hotDealRows],
-  );
-
-  const comparedListings = useMemo(
-    () => listings.filter((listing) => compareIdSet.has(listing.id)),
-    [listings, compareIdSet],
-  );
-
-  const newListingsToday = dashboardInsights?.new_listings_24h ?? fallbackNewListingsToday;
-  const spotlightModel = normalizedTrendingRows[0] ?? null;
-  const spotlightDeal = normalizedHotDeals.find((row) => isReasonableListingPrice(Number(row.price_lkr || 0))) ?? null;
-  const spotlightSegment = segmentPerformance[0] ?? null;
-  const marketPulseFreshness = formatFreshnessLabel(liveMarketSnapshot?.latest_listing_at || stats?.last_updated);
-  const marketPulseListings = Number(liveMarketSnapshot?.priced_listings ?? stats?.total_listings ?? total ?? 0);
-  const marketPulseDistrictCoverage = Number(stats?.district_count || districtPrices.length || 0);
-  const marketPulseSources = Number(stats?.source_count || liveMarketSnapshot?.source_status?.length || 0);
-  const marketPulseHotDeals = normalizedHotDeals.length;
-  const isPriceUnavailableMode = filters.price_availability === "unavailable";
-  const averageIndexPrice = liveMarketSnapshot?.avg_price_lkr || stats?.avg_price_lkr
-    ? formatPrice(liveMarketSnapshot?.avg_price_lkr ?? stats?.avg_price_lkr ?? null)
-    : "Syncing";
-  const momChange = Number(stats?.price_change_mom ?? 0);
-  const momIsCooling = momChange < 0;
-  const momChangeLabel = `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}% MoM`;
-  const marketSignalCards = [
-    {
-      label: "Listings",
-      value: marketPulseListings.toLocaleString(),
-      icon: Database,
-    },
-    {
-      label: "Districts",
-      value: marketPulseDistrictCoverage.toLocaleString(),
-      icon: MapPinned,
-    },
-    {
-      label: "Sources",
-      value: marketPulseSources.toLocaleString(),
-      icon: Radio,
-    },
-    {
-      label: "Top deal",
-      value: spotlightDeal ? `+${Number(spotlightDeal.deal_score || 0).toFixed(0)}` : marketPulseHotDeals.toLocaleString(),
-      icon: Sparkles,
-    },
-  ];
-
+  const comparedListings = useMemo(() => listings.filter((l) => compareIdSet.has(l.id)), [listings, compareIdSet]);
   const totalPages = Math.ceil(total / LISTINGS_PAGE_SIZE);
   const currentAlertSummary = useMemo(() => summarizeAlertFilters(filters), [filters]);
 
   const saveCurrentMarketAlert = useCallback(() => {
-    const targetPrice = Number(alertPriceInput.replace(/[^\d]/g, ""));
-    const nextAlerts = saveMarketAlert(filters, Number.isFinite(targetPrice) ? targetPrice : undefined);
-    setMarketAlerts(nextAlerts);
-    setAlertPriceInput("");
-    setShowMarketAlerts(true);
+    const target = Number(alertPriceInput.replace(/[^\d]/g, ""));
+    const next = saveMarketAlert(filters, Number.isFinite(target) ? target : undefined);
+    setMarketAlerts(next); setAlertPriceInput(""); setShowMarketAlerts(true);
   }, [alertPriceInput, filters]);
 
-  const deleteMarketAlert = useCallback((id: string) => {
-    setMarketAlerts(removeMarketAlert(id));
-  }, []);
-
-  const activeFilterCount = useMemo(
-    () =>
-      [
-        filters.q,
-        filters.source,
-        filters.make,
-        filters.model,
-        filters.district,
-        filters.condition,
-        filters.body_type,
-        filters.transmission,
-        filters.fuel_type,
-        filters.price_availability,
-        filters.year_min,
-        filters.year_max,
-        filters.price_min,
-        filters.price_max,
-        filters.mileage_max,
-      ].filter(Boolean).length,
-    [filters],
-  );
+  const deleteMarketAlert = useCallback((id: string) => { setMarketAlerts(removeMarketAlert(id)); }, []);
 
   const activeFilterLabels = useMemo(
-    () =>
-      [
-        filters.price_availability === "unavailable" ? "Missing-price queue" : undefined,
-        filters.q ? `Keyword: ${filters.q}` : undefined,
-        filters.source ? `Source: ${filters.source}` : undefined,
-        filters.make,
-        filters.model,
-        filters.district,
-        filters.condition ? filters.condition.replace(/_/g, " ") : undefined,
-        filters.body_type,
-        filters.fuel_type,
-        filters.transmission,
-        filters.price_min || filters.price_max ? "Budget range set" : undefined,
-        filters.mileage_max ? `Under ${Math.round(filters.mileage_max / 1000)}k km` : undefined,
-      ].filter(Boolean) as string[],
+    () => [
+      filters.price_availability === "unavailable" ? "Missing prices" : undefined,
+      filters.q ? `"${filters.q}"` : undefined,
+      filters.source,
+      filters.make,
+      filters.model,
+      filters.district,
+      filters.condition?.replace(/_/g, " "),
+      filters.body_type,
+      filters.fuel_type,
+      filters.transmission,
+    ].filter(Boolean) as string[],
     [filters],
   );
 
-  const marketModelOptions = useMemo(() => {
-    if (marketModels.length) return marketModels;
-    if (filters.model) return [{ model: filters.model, count: 0 }];
-    return [];
-  }, [filters.model, marketModels]);
-
   const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroSearch.trim().length > 0;
-  const indexBoardLoading = !stats && !liveMarketSnapshot && !marketDataUnavailable;
+
+  const marketPulseListings = Number(liveMarketSnapshot?.priced_listings ?? stats?.total_listings ?? total ?? 0);
+  const marketPulseDistricts = Number(stats?.district_count || 0);
+  const marketPulseSources = Number(stats?.source_count || liveMarketSnapshot?.source_status?.length || 0);
+  const momChange = Number(stats?.price_change_mom ?? 0);
+  const freshness = formatFreshnessLabel(liveMarketSnapshot?.latest_listing_at || stats?.last_updated);
+  const isPriceUnavailableMode = filters.price_availability === "unavailable";
+
+  // ═════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═════════════════════════════════════════════════════════════════
+
   return (
-    <>
-      <div className="dashboard-shell">
-        <AmbientBackground variant="hero" />
-        <div className="relative z-[1]">
-        {/* HERO — market cockpit */}
-        <PlatformPageHero
-          eyebrow="AutoLens LK"
-          title="Know the real price before you call."
-          description="Search live Sri Lanka listings, compare districts, and read fair-value signals in one calm workspace."
-          icon={Sparkles}
-          footer={
-            <button
-              type="button"
-              onClick={() => document.getElementById("decision-intelligence")?.scrollIntoView({ behavior: "smooth" })}
-              className="group flex flex-col items-center gap-2 text-zinc-500 transition-colors duration-300 hover:text-zinc-200"
-              aria-label="Scroll to market tools"
-            >
-              <span className="tech-label">Explore market</span>
-              <ChevronDown className="h-5 w-5 animate-scroll-hint" />
-            </button>
-          }
-          aside={
-            <Surface variant="glass" className="index-board-card p-4 sm:p-5" aria-label="Live market index board">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="section-eyebrow">Live index</p>
-                  <h2 className="headline-display mt-2 text-lg sm:text-xl">Sri Lanka board</h2>
-                </div>
-                <div className="rounded-lg border border-border bg-muted/40 p-2 text-muted-foreground">
-                  <Activity className="h-4 w-4" aria-hidden="true" />
-                </div>
-              </div>
+    <div className="min-h-screen">
 
-              {indexBoardLoading ? (
-                <>
-                  <div className="mt-5 border-y border-border py-5" aria-busy="true" aria-live="polite">
-                    <p className="field-label normal-case tracking-normal">Median pressure</p>
-                    <div className="skeleton-shimmer mt-3 h-10 w-44 rounded-md sm:h-11" />
-                    <div className="skeleton-shimmer mt-4 h-6 w-28 rounded-full" />
-                  </div>
+      {/* ── COMMAND BAR ─────────────────────────────────────────── */}
+      <section id="overview" className="border-b border-white/[0.04]">
+        <div className="mx-auto max-w-[1560px] px-5 py-10 sm:px-6 sm:py-14 lg:py-16">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
+            Vehicle Intelligence · Sri Lanka
+          </p>
+          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem] lg:text-[2.75rem]">
+            Find your vehicle.
+          </h1>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">
+            Search {marketPulseListings.toLocaleString()} live listings across {marketPulseDistricts || 25} districts. Real-time pricing, deal scores, and market intelligence.
+          </p>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                      <div key={`index-signal-skel-${index}`} className="data-card p-3">
-                        <div className="skeleton-shimmer h-3 w-20 rounded" />
-                        <div className="skeleton-shimmer mt-3 h-5 w-16 rounded" />
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : marketDataUnavailable && !stats && !liveMarketSnapshot ? (
-                <div className="mt-5 rounded-lg border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-zinc-300">
-                  <p className="font-semibold text-amber-200">Live market stats are unavailable right now.</p>
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-400">
-                    The pricing feed could not be reached. Search and listings may still load once the backend reconnects.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="mt-5 border-y border-border py-5">
-                    <p className="field-label normal-case tracking-normal">Median pressure</p>
-                    <p className={`mt-2 font-bold leading-none text-white num ${averageIndexPrice === "Syncing" ? "text-3xl sm:text-4xl" : "text-4xl sm:text-[2.75rem]"}`}>
-                      {averageIndexPrice}
-                    </p>
-                    <BadgeDelta trend={momIsCooling ? "down" : "up"} className="mt-4">
-                      {momChangeLabel}
-                    </BadgeDelta>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    {marketSignalCards.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <div key={item.label} className="data-card p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="field-label normal-case tracking-normal">{item.label}</p>
-                            <Icon className="h-4 w-4 text-zinc-500" />
-                          </div>
-                          <p className="mt-3 text-lg font-bold text-white num">{item.value}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              <p className="mt-4 truncate text-xs text-muted-foreground">
-                {liveMarketSnapshot?.active_scrape_sources?.length
-                  ? `Syncing ${liveMarketSnapshot.active_scrape_sources.join(", ")}`
-                  : marketPulseFreshness}
-              </p>
-            </Surface>
-          }
-        >
-          <div id="overview" className="space-y-5">
-            <div className="hero-search-panel p-2 md:p-2.5">
-              <div className="flex min-w-0 flex-col gap-2 md:flex-row">
-                <div className="relative min-w-0 flex-1 text-left">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-zinc-500" />
-                  <label htmlFor="hero-vehicle-search" className="sr-only">
-                    Search Sri Lanka vehicle listings
-                  </label>
-                  <Input
-                    id="hero-vehicle-search"
-                    value={heroSearch}
-                    onChange={(event) => {
-                      setHeroSearch(event.target.value);
-                      setHeroSearchMessage(null);
-                    }}
-                    onFocus={() => {
-                      if (heroSuggestions.length > 0) {
-                        setHeroSuggestionsOpen(true);
-                      }
-                    }}
-                    onBlur={() => {
-                      window.setTimeout(() => setHeroSuggestionsOpen(false), 120);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        runHeroSearch();
-                      }
-                    }}
-                    placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
-                    spellCheck={false}
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    role="combobox"
-                    aria-expanded={showHeroSuggestions}
-                    aria-controls="hero-search-suggestions"
-                    className="h-12 min-w-0 w-full border-0 bg-transparent pl-11 pr-4 text-sm font-semibold text-white placeholder-zinc-600 shadow-none focus-visible:ring-0 sm:h-13 sm:text-base"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={runHeroSearch}
-                  size="lg"
-                  className="micro-press h-12 w-full rounded-lg px-8 sm:h-13 md:w-auto"
-                >
-                  Check price
-                </Button>
+          {/* Search */}
+          <div className="mt-6 max-w-2xl">
+            <div className="relative">
+              <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[hsl(220,8%,5.5%)] transition-all focus-within:border-amber-400/20 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.06)]">
+                <Search className="ml-4 h-4 w-4 shrink-0 text-zinc-600" />
+                <label htmlFor="hero-search" className="sr-only">Search vehicles</label>
+                <input
+                  id="hero-search"
+                  value={heroSearch}
+                  onChange={(e) => { setHeroSearch(e.target.value); setHeroSearchMessage(null); }}
+                  onFocus={() => { if (heroSuggestions.length) setHeroSuggestionsOpen(true); }}
+                  onBlur={() => { window.setTimeout(() => setHeroSuggestionsOpen(false), 120); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runHeroSearch(); } }}
+                  placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  role="combobox"
+                  aria-expanded={showHeroSuggestions}
+                  aria-controls="hero-suggestions"
+                  className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground placeholder-zinc-600 outline-none sm:h-13"
+                />
+                <button type="button" onClick={runHeroSearch} className="mr-2 h-9 rounded-lg bg-[var(--gold)] px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-black transition-colors hover:bg-[var(--gold-bright)]">
+                  Search
+                </button>
               </div>
 
               {showHeroSuggestions && (
-                <div
-                  id="hero-search-suggestions"
-                  role="listbox"
-                  aria-label="Vehicle search suggestions"
-                  className="asset-surface mt-2 rounded-[10px] text-left"
-                >
+                <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-white/[0.06] bg-[hsl(220,8%,5.5%)] p-1 shadow-xl">
                   {heroSuggestionsLoading ? (
-                    <p className="px-4 py-3 text-xs font-semibold text-zinc-500">Searching...</p>
+                    <p className="px-3 py-2 text-[11px] text-zinc-600">Searching...</p>
                   ) : heroSuggestions.length ? (
-                    <div className="max-h-[260px] overflow-y-auto p-1.5">
-                      {heroSuggestions.map((suggestion) => (
+                    <div className="max-h-[240px] overflow-y-auto">
+                      {heroSuggestions.map((s) => (
                         <button
-                          key={`${suggestion.id}-${suggestion.make}-${suggestion.model}`}
-                          type="button"
-                          role="option"
-                          aria-selected="false"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => applyHeroSuggestion(suggestion)}
-                          className="w-full rounded-[8px] border border-transparent px-3 py-3 text-left transition-all duration-200 hover:border-white/10 hover:bg-white/[0.04] focus-visible:border-amber-300/50 focus-visible:outline-none"
+                          key={`${s.id}-${s.make}-${s.model}`} type="button" role="option" aria-selected="false"
+                          onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
                         >
-                          <span className="flex flex-wrap items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-zinc-100">
-                              {suggestion.make} {suggestion.model} {suggestion.year}
-                            </span>
-                            <span className="text-xs font-bold text-amber-400 num">
-                              {isReasonableListingPrice(Number(suggestion.price_lkr)) ? formatPrice(suggestion.price_lkr || null) : "No price"}
-                            </span>
-                          </span>
-                          <span className="mt-1 block text-xs font-semibold text-zinc-500">
-                            {suggestion.district || "Sri Lanka"} · {suggestion.source}
+                          <span className="text-[13px] font-semibold text-zinc-200">{s.make} {s.model} {s.year}</span>
+                          <span className="text-[12px] font-bold text-amber-400/80 num">
+                            {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
                           </span>
                         </button>
                       ))}
                     </div>
-                  ) : (
-                    <p className="px-4 py-3 text-xs font-semibold text-zinc-500">No matches yet.</p>
-                  )}
+                  ) : <p className="px-3 py-2 text-[11px] text-zinc-600">No matches.</p>}
                 </div>
               )}
             </div>
 
-            {heroSearchMessage ? (
-              <p className="rounded-[10px] border border-amber-300/20 bg-amber-500/10 px-3 py-2 text-xs font-semibold leading-5 text-amber-100">
-                {heroSearchMessage}
-              </p>
-            ) : null}
+            {heroSearchMessage && (
+              <p className="mt-2 text-[11px] font-medium text-amber-300/70">{heroSearchMessage}</p>
+            )}
 
-            <div className="flex max-w-full flex-wrap items-center gap-2 text-caption font-semibold">
-              <span className="tech-label">Quick scans</span>
-              {["Toyota Aqua", "Honda Vezel", "Suzuki Wagon R", "Nissan Leaf", "Toyota Axio", "BMW"].map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setHeroSearch(item)}
-                  className="micro-press rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
-                >
-                  {item}
-                </button>
+            {/* Quick scans */}
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {["Toyota Aqua", "Honda Vezel", "Wagon R", "Nissan Leaf", "Toyota Axio"].map((item) => (
+                <button key={item} type="button" onClick={() => setHeroSearch(item)}
+                  className="rounded-md border border-white/[0.05] px-2.5 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:border-white/[0.1] hover:text-zinc-300"
+                >{item}</button>
               ))}
             </div>
-
           </div>
-        </PlatformPageHero>
 
-        <DecisionIntelligenceGrid />
-
-      <div className="flex flex-col">
-
-      {/* MAP SECTION */}
-      <RevealSection id="map" className="layout-shell order-3 py-12 text-left lg:py-16">
-        <SectionHeader eyebrow="Geo intelligence" title="Market concentration" />
-        <div className="console-section p-4 md:p-5">
-           <Suspense
-             fallback={
-               <div className="skeleton-shimmer flex h-[420px] w-full items-center justify-center rounded-xl border border-white/[0.05] text-sm font-semibold text-zinc-500">
-                 Loading geo intelligence...
-               </div>
-             }
-           >
-             <LazyMarketMap
-               isLoading={loadingMap}
-               data={districtPrices}
-               selectedDistrict={filters.district}
-               onDistrictSelect={onDistrictSelect}
-             />
-           </Suspense>
+          {/* Market ticker */}
+          <div className="mt-8 flex flex-wrap items-center gap-2">
+            {[
+              { label: "Listings", value: marketPulseListings.toLocaleString(), icon: Database },
+              { label: "Districts", value: (marketPulseDistricts || "—").toLocaleString(), icon: MapPinned },
+              { label: "Sources", value: (marketPulseSources || "—").toLocaleString(), icon: Radio },
+              { label: "MoM", value: `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`, icon: TrendingUp },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2 rounded-md border border-white/[0.04] bg-white/[0.015] px-3 py-2">
+                <item.icon className="h-3 w-3 text-zinc-600" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">{item.label}</span>
+                <span className="text-[12px] font-bold text-zinc-300 num">{item.value}</span>
+              </div>
+            ))}
+            <span className="text-[10px] text-zinc-600">{freshness}</span>
+          </div>
         </div>
-              </RevealSection>
+      </section>
 
-        {/* MARKET TRENDS — price history + valuation/predictor modules */}
-        <RevealSection id="trends" className="layout-shell order-4 flex flex-col gap-6 py-12 text-left lg:py-16">
-          <SectionHeader eyebrow="Market trends" title="Price history" />
+      {/* ── INVENTORY ───────────────────────────────────────────── */}
+      <section id="market" className="scroll-mt-20">
+        <div className="mx-auto max-w-[1560px] px-5 py-8 sm:px-6 lg:py-10">
 
-          <div className="console-section p-4 sm:p-5 md:p-6">
-            <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-end md:justify-between">
-              <div className="space-y-2">
-                <div className="headline-kicker text-zinc-400">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
-                  Trend controls
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Pick a lane</h3>
-              </div>
+          {/* Toolbar */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">
+                {isPriceUnavailableMode ? "Unpriced inventory" : "Inventory"}
+              </h2>
+              <span className="text-[12px] font-bold text-zinc-500 num">{total.toLocaleString()}</span>
             </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label htmlFor="trend-make" className="field-label flex items-center gap-1.5">
-                  <Car className="h-3.5 w-3.5 text-zinc-500" aria-hidden="true" />
-                  Trend make
-                </label>
-                <Select
-                  value={trendMake || undefined}
-                  onValueChange={(value) => {
-                    setTrendMake(value);
-                    setTrendModel("");
-                  }}
-                >
-                  <SelectTrigger id="trend-make" className="control-dark w-full">
-                    <SelectValue placeholder="Choose a make" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-white/10 text-zinc-100">
-                    {trendMakes.map((row) => (
-                      <SelectItem key={row.make} value={row.make}>
-                        {row.make} ({row.count.toLocaleString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setShowSavedListings(true)}
+                className="rounded-md border border-white/[0.05] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 transition-colors hover:border-white/[0.1] hover:text-zinc-200"
+              >{watchlistIds.length} saved</button>
+              <button type="button" onClick={saveCurrentMarketAlert}
+                className="rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-300/80 transition-colors hover:bg-amber-400/10"
+              >Save alert</button>
+              <button type="button" onClick={() => setShowMarketAlerts(true)}
+                className="rounded-md border border-white/[0.05] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500 transition-colors hover:text-zinc-300"
+              >{marketAlerts.length} alerts</button>
+              <div className="hidden items-center gap-0.5 md:flex">
+                <button type="button" onClick={() => setMarketView("grid")} aria-label="Grid view" aria-pressed={marketView === "grid"}
+                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-white/[0.1] bg-white/[0.04] text-zinc-200" : "border-transparent text-zinc-600 hover:text-zinc-400"}`}
+                ><LayoutGrid className="h-3.5 w-3.5" /></button>
+                <button type="button" onClick={() => setMarketView("list")} aria-label="List view" aria-pressed={marketView === "list"}
+                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "list" ? "border-white/[0.1] bg-white/[0.04] text-zinc-200" : "border-transparent text-zinc-600 hover:text-zinc-400"}`}
+                ><List className="h-3.5 w-3.5" /></button>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="trend-model" className="field-label flex items-center gap-1.5">
-                  <Layers className="h-3.5 w-3.5 text-zinc-500" aria-hidden="true" />
-                  Trend model
-                </label>
-                <Select
-                  value={trendModel || undefined}
-                  onValueChange={setTrendModel}
-                  disabled={!trendMake || trendModels.length === 0}
-                >
-                  <SelectTrigger id="trend-model" className="control-dark w-full disabled:opacity-60">
-                    <SelectValue placeholder="Choose a model" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-white/10 text-zinc-100">
-                    {trendModels.map((row) => (
-                      <SelectItem key={row.model} value={row.model}>
-                        {row.model} ({row.count.toLocaleString()})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-              <span className="field-label mr-1 text-zinc-500">Active lane</span>
-              <span className="status-chip">{trendMake || "No make"}</span>
-              <span className="status-chip">{trendModel || "No model"}</span>
-              <span className="status-chip">District: {filters.district || "All Sri Lanka"}</span>
-              <span className="status-chip">Condition: {filters.condition ? filters.condition.replace(/_/g, " ") : "Any"}</span>
             </div>
           </div>
 
-          <PriceHistoryChart
-            title={`${filters.district || "Sri Lanka"} ${trendMake && trendModel ? `- ${trendMake} ${trendModel}` : "Market"}`}
-            points={trendData}
-            isLoading={trendLoading}
-            coverageNote={trendCoverageNote}
-            emptyMessage={
-              !trendMake || !trendModel
-                ? "Select a make and model to load live history."
-                : "Trend samples are still being collected for this vehicle lane."
-            }
-            emptyActionLabel={filters.district || filters.condition ? "Show broader lane" : undefined}
-            onEmptyAction={
-              filters.district || filters.condition
-                ? () => setFilters((prev) => ({ ...prev, district: undefined, condition: undefined, page: 1 }))
-                : undefined
-            }
-          />
-          <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr] lg:items-start">
-            <MarketPredictor trendData={trendData} listingsToday={newListingsToday} />
+          {/* Active filters */}
+          {activeFilterLabels.length > 0 && (
+            <div className="mb-5 flex flex-wrap items-center gap-1.5">
+              {activeFilterLabels.map((label) => (
+                <span key={label} className="rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">{label}</span>
+              ))}
+              <button type="button" onClick={() => setFilters({ sort: "newest", page: 1 })}
+                className="rounded-md px-2 py-1 text-[10px] font-semibold text-zinc-600 transition-colors hover:text-zinc-300"
+              >Clear all</button>
+            </div>
+          )}
 
-            {/* Quick valuation — instant fair-price read from live priced inventory */}
-            <div className="console-section p-5 md:p-6">
-              <header className="mb-5 flex items-center gap-3 border-b border-border pb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10">
-                  <Calculator className="h-5 w-5 text-amber-400" aria-hidden="true" />
-                </div>
-                <div>
-                  <p className="tech-label">Quick valuation</p>
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground">Instant fair-price read</h3>
-                </div>
-              </header>
+          {newLiveListingsAvailable && (
+            <div className="mb-5 flex items-center justify-between rounded-lg border border-amber-400/15 bg-amber-400/5 px-4 py-2.5">
+              <span className="text-[12px] font-semibold text-amber-200/80">New listings available</span>
+              <button type="button" onClick={() => { setFilters((p) => ({ ...p, sort: "newest", page: 1 })); setNewLiveListingsAvailable(false); }}
+                className="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-300 transition-colors hover:text-amber-100"
+              >Refresh</button>
+            </div>
+          )}
 
-              <div className="space-y-4">
+          {/* Filters + Grid */}
+          <div className="flex flex-col items-start gap-6 lg:flex-row">
+            <div className="w-full shrink-0 self-start lg:sticky lg:top-20 lg:w-[300px]">
+              <FilterSidebar filters={filters} onFiltersChange={setFilters} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {loadingListings ? (
+                <div className={marketView === "grid" ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-2"}>
+                  {Array.from({ length: marketView === "grid" ? 9 : 6 }).map((_, i) => (
+                    <ListingCardSkeleton key={`skel-${i}`} />
+                  ))}
+                </div>
+              ) : listings.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.05] py-20 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">No results</p>
+                  <p className="mt-2 text-sm text-zinc-400">Widen your filters or clear them to browse.</p>
+                  <button type="button" onClick={() => setFilters({ sort: "newest", page: 1 })}
+                    className="mt-4 rounded-lg border border-white/[0.06] px-4 py-2 text-[11px] font-semibold text-zinc-300 transition-colors hover:bg-white/[0.03]"
+                  >Reset filters</button>
+                </div>
+              ) : marketView === "grid" ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {listings.map((listing) => (
+                    <ListingCard key={listing.id} listing={listing} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
+                  ))}
+                </div>
+              ) : (
                 <div className="space-y-2">
-                  <label htmlFor="quick-valuation" className="field-label">Make / model</label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                      id="quick-valuation"
-                      value={quickValuationModel}
-                      onChange={(event) => setQuickValuationModel(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          runQuickValuation();
-                        }
-                      }}
-                      placeholder="Toyota Axio, Honda Vezel, BMW 320d..."
-                      className="control-dark flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={runQuickValuation}
-                      className="action-primary h-11 px-5 sm:w-auto"
-                    >
-                      <Gauge className="h-4 w-4" aria-hidden="true" />
-                      Calculate
-                    </button>
+                  {listings.map((listing) => {
+                    const hasPrice = isReasonableListingPrice(Number(listing.price_lkr));
+                    return (
+                      <Link key={listing.id} to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-3 no-underline transition-all hover:border-white/[0.08] hover:bg-[hsl(220,8%,6.5%)]">
+                        <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                          <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14px] font-semibold text-foreground">{listing.make} {listing.model} {listing.variant || ""}</p>
+                          <p className="mt-0.5 truncate text-[11px] text-zinc-500">{listing.year || "N/A"} · {listing.district || "N/A"} · {listing.source}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {hasPrice ? (
+                            <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
+                          ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
+                          <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score || 0) >= 0 ? "text-amber-400/70" : "text-zinc-600"}`}>
+                            {Number(listing.deal_score || 0) >= 0 ? "+" : ""}{Number(listing.deal_score || 0).toFixed(0)} deal
+                          </p>
+                        </div>
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-400" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-between border-t border-white/[0.04] pt-6">
+                  <p className="text-[11px] text-zinc-500">
+                    <span className="num text-zinc-300">{(filters.page - 1) * LISTINGS_PAGE_SIZE + 1}–{Math.min(filters.page * LISTINGS_PAGE_SIZE, total)}</span> of {total.toLocaleString()}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" disabled={filters.page <= 1} onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.05] text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-30 disabled:pointer-events-none"
+                    ><ChevronLeft className="h-3.5 w-3.5" /></button>
+                    <span className="px-2 text-[11px] font-semibold text-zinc-400 num">{filters.page} / {totalPages}</span>
+                    <button type="button" disabled={filters.page >= totalPages} onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.05] text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-30 disabled:pointer-events-none"
+                    ><ChevronRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
-                {marketModelOptions.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="field-label mr-1 text-zinc-500">
-                      {filters.make ? `Models in ${filters.make}` : "Suggested"}
-                    </span>
-                    {marketModelOptions.slice(0, 6).map((option) => (
-                      <button
-                        key={option.model}
-                        type="button"
-                        onClick={() => setQuickValuationModel([filters.make, option.model].filter(Boolean).join(" "))}
-                        className="status-chip transition-colors hover:border-amber-300/45 hover:text-white"
-                      >
-                        {option.model}
-                      </button>
-                    ))}
-                  </div>
-                )}
+      {/* ── MARKET PULSE ────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.04]">
+        <div className="mx-auto max-w-[1560px] px-5 py-12 sm:px-6 lg:py-16">
+          <div className="grid gap-10 lg:grid-cols-2">
 
-                <div className="data-card p-4">
-                  {quickValuationResult ? (
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                      <div>
-                        <p className="field-label">Fair market read</p>
-                        <p className="num mt-1 text-2xl font-semibold tracking-tight text-foreground">{quickValuationResult.estimateLabel}</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {quickValuationResult.sampleSize > 0
-                          ? `${quickValuationResult.sampleSize.toLocaleString()} listings`
-                          : "Need more volume"}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-2.5">
-                      <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden="true" />
-                      <p className="text-xs text-muted-foreground">Type make/model for live median</p>
-                    </div>
-                  )}
-                </div>
-
-                <Link to="/estimate" className="action-soft h-10 w-full">
-                  Open full valuation workbench
-                  <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+            {/* Trending models */}
+            <div>
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="font-display text-sm font-semibold tracking-tight text-foreground">Trending models</h3>
+                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 no-underline transition-colors hover:text-amber-300">
+                  All trends <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
-            </div>
-          </div>
-        </RevealSection>
-
-        {/* MARKET INTELLIGENCE — spotlight signals + district snapshot */}
-        <RevealSection id="intelligence" className="layout-shell order-3 flex flex-col gap-6 py-12 text-left lg:py-16">
-          <SectionHeader eyebrow="Market intelligence" title="Spotlight signals" />
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            {/* Demand leader */}
-            <article className="console-section flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="tech-label">Demand leader</p>
-                <TrendingUp className="h-4 w-4 text-amber-400" aria-hidden="true" />
-              </div>
-              {spotlightModel ? (
-                <>
-                  <div className="aspect-[16/10] overflow-hidden rounded-lg border border-border bg-card">
-                    <VehicleThumbnail
-                      src={spotlightModel.thumbnail_url}
-                      alt={`${spotlightModel.make} ${spotlightModel.model}`}
-                      className="h-full w-full object-cover"
-                      placeholderClassName="flex h-full w-full items-center justify-center bg-card"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-lg font-semibold text-white">{spotlightModel.make} {spotlightModel.model}</p>
-                    <p className="mt-1 num text-xs text-zinc-400">{spotlightModel.listing_count.toLocaleString()} listings · avg {formatPrice(spotlightModel.avg_price_lkr)}</p>
-                    <p className={`mt-1 num text-xs font-bold ${(spotlightModel.movement_pct || 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {(spotlightModel.movement_pct || 0) >= 0 ? "+" : ""}{(spotlightModel.movement_pct || 0).toFixed(1)} trend score
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => focusModel(spotlightModel.make, spotlightModel.model)}
-                    className="action-soft mt-auto h-10 w-full"
-                  >
-                    Filter to this model
-                    <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">Awaiting sync</p>
-              )}
-            </article>
-
-            {/* Best live deal */}
-            <article className="console-section flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="tech-label">Best live deal</p>
-                <Flame className="h-4 w-4 text-amber-400" aria-hidden="true" />
-              </div>
-              {spotlightDeal ? (
-                <>
-                  <div className="aspect-[16/10] overflow-hidden rounded-lg border border-border bg-card">
-                    <VehicleThumbnail
-                      src={spotlightDeal.thumbnail_url}
-                      listingId={spotlightDeal.id}
-                      alt={`${spotlightDeal.make} ${spotlightDeal.model}`}
-                      className="h-full w-full object-cover"
-                      placeholderClassName="flex h-full w-full items-center justify-center bg-card"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-lg font-semibold text-white">{spotlightDeal.make} {spotlightDeal.model} {spotlightDeal.year}</p>
-                    <p className="mt-1 num text-xs text-zinc-400">{formatPrice(spotlightDeal.price_lkr)} · {spotlightDeal.district || "Sri Lanka"}</p>
-                    <p className="mt-1 num text-xs font-bold text-emerald-400">+{Number(spotlightDeal.deal_score || 0).toFixed(0)} deal score</p>
-                  </div>
-                  <Link to={`/listing/${spotlightDeal.id}`} className="action-soft mt-auto h-10 w-full">
-                    Open listing
-                    <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </Link>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">No match in slice</p>
-              )}
-            </article>
-
-            {/* Segment momentum */}
-            <article className="console-section flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between gap-2">
-                <p className="tech-label">Segment momentum</p>
-                <Layers className="h-4 w-4 text-amber-400" aria-hidden="true" />
-              </div>
-              {spotlightSegment ? (
-                <>
-                  <div className="metric-tile">
-                    <p className="text-xl font-semibold capitalize text-white">{spotlightSegment.segment}</p>
-                    <p className="mt-1 num text-xs text-zinc-400">{spotlightSegment.listing_count.toLocaleString()} listings · avg {formatPrice(spotlightSegment.avg_price_lkr)}</p>
-                    <p className={`mt-1 num text-xs font-bold ${(spotlightSegment.change_pct_30d || 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {(spotlightSegment.change_pct_30d || 0) >= 0 ? "+" : ""}{(spotlightSegment.change_pct_30d || 0).toFixed(1)}% vs previous 30d
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => focusSegment(spotlightSegment.segment)}
-                    className="action-soft h-10 w-full"
-                  >
-                    Filter to this segment
-                    <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                  {segmentPerformance.length > 1 && (
-                    <div className="space-y-2">
-                      {segmentPerformance.slice(1, 4).map((segment) => (
-                        <button
-                          key={segment.segment}
-                          type="button"
-                          onClick={() => focusSegment(segment.segment)}
-                          className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-amber-300/35"
-                        >
-                          <span className="truncate text-xs font-semibold capitalize text-zinc-200">{segment.segment}</span>
-                          <span className="tech-label text-zinc-500">{segment.listing_count.toLocaleString()}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">Awaiting listings</p>
-              )}
-            </article>
-          </div>
-
-          {/* District snapshot */}
-          <div className="console-section p-5 md:p-6">
-            <div className="mb-4 flex items-center justify-between gap-2 border-b border-border pb-4">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-amber-400" aria-hidden="true" />
-                <p className="tech-label">District snapshot</p>
-              </div>
-              {filters.district ? <span className="status-chip">{filters.district}</span> : null}
-            </div>
-
-            {filters.district ? (
-              loadingDistrictInsight ? (
-                <div className="grid gap-4 md:grid-cols-2" aria-busy="true" aria-live="polite">
-                  <div className="skeleton-shimmer h-32 rounded-lg border border-border" />
-                  <div className="space-y-2">
-                    <div className="skeleton-shimmer h-9 rounded-lg border border-border" />
-                    <div className="skeleton-shimmer h-9 rounded-lg border border-border" />
-                    <div className="skeleton-shimmer h-9 rounded-lg border border-border" />
-                  </div>
-                </div>
-              ) : districtQuickInsight ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="metric-tile">
-                    <p className="text-lg font-semibold text-white">{districtQuickInsight.district}</p>
-                    <p className="mt-1 num text-xs text-zinc-400">{districtQuickInsight.listing_count.toLocaleString()} active listings</p>
-                    <p className="mt-1 num text-sm font-semibold text-zinc-200">Avg {districtQuickInsight.avg_price_lkr ? formatPrice(districtQuickInsight.avg_price_lkr) : "N/A"}</p>
-                    <p className={`mt-1 num text-xs font-bold ${(districtQuickInsight.change_pct_30d || 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {(districtQuickInsight.change_pct_30d || 0) >= 0 ? "+" : ""}{(districtQuickInsight.change_pct_30d || 0).toFixed(1)}% over last 30d
-                    </p>
-                  </div>
-                  {districtQuickInsight.top_models.length > 0 ? (
-                    <div className="space-y-2">
-                      {districtQuickInsight.top_models.map((item) => (
-                        <button
-                          key={`${item.make}-${item.model}`}
-                          type="button"
-                          onClick={() => focusModel(item.make, item.model)}
-                          className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:border-amber-300/35"
-                        >
-                          <span className="truncate text-xs font-semibold text-zinc-200">{item.make} {item.model}</span>
-                          <span className="tech-label text-zinc-500">{item.listing_count.toLocaleString()}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No models yet</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">No district data</p>
-              )
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BarChart3 className="h-4 w-4 text-zinc-500" aria-hidden="true" />
-                Select a district on the map above to unlock a localized demand and pricing snapshot.
-              </div>
-            )}
-          </div>
-        </RevealSection>
-
-      {/* LIVE MARKET INVENTORY */}
-      <RevealSection id="market" className="order-2 mx-auto w-full max-w-[1560px] px-5 py-14 text-left sm:px-6 lg:py-16">
-          <SectionHeader
-            eyebrow="Live inventory"
-            title={isPriceUnavailableMode ? "Price unavailable inventory" : "Priced inventory"}
-            actions={
-              <div className="flex flex-wrap items-center gap-2 tech-label">
-                <div className="status-chip num">{total} total</div>
-                <button
-                  type="button"
-                  onClick={() => setShowSavedListings(true)}
-                  className="action-soft h-9 px-3 num"
-                >
-                  {watchlistIds.length} saved
-                </button>
-                <button
-                  type="button"
-                  onClick={saveCurrentMarketAlert}
-                  className="action-primary h-9 px-3"
-                >
-                  Save alert
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowMarketAlerts(true)}
-                  className="action-soft h-9 px-3 num"
-                >
-                  {marketAlerts.length} alerts
-                </button>
-              </div>
-            }
-          />
-
-        
-        <div className="flex flex-col items-start gap-8 lg:flex-row">
-          <div className="w-full shrink-0 self-start lg:sticky lg:top-24 lg:w-[336px]">
-            <FilterSidebar filters={filters} onFiltersChange={setFilters} />
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="command-surface mb-5 rounded-xl p-3 sm:p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="tech-label">Result desk</p>
-                <h3 className="mt-1 text-xl font-semibold text-white">
-                  {isPriceUnavailableMode ? "Unavailable-price results" : "Market matches"}
-                  <span className="text-zinc-500 text-sm ml-2">({total} cars)</span>
-                </h3>
-              </div>
-              <div className="hidden items-center gap-1.5 md:inline-flex">
-                <button
-                  type="button"
-                  onClick={() => setMarketView("grid")}
-                  aria-label="Grid view"
-                  aria-pressed={marketView === "grid"}
-                  className={`action-soft h-9 w-9 px-0 ${marketView === "grid" ? "border-amber-300/45 text-white" : ""}`}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMarketView("list")}
-                  aria-label="List view"
-                  aria-pressed={marketView === "list"}
-                  className={`action-soft h-9 w-9 px-0 ${marketView === "list" ? "border-amber-300/45 text-white" : ""}`}
-                >
-                  <List className="h-4 w-4" />
-                </button>
-              </div>
-              </div>
-              {activeFilterLabels.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {activeFilterLabels.slice(0, 8).map((label) => (
-                    <span key={label} className="status-chip">
-                      {label}
-                    </span>
-                  ))}
-                  {activeFilterCount > 8 && (
-                    <span className="status-chip border-amber-300/30 bg-amber-500/10 text-amber-100">
-                      +{activeFilterCount - 8} more
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {newLiveListingsAvailable && (
-              <div className="mb-5 flex flex-col gap-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 sm:flex-row sm:items-center sm:justify-between">
-                <span className="font-semibold">New scraped listings are available for this view.</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilters((prev) => ({ ...prev, sort: "newest", page: 1 }));
-                    setNewLiveListingsAvailable(false);
-                  }}
-                  className="h-9 rounded-lg border border-amber-300/30 bg-black/20 px-3 text-xs font-bold uppercase tracking-[0.12em] text-amber-100"
-                >
-                  Refresh listings
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-8">
-          {loadingListings ? (
-            <div className={marketView === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-3"}>
-              {Array.from({ length: marketView === "grid" ? 9 : 6 }).map((_, index) => (
-                <ListingCardSkeleton key={`skel-${index}`} />
-              ))}
-            </div>
-          ) : marketView === "grid" ? (
-            <div
-              className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-            >
-                {listings.map((listing) => (
-                  <div
-                    key={listing.id}
-                  >
-                    <ListingCard
-                      listing={listing}
-                      onCompareToggle={toggleCompare}
-                      isComparing={compareIdSet.has(listing.id)}
-                      onWatchlistToggle={toggleWatchlist}
-                      isWatchlisted={watchlistIdSet.has(listing.id)}
-                    />
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {listings.map((listing) => {
-                const hasKnownPrice = isReasonableListingPrice(Number(listing.price_lkr));
-                return (
-                  <article
-                    key={listing.id}
-                    className="asset-surface motion-card rounded-xl p-3 hover:border-amber-300/25 hover:bg-[#101312] md:p-4"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                      <Link to={`/listing/${listing.id}`} className="flex min-w-0 flex-1 items-center gap-3 no-underline">
-                        <div className="h-[72px] w-28 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/25">
-                          <VehicleThumbnail
-                            src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])}
-                            listingId={listing.id}
-                            alt={`${listing.make} ${listing.model}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-base font-semibold text-white">{listing.make} {listing.model} {listing.variant || ""}</p>
-                          <p className="mt-1 truncate text-xs text-zinc-400">
-                            {listing.year || "N/A"} · {Number.isFinite(listing.mileage_km) ? `${Math.round(Number(listing.mileage_km) / 1000)}k km` : "Mileage N/A"} · {listing.district || "District N/A"} · {listing.source}
-                          </p>
-                          <p className="mt-2 hidden tech-label text-zinc-600 sm:block">
-                            Open source record and peer context
-                          </p>
-                        </div>
-                      </Link>
-
-                      <div className="flex flex-wrap items-center justify-end gap-2 md:gap-3">
-                        <div className="min-w-[120px] text-left md:text-right">
-                          {hasKnownPrice ? (
-                            <p className="text-sm md:text-base font-semibold text-white num">{formatPrice(Number(listing.price_lkr))}</p>
-                          ) : (
-                            <PriceUnavailableBadge label="Price unavailable" className="px-2 py-1 text-label" />
-                          )}
-                          <p className={`text-caption font-semibold num ${Number(listing.deal_score || 0) >= 0 ? "text-amber-300" : "text-zinc-500"}`}>
-                            {Number(listing.deal_score || 0) >= 0 ? "+" : ""}{Number(listing.deal_score || 0).toFixed(0)} deal score
-                          </p>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleWatchlist(listing)}
-                          className={`h-9 rounded-lg border px-3 text-xs font-semibold transition-colors ${watchlistIdSet.has(listing.id) ? "border-amber-400/35 text-amber-100 bg-amber-500/10" : "border-white/15 text-zinc-200 bg-black/20 hover:bg-white/[0.06]"}`}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleCompare(listing)}
-                          className={`h-9 rounded-lg border px-3 text-xs font-semibold transition-colors ${compareIdSet.has(listing.id) ? "border-amber-400/40 text-amber-100 bg-amber-500/12" : "border-white/15 text-zinc-200 bg-black/20 hover:bg-white/[0.06]"}`}
-                        >
-                          Compare
-                        </button>
-                        <Link to={`/listing/${listing.id}`} className="inline-flex h-9 items-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-zinc-200 no-underline transition-colors hover:bg-white/[0.06]">
-                          Open
-                        </Link>
+              {trendingModels.length ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {trendingModels.slice(0, 4).map((row) => (
+                    <button key={`${row.make}-${row.model}`} type="button" onClick={() => focusModel(row.make, row.model)}
+                      className="group/trend flex items-center gap-3 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-3 text-left transition-all hover:border-white/[0.08] hover:bg-[hsl(220,8%,6.5%)]"
+                    >
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                        <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold text-foreground">{row.make} {row.model}</p>
+                        <p className="mt-0.5 text-[10px] text-zinc-500 num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
+                      </div>
+                      <ArrowRight className="h-3 w-3 shrink-0 text-zinc-600 transition-transform group-hover/trend:translate-x-0.5" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-zinc-600">Awaiting data</p>
+              )}
             </div>
-          )}
 
-          {!loadingListings && listings.length === 0 && (
-            <div className="console-empty">
-              <p className="mb-2 tech-label text-zinc-500">No Matches Found</p>
-              <h3 className="mb-2 text-2xl font-semibold text-white">No vehicles match the current filters.</h3>
-              <p className="mx-auto mb-5 max-w-xl text-zinc-400">
-                Widen your range or clear filters to browse more inventory.
-              </p>
-              <button
-                type="button"
-                onClick={() => setFilters({ sort: "newest", page: 1 })}
-                className="action-soft h-10 px-4"
-              >
-                Reset Filters
-              </button>
-            </div>
-          )}
-
-          {totalPages > 1 && (
-            <div className="flex flex-col gap-4 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
-              <p className="field-label text-zinc-500">
-                Showing <span className="text-white num">{(filters.page - 1) * LISTINGS_PAGE_SIZE + 1}-{Math.min(filters.page * LISTINGS_PAGE_SIZE, total)}</span>
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={filters.page <= 1}
-                  onClick={() => setFilters((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                  className="action-soft h-10 w-10 px-0 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="status-chip num h-10">{filters.page} / {totalPages}</span>
-                <button
-                  type="button"
-                  disabled={filters.page >= totalPages}
-                  onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
-                  className="action-soft h-10 w-10 px-0 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+            {/* Hot deals */}
+            <div>
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="font-display text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
+                  <Flame className="h-3.5 w-3.5 text-amber-400/60" /> Best deals
+                </h3>
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 no-underline transition-colors hover:text-amber-300">
+                  All picks <ArrowUpRight className="h-3 w-3" />
+                </Link>
               </div>
+              {hotDeals.length ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {hotDeals.slice(0, 4).map((row) => (
+                    <Link key={row.id} to={`/listing/${row.id}`}
+                      className="group/deal flex items-center gap-3 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-3 no-underline transition-all hover:border-white/[0.08] hover:bg-[hsl(220,8%,6.5%)]"
+                    >
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                        <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
+                        <p className="mt-0.5 text-[10px] text-zinc-500 num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
+                      </div>
+                      <span className="shrink-0 rounded-md border border-emerald-500/20 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-bold text-emerald-300 num">
+                        +{Number(row.deal_score || 0).toFixed(0)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-zinc-600">No deals found in current slice</p>
+              )}
             </div>
-          )}
-        </div>
-        </div>
-        </div>
-      </RevealSection>
+          </div>
 
-      {/* PIPELINE STATUS */}
-      <RevealSection id="pipeline" className="layout-shell order-5 py-8">
-        <PipelineStatusBar status={pipelineStatus} />
-      </RevealSection>
-      </div>
-      </div>
+          {/* Tool links */}
+          <div className="mt-10 flex flex-wrap gap-2 border-t border-white/[0.04] pt-8">
+            {[
+              { label: "Valuation", to: "/estimate" },
+              { label: "Trends", to: "/trends" },
+              { label: "Map", to: "/map" },
+              { label: "Calculator", to: "/calculator" },
+              { label: "EV Hub", to: "/ev-hub" },
+            ].map((tool) => (
+              <Link key={tool.label} to={tool.to}
+                className="group/tool flex items-center gap-1.5 rounded-lg border border-white/[0.04] px-3.5 py-2 text-[11px] font-semibold text-zinc-500 no-underline transition-all hover:border-white/[0.08] hover:text-zinc-200"
+              >
+                {tool.label}
+                <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover/tool:opacity-100" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
+      {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,780px)] -translate-x-1/2">
-          <div className="premium-surface flex flex-col gap-3 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,680px)] -translate-x-1/2">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[hsl(220,8%,6%)]/95 px-4 py-3 shadow-xl backdrop-blur-xl">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/15 text-amber-300">
-                <Scale className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-white">Compare Vehicles</p>
-                <p className="tech-label">
-                  {compareIds.length} selected · add up to 3
-                </p>
-              </div>
+              <Scale className="h-4 w-4 text-amber-400/60" />
+              <span className="text-[12px] font-semibold text-foreground">{compareIds.length} selected</span>
             </div>
-
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setCompareListings([])}
-                className="h-9 rounded-lg border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10"
-              >
-                <X className="w-3.5 h-3.5 mr-1" />
-                Clear
-              </Button>
-              <Button
-                disabled={compareIds.length < 2}
-                onClick={() => setShowCompare(true)}
-                className="h-9 rounded-lg bg-[#e0aa48] font-bold text-black hover:bg-[#f1c66d]"
-              >
-                Compare Now
-              </Button>
+              <button type="button" onClick={() => setCompareListings([])}
+                className="flex h-8 items-center gap-1 rounded-lg border border-white/[0.06] px-3 text-[10px] font-semibold text-zinc-400 transition-colors hover:text-zinc-200"
+              ><X className="h-3 w-3" /> Clear</button>
+              <button type="button" disabled={compareIds.length < 2} onClick={() => setShowCompare(true)}
+                className="h-8 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black transition-colors hover:bg-[var(--gold-bright)] disabled:opacity-40"
+              >Compare</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ── DIALOGS ─────────────────────────────────────────────── */}
       <Dialog open={showMarketAlerts} onOpenChange={setShowMarketAlerts}>
-        <DialogContent className="command-surface max-h-[86vh] max-w-3xl overflow-y-auto rounded-xl border-white/10 text-white">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-white/[0.06] bg-[hsl(220,8%,6%)] text-foreground">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl tracking-normal">Market Alerts</DialogTitle>
+            <DialogTitle className="font-display text-lg font-semibold tracking-tight">Market alerts</DialogTitle>
           </DialogHeader>
-
-          <div className="data-card p-4">
-            <p className="tech-label text-amber-100/80">Current search lane</p>
-            <p className="mt-2 text-sm font-semibold text-white">{currentAlertSummary}</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-              <Input
-                value={alertPriceInput}
-                onChange={(event) => setAlertPriceInput(event.target.value.replace(/[^\d]/g, ""))}
-                inputMode="numeric"
-                placeholder="Optional target max price in LKR"
-                aria-label="Optional alert target price"
-                className="h-10 rounded-lg border-white/10 bg-black/25 text-sm text-zinc-100"
-              />
-              <Button
-                onClick={saveCurrentMarketAlert}
-                className="h-10 rounded-lg bg-[#e0aa48] px-4 text-xs font-bold uppercase tracking-[0.12em] text-black hover:bg-[#f1c66d]"
-              >
-                Save alert
-              </Button>
+          <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Current lane</p>
+            <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
+            <div className="mt-3 flex gap-2">
+              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-white/[0.06] bg-transparent text-sm" />
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black hover:bg-[var(--gold-bright)]">Save</button>
             </div>
           </div>
-
           {marketAlerts.length ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {marketAlerts.map((alert) => (
-                <article key={alert.id} className="data-card p-3">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white">{alert.label}</p>
-                      <p className="mt-1 tech-label text-zinc-500">
-                        {alert.target_price_lkr ? `Target under ${formatPrice(alert.target_price_lkr)}` : "New listings and price movement"} · saved {new Date(alert.created_at).toLocaleDateString("en-LK")}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 });
-                          setShowMarketAlerts(false);
-                          scrollToMarket();
-                        }}
-                        className="h-8 rounded-lg border border-amber-300/25 bg-amber-500/10 px-3 text-caption font-semibold text-amber-100"
-                      >
-                        Open
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteMarketAlert(alert.id)}
-                        className="h-8 rounded-lg border border-white/10 bg-black/20 px-3 ui-caption font-semibold hover:bg-white/[0.06]"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-foreground">{alert.label}</p>
+                    <p className="mt-0.5 text-[10px] text-zinc-500">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : "New listings"}</p>
                   </div>
-                </article>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
+                      className="h-7 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 text-[10px] font-semibold text-amber-300/80 hover:bg-amber-400/10">Open</button>
+                    <button type="button" onClick={() => deleteMarketAlert(alert.id)}
+                      className="h-7 rounded-md border border-white/[0.05] px-2.5 text-[10px] font-semibold text-zinc-500 hover:text-zinc-300">Delete</button>
+                  </div>
+                </div>
               ))}
             </div>
-          ) : (
-            <div className="console-empty">
-              <p className="tech-label">No alerts saved</p>
-              <p className="text-sm text-zinc-300 mt-2">Save a search lane to return to it when new inventory arrives.</p>
-            </div>
-          )}
+          ) : <p className="py-6 text-center text-[11px] text-zinc-600">No alerts saved</p>}
         </DialogContent>
       </Dialog>
 
       <Dialog open={showSavedListings} onOpenChange={setShowSavedListings}>
-        <DialogContent className="command-surface max-h-[86vh] max-w-3xl overflow-y-auto rounded-xl border-white/10 text-white">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-white/[0.06] bg-[hsl(220,8%,6%)] text-foreground">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl tracking-normal">Saved Listings</DialogTitle>
+            <DialogTitle className="font-display text-lg font-semibold tracking-tight">Saved listings</DialogTitle>
           </DialogHeader>
-
           {savedListingsLoading ? (
-            <div className="space-y-2 py-2">
-              {Array.from({ length: Math.max(2, Math.min(4, watchlistIds.length || 2)) }).map((_, index) => (
-                <div key={`saved-skel-${index}`} className="skeleton-shimmer h-20 rounded-xl border border-white/10" />
-              ))}
-            </div>
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-shimmer h-16 rounded-lg" />)}</div>
           ) : savedListings.length ? (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {savedListings.map((listing) => (
-                <article key={listing.id} className="data-card p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{listing.make} {listing.model} {listing.year || ""}</p>
-                      <p className="tech-label mt-1 truncate">
-                        {listing.district || "Sri Lanka"} · {listing.source} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "Price unavailable"}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => toggleWatchlist(listing)}
-                        className="h-8 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 text-caption font-semibold text-amber-100"
-                      >
-                        Remove
-                      </button>
-                      <Link
-                        to={`/listing/${listing.id}`}
-                        onClick={() => setShowSavedListings(false)}
-                        className="h-8 inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 text-caption font-semibold text-zinc-200 no-underline hover:bg-white/[0.06]"
-                      >
-                        Open
-                        <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    </div>
+                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-foreground">{listing.make} {listing.model} {listing.year || ""}</p>
+                    <p className="mt-0.5 text-[10px] text-zinc-500">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
-                </article>
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 text-[10px] font-semibold text-amber-300/80 hover:bg-amber-400/10">Remove</button>
+                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.05] px-2.5 text-[10px] font-semibold text-zinc-400 no-underline hover:text-zinc-200">
+                      Open <ExternalLink className="h-2.5 w-2.5" />
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
-          ) : (
-            <div className="console-empty">
-              <p className="tech-label">Saved list empty</p>
-              <p className="text-sm text-zinc-300 mt-2">Tap Save on any listing to pin it here for quick access.</p>
-            </div>
-          )}
-
-          {savedListingsError && (
-            <p className="text-caption font-semibold text-amber-300">{savedListingsError}</p>
-          )}
+          ) : <p className="py-6 text-center text-[11px] text-zinc-600">No saved listings</p>}
+          {savedListingsError && <p className="text-[11px] text-amber-300/60">{savedListingsError}</p>}
         </DialogContent>
       </Dialog>
 
       <ComparisonModal listings={comparedListings} open={showCompare} onClose={() => setShowCompare(false)} />
     </div>
-    </>
   );
 }
-
-

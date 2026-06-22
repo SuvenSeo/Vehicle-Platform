@@ -1,29 +1,15 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Battery, Car, CheckCircle2, PlugZap, ShieldCheck, Zap } from "lucide-react";
-import { PlatformPageHero } from "@/components/PlatformPageHero";
-import { PageCanvas } from "@/components/PageCanvas";
+import { ArrowRight, Battery, Car, CheckCircle2, PlugZap, ShieldCheck } from "lucide-react";
 
 const evModules = [
-  {
-    icon: Battery,
-    step: "01",
-    title: "Battery health",
-  },
-  {
-    icon: ShieldCheck,
-    step: "02",
-    title: "Duty & policy",
-  },
-  {
-    icon: PlugZap,
-    step: "03",
-    title: "Charging fit",
-  },
+  { icon: Battery, step: "01", title: "Battery health", desc: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
+  { icon: ShieldCheck, step: "02", title: "Duty & policy", desc: "Sri Lanka EV import duty rates, exemptions, and policy outlook." },
+  { icon: PlugZap, step: "03", title: "Charging fit", desc: "Home vs public charging, range per use case, and cost comparison." },
 ];
 
 const readinessRows = [
   { label: "City commuter", value: "High", width: "86%" },
-  { label: "Long-distance family car", value: "Medium", width: "58%" },
+  { label: "Long-distance family", value: "Medium", width: "58%" },
   { label: "Fleet delivery loop", value: "High", width: "78%" },
 ];
 
@@ -33,155 +19,92 @@ const ownershipChecks = [
   { label: "Resale proof", value: "Records" },
 ];
 
-const inventoryActions = [
-  "Filter electric inventory",
-  "Check finance baseline",
-  "Compare resale pressure",
-];
-
 export default function EVHub() {
   return (
-    <PageCanvas>
-      <PlatformPageHero
-        eyebrow="EV intelligence lane"
-        title="EV buying signals."
-        icon={Zap}
-        metrics={[
-          { label: "Primary checks", value: "3" },
-          { label: "Inventory link", value: "EV" },
-          { label: "Planning mode", value: "TCO" },
-        ]}
-      />
+    <div className="min-h-screen">
+      <section className="border-b border-white/[0.04]">
+        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">EV intelligence</p>
+          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">EV buying signals.</h1>
+          <p className="mt-2 max-w-lg text-sm text-zinc-500">Battery health, charging fit, and duty signals for the Sri Lankan EV market.</p>
+        </div>
+      </section>
 
-      <div className="layout-shell space-y-10 py-12 md:space-y-12 md:py-16">
-        {/* ---- Decision lane: review modules ---------------------------------- */}
-        <section aria-labelledby="ev-review-stack">
-          <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-xl">
-              <p className="tech-label">Decision modules</p>
-              <h2 id="ev-review-stack" className="headline-display mt-2 text-2xl sm:text-3xl">
-                The EV review stack
-              </h2>
-            </div>
-          </header>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {evModules.map((module) => {
-              const Icon = module.icon;
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-10">
+        {/* Decision modules */}
+        <div>
+          <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground">Decision modules</h2>
+          <div className="grid gap-2 md:grid-cols-3">
+            {evModules.map((m) => {
+              const Icon = m.icon;
               return (
-                <article
-                  key={module.title}
-                  className="data-card flex flex-col p-5 transition-colors hover:border-amber-400/30"
-                >
+                <div key={m.title} className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-5 transition-colors hover:border-white/[0.08]">
                   <div className="flex items-center justify-between">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-background">
-                      <Icon className="h-7 w-7 text-amber-400" aria-hidden="true" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                      <Icon className="h-4 w-4 text-amber-400/70" />
                     </div>
-                    <span className="tech-label text-muted-foreground num">
-                      {module.step}
-                    </span>
+                    <span className="text-[10px] font-bold text-zinc-600 num">{m.step}</span>
                   </div>
-                  <h3 className="mt-5 text-base font-semibold tracking-tight text-foreground">
-                    {module.title}
-                  </h3>
-                </article>
+                  <h3 className="mt-4 text-[14px] font-semibold text-foreground">{m.title}</h3>
+                  <p className="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">{m.desc}</p>
+                </div>
               );
             })}
           </div>
-        </section>
+        </div>
 
-        {/* ---- Readiness matrix + inventory action --------------------------- */}
-        <section
-          aria-labelledby="ev-readiness-matrix"
-          className="grid gap-4 lg:grid-cols-[1.35fr_1fr] lg:items-stretch"
-        >
-          <div className="data-card flex flex-col p-5 md:p-7">
-            <header className="flex items-start justify-between gap-4">
-              <div>
-                <p className="tech-label">Readiness matrix</p>
-                <h2 id="ev-readiness-matrix" className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-                  Use-case fit by operating pattern
-                </h2>
-              </div>
-              <span className="status-chip shrink-0">Operating fit</span>
-            </header>
-
-            <div className="mt-6 flex flex-1 flex-col justify-center gap-5">
-              {readinessRows.map((row) => {
-                const isHigh = row.value === "High";
-                return (
-                  <div key={row.label}>
-                    <div className="mb-2 flex items-center justify-between text-xs">
-                      <span className="font-medium text-foreground">{row.label}</span>
-                      <span
-                        className={`tech-label num ${
-                          isHigh ? "text-emerald-400" : "text-muted-foreground"
-                        }`}
-                      >
-                        {row.value}
-                      </span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
-                      <div
-                        className={`h-full rounded-full ${isHigh ? "bg-emerald-500" : "bg-amber-500"}`}
-                        style={{ width: row.width }}
-                      />
-                    </div>
+        {/* Readiness + Action */}
+        <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+          <div className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-5 sm:p-6">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Readiness matrix</p>
+            <h3 className="mt-1.5 text-[14px] font-semibold text-foreground">Use-case fit</h3>
+            <div className="mt-6 space-y-5">
+              {readinessRows.map((r) => (
+                <div key={r.label}>
+                  <div className="mb-1.5 flex items-center justify-between text-[11px]">
+                    <span className="font-medium text-zinc-300">{r.label}</span>
+                    <span className={`font-bold num ${r.value === "High" ? "text-emerald-400" : "text-amber-400"}`}>{r.value}</span>
                   </div>
-                );
-              })}
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800/50">
+                    <div className={`h-full rounded-full ${r.value === "High" ? "bg-emerald-500/60" : "bg-amber-500/60"}`} style={{ width: r.width }} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          <aside className="data-card flex flex-col p-5 md:p-7" aria-labelledby="ev-market-action">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-border bg-background">
-              <Car className="h-6 w-6 text-foreground" aria-hidden="true" />
+          <div className="flex flex-col rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-5 sm:p-6">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+              <Car className="h-4 w-4 text-zinc-400" />
             </div>
-            <p className="tech-label mt-6">Market action</p>
-            <h2 id="ev-market-action" className="mt-2 text-xl font-semibold leading-snug tracking-tight text-foreground">
-              Browse EV inventory
-            </h2>
-
-            <ul className="mb-6 mt-5 flex flex-wrap gap-2">
-              {inventoryActions.map((item) => (
-                <li key={item} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-2.5 py-1 text-xs font-medium text-foreground">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-amber-400" aria-hidden="true" />
-                  {item}
+            <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Market action</p>
+            <h3 className="mt-1.5 text-base font-semibold text-foreground">Browse EV inventory</h3>
+            <ul className="mt-4 flex flex-wrap gap-1.5">
+              {["Filter electric inventory", "Check finance baseline", "Compare resale pressure"].map((a) => (
+                <li key={a} className="flex items-center gap-1.5 rounded-md border border-white/[0.05] px-2 py-1 text-[10px] font-medium text-zinc-400">
+                  <CheckCircle2 className="h-3 w-3 text-amber-400/60" /> {a}
                 </li>
               ))}
             </ul>
-
-            <Link
-              to="/?fuel_type=electric#market"
-              className="action-primary mt-auto h-11 w-full no-underline"
-            >
-              Browse electric inventory
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <Link to="/?fuel_type=electric#market" className="mt-auto flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--gold)] text-[10px] font-bold uppercase tracking-[0.1em] text-black no-underline transition-colors hover:bg-[var(--gold-bright)]">
+              Browse electric inventory <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-          </aside>
-        </section>
+          </div>
+        </div>
 
-        {/* ---- Ownership checklist ------------------------------------------- */}
-        <section aria-labelledby="ev-ownership-planning">
-          <header className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-xl">
-              <p className="tech-label">Ownership planning</p>
-              <h2 id="ev-ownership-planning" className="headline-display mt-2 text-2xl sm:text-3xl">
-                Checks that keep the decision practical
-              </h2>
-            </div>
-          </header>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {ownershipChecks.map((item) => (
-              <article key={item.label} className="data-card p-5">
-                <p className="field-label">{item.label}</p>
-                <p className="mt-4 text-2xl font-semibold tracking-tight text-foreground num">{item.value}</p>
-              </article>
+        {/* Ownership checks */}
+        <div>
+          <h2 className="mb-4 font-display text-sm font-semibold tracking-tight text-foreground">Ownership checks</h2>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {ownershipChecks.map((c) => (
+              <div key={c.label} className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">{c.label}</p>
+                <p className="mt-2 text-xl font-bold text-foreground num">{c.value}</p>
+              </div>
             ))}
           </div>
-        </section>
+        </div>
       </div>
-    </PageCanvas>
+    </div>
   );
 }

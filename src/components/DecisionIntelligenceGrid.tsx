@@ -1,35 +1,35 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, BarChart3, Gauge, MapPinned, ShieldCheck } from "lucide-react";
+import { ArrowRight, BarChart3, Calculator, Gauge, MapPinned, ShieldCheck } from "lucide-react";
 import { RevealSection } from "@/components/RevealSection";
-import { SectionHeader } from "@/components/SectionHeader";
-import { Surface } from "@/components/Surface";
 
 const toolCards = [
   {
-    title: "Fair price studio",
-    description: "Estimate fair value for a make and model.",
-    label: "Valuation",
+    title: "Valuation",
+    description: "Estimate fair value for any make and model.",
     Icon: Gauge,
     to: "/estimate",
   },
   {
     title: "District map",
     description: "Compare listing density and median prices by area.",
-    label: "Geo",
     Icon: MapPinned,
-    href: "#map",
+    to: "/map",
   },
   {
-    title: "Trend console",
-    description: "Track median movement for a vehicle lane over time.",
-    label: "Trends",
+    title: "Trends",
+    description: "Track median price movement for any vehicle lane.",
     Icon: BarChart3,
     href: "#trends",
   },
   {
+    title: "Calculator",
+    description: "Import duty, tax breakdown, and cost estimation.",
+    Icon: Calculator,
+    to: "/calculator",
+  },
+  {
     title: "Pro workspace",
-    description: "Deeper lane drill-downs, district profiles, and export packs.",
-    label: "Pro",
+    description: "Deep lane drill-downs, district profiles, and export.",
     Icon: ShieldCheck,
     to: "/pro-preview",
   },
@@ -37,39 +37,31 @@ const toolCards = [
 
 export function DecisionIntelligenceGrid() {
   return (
-    <RevealSection id="decision-intelligence" className="layout-shell order-2 scroll-mt-28 py-12 lg:py-16">
-      <SectionHeader
-        eyebrow="Tools"
-        title="Market workspace"
-        description="Search above, then open a focused workflow below."
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {toolCards.map(({ title, description, label, Icon, to, href }) => {
+    <RevealSection id="decision-intelligence" className="layout-shell order-2 scroll-mt-28 py-10 lg:py-14">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        {toolCards.map(({ title, description, Icon, to, href }) => {
           const inner = (
-            <Surface interactive className="h-full p-4">
-              <div className="flex items-start justify-between gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted/30 text-primary">
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <span className="tech-label rounded-md border border-border bg-background/50 px-2 py-1 text-muted-foreground">
-                  {label}
-                </span>
+            <div className="group/card flex h-full flex-col rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-4 transition-all duration-300 hover:border-white/[0.08] hover:bg-[hsl(220,8%,7%)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                  <Icon className="h-3.5 w-3.5 text-amber-400/70" aria-hidden="true" />
+                </div>
+                <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
               </div>
-              <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-foreground/75 transition-colors group-hover:text-primary">
-                Open <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+              <p className="mt-3 flex-1 text-[12px] leading-relaxed text-zinc-500">{description}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 transition-colors group-hover/card:text-amber-300">
+                Open
+                <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover/card:translate-x-0.5" aria-hidden="true" />
               </span>
-            </Surface>
+            </div>
           );
 
           return to ? (
-            <Link key={title} to={to} className="group block h-full no-underline">
+            <Link key={title} to={to} className="block h-full no-underline">
               {inner}
             </Link>
           ) : (
-            <a key={title} href={href} className="group block h-full no-underline">
+            <a key={title} href={href} className="block h-full no-underline">
               {inner}
             </a>
           );

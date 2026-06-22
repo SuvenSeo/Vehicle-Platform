@@ -19,13 +19,23 @@ export function SectionHeader({
   titleClassName,
 }: SectionHeaderProps) {
   return (
-    <div className={cn("mb-6 flex flex-col justify-between gap-4 sm:mb-8 md:flex-row md:items-end", className)}>
-      <div className="max-w-2xl space-y-2 animate-fade-up">
-        {eyebrow ? <p className="section-eyebrow">{eyebrow}</p> : null}
-        <h2 className={cn("headline-display text-[1.65rem] sm:text-[1.85rem]", titleClassName)}>{title}</h2>
-        {description ? <p className="text-lead">{description}</p> : null}
+    <div className={cn("mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end", className)}>
+      <div className="max-w-2xl space-y-2.5 animate-fade-up">
+        {eyebrow ? (
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{eyebrow}</p>
+        ) : null}
+        <h2 className={cn("font-display text-[1.5rem] font-semibold tracking-tight text-foreground sm:text-[1.75rem]", titleClassName)}>
+          {title}
+        </h2>
+        {description ? (
+          <p className="text-sm leading-relaxed text-zinc-500">{description}</p>
+        ) : null}
       </div>
-      {actions ? <div className="shrink-0 animate-fade-up" style={{ animationDelay: "80ms" }}>{actions}</div> : null}
+      {actions ? (
+        <div className="shrink-0 animate-fade-up" style={{ animationDelay: "60ms" }}>
+          {actions}
+        </div>
+      ) : null}
     </div>
   );
 }

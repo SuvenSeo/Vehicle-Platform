@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PageCanvas } from "@/components/PageCanvas";
+// PageCanvas removed — using direct div wrapper
 import { Link, useNavigate } from "react-router-dom";
 import {
   Bar,
@@ -38,10 +38,9 @@ import {
 import { toast } from "sonner";
 import { AIChatWidget } from "@/components/AIChatWidget";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Surface } from "@/components/Surface";
-import { AmbientBackground } from "@/components/AmbientBackground";
+// Surface and AmbientBackground removed — using direct styling
 import { Button } from "@/components/ui/button";
-import { HeroPill } from "@/components/ui/hero-pill";
+// HeroPill removed
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -170,14 +169,14 @@ function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: st
 
 function MetricCard({ label, value, detail, icon: Icon }: { label: string; value: string; detail?: string; icon: React.ElementType }) {
   return (
-    <Surface interactive className="p-4">
+    <div className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4 transition-colors hover:border-white/[0.07]">
       <div className="flex items-center justify-between gap-3">
-        <p className="tech-label">{label}</p>
-        <Icon className="h-4 w-4 text-primary" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">{label}</p>
+        <Icon className="h-3.5 w-3.5 text-amber-400/60" />
       </div>
-      <p className="mt-4 text-2xl font-semibold tracking-normal text-foreground num">{value}</p>
-      {detail && <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>}
-    </Surface>
+      <p className="mt-3 text-xl font-bold tracking-normal text-foreground num">{value}</p>
+      {detail && <p className="mt-1 text-[11px] text-zinc-500">{detail}</p>}
+    </div>
   );
 }
 
@@ -751,57 +750,42 @@ export default function ProDashboard() {
   };
 
   return (
-    <PageCanvas className="min-h-screen">
-      <div className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#050607]/92 backdrop-blur-2xl">
-        <div className="layout-shell flex min-h-16 items-center justify-between gap-4 py-2">
+    <div className="min-h-screen">
+      <div className="sticky top-0 z-50 border-b border-white/[0.04] bg-[hsl(220,10%,3%)]/95 backdrop-blur-xl">
+        <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/logo.svg" alt="AutoLens LK" className="h-8 w-8 rounded-lg ring-1 ring-white/10" />
+            <img src="/logo.svg" alt="AutoLens LK" className="h-7 w-7 rounded-md ring-1 ring-white/[0.06]" />
             <div>
-              <p className="text-sm font-bold text-white">AutoLens<span className="text-zinc-500">LK</span></p>
-              <p className="tech-label text-zinc-600">Pro Workspace</p>
+              <p className="text-[13px] font-semibold text-foreground">AutoLens<span className="text-zinc-500">LK</span></p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Pro Workspace</p>
             </div>
           </Link>
-
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={refreshing || loading}
-              className="h-9 gap-2"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
+            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-white/[0.06] text-[10px]">
+              <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
-            <HeroPill icon={<Crown className="h-3.5 w-3.5" />} className="!hidden rounded-xl px-3 py-2 sm:!inline-flex">
-              <span className="tech-label text-amber-100">{user?.plan || "pro"}</span>
-            </HeroPill>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 tech-label text-zinc-400 transition-colors hover:border-red-400/25 hover:text-red-300"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1 text-[10px] font-semibold text-amber-300/80">
+              <Crown className="h-3 w-3" /> {user?.plan || "pro"}
+            </span>
+            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.06] px-2.5 text-[10px] font-semibold text-zinc-500 transition-colors hover:border-rose-400/20 hover:text-rose-400">
+              <LogOut className="h-3 w-3" /> Sign out
             </button>
           </div>
         </div>
       </div>
 
-      <main className="layout-shell space-y-8 py-8">
-        <Surface variant="elevated" className="relative overflow-hidden p-6 md:p-8">
-          <AmbientBackground variant="subtle" />
-          <div className="relative grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+      <main className="mx-auto max-w-[1320px] space-y-8 px-5 py-8 sm:px-6">
+        <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-6 md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <HeroPill icon={<Lock className="h-3.5 w-3.5" />} className="text-amber-100">
-                Paid professional intelligence
-              </HeroPill>
-              <h1 className="headline-display mt-5 max-w-4xl text-4xl leading-none md:text-6xl">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1 text-[10px] font-semibold text-amber-300/80">
+                <Lock className="h-3 w-3" /> Professional intelligence
+              </span>
+              <h1 className="mt-4 font-display text-[2rem] font-semibold tracking-tight text-foreground md:text-[2.75rem]">
                 Pro dashboard.
               </h1>
             </div>
-            <Surface variant="glass" className="p-4">
+            <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
               <p className="tech-label">Data freshness</p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
                 {snapshot?.last_updated ? formatRelativeTime(snapshot.last_updated) : "Loading"}
@@ -810,9 +794,9 @@ export default function ProDashboard() {
               <div className="mt-4">
                 <ExportButtons report={activeMarketReport} />
               </div>
-            </Surface>
+            </div>
           </div>
-        </Surface>
+        </div>
 
         {error && (
           <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200">
@@ -1407,13 +1391,13 @@ export default function ProDashboard() {
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Surface key={item.title} variant="elevated" interactive className="p-5">
-                    <Icon className="h-6 w-6 text-primary" />
-                    <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
+                  <div key={item.title} className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-5 transition-colors hover:border-white/[0.07]">
+                    <Icon className="h-5 w-5 text-amber-400/60" />
+                    <h3 className="mt-4 text-base font-semibold text-foreground">{item.title}</h3>
                     <div className="mt-5">
                       <ExportButtons report={item.report} />
                     </div>
-                  </Surface>
+                  </div>
                 );
               })}
             </div>
@@ -1431,6 +1415,6 @@ export default function ProDashboard() {
 
       <DetailDialog detail={detail} open={detailOpen} onOpenChange={setDetailOpen} />
       <AIChatWidget />
-    </PageCanvas>
+    </div>
   );
 }
