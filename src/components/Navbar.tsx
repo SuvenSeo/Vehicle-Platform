@@ -336,7 +336,7 @@ export function Navbar() {
                 className="hidden h-8 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 text-zinc-400 no-underline outline-none transition-colors hover:border-white/[0.1] hover:text-zinc-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 lg:inline-flex"
               >
                 <ExternalLink className="h-3 w-3" />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">Repo</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">GitHub</span>
                 {stars !== null && <span className="text-[10px] font-semibold text-zinc-600 num">{stars.toLocaleString()}</span>}
               </a>
 

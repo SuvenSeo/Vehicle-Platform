@@ -16,10 +16,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        display: ['"Archivo Variable"', '"Geist Sans"', "system-ui", "sans-serif"],
+        display: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
         body: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
         mono: ['"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
-        numeric: ['"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
+        numeric: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
       },
       fontSize: {
         xs: ["0.75rem", { lineHeight: "1.5" }],

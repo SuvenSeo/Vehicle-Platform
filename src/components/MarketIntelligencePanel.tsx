@@ -68,7 +68,7 @@ function MetricCell({
     <div className="bg-[hsl(220,8%,6.5%)] p-5 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{label}</p>
       <p
-        className={`mt-2 flex items-center gap-1 font-display text-[1.5rem] font-bold leading-none tracking-tight num ${
+        className={`mt-2 flex items-center gap-1 text-[1.5rem] font-semibold leading-none tracking-tight num ${
           tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-foreground"
         }`}
       >
@@ -86,6 +86,12 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   insights,
 }: MarketIntelligencePanelProps) {
   const totalIndexed = Number(snapshot?.total_listings ?? stats?.total_listings ?? 0);
+  const pricedListings = Number(snapshot?.priced_listings ?? 0);
+  const unavailableCount = Number(
+    snapshot?.unavailable_price_listings ?? Math.max(0, totalIndexed - pricedListings),
+  );
+  // Priced listings match the default inventory browse count; fall back to total when priced is unknown.
+  const liveListings = pricedListings > 0 ? pricedListings : totalIndexed;
   const sourceCount = Number(snapshot?.active_scrape_sources?.length || stats?.source_count || 0);
   const districtCount = Number(stats?.district_count || 0);
   const avgPrice = Number(snapshot?.avg_price_lkr ?? stats?.avg_price_lkr ?? 0);
@@ -96,12 +102,12 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   const isLive = freshness !== "—";
 
   // Animated counters
-  const indexedCount = useCountUp(totalIndexed, 1400);
+  const liveCount = useCountUp(liveListings, 1400);
   const avgCount = useCountUp(avgPrice, 1400);
   const newCount = useCountUp(new24h, 1100);
   const dealsCount = useCountUp(goodDeals, 1100);
 
-  const indexedDisplay = totalIndexed > 0 ? indexedCount.toLocaleString() : "120,000+";
+  const liveDisplay = liveListings > 0 ? liveCount.toLocaleString() : "120,000+";
 
   // Live incoming feed — prefer real scrape runs, fall back to scored deals.
   const feed = useMemo<FeedRow[]>(() => {
@@ -153,9 +159,9 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             style={{ background: "radial-gradient(ellipse 60% 55% at 18% 0%, hsl(var(--primary) / 0.10) 0%, transparent 68%)" }}
           />
           <div className="relative flex h-full flex-col">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Vehicles indexed</p>
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Live listings</p>
+              <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                 <span className="relative flex h-2 w-2">
                   {isLive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />}
                   <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? "bg-[var(--gold)]" : "bg-zinc-600"}`} />
@@ -164,9 +170,19 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
               </span>
             </div>
 
-            <p className="mt-4 font-display text-[3rem] font-bold leading-[0.92] tracking-[-0.04em] text-foreground num sm:text-[4rem] lg:text-[4.75rem]">
-              {indexedDisplay}
+            <p
+              className="mt-4 text-[3rem] font-semibold leading-[0.95] tracking-[-0.03em] text-foreground num sm:text-[4rem] lg:text-[4.75rem]"
+              aria-live="polite"
+            >
+              {liveDisplay}
             </p>
+
+            {unavailableCount > 0 && totalIndexed > pricedListings ? (
+              <p className="mt-2 text-[12px] font-medium text-zinc-500">
+                <span className="num text-zinc-400">{totalIndexed.toLocaleString()}</span> total indexed ·{" "}
+                <span className="num text-zinc-400">{unavailableCount.toLocaleString()}</span> awaiting price
+              </p>
+            ) : null}
 
             <p className="mt-3 text-[13px] font-medium text-zinc-400">
               Across{" "}
@@ -213,7 +229,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
         <div className="divide-y divide-white/[0.03]">
           {feed.length ? (
             feed.map((row) => (
-              <div key={row.key} className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-white/[0.015]">
+              <div key={row.key} className="flex items-center justify-between px-5 py-2.5 transition-colors hover:bg-white/[0.015]">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Flame className="h-3.5 w-3.5 shrink-0 text-[var(--gold)]/50" />
                   <span className="truncate text-[13px] font-semibold text-zinc-200">{row.source}</span>

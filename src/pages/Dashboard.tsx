@@ -405,7 +405,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <h1 className="mx-auto mt-6 max-w-3xl font-display text-[2.5rem] font-bold leading-[0.98] tracking-[-0.04em] text-foreground sm:text-[3.5rem] lg:text-[4.5rem]">
+            <h1 className="mx-auto mt-6 max-w-3xl text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.03em] text-foreground sm:text-[3.5rem] lg:text-[4.5rem]">
               Sri Lanka&rsquo;s entire vehicle market,
               <span className="bg-gradient-to-r from-[var(--gold-bright)] to-[var(--gold)] bg-clip-text text-transparent"> decoded.</span>
             </h1>
@@ -497,11 +497,20 @@ export default function Dashboard() {
 
           {/* Toolbar */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">
+            <div className="flex items-baseline gap-2.5">
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
                 {isPriceUnavailableMode ? "Unpriced inventory" : "Inventory"}
               </h2>
-              <span className="text-[12px] font-bold text-zinc-500 num">{total.toLocaleString()}</span>
+              {loadingListings ? (
+                <span className="inline-block h-4 w-14 animate-pulse rounded bg-white/[0.06]" aria-hidden />
+              ) : (
+                <span className="text-[13px] font-medium text-zinc-400 num" aria-live="polite">
+                  {total.toLocaleString()}
+                  {!isPriceUnavailableMode && activeFilterLabels.length === 0 ? (
+                    <span className="ml-1 text-zinc-600">priced</span>
+                  ) : null}
+                </span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setShowSavedListings(true)}

@@ -297,7 +297,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
   return (
     <div className="space-y-3 px-3 py-3 text-sm">
-      <div className="sticky top-0 z-10 space-y-2.5 rounded-lg border border-white/[0.08] bg-[#0a0a0a]/95 px-3 py-2.5 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 space-y-3 rounded-lg border border-white/[0.08] bg-[#0a0a0a]/95 px-3.5 py-3 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-zinc-100">Filters</p>
           {activeChips.length > 0 ? (
