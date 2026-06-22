@@ -7,6 +7,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
 import { AppFooter } from "@/components/AppFooter";
 import { Loader } from "@/components/Loader";
+import { ScrollProgressBar } from "@/components/ScrollProgressBar";
+import { NoiseOverlay } from "@/components/NoiseOverlay";
+import { CustomCursor } from "@/components/CustomCursor";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
@@ -130,6 +133,9 @@ const App = () => {
       <AuthProvider>
       <AppPreferencesProvider>
         <TooltipProvider>
+          <ScrollProgressBar />
+          <NoiseOverlay />
+          <CustomCursor />
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>

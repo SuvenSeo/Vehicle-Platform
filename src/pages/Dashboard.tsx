@@ -9,6 +9,8 @@ import { useLiveMarketSnapshot } from "@/hooks/useLiveMarketSnapshot";
 import { ListingCard } from "@/components/ListingCard";
 import { ComparisonModal } from "@/components/ComparisonModal";
 import { FilterSidebar } from "@/components/FilterSidebar";
+import { MarketIntelligencePanel } from "@/components/MarketIntelligencePanel";
+import { RevealSection } from "@/components/RevealSection";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -16,16 +18,12 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  Database,
   ExternalLink,
   Flame,
   LayoutGrid,
   List,
-  MapPinned,
-  Radio,
   Scale,
   Search,
-  TrendingUp,
   X,
 } from "lucide-react";
 import type { StatsOverview } from "@/types/car";
@@ -52,18 +50,6 @@ function parseOptionalNumber(value: string | null) {
 
 function isSortValue(value: string | null): value is FilterState["sort"] {
   return value !== null && (SORT_VALUES as readonly string[]).includes(value);
-}
-
-function formatFreshnessLabel(value: string | null | undefined): string {
-  if (!value) return "Awaiting";
-  const ts = new Date(value).getTime();
-  if (!Number.isFinite(ts)) return "Awaiting";
-  const elapsedMinutes = Math.max(0, Math.round((Date.now() - ts) / 60_000));
-  if (elapsedMinutes < 1) return "Just now";
-  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`;
-  const elapsedHours = Math.round(elapsedMinutes / 60);
-  if (elapsedHours < 24) return `${elapsedHours}h ago`;
-  return new Date(value).toLocaleDateString("en-LK");
 }
 
 function normalizeSourceValue(value: string | null | undefined): string | undefined {
@@ -384,8 +370,6 @@ export default function Dashboard() {
   const marketPulseListings = Number(liveMarketSnapshot?.priced_listings ?? stats?.total_listings ?? total ?? 0);
   const marketPulseDistricts = Number(stats?.district_count || 0);
   const marketPulseSources = Number(stats?.source_count || liveMarketSnapshot?.source_status?.length || 0);
-  const momChange = Number(stats?.price_change_mom ?? 0);
-  const freshness = formatFreshnessLabel(liveMarketSnapshot?.latest_listing_at || stats?.last_updated);
   const isPriceUnavailableMode = filters.price_availability === "unavailable";
 
   // ═════════════════════════════════════════════════════════════════
@@ -395,99 +379,114 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
 
-      {/* ── COMMAND BAR ─────────────────────────────────────────── */}
-      <section id="overview" className="border-b border-white/[0.04]">
-        <div className="mx-auto max-w-[1560px] px-5 py-10 sm:px-6 sm:py-14 lg:py-16">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
-            Vehicle Intelligence · Sri Lanka
-          </p>
-          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem] lg:text-[2.75rem]">
-            Find your vehicle.
-          </h1>
-          <p className="mt-2 max-w-lg text-sm text-zinc-500">
-            Search {marketPulseListings.toLocaleString()} live listings across {marketPulseDistricts || 25} districts. Real-time pricing, deal scores, and market intelligence.
-          </p>
-
-          {/* Search */}
-          <div className="mt-6 max-w-2xl">
-            <div className="relative">
-              <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[hsl(220,8%,5.5%)] transition-all focus-within:border-amber-400/20 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.06)]">
-                <Search className="ml-4 h-4 w-4 shrink-0 text-zinc-600" />
-                <label htmlFor="hero-search" className="sr-only">Search vehicles</label>
-                <input
-                  id="hero-search"
-                  value={heroSearch}
-                  onChange={(e) => { setHeroSearch(e.target.value); setHeroSearchMessage(null); }}
-                  onFocus={() => { if (heroSuggestions.length) setHeroSuggestionsOpen(true); }}
-                  onBlur={() => { window.setTimeout(() => setHeroSuggestionsOpen(false), 120); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runHeroSearch(); } }}
-                  placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
-                  spellCheck={false}
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  role="combobox"
-                  aria-expanded={showHeroSuggestions}
-                  aria-controls="hero-suggestions"
-                  className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground placeholder-zinc-600 outline-none sm:h-13"
-                />
-                <button type="button" onClick={runHeroSearch} className="mr-2 h-9 rounded-lg bg-[var(--gold)] px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-black transition-colors hover:bg-[var(--gold-bright)]">
-                  Search
-                </button>
+      {/* ── HERO ─────────────────────────────────────────────────── */}
+      <section id="overview" className="relative overflow-hidden border-b border-white/[0.04]">
+        {/* ambient gold wash */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={{
+            background:
+              "radial-gradient(ellipse 60% 55% at 50% -12%, rgba(212,164,68,0.12), transparent 60%), radial-gradient(ellipse 70% 50% at 50% 120%, rgba(66,174,208,0.04), transparent 55%)",
+          }}
+        />
+        <div className="mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20">
+          {/* ── Centered editorial headline ── */}
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="flex justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.02] px-3.5 py-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
+                </span>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                  Vehicle Intelligence · Sri Lanka
+                </p>
               </div>
-
-              {showHeroSuggestions && (
-                <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-white/[0.06] bg-[hsl(220,8%,5.5%)] p-1 shadow-xl">
-                  {heroSuggestionsLoading ? (
-                    <p className="px-3 py-2 text-[11px] text-zinc-600">Searching...</p>
-                  ) : heroSuggestions.length ? (
-                    <div className="max-h-[240px] overflow-y-auto">
-                      {heroSuggestions.map((s) => (
-                        <button
-                          key={`${s.id}-${s.make}-${s.model}`} type="button" role="option" aria-selected="false"
-                          onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                          className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
-                        >
-                          <span className="text-[13px] font-semibold text-zinc-200">{s.make} {s.model} {s.year}</span>
-                          <span className="text-[12px] font-bold text-amber-400/80 num">
-                            {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : <p className="px-3 py-2 text-[11px] text-zinc-600">No matches.</p>}
-                </div>
-              )}
             </div>
 
-            {heroSearchMessage && (
-              <p className="mt-2 text-[11px] font-medium text-amber-300/70">{heroSearchMessage}</p>
-            )}
+            <h1 className="mx-auto mt-6 max-w-3xl font-display text-[2.5rem] font-bold leading-[0.98] tracking-[-0.04em] text-foreground sm:text-[3.5rem] lg:text-[4.5rem]">
+              Sri Lanka&rsquo;s entire vehicle market,
+              <span className="bg-gradient-to-r from-[var(--gold-bright)] to-[var(--gold)] bg-clip-text text-transparent"> decoded.</span>
+            </h1>
 
-            {/* Quick scans */}
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              {["Toyota Aqua", "Honda Vezel", "Wagon R", "Nissan Leaf", "Toyota Axio"].map((item) => (
-                <button key={item} type="button" onClick={() => setHeroSearch(item)}
-                  className="rounded-md border border-white/[0.05] px-2.5 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:border-white/[0.1] hover:text-zinc-300"
-                >{item}</button>
-              ))}
+            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-zinc-400 sm:text-[16px]">
+              <span className="font-semibold text-zinc-200 num">{marketPulseListings.toLocaleString()}</span> live listings from{" "}
+              <span className="font-semibold text-zinc-200 num">{marketPulseSources || 10}</span> sources across{" "}
+              <span className="font-semibold text-zinc-200 num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
+              deal scores, and the market intelligence dealers keep to themselves.
+            </p>
+
+            {/* Search (centered) */}
+            <div className="mx-auto mt-8 max-w-2xl text-left">
+                <div className="relative">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[hsl(220,8%,6%)] shadow-lg transition-all focus-within:border-amber-400/30 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.08),0_8px_32px_rgba(0,0,0,0.5)]">
+                    <Search className="ml-4 h-5 w-5 shrink-0 text-zinc-500" />
+                    <label htmlFor="hero-search" className="sr-only">Search vehicles</label>
+                    <input
+                      id="hero-search"
+                      value={heroSearch}
+                      onChange={(e) => { setHeroSearch(e.target.value); setHeroSearchMessage(null); }}
+                      onFocus={() => { if (heroSuggestions.length) setHeroSuggestionsOpen(true); }}
+                      onBlur={() => { window.setTimeout(() => setHeroSuggestionsOpen(false), 120); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runHeroSearch(); } }}
+                      placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
+                      spellCheck={false}
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      role="combobox"
+                      aria-expanded={showHeroSuggestions}
+                      aria-controls="hero-suggestions"
+                      className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-foreground placeholder-zinc-600 outline-none"
+                    />
+                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-[var(--gold)] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[var(--gold-bright)]">
+                      Search
+                    </button>
+                  </div>
+
+                  {showHeroSuggestions && (
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-white/[0.08] bg-[hsl(220,8%,6%)] p-1 shadow-xl">
+                      {heroSuggestionsLoading ? (
+                        <p className="px-3 py-2 text-[11px] text-zinc-600">Searching...</p>
+                      ) : heroSuggestions.length ? (
+                        <div className="max-h-[240px] overflow-y-auto">
+                          {heroSuggestions.map((s) => (
+                            <button
+                              key={`${s.id}-${s.make}-${s.model}`} type="button" role="option" aria-selected="false"
+                              onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
+                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
+                            >
+                              <span className="text-[13px] font-semibold text-zinc-200">{s.make} {s.model} {s.year}</span>
+                              <span className="text-[12px] font-bold text-amber-400/80 num">
+                                {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : <p className="px-3 py-2 text-[11px] text-zinc-600">No matches.</p>}
+                    </div>
+                  )}
+                </div>
+
+                {heroSearchMessage && (
+                  <p className="mt-2 text-[11px] font-medium text-amber-300/70">{heroSearchMessage}</p>
+                )}
+
+                {/* Quick scans */}
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Popular</span>
+                  {["Toyota Aqua", "Honda Vezel", "Wagon R", "Nissan Leaf", "Toyota Axio"].map((item) => (
+                    <button key={item} type="button" onClick={() => setHeroSearch(item)}
+                      className="rounded-md border border-white/[0.06] bg-white/[0.015] px-2.5 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:border-amber-400/20 hover:text-zinc-200"
+                    >{item}</button>
+                  ))}
+                </div>
             </div>
           </div>
 
-          {/* Market ticker */}
-          <div className="mt-8 flex flex-wrap items-center gap-2">
-            {[
-              { label: "Listings", value: marketPulseListings.toLocaleString(), icon: Database },
-              { label: "Districts", value: (marketPulseDistricts || "—").toLocaleString(), icon: MapPinned },
-              { label: "Sources", value: (marketPulseSources || "—").toLocaleString(), icon: Radio },
-              { label: "MoM", value: `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`, icon: TrendingUp },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2 rounded-md border border-white/[0.04] bg-white/[0.015] px-3 py-2">
-                <item.icon className="h-3 w-3 text-zinc-600" />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">{item.label}</span>
-                <span className="text-[12px] font-bold text-zinc-300 num">{item.value}</span>
-              </div>
-            ))}
-            <span className="text-[10px] text-zinc-600">{freshness}</span>
+          {/* ── Full-width live intelligence console ── */}
+          <div className="mt-12 lg:mt-16">
+            <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
           </div>
         </div>
       </section>
@@ -624,15 +623,23 @@ export default function Dashboard() {
       </section>
 
       {/* ── MARKET PULSE ────────────────────────────────────────── */}
-      <section className="border-t border-white/[0.04]">
-        <div className="mx-auto max-w-[1560px] px-5 py-12 sm:px-6 lg:py-16">
+      <RevealSection className="border-t border-white/[0.04]">
+        <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
+          <div className="mb-9 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold)]/70">Market pulse</p>
+              <h2 className="mt-2 font-display text-[1.5rem] font-bold tracking-tight text-foreground sm:text-[1.875rem]">
+                What&rsquo;s moving right now
+              </h2>
+            </div>
+          </div>
           <div className="grid gap-10 lg:grid-cols-2">
 
             {/* Trending models */}
             <div>
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="font-display text-sm font-semibold tracking-tight text-foreground">Trending models</h3>
-                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 no-underline transition-colors hover:text-amber-300">
+                <h3 className="font-display text-base font-semibold tracking-tight text-foreground">Trending models</h3>
+                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400 no-underline transition-colors hover:text-amber-300">
                   All trends <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -646,10 +653,10 @@ export default function Dashboard() {
                         <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold text-foreground">{row.make} {row.model}</p>
-                        <p className="mt-0.5 text-[10px] text-zinc-500 num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
+                        <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model}</p>
+                        <p className="mt-0.5 text-[11px] text-zinc-400 num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
                       </div>
-                      <ArrowRight className="h-3 w-3 shrink-0 text-zinc-600 transition-transform group-hover/trend:translate-x-0.5" />
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform group-hover/trend:translate-x-0.5 group-hover/trend:text-amber-300" />
                     </button>
                   ))}
                 </div>
@@ -661,10 +668,10 @@ export default function Dashboard() {
             {/* Hot deals */}
             <div>
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="font-display text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-                  <Flame className="h-3.5 w-3.5 text-amber-400/60" /> Best deals
+                <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
+                  <Flame className="h-4 w-4 text-amber-400/70" /> Best deals
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 no-underline transition-colors hover:text-amber-300">
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400 no-underline transition-colors hover:text-amber-300">
                   All picks <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -678,10 +685,10 @@ export default function Dashboard() {
                         <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
-                        <p className="mt-0.5 text-[10px] text-zinc-500 num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
+                        <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
+                        <p className="mt-0.5 text-[11px] text-zinc-400 num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
                       </div>
-                      <span className="shrink-0 rounded-md border border-emerald-500/20 bg-emerald-500/8 px-2 py-0.5 text-[10px] font-bold text-emerald-300 num">
+                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-300 num">
                         +{Number(row.deal_score || 0).toFixed(0)}
                       </span>
                     </Link>
@@ -694,7 +701,9 @@ export default function Dashboard() {
           </div>
 
           {/* Tool links */}
-          <div className="mt-10 flex flex-wrap gap-2 border-t border-white/[0.04] pt-8">
+          <div className="mt-12 border-t border-white/[0.04] pt-8">
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Intelligence tools</p>
+            <div className="flex flex-wrap gap-2">
             {[
               { label: "Valuation", to: "/estimate" },
               { label: "Trends", to: "/trends" },
@@ -703,15 +712,16 @@ export default function Dashboard() {
               { label: "EV Hub", to: "/ev-hub" },
             ].map((tool) => (
               <Link key={tool.label} to={tool.to}
-                className="group/tool flex items-center gap-1.5 rounded-lg border border-white/[0.04] px-3.5 py-2 text-[11px] font-semibold text-zinc-500 no-underline transition-all hover:border-white/[0.08] hover:text-zinc-200"
+                className="group/tool flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-2.5 text-[12px] font-semibold text-zinc-300 no-underline transition-all hover:border-amber-400/20 hover:bg-amber-400/[0.04] hover:text-zinc-100"
               >
                 {tool.label}
-                <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity group-hover/tool:opacity-100" />
+                <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition-all group-hover/tool:text-amber-300 group-hover/tool:translate-x-0.5" />
               </Link>
             ))}
+            </div>
           </div>
         </div>
-      </section>
+      </RevealSection>
 
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (

@@ -39,8 +39,8 @@ export default function ProPreview() {
             <Crown className="h-3 w-3 text-amber-400/70" />
             <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-300/80">Pro Preview</span>
           </div>
-          <h1 className="font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Pro workspace preview.</h1>
-          <p className="mt-2 max-w-lg text-sm text-zinc-500">See the depth of lane drill-downs, district profiles, and export packs before you sign in.</p>
+          <h1 className="font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Pro workspace preview.</h1>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-zinc-400">See the depth of lane drill-downs, district profiles, and export packs before you sign in.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link to="/sign-in" className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black no-underline hover:bg-[var(--gold-bright)]">
               <ShieldCheck className="h-3 w-3" /> Sign in to unlock

@@ -1167,3 +1167,101 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
+
+/* ============================================================================
+   Premium micro-details — scroll bar, film grain, precision cursor, live dot
+   ========================================================================== */
+
+/* Scroll progress — thin gold line tracking scroll depth */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  box-shadow: 0 0 12px hsl(var(--primary) / 0.4);
+  z-index: 9996;
+  transform-origin: left;
+  transform: scaleX(0);
+  will-change: transform;
+}
+
+/* Film grain — fixed analog texture above content, below modals */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.022;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px;
+  mix-blend-mode: overlay;
+}
+
+/* Precision gold cursor */
+body.cursor-custom-active,
+body.cursor-custom-active * {
+  cursor: none !important;
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--gold-bright);
+}
+
+.cursor-ring {
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  border: 1px solid hsl(var(--primary) / 0.5);
+  transition:
+    width var(--duration-base) var(--ease-out),
+    height var(--duration-base) var(--ease-out),
+    margin var(--duration-base) var(--ease-out),
+    background-color var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
+}
+
+.cursor-ring.is-hovering {
+  width: 50px;
+  height: 50px;
+  margin: -25px 0 0 -25px;
+  border-color: hsl(var(--primary) / 0.85);
+  background: hsl(var(--primary) / 0.06);
+}
+
+.cursor-ring.is-down {
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+}
+
+/* Live pulse dot — slow, premium (not frantic) */
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5); }
+  60%      { box-shadow: 0 0 0 6px hsl(var(--primary) / 0); }
+}
+
+.animate-live-dot {
+  animation: live-pulse 3s ease-in-out infinite;
+}
+
+@media (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring { display: none; }
+}

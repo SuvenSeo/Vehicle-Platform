@@ -78,9 +78,9 @@ export default function Blogs() {
       {/* Header */}
       <section className="border-b border-white/[0.04]">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Journal</p>
-          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Market briefings.</h1>
-          <p className="mt-2 max-w-lg text-sm text-zinc-500">{filtered.length} signals in view · Ardeno Research</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Journal</p>
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Market briefings.</h1>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-zinc-400">{filtered.length} signals in view · Ardeno Research</p>
 
           {/* Search + categories */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">

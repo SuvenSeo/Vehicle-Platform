@@ -116,8 +116,8 @@ export default function ListingDetail() {
           <button type="button" onClick={handleBack} className="group mb-5 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500 transition-colors hover:text-zinc-200">
             <ArrowLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" /> Back
           </button>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Inspection · {listing.source}</p>
-          <h1 className="mt-2 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Inspection · {listing.source}</p>
+          <h1 className="mt-2 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">
             {listing.make} {listing.model}{listing.year ? ` · ${listing.year}` : ''}
           </h1>
           {listing.title && listing.title !== `${listing.make} ${listing.model}` && (

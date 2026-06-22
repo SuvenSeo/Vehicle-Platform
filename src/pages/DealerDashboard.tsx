@@ -64,9 +64,9 @@ export default function DealerDashboard() {
     <div className="min-h-screen">
       <section className="border-b border-white/[0.04]">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Dealer workspace</p>
-          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Dealer command center.</h1>
-          <p className="mt-2 text-sm text-zinc-500">Arbitrage, demand mapping, and lead flow intelligence.</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Dealer workspace</p>
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Dealer command center.</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-zinc-400">Arbitrage, demand mapping, and lead flow intelligence.</p>
           <Link to="/#market" className="mt-4 inline-flex h-9 items-center rounded-lg border border-white/[0.06] px-4 text-[10px] font-semibold text-zinc-400 no-underline hover:text-zinc-200">Open public inventory</Link>
         </div>
       </section>

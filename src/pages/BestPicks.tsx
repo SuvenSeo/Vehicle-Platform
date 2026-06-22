@@ -64,9 +64,9 @@ export default function BestPicks() {
     <div className="min-h-screen">
       <section className="border-b border-white/[0.04]">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Best picks</p>
-          <h1 className="mt-3 font-display text-[1.75rem] font-semibold tracking-tight text-foreground sm:text-[2.25rem]">Deal-score picks.</h1>
-          <p className="mt-2 max-w-lg text-sm text-zinc-500">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Best picks</p>
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Deal-score picks.</h1>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-zinc-400">
             {loading ? "Scanning inventory..." : `${picks.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ranked by deal strength.`}
           </p>
         </div>
