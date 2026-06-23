@@ -137,10 +137,10 @@ export function Navbar() {
 
   const statusDot =
     liveState === "ok"
-      ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"
+      ? "bg-emerald-500"
       : liveState === "delayed"
-        ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-        : "bg-amber-300/70 shadow-[0_0_8px_rgba(252,211,77,0.3)] animate-pulse-soft";
+        ? "bg-primary"
+        : "bg-primary/70 animate-pulse-soft";
 
   const isSectionActive = ({ id, href, activeOn, isRoute }: NavSection) =>
     isRoute
@@ -206,17 +206,17 @@ export function Navbar() {
             <Link
               to="/"
               onClick={onHomeLinkClick}
-              className="group flex shrink-0 items-center gap-2.5 rounded-xl px-2 py-1 no-underline outline-none transition-colors hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-amber-400/60"
+              className="group flex shrink-0 items-center gap-2.5 rounded-xl px-2 py-1 no-underline outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-white/[0.08] bg-black/50">
+              <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-surface">
                 <img src="/logo.svg" alt="AutoLens LK logo" className="h-6 w-6 object-contain" />
                 <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${statusDot}`} />
               </div>
               <div className="hidden min-[390px]:block leading-none">
-                <p className="font-display text-[14px] font-semibold tracking-tight text-foreground leading-none">
-                  AutoLens<span className="ml-1 font-normal text-zinc-600">LK</span>
+                <p className="font-display text-[15px] font-semibold tracking-tight text-foreground leading-none">
+                  AutoLens<span className="ml-1 font-normal text-muted-foreground">LK</span>
                 </p>
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-600">
+                <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Vehicle Intelligence
                 </p>
               </div>
@@ -224,7 +224,7 @@ export function Navbar() {
 
             {/* ── Desktop nav tabs ──────────────────────── */}
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              <div className="inline-flex items-center gap-0.5 rounded-lg border border-white/[0.04] bg-white/[0.02] p-0.5">
+              <div className="inline-flex items-center gap-0.5 rounded-full border border-border bg-foreground/[0.03] p-1">
                 {sections.map((section) => {
                   const active = isSectionActive(section);
                   return (
@@ -233,14 +233,15 @@ export function Navbar() {
                       href={section.href}
                       onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                       aria-current={active ? "page" : undefined}
-                      className={`relative rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] no-underline outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 ${
+                      data-active={active}
+                      className={`relative rounded-full px-3.5 py-1.5 text-[12px] font-medium tracking-tight no-underline outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 ${
                         active
                           ? "text-foreground"
-                          : "text-zinc-500 hover:text-zinc-200"
+                          : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {active && (
-                        <span className="absolute inset-0 rounded-md border border-white/[0.08] bg-white/[0.06]" />
+                        <span className="absolute inset-0 rounded-full bg-card shadow-soft" />
                       )}
                       <span className="relative z-10">{section.label}</span>
                     </a>
@@ -256,30 +257,30 @@ export function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden h-8 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 text-zinc-400 outline-none transition-colors hover:border-white/[0.1] hover:text-zinc-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 md:inline-flex"
+                    className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 md:inline-flex"
                     aria-label="More workspaces"
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">More</span>
+                    <span className="text-[12px] font-medium tracking-tight">More</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-xl border-white/[0.08] bg-[#0c0d0f]/96 p-1.5 text-zinc-100 shadow-xl backdrop-blur-2xl"
+                  className="w-60 rounded-2xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
                 >
-                  <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                  <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     Workspaces
                   </p>
-                  <DropdownMenuSeparator className="bg-white/[0.06]" />
+                  <DropdownMenuSeparator className="bg-border" />
                   {moreSections.map((section) => (
                     <DropdownMenuItem
                       key={section.href}
                       onSelect={() => navigate(section.href)}
-                      className="rounded-lg px-3 py-2 text-zinc-300 focus:bg-white/[0.04] focus:text-white"
+                      className="rounded-xl px-3 py-2 text-foreground/80 focus:bg-accent focus:text-foreground"
                     >
                       <div>
                         <p className="text-[13px] font-semibold">{section.label}</p>
-                        <p className="mt-0.5 text-[11px] text-zinc-500">{section.detail}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{section.detail}</p>
                       </div>
                     </DropdownMenuItem>
                   ))}
@@ -287,11 +288,11 @@ export function Navbar() {
               </DropdownMenu>
 
               {/* Live status pill */}
-              <div className="hidden items-center gap-2 rounded-lg border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5 xl:inline-flex">
+              <div className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex">
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
                 <div className="leading-none">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-300">{liveLabel}</p>
-                  <p className="mt-0.5 text-[10px] text-zinc-600">{liveFreshnessLabel}</p>
+                  <p className="text-[11px] font-medium tracking-tight text-foreground">{liveLabel}</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">{liveFreshnessLabel}</p>
                 </div>
               </div>
 
@@ -301,15 +302,15 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={() => navigate("/pro")}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-400/15 bg-amber-400/6 px-2.5 text-amber-100 outline-none transition-colors hover:bg-amber-400/10 focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
-                    <Crown className="h-3 w-3 text-amber-300" />
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">Pro</span>
+                    <Crown className="h-3 w-3" />
+                    <span className="text-[12px] font-medium tracking-tight">Pro</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] text-zinc-500 outline-none transition-colors hover:border-red-400/20 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-red-300/60"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
                     aria-label="Sign out"
                   >
                     <LogOut className="h-3 w-3" />
@@ -320,10 +321,10 @@ export function Navbar() {
                   type="button"
                   variant="outline"
                   onClick={openSignIn}
-                  className="hidden h-8 gap-1.5 rounded-lg border-white/[0.08] bg-transparent px-3 text-zinc-300 hover:border-white/[0.12] hover:text-white sm:inline-flex"
+                  className="hidden h-8 gap-1.5 rounded-full border-border bg-transparent px-4 text-foreground/80 hover:bg-foreground/[0.04] hover:text-foreground sm:inline-flex"
                 >
                   <UserCircle2 className="h-3 w-3" />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">{t("nav.signIn", "Sign In")}</span>
+                  <span className="text-[12px] font-medium tracking-tight">{t("nav.signIn", "Sign In")}</span>
                 </Button>
               )}
 
@@ -333,18 +334,18 @@ export function Navbar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Open AutoLens LK repository"
-                className="hidden h-8 items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 text-zinc-400 no-underline outline-none transition-colors hover:border-white/[0.1] hover:text-zinc-200 focus-visible:ring-2 focus-visible:ring-amber-400/60 lg:inline-flex"
+                className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:inline-flex"
               >
                 <ExternalLink className="h-3 w-3" />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">GitHub</span>
-                {stars !== null && <span className="text-[10px] font-semibold text-zinc-600 num">{stars.toLocaleString()}</span>}
+                <span className="text-[12px] font-medium tracking-tight">GitHub</span>
+                {stars !== null && <span className="text-[11px] font-semibold text-muted-foreground num">{stars.toLocaleString()}</span>}
               </a>
 
               {/* Mobile toggle */}
               <button
                 type="button"
                 onClick={() => setMobileOpen((open) => !open)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] text-zinc-300 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-amber-400/60 lg:hidden"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
               >
@@ -363,15 +364,15 @@ export function Navbar() {
           aria-modal="true"
           aria-label="Navigation menu"
         >
-          <div className="rounded-xl border border-white/[0.06] bg-[#0c0d0f]/96 p-3 shadow-xl backdrop-blur-2xl">
+          <div className="rounded-2xl border border-border bg-popover/95 p-3 shadow-soft-lg backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Platform</p>
-                <p className="mt-0.5 text-[11px] font-semibold text-zinc-600">AutoLens LK</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-foreground">AutoLens LK</p>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1">
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-300">{liveLabel}</span>
+                <span className="text-[11px] font-medium tracking-tight text-foreground">{liveLabel}</span>
               </div>
             </div>
 
@@ -384,10 +385,11 @@ export function Navbar() {
                     href={section.href}
                     onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                     aria-current={active ? "page" : undefined}
-                    className={`rounded-lg border px-3 py-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.1em] no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/60 ${
+                    data-active={active}
+                    className={`rounded-xl border px-3 py-2.5 text-center text-[11px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       active
-                        ? "border-amber-300/20 bg-amber-400/8 text-white"
-                        : "border-white/[0.05] text-zinc-500 hover:border-white/[0.08] hover:text-zinc-200"
+                        ? "border-primary/20 bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
                     }`}
                   >
                     {section.label}
@@ -402,30 +404,30 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={() => { navigate("/pro"); setMobileOpen(false); }}
-                    className="col-span-2 flex items-center justify-between rounded-lg border border-amber-300/15 bg-amber-400/6 px-3 py-2.5 text-amber-100 outline-none transition-colors hover:bg-amber-400/10 focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                    className="col-span-2 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
-                    <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em]">
-                      <Crown className="h-3 w-3 text-amber-300" />
+                    <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
+                      <Crown className="h-3 w-3" />
                       Pro Dashboard
                     </span>
-                    <span className="text-[10px] font-semibold text-amber-200/60">{user.name}</span>
+                    <span className="text-[11px] font-medium text-primary/70">{user.name}</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="col-span-2 flex items-center gap-2 rounded-lg border border-white/[0.05] px-3 py-2.5 text-zinc-500 outline-none transition-colors hover:border-red-400/15 hover:text-red-300 focus-visible:ring-2 focus-visible:ring-red-300/60"
+                    className="col-span-2 flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
                   >
                     <LogOut className="h-3 w-3" />
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em]">Sign Out</span>
+                    <span className="text-[12px] font-medium tracking-tight">Sign Out</span>
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={openSignIn}
-                  className="col-span-2 flex items-center justify-between rounded-lg border border-white/[0.06] px-3 py-2.5 text-zinc-300 outline-none transition-colors hover:bg-white/[0.03] focus-visible:ring-2 focus-visible:ring-amber-400/60"
+                  className="col-span-2 flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                  <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                     <UserCircle2 className="h-3 w-3" />
                     {t("nav.signIn", "Sign In")}
                   </span>
@@ -437,13 +439,13 @@ export function Navbar() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 flex items-center justify-between rounded-lg border border-white/[0.05] px-3 py-2.5 text-zinc-400 no-underline outline-none transition-colors hover:border-white/[0.08] hover:text-white focus-visible:ring-2 focus-visible:ring-amber-400/60"
+              className="mt-2 flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              <span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.1em]">
+              <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                 <ExternalLink className="h-3 w-3" />
                 Repository
               </span>
-              {stars !== null && <span className="text-[10px] font-semibold text-zinc-600 num">{stars.toLocaleString()}</span>}
+              {stars !== null && <span className="text-[11px] font-semibold text-muted-foreground num">{stars.toLocaleString()}</span>}
             </a>
           </div>
         </div>

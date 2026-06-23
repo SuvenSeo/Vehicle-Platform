@@ -32,7 +32,7 @@ export function ListingCardSkeleton() {
         </div>
 
         {/* Footer */}
-        <div className="pt-4 flex items-center justify-between border-t border-white/[0.06] mt-auto">
+        <div className="pt-4 flex items-center justify-between border-t border-border mt-auto">
           <div className="space-y-1.5">
             <div className="skeleton-shimmer h-3.5 w-24 rounded" />
             <div className="skeleton-shimmer h-3 w-20 rounded" />

@@ -50,7 +50,7 @@ export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
         
         {/* Hero: Average Price */}
         <div className="cinematic-panel motion-card rounded-xl p-8 lg:col-span-2 group">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
           <div className="relative z-10 flex flex-col justify-between h-full space-y-8">
             <p className="tech-label tracking-[0.18em]">Average Index Price</p>
             <div>
@@ -58,7 +58,7 @@ export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
                 {formatPrice(avgPrice)}
               </p>
               <div className={`mt-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 tech-label num ${
-                momChange < 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                momChange < 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
               }`}>
                 <span>{momChange < 0 ? '▼' : '▲'}</span>
                 {Math.abs(momChange)}% Movement vs month-0
@@ -74,8 +74,8 @@ export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
             <p className="text-4xl font-semibold leading-none text-white num lg:text-5xl">
               {totalCount.toLocaleString()}
             </p>
-            <p className="mt-4 flex items-center gap-2 tech-label text-zinc-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <p className="mt-4 flex items-center gap-2 tech-label text-muted-foreground">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               Priced listings
             </p>
           </div>
@@ -85,10 +85,10 @@ export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
         <div className="cinematic-panel motion-card rounded-xl p-8 flex flex-col justify-between group">
           <p className="tech-label tracking-[0.18em]">Opportunities</p>
           <div>
-            <p className="text-4xl font-semibold leading-none text-amber-400 num lg:text-5xl">
+            <p className="text-4xl font-semibold leading-none text-primary num lg:text-5xl">
               {dealsCount}+
             </p>
-            <p className="mt-4 tech-label text-zinc-400">Arbitrage Deals</p>
+            <p className="mt-4 tech-label text-muted-foreground">Arbitrage Deals</p>
           </div>
         </div>
 
@@ -96,10 +96,10 @@ export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
 
       {/* Subline Data */}
       <div className="flex items-center justify-between mt-8 px-4 opacity-50">
-        <p className="tech-label text-zinc-500">
+        <p className="tech-label text-muted-foreground">
             Multi-platform Aggregate · {sourceLabel} · Updated {freshnessLabel}
         </p>
-        <p className="tech-label text-zinc-600">
+        <p className="tech-label text-muted-foreground">
             Build v1.4.2
         </p>
       </div>

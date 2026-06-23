@@ -14,7 +14,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
-    "@fontsource-variable/archivo": "^5.2.8",
     "@fontsource/geist-mono": "^5.2.8",
     "@fontsource/geist-sans": "^5.2.5",
     "@hookform/resolvers": "^3.10.0",

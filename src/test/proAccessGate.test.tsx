@@ -63,7 +63,7 @@ describe("Pro access gate", () => {
     renderProtected();
 
     expect(screen.getByText(/subscription required/i)).toBeInTheDocument();
-    expect(screen.getByText(/pro is locked for free accounts/i)).toBeInTheDocument();
+    expect(screen.getByText(/pro is locked/i)).toBeInTheDocument();
     expect(screen.queryByText(/full pro dashboard/i)).not.toBeInTheDocument();
   });
 

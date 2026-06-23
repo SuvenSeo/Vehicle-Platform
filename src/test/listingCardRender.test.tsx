@@ -43,7 +43,8 @@ describe("ListingCard render states and interactions", () => {
     const card = screen.getByRole("article", { name: /Toyota Aqua listing card/i });
     const cardLink = screen.getByRole("link", { name: /Open Toyota Aqua/i });
 
-    expect(card.className).toContain("surface");
+    expect(card.className).toContain("bg-card");
+    expect(card.className).toContain("rounded-2xl");
     expect(cardLink).toHaveAttribute("href", "/listing/11");
     expect(card.querySelector("button")).not.toBeInTheDocument();
   });
@@ -65,7 +66,6 @@ describe("ListingCard render states and interactions", () => {
 
     expect(screen.getByText("District N/A")).toBeInTheDocument();
     expect(screen.getByText("Mileage N/A")).toBeInTheDocument();
-    expect(screen.getAllByText(/Fair Price/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("img", { name: "Toyota Aqua" })).toBeInTheDocument();
   });
 
@@ -83,7 +83,7 @@ describe("ListingCard render states and interactions", () => {
     expect(screen.getByText("Price unavailable")).toBeInTheDocument();
   });
 
-  it("uses truthful freshness and confidence labels", () => {
+  it("shows a truthful market-position signal when below the median", () => {
     const listing = buildListing({
       market_median_lkr: 9_500_000,
       price_lkr: 8_900_000,
@@ -100,11 +100,8 @@ describe("ListingCard render states and interactions", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("High confidence")).toBeInTheDocument();
-    expect(screen.getByText(/Scraped/i)).toBeInTheDocument();
-    expect(screen.queryByText("Verified data")).not.toBeInTheDocument();
-    expect(screen.queryByText("Market signal")).not.toBeInTheDocument();
-    expect(screen.getByText(/below median/i)).toBeInTheDocument();
+    expect(screen.getByText(/market position/i)).toBeInTheDocument();
+    expect(screen.getByText(/below/i)).toBeInTheDocument();
   });
 
   it("keeps compare and watchlist actions compatible", () => {

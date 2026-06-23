@@ -43,9 +43,9 @@ export function PlatformPageHero({
 
       <div className="layout-shell relative z-10 py-12 sm:py-16 md:py-20">
         {/* Eyebrow */}
-        <div className="animate-fade-up mb-5 inline-flex items-center gap-2.5 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5">
-          {Icon ? <Icon className="h-3.5 w-3.5 text-amber-400/80" /> : null}
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">{eyebrow}</span>
+        <div className="animate-fade-up mb-5 inline-flex items-center gap-2.5 rounded-md border border-border bg-foreground/[0.03] px-3 py-1.5">
+          {Icon ? <Icon className="h-3.5 w-3.5 text-primary/80" /> : null}
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</span>
         </div>
 
         <div
@@ -60,7 +60,7 @@ export function PlatformPageHero({
               {title}
             </h1>
             {description ? (
-              <p className="max-w-xl text-[15px] leading-relaxed text-zinc-500 sm:text-base">
+              <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
                 {description}
               </p>
             ) : null}
@@ -84,9 +84,9 @@ export function PlatformPageHero({
                 <dl className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                   {metrics.map((metric) => (
                     <div key={metric.label} className="platform-metric-tile px-3 py-3">
-                      <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{metric.label}</dt>
+                      <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{metric.label}</dt>
                       <dd className="mt-1.5 text-xl font-semibold tracking-tight text-foreground num">{metric.value}</dd>
-                      {metric.detail ? <dd className="mt-1 text-[11px] text-zinc-500">{metric.detail}</dd> : null}
+                      {metric.detail ? <dd className="mt-1 text-[11px] text-muted-foreground">{metric.detail}</dd> : null}
                     </div>
                   ))}
                 </dl>

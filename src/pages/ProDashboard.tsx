@@ -159,7 +159,7 @@ function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: st
   return (
     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
-        <p className="tech-label text-amber-300">{eyebrow}</p>
+        <p className="tech-label text-primary">{eyebrow}</p>
         <h2 className="headline-display mt-1 text-2xl">{title}</h2>
       </div>
       {children}
@@ -169,13 +169,13 @@ function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: st
 
 function MetricCard({ label, value, detail, icon: Icon }: { label: string; value: string; detail?: string; icon: React.ElementType }) {
   return (
-    <div className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4 transition-colors hover:border-white/[0.07]">
+    <div className="rounded-xl border border-border bg-surface p-4 transition-colors hover:border-border">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">{label}</p>
-        <Icon className="h-3.5 w-3.5 text-amber-400/60" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+        <Icon className="h-3.5 w-3.5 text-primary/60" />
       </div>
       <p className="mt-3 text-xl font-bold tracking-normal text-foreground num">{value}</p>
-      {detail && <p className="mt-1 text-[11px] text-zinc-500">{detail}</p>}
+      {detail && <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>}
     </div>
   );
 }
@@ -357,23 +357,23 @@ function DetailDialog({
           <>
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold tracking-normal">{detail.title}</DialogTitle>
-              <DialogDescription className="text-sm leading-relaxed text-zinc-400">{detail.summary}</DialogDescription>
+              <DialogDescription className="text-sm leading-relaxed text-muted-foreground">{detail.summary}</DialogDescription>
             </DialogHeader>
 
             <ExportButtons report={detailReport(detail)} />
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {detail.metrics.map((metric) => (
-                <div key={metric.label} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
+                <div key={metric.label} className="rounded-xl border border-border bg-foreground/[0.03] p-4">
                   <p className="field-label">{metric.label}</p>
                   <p className="mt-2 text-xl font-bold text-white num">{metric.value}</p>
-                  {metric.detail && <p className="mt-1 text-xs text-zinc-500">{metric.detail}</p>}
+                  {metric.detail && <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>}
                 </div>
               ))}
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <section className="rounded-xl border border-border bg-black/20 p-4">
                 <h3 className="tech-label">Trend Detail</h3>
                 <div className="mt-4 h-72">
                   {chartData.length ? (
@@ -391,23 +391,23 @@ function DetailDialog({
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/10 text-sm text-zinc-500">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/10 text-sm text-muted-foreground">
                       Trend history is not deep enough for this selection yet.
                     </div>
                   )}
                 </div>
               </section>
 
-              <section className="space-y-3 rounded-xl border border-white/[0.08] bg-black/20 p-4">
+              <section className="space-y-3 rounded-xl border border-border bg-black/20 p-4">
                 <h3 className="tech-label">Mix</h3>
                 {[...detail.source_mix, ...detail.district_mix].slice(0, 8).map((row) => (
-                  <div key={`${row.label}-${row.count}`} className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+                  <div key={`${row.label}-${row.count}`} className="rounded-xl border border-border bg-foreground/[0.03] p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-bold text-zinc-100">{row.label}</p>
-                      <p className="text-xs font-bold text-amber-300">{row.share_pct.toFixed(1)}%</p>
+                      <p className="text-sm font-bold text-foreground">{row.label}</p>
+                      <p className="text-xs font-bold text-primary">{row.share_pct.toFixed(1)}%</p>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
-                      <div className="h-full rounded-full bg-amber-400" style={{ width: `${Math.min(100, row.share_pct)}%` }} />
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-foreground/[0.03]">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, row.share_pct)}%` }} />
                     </div>
                   </div>
                 ))}
@@ -421,16 +421,16 @@ function DetailDialog({
                   <Link
                     key={listing.id}
                     to={`/listing/${listing.id}`}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 no-underline transition-colors hover:border-amber-300/25"
+                    className="rounded-xl border border-border bg-foreground/[0.03] p-4 no-underline transition-colors hover:border-primary/25"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-white">{listing.title}</p>
-                        <p className="mt-1 tech-label text-zinc-500">
+                        <p className="mt-1 tech-label text-muted-foreground">
                           {listing.district || "Sri Lanka"} · {listing.source}
                         </p>
                       </div>
-                      <p className="text-sm font-bold text-amber-300 num">{fmtMoney(listing.price_lkr)}</p>
+                      <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
                     </div>
                   </Link>
                 ))}
@@ -441,11 +441,11 @@ function DetailDialog({
           <div className="space-y-3 p-4">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold tracking-normal">Loading detail</DialogTitle>
-              <DialogDescription className="text-sm text-zinc-400">Preparing the selected Pro intelligence view.</DialogDescription>
+              <DialogDescription className="text-sm text-muted-foreground">Preparing the selected Pro intelligence view.</DialogDescription>
             </DialogHeader>
-            <Skeleton className="h-8 w-1/2 bg-white/[0.05]" />
-            <Skeleton className="h-24 w-full bg-white/[0.05]" />
-            <Skeleton className="h-64 w-full bg-white/[0.05]" />
+            <Skeleton className="h-8 w-1/2 bg-foreground/[0.03]" />
+            <Skeleton className="h-24 w-full bg-foreground/[0.03]" />
+            <Skeleton className="h-64 w-full bg-foreground/[0.03]" />
           </div>
         )}
       </DialogContent>
@@ -751,23 +751,23 @@ export default function ProDashboard() {
 
   return (
     <div className="min-h-screen">
-      <div className="sticky top-0 z-50 border-b border-white/[0.04] bg-[hsl(220,10%,3%)]/95 backdrop-blur-xl">
+      <div className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
             <img src="/logo.svg" alt="AutoLens LK" className="h-7 w-7 rounded-md ring-1 ring-white/[0.06]" />
             <div>
-              <p className="text-[13px] font-semibold text-foreground">AutoLens<span className="text-zinc-500">LK</span></p>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Pro Workspace</p>
+              <p className="text-[13px] font-semibold text-foreground">AutoLens<span className="text-muted-foreground">LK</span></p>
+              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pro Workspace</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-white/[0.06] text-[10px]">
+            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-border text-[10px]">
               <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1 text-[10px] font-semibold text-amber-300/80">
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary/80">
               <Crown className="h-3 w-3" /> {user?.plan || "pro"}
             </span>
-            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/[0.06] px-2.5 text-[10px] font-semibold text-zinc-500 transition-colors hover:border-rose-400/20 hover:text-rose-400">
+            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:border-rose-400/20 hover:text-rose-400">
               <LogOut className="h-3 w-3" /> Sign out
             </button>
           </div>
@@ -775,17 +775,17 @@ export default function ProDashboard() {
       </div>
 
       <main className="mx-auto max-w-[1320px] space-y-8 px-5 py-8 sm:px-6">
-        <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-6 md:p-8">
+        <div className="rounded-xl border border-border bg-card p-6 md:p-8">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1 text-[10px] font-semibold text-amber-300/80">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary/80">
                 <Lock className="h-3 w-3" /> Professional intelligence
               </span>
               <h1 className="mt-4 font-display text-[2rem] font-semibold tracking-tight text-foreground md:text-[2.75rem]">
                 Pro dashboard.
               </h1>
             </div>
-            <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
+            <div className="rounded-lg border border-border bg-surface p-4">
               <p className="tech-label">Data freshness</p>
               <p className="mt-2 text-2xl font-semibold text-foreground">
                 {snapshot?.last_updated ? formatRelativeTime(snapshot.last_updated) : "Loading"}
@@ -799,7 +799,7 @@ export default function ProDashboard() {
         </div>
 
         {error && (
-          <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-200">
+          <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
             {error}
           </div>
         )}
@@ -815,15 +815,15 @@ export default function ProDashboard() {
                 key={id}
                 value={id}
                 onClick={() => setActiveTab(id)}
-                className="motion-card group flex h-auto flex-col items-stretch whitespace-normal rounded-[10px] border border-white/[0.08] bg-white/[0.025] p-4 text-left data-[state=active]:border-amber-400/35 data-[state=active]:bg-amber-500/[0.12] data-[state=active]:text-white data-[state=inactive]:hover:border-amber-300/25 data-[state=inactive]:hover:bg-white/[0.045]"
+                className="motion-card group flex h-auto flex-col items-stretch whitespace-normal rounded-[10px] border border-border bg-white/[0.025] p-4 text-left data-[state=active]:border-primary/35 data-[state=active]:bg-primary/[0.12] data-[state=active]:text-white data-[state=inactive]:hover:border-primary/25 data-[state=inactive]:hover:bg-white/[0.045]"
               >
                 <span className="flex w-full items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-white/[0.08] bg-black/25 text-amber-300 transition-colors group-data-[state=active]:border-amber-400/40 group-data-[state=active]:bg-amber-500/15">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border bg-black/25 text-primary transition-colors group-data-[state=active]:border-primary/40 group-data-[state=active]:bg-primary/15">
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-white">{label}</span>
-                    <span className="mt-0.5 block truncate text-xs font-normal leading-5 text-zinc-500">{getModeDetail(id)}</span>
+                    <span className="mt-0.5 block truncate text-xs font-normal leading-5 text-muted-foreground">{getModeDetail(id)}</span>
                   </span>
                 </span>
               </TabsTrigger>
@@ -833,7 +833,7 @@ export default function ProDashboard() {
           <TabsContent value="overview" className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {loading ? (
-                Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-32 rounded-xl bg-white/[0.04]" />)
+                Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-32 rounded-xl bg-foreground/[0.03]" />)
               ) : (
                 <>
                   <MetricCard label="Priced Listings" value={fmtCount(snapshot?.total_listings)} detail="Non-outlier market depth" icon={Database} />
@@ -850,11 +850,11 @@ export default function ProDashboard() {
                 <div className="space-y-2">
                   {loading ? (
                     Array.from({ length: 6 }).map((_, index) => (
-                      <Skeleton key={index} className="h-[58px] rounded-xl bg-white/[0.04]" />
+                      <Skeleton key={index} className="h-[58px] rounded-xl bg-foreground/[0.03]" />
                     ))
                   ) : (snapshot?.top_opportunities?.length ?? 0) === 0 ? (
                     <div className="console-empty">
-                      <Database className="mx-auto mb-3 h-7 w-7 text-zinc-600" aria-hidden="true" />
+                      <Database className="mx-auto mb-3 h-7 w-7 text-muted-foreground" aria-hidden="true" />
                       <p className="text-sm text-muted-foreground">Top opportunities will surface once the market snapshot loads.</p>
                     </div>
                   ) : (
@@ -862,16 +862,16 @@ export default function ProDashboard() {
                     <Link
                       key={listing.id}
                       to={`/listing/${listing.id}`}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-white/[0.025] px-4 py-3 no-underline transition-colors hover:border-amber-300/25"
+                      className="flex items-center justify-between gap-4 rounded-xl border border-border bg-white/[0.025] px-4 py-3 no-underline transition-colors hover:border-primary/25"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-white">{listing.make} {listing.model} {listing.year || ""}</p>
-                        <p className="mt-1 tech-label text-zinc-500">
+                        <p className="mt-1 tech-label text-muted-foreground">
                           {listing.district || "Sri Lanka"} · {listing.source}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-amber-300 num">{fmtMoney(listing.price_lkr)}</p>
+                        <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
                         <p className="ui-caption font-bold">Score {listing.deal_score?.toFixed(1) || "N/A"}</p>
                       </div>
                     </Link>
@@ -884,10 +884,10 @@ export default function ProDashboard() {
                 <SectionTitle eyebrow="Coverage" title="Source mix" />
                 <div className="h-72">
                   {loading ? (
-                    <Skeleton className="h-full w-full rounded-[10px] bg-white/[0.04]" />
+                    <Skeleton className="h-full w-full rounded-[10px] bg-foreground/[0.03]" />
                   ) : (snapshot?.source_coverage?.length ?? 0) === 0 ? (
                     <div className="console-empty flex h-full flex-col items-center justify-center gap-3">
-                      <BarChart3 className="h-7 w-7 text-zinc-600" aria-hidden="true" />
+                      <BarChart3 className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
                       <p className="text-sm text-muted-foreground">Source coverage will populate once the snapshot reloads.</p>
                     </div>
                   ) : (
@@ -910,7 +910,7 @@ export default function ProDashboard() {
             <SectionTitle eyebrow="Vehicle intelligence" title="Make and model lanes">
               <div className="grid w-full gap-2 md:max-w-3xl md:grid-cols-[1.2fr_0.9fr_0.9fr_0.9fr]">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={laneSearch}
                     onChange={(event) => setLaneSearch(event.target.value)}
@@ -954,7 +954,7 @@ export default function ProDashboard() {
             </SectionTitle>
             {!loading && filteredLanes.length === 0 ? (
               <div className="console-empty flex flex-col items-center gap-4">
-                <Search className="h-7 w-7 text-zinc-600" aria-hidden="true" />
+                <Search className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">No vehicle lanes match this filter.</p>
                 <button type="button" onClick={resetLaneFilters} className="action-soft h-9">
                   <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
@@ -962,40 +962,40 @@ export default function ProDashboard() {
                 </button>
               </div>
             ) : (
-              <div className="max-h-[640px] overflow-auto rounded-xl border border-white/[0.08]">
+              <div className="max-h-[640px] overflow-auto rounded-xl border border-border">
                 <table className="w-full min-w-[860px] text-sm">
                   <thead className="sticky top-0 z-10 bg-[#0c0d0e]">
                     <tr>
                       {["Vehicle", "Listings", "Median", "Range", "Avg Deal", "Districts", "Source"].map((heading) => (
-                        <th key={heading} className="border-b border-white/[0.08] px-4 py-3 text-left field-label">{heading}</th>
+                        <th key={heading} className="border-b border-border px-4 py-3 text-left field-label">{heading}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {loading
                       ? Array.from({ length: 8 }).map((_, index) => (
-                          <tr key={`lane-skeleton-${index}`} className="border-t border-white/[0.06]">
+                          <tr key={`lane-skeleton-${index}`} className="border-t border-border">
                             {Array.from({ length: 7 }).map((__, cell) => (
                               <td key={cell} className="px-4 py-3">
-                                <Skeleton className="h-4 w-full bg-white/[0.06]" />
+                                <Skeleton className="h-4 w-full bg-foreground/[0.03]" />
                               </td>
                             ))}
                           </tr>
                         ))
                       : filteredLanes.map((lane) => (
-                          <tr key={`${lane.make}-${lane.model}`} className="border-t border-white/[0.06] hover:bg-white/[0.025]">
+                          <tr key={`${lane.make}-${lane.model}`} className="border-t border-border hover:bg-white/[0.025]">
                             <td className="px-4 py-3">
                               <button type="button" onClick={() => openVehicleDetail(lane)} className="text-left">
                                 <p className="font-bold text-white">{lane.make} {lane.model}</p>
-                                <p className="tech-label text-zinc-500">Latest {fmtDate(lane.latest_seen_at)}</p>
+                                <p className="tech-label text-muted-foreground">Latest {fmtDate(lane.latest_seen_at)}</p>
                               </button>
                             </td>
-                            <td className="px-4 py-3 text-zinc-200 num">{lane.listing_count.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-amber-300 num">{fmtMoney(lane.median_price_lkr)}</td>
-                            <td className="px-4 py-3 text-zinc-400 num">{fmtMoney(lane.min_price_lkr)} - {fmtMoney(lane.max_price_lkr)}</td>
-                            <td className="px-4 py-3 text-zinc-200 num">{lane.avg_deal_score?.toFixed(1) || "N/A"}</td>
-                            <td className="px-4 py-3 text-zinc-400">{lane.top_district || "N/A"} · {lane.district_count}</td>
-                            <td className="px-4 py-3 text-zinc-400">{lane.top_source || "N/A"}</td>
+                            <td className="px-4 py-3 text-foreground num">{lane.listing_count.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-primary num">{fmtMoney(lane.median_price_lkr)}</td>
+                            <td className="px-4 py-3 text-muted-foreground num">{fmtMoney(lane.min_price_lkr)} - {fmtMoney(lane.max_price_lkr)}</td>
+                            <td className="px-4 py-3 text-foreground num">{lane.avg_deal_score?.toFixed(1) || "N/A"}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{lane.top_district || "N/A"} · {lane.district_count}</td>
+                            <td className="px-4 py-3 text-muted-foreground">{lane.top_source || "N/A"}</td>
                           </tr>
                         ))}
                   </tbody>
@@ -1009,12 +1009,12 @@ export default function ProDashboard() {
             {loading ? (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[188px] rounded-xl bg-white/[0.04]" />
+                  <Skeleton key={index} className="h-[188px] rounded-xl bg-foreground/[0.03]" />
                 ))}
               </div>
             ) : districts.length === 0 ? (
               <div className="console-empty">
-                <MapPin className="mx-auto mb-3 h-7 w-7 text-zinc-600" aria-hidden="true" />
+                <MapPin className="mx-auto mb-3 h-7 w-7 text-muted-foreground" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">District profiles will return once the snapshot reloads.</p>
               </div>
             ) : (
@@ -1024,16 +1024,16 @@ export default function ProDashboard() {
                     key={district.district}
                     type="button"
                     onClick={() => openDistrictDetail(district.district)}
-                    className="asset-surface rounded-xl p-5 text-left transition-colors hover:border-amber-300/25"
+                    className="asset-surface rounded-xl p-5 text-left transition-colors hover:border-primary/25"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-lg font-bold text-white">{district.district}</p>
-                        <p className="mt-1 tech-label text-zinc-500">
+                        <p className="mt-1 tech-label text-muted-foreground">
                           {district.source_count} sources · latest {fmtDate(district.latest_seen_at)}
                         </p>
                       </div>
-                      <MapPin className="h-5 w-5 text-amber-300" />
+                      <MapPin className="h-5 w-5 text-primary" />
                     </div>
                     <div className="mt-5 grid grid-cols-2 gap-3">
                       <div>
@@ -1042,11 +1042,11 @@ export default function ProDashboard() {
                       </div>
                       <div>
                         <p className="field-label">Median</p>
-                        <p className="mt-1 text-xl font-bold text-amber-300 num">{fmtMoney(district.median_price_lkr)}</p>
+                        <p className="mt-1 text-xl font-bold text-primary num">{fmtMoney(district.median_price_lkr)}</p>
                       </div>
                     </div>
-                    <p className="mt-4 text-sm text-zinc-400">
-                      Top model: <span className="font-semibold text-zinc-100">{district.top_make} {district.top_model}</span>
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Top model: <span className="font-semibold text-foreground">{district.top_make} {district.top_model}</span>
                     </p>
                   </button>
                 ))}
@@ -1073,13 +1073,13 @@ export default function ProDashboard() {
               <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-white">{trendDetail?.title || "Select a vehicle lane"}</h3>
-                  <p className="mt-1 text-sm text-zinc-500">{trendDetail?.summary || "Trend depth appears here once a lane is selected."}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{trendDetail?.summary || "Trend depth appears here once a lane is selected."}</p>
                 </div>
                 {trendDetail && <ExportButtons report={detailReport(trendDetail)} />}
               </div>
               <div className="h-[420px]">
                 {loading ? (
-                  <Skeleton className="h-full w-full rounded-[10px] bg-white/[0.04]" />
+                  <Skeleton className="h-full w-full rounded-[10px] bg-foreground/[0.03]" />
                 ) : trendChart.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trendChart}>
@@ -1093,7 +1093,7 @@ export default function ProDashboard() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="console-empty flex h-full flex-col items-center justify-center gap-3">
-                    <TrendingUp className="h-7 w-7 text-zinc-600" aria-hidden="true" />
+                    <TrendingUp className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
                     <p className="text-sm text-muted-foreground">No trend data available for this lane yet.</p>
                   </div>
                 )}
@@ -1106,12 +1106,12 @@ export default function ProDashboard() {
             {loading ? (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} className="h-[150px] rounded-xl bg-white/[0.04]" />
+                  <Skeleton key={index} className="h-[150px] rounded-xl bg-foreground/[0.03]" />
                 ))}
               </div>
             ) : (snapshot?.source_coverage?.length ?? 0) === 0 ? (
               <div className="console-empty">
-                <Database className="mx-auto mb-3 h-7 w-7 text-zinc-600" aria-hidden="true" />
+                <Database className="mx-auto mb-3 h-7 w-7 text-muted-foreground" aria-hidden="true" />
                 <p className="text-sm text-muted-foreground">Source coverage will return once the snapshot reloads.</p>
               </div>
             ) : (
@@ -1121,17 +1121,17 @@ export default function ProDashboard() {
                     key={source.label}
                     type="button"
                     onClick={() => openSourceDetail(source)}
-                    className="asset-surface rounded-xl p-5 text-left transition-colors hover:border-amber-300/25"
+                    className="asset-surface rounded-xl p-5 text-left transition-colors hover:border-primary/25"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-lg font-bold text-white">{source.label}</p>
-                        <p className="mt-1 text-xs text-zinc-500">Latest {fmtDate(source.latest_seen_at)}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Latest {fmtDate(source.latest_seen_at)}</p>
                       </div>
-                      <Database className="h-5 w-5 text-amber-300" />
+                      <Database className="h-5 w-5 text-primary" />
                     </div>
                     <p className="mt-4 text-3xl font-bold text-white num">{source.count.toLocaleString()}</p>
-                    <p className="mt-1 text-xs font-semibold text-zinc-400">{source.share_pct.toFixed(1)}% of priced coverage · {fmtMoney(source.avg_price_lkr)} avg</p>
+                    <p className="mt-1 text-xs font-semibold text-muted-foreground">{source.share_pct.toFixed(1)}% of priced coverage · {fmtMoney(source.avg_price_lkr)} avg</p>
                   </button>
                 ))}
               </div>
@@ -1144,7 +1144,7 @@ export default function ProDashboard() {
                 type="button"
                 onClick={runCustomReport}
                 disabled={buildingReport || loading}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-400 px-5 tech-label text-black transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 tech-label text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {buildingReport ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 Download Custom Report
@@ -1153,13 +1153,13 @@ export default function ProDashboard() {
 
             <section className="page-panel overflow-hidden rounded-xl p-0">
               <div className="grid gap-0 xl:grid-cols-[1.05fr_0.95fr]">
-                <div className="border-b border-white/[0.08] p-5 xl:border-b-0 xl:border-r">
+                <div className="border-b border-border p-5 xl:border-b-0 xl:border-r">
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
-                      <p className="tech-label text-amber-300">Custom scope</p>
+                      <p className="tech-label text-primary">Custom scope</p>
                       <h3 className="mt-1 text-2xl font-bold text-white">Report composer</h3>
                     </div>
-                    <Settings2 className="h-6 w-6 text-amber-300" />
+                    <Settings2 className="h-6 w-6 text-primary" />
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-2">
@@ -1215,7 +1215,7 @@ export default function ProDashboard() {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <div className="control-dark flex items-center px-3 text-sm font-bold text-zinc-200">
+                        <div className="control-dark flex items-center px-3 text-sm font-bold text-foreground">
                           {customReportTargetLabel}
                         </div>
                       )}
@@ -1299,10 +1299,10 @@ export default function ProDashboard() {
                 <div className="p-5">
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
-                      <p className="tech-label text-amber-300">Contents</p>
+                      <p className="tech-label text-primary">Contents</p>
                       <h3 className="mt-1 text-2xl font-bold text-white">Choose sections</h3>
                     </div>
-                    <SlidersHorizontal className="h-6 w-6 text-amber-300" />
+                    <SlidersHorizontal className="h-6 w-6 text-primary" />
                   </div>
 
                   <div className="grid gap-2 md:grid-cols-2">
@@ -1313,18 +1313,18 @@ export default function ProDashboard() {
                           key={section.id}
                           className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition-colors ${
                             checked
-                              ? "border-amber-400/35 bg-amber-500/10"
-                              : "border-white/[0.08] bg-black/20 hover:border-white/15"
+                              ? "border-primary/35 bg-primary/10"
+                              : "border-border bg-black/20 hover:border-white/15"
                           }`}
                         >
                           <Checkbox
                             checked={checked}
                             onCheckedChange={(value) => toggleReportSection(section.id, Boolean(value))}
-                            className="mt-0.5 border-white/20 data-[state=checked]:border-amber-400 data-[state=checked]:bg-amber-400 data-[state=checked]:text-black"
+                            className="mt-0.5 border-white/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
                           />
                           <span>
                             <span className="block text-sm font-bold text-white">{section.label}</span>
-                            <span className="mt-1 block text-xs leading-5 text-zinc-500">{section.detail}</span>
+                            <span className="mt-1 block text-xs leading-5 text-muted-foreground">{section.detail}</span>
                           </span>
                         </label>
                       );
@@ -1345,18 +1345,18 @@ export default function ProDashboard() {
                       />
                     </div>
 
-                    <div className="rounded-xl border border-white/[0.08] bg-black/25 p-4">
+                    <div className="rounded-xl border border-border bg-black/25 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="field-label">Preview</p>
                           <p className="mt-1 text-lg font-bold text-white">{customReportTargetLabel}</p>
                         </div>
-                        <Palette className="h-5 w-5 text-amber-300" />
+                        <Palette className="h-5 w-5 text-primary" />
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {reportSections.slice(0, 7).map((section) => (
-                          <span key={section} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 tech-label text-zinc-300">
-                            <CheckCircle2 className="h-3 w-3 text-amber-300" />
+                          <span key={section} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-foreground/[0.03] px-2.5 py-1 tech-label text-foreground">
+                            <CheckCircle2 className="h-3 w-3 text-primary" />
                             {REPORT_SECTION_OPTIONS.find((item) => item.id === section)?.label || section}
                           </span>
                         ))}
@@ -1391,8 +1391,8 @@ export default function ProDashboard() {
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.title} className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-5 transition-colors hover:border-white/[0.07]">
-                    <Icon className="h-5 w-5 text-amber-400/60" />
+                  <div key={item.title} className="rounded-xl border border-border bg-surface p-5 transition-colors hover:border-border">
+                    <Icon className="h-5 w-5 text-primary/60" />
                     <h3 className="mt-4 text-base font-semibold text-foreground">{item.title}</h3>
                     <div className="mt-5">
                       <ExportButtons report={item.report} />
@@ -1404,7 +1404,7 @@ export default function ProDashboard() {
           </TabsContent>
         </Tabs>
 
-        <footer className="flex flex-col gap-3 border-t border-white/[0.06] pt-6 text-xs text-zinc-600 md:flex-row md:items-center md:justify-between">
+        <footer className="flex flex-col gap-3 border-t border-border pt-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between">
           <span className="inline-flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" />
             Pro data is aggregated from public Sri Lanka vehicle marketplaces for commercial analysis.

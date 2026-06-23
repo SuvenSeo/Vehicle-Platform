@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Flame, Radio } from "lucide-react";
 import { formatPrice } from "@/services/api";
+import { isReasonableListingPrice } from "@/lib/formatting";
 import { useCountUp } from "@/hooks/useCountUp";
 import type { DashboardInsights, LiveMarketSnapshot, StatsOverview } from "@/types/car";
 
@@ -65,8 +66,8 @@ function MetricCell({
   tone?: "up" | "down";
 }) {
   return (
-    <div className="bg-[hsl(220,8%,6.5%)] p-5 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)]">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{label}</p>
+    <div className="bg-card p-5 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)]">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
       <p
         className={`mt-2 flex items-center gap-1 text-[1.5rem] font-semibold leading-none tracking-tight num ${
           tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-foreground"
@@ -123,13 +124,16 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
       }));
     if (runs.length) return runs;
 
-    return (insights?.hot_deals || []).slice(0, 5).map((d, i) => ({
-      key: `deal-${d.id}-${i}`,
-      source: `${d.make} ${d.model}`,
-      fresh: Number(d.deal_score || 0),
-      found: 0,
-      time: d.district || "LK",
-    }));
+    return (insights?.hot_deals || [])
+      .filter((d) => isReasonableListingPrice(Number(d.price_lkr || 0)))
+      .slice(0, 5)
+      .map((d, i) => ({
+        key: `deal-${d.id}-${i}`,
+        source: `${d.make} ${d.model}`,
+        fresh: Number(d.deal_score || 0),
+        found: 0,
+        time: d.district || "LK",
+      }));
   }, [snapshot?.source_status, insights?.hot_deals]);
 
   const sources = useMemo(
@@ -152,7 +156,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
         style={{ gap: "1px", background: "hsl(220 10% 100% / 0.07)", border: "1px solid hsl(220 10% 100% / 0.07)" }}
       >
         {/* Hero cell — moat number (spans 2 cols, 2 rows on lg) */}
-        <div className="relative col-span-2 overflow-hidden bg-[hsl(220,8%,6.5%)] p-6 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)] sm:p-8 lg:row-span-2">
+        <div className="relative col-span-2 overflow-hidden bg-card p-6 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)] sm:p-8 lg:row-span-2">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--gold)] to-[var(--gold-bright)]" />
           <div
             className="pointer-events-none absolute inset-0"
@@ -160,11 +164,11 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
           />
           <div className="relative flex h-full flex-col">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Live listings</p>
-              <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Live listings</p>
+              <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 <span className="relative flex h-2 w-2">
                   {isLive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />}
-                  <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? "bg-[var(--gold)]" : "bg-zinc-600"}`} />
+                  <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? "bg-[var(--gold)]" : "bg-muted"}`} />
                 </span>
                 Live {freshness}
               </span>
@@ -178,16 +182,16 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             </p>
 
             {unavailableCount > 0 && totalIndexed > pricedListings ? (
-              <p className="mt-2 text-[12px] font-medium text-zinc-500">
-                <span className="num text-zinc-400">{totalIndexed.toLocaleString()}</span> total indexed ·{" "}
-                <span className="num text-zinc-400">{unavailableCount.toLocaleString()}</span> awaiting price
+              <p className="mt-2 text-[12px] font-medium text-muted-foreground">
+                <span className="num text-muted-foreground">{totalIndexed.toLocaleString()}</span> total indexed ·{" "}
+                <span className="num text-muted-foreground">{unavailableCount.toLocaleString()}</span> awaiting price
               </p>
             ) : null}
 
-            <p className="mt-3 text-[13px] font-medium text-zinc-400">
+            <p className="mt-3 text-[13px] font-medium text-muted-foreground">
               Across{" "}
-              <span className="font-semibold text-zinc-200 num">{sourceCount > 0 ? sourceCount : 10}</span> live sources and{" "}
-              <span className="font-semibold text-zinc-200 num">{districtCount > 0 ? districtCount : 25}</span> districts —
+              <span className="font-semibold text-foreground num">{sourceCount > 0 ? sourceCount : 10}</span> live sources and{" "}
+              <span className="font-semibold text-foreground num">{districtCount > 0 ? districtCount : 25}</span> districts —
               indexed continuously, scored against market medians.
             </p>
 
@@ -195,7 +199,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             {sources.length > 0 && (
               <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-5">
                 {sources.map((s) => (
-                  <span key={s} className="rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-1 text-[10px] font-semibold text-zinc-400">
+                  <span key={s} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold text-muted-foreground">
                     {s}
                   </span>
                 ))}
@@ -216,13 +220,13 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
       </div>
 
       {/* ── Live incoming feed ── */}
-      <div className="mt-3 overflow-hidden rounded-2xl border border-white/[0.06] bg-[hsl(220,8%,5.5%)]">
-        <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-3">
-          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
+      <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
             <Activity className="h-3.5 w-3.5 text-[var(--gold)]/70" />
             Live incoming feed
           </p>
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
             <Radio className="h-3 w-3 text-[var(--gold)]/70" /> last sync
           </span>
         </div>
@@ -232,7 +236,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
               <div key={row.key} className="flex items-center justify-between px-5 py-2.5 transition-colors hover:bg-white/[0.015]">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Flame className="h-3.5 w-3.5 shrink-0 text-[var(--gold)]/50" />
-                  <span className="truncate text-[13px] font-semibold text-zinc-200">{row.source}</span>
+                  <span className="truncate text-[13px] font-semibold text-foreground">{row.source}</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {row.found > 0 ? (
@@ -240,12 +244,12 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
                   ) : (
                     <span className="text-[12px] font-bold text-[var(--gold)]/80 num">+{row.fresh.toFixed(0)} deal</span>
                   )}
-                  <span className="w-8 text-right text-[11px] text-zinc-600 num">{row.time}</span>
+                  <span className="w-8 text-right text-[11px] text-muted-foreground num">{row.time}</span>
                 </div>
               </div>
             ))
           ) : (
-            <p className="px-5 py-8 text-center text-[12px] text-zinc-600">Awaiting live sync</p>
+            <p className="px-5 py-8 text-center text-[12px] text-muted-foreground">Awaiting live sync</p>
           )}
         </div>
       </div>

@@ -70,25 +70,25 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({ status }: Pip
 
   return (
     <div className="console-section overflow-hidden">
-      <div className="flex flex-col gap-4 border-b border-white/[0.06] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full shadow-[0_0_10px_rgba(216,155,53,0.8)]" style={{ backgroundColor: statusColor(overall) }} />
-          <span className="tech-label text-zinc-400">Data Pipeline</span>
+          <span className="tech-label text-muted-foreground">Data Pipeline</span>
           <span className="status-chip px-2.5 py-1">
             {overallLabel}
           </span>
         </div>
 
         <div className="flex items-center gap-2 tech-label">
-          <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-300 num">{healthyJobs} healthy</span>
-          <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-300 num">{runningJobs} running</span>
-          <span className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-amber-300 num">{delayedJobs} delayed</span>
+          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary num">{healthyJobs} healthy</span>
+          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary num">{runningJobs} running</span>
+          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary num">{delayedJobs} delayed</span>
         </div>
       </div>
 
-      <div className="px-6 py-3 border-b border-white/[0.06] bg-black/20 flex flex-wrap items-center justify-between gap-2">
+      <div className="px-6 py-3 border-b border-border bg-black/20 flex flex-wrap items-center justify-between gap-2">
         <p className="ui-caption">{overallMessage}</p>
-        <p className="tech-label text-zinc-500">Status refreshed {generatedLabel}</p>
+        <p className="tech-label text-muted-foreground">Status refreshed {generatedLabel}</p>
       </div>
 
       <div className="p-5 sm:p-6">
@@ -121,24 +121,24 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({ status }: Pip
                       />
                       <p className="text-sm font-semibold text-white truncate">{prettifyJobName(job.name)}</p>
                     </div>
-                    <span className="tech-label rounded-md border border-white/12 bg-white/5 px-2 py-1 text-zinc-300">
+                    <span className="tech-label rounded-md border border-white/12 bg-white/5 px-2 py-1 text-foreground">
                       {job.status}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 ui-caption">
-                    <Clock3 className="w-3.5 h-3.5 text-zinc-500" />
+                    <Clock3 className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>{activityLabel(job)}</span>
                   </div>
 
                   {job.last_status && (
-                    <p className="tech-label text-zinc-500">
+                    <p className="tech-label text-muted-foreground">
                       Last result: {String(job.last_status).toLowerCase()}
                     </p>
                   )}
 
                   {job.last_error && (
-                    <p className="ui-caption text-amber-300/90 leading-relaxed line-clamp-2" title={job.last_error}>
+                    <p className="ui-caption text-primary/90 leading-relaxed line-clamp-2" title={job.last_error}>
                       {job.last_error}
                     </p>
                   )}

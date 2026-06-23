@@ -39,12 +39,12 @@ describe("SignIn preview access", () => {
       </AuthProvider>,
     );
 
-    expect(screen.getByText(/public teaser stays locked/i)).toBeInTheDocument();
+    expect(screen.getByText(/preview the pro workspace/i)).toBeInTheDocument();
     expect(screen.getByText(/^review credentials$/i)).toBeInTheDocument();
     expect(screen.getByText(/owner@autolens\.lk/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^email$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /preview pro workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /preview pro/i })).toBeInTheDocument();
   });
 
   it("routes to the public preview without creating a Pro session", () => {
@@ -59,7 +59,7 @@ describe("SignIn preview access", () => {
       </AuthProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /preview pro workspace/i }));
+    fireEvent.click(screen.getByRole("button", { name: /preview pro/i }));
 
     expect(screen.getByText(/pro preview teaser/i)).toBeInTheDocument();
     expect(localStorage.getItem("autolens.auth_user")).toBeNull();

@@ -18,9 +18,9 @@ interface ListingCardProps {
 }
 
 function getDealBadgeClasses(label: ReturnType<typeof getListingDealLabel>): string {
-  if (label === "Good Deal") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-300";
-  if (label === "Overpriced") return "bg-rose-500/10 border-rose-500/20 text-rose-300";
-  return "bg-white/[0.03] border-white/[0.08] text-zinc-400";
+  if (label === "Good Deal") return "bg-emerald-500/15 border-emerald-500/25 text-emerald-700 dark:text-emerald-300";
+  if (label === "Overpriced") return "bg-rose-500/15 border-rose-500/25 text-rose-700 dark:text-rose-300";
+  return "bg-foreground/[0.04] border-border text-muted-foreground";
 }
 
 function formatToken(value: string | undefined): string {
@@ -89,31 +89,31 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={`${listingTitle || "Vehicle"} listing card`}
-      className="group relative isolate h-full overflow-hidden rounded-xl border border-white/[0.06] bg-[hsl(220,8%,6%)] transition-all duration-300 hover:border-white/[0.1] hover:bg-[hsl(220,8%,7%)]"
+      className="group relative isolate h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg"
     >
       <Link
         to={`/listing/${listing.id}`}
         aria-label={`Open ${listingTitle || "vehicle listing"}`}
-        className="absolute inset-0 z-10 rounded-xl"
+        className="absolute inset-0 z-10 rounded-2xl"
       />
 
       <div className="pointer-events-none relative z-20 flex h-full flex-col">
         {/* Image */}
-        <div className="relative aspect-[16/10] overflow-hidden bg-black/40">
+        <div className="relative aspect-[16/10] overflow-hidden bg-muted">
           <VehicleThumbnail
             src={imageUrl}
             listingId={listing.id}
             alt={`${listing.make} ${listing.model}`}
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(220,8%,6%)] via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
           {/* Overlay badges */}
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
-            <span className="rounded-md border border-white/[0.1] bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-300 backdrop-blur-sm">
+            <span className="rounded-full border border-white/20 bg-black/45 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
               {formatToken(listing.condition)}
             </span>
-            <span className="rounded-md border border-white/[0.1] bg-black/45 px-2 py-0.5 text-[10px] font-semibold text-zinc-400 backdrop-blur-sm">
+            <span className="rounded-full border border-white/20 bg-black/45 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-white/85 backdrop-blur-md">
               {recency}
             </span>
           </div>
@@ -124,10 +124,10 @@ export const ListingCard = memo(function ListingCard({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onWatchlistToggle(listing); }}
-                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur-sm transition-all ${
+                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isWatchlisted
-                    ? "bg-amber-500/20 text-amber-300 border-amber-500/25"
-                    : "bg-black/40 text-zinc-400 border-white/[0.1] hover:text-amber-200 hover:border-amber-300/20"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-black/40 text-white/85 border-white/20 hover:text-white hover:bg-black/55"
                 }`}
                 aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
               >
@@ -138,10 +138,10 @@ export const ListingCard = memo(function ListingCard({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCompareToggle(listing); }}
-                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur-sm transition-all ${
+                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isComparing
-                    ? "bg-amber-500 text-black border-amber-500"
-                    : "bg-black/40 text-zinc-400 border-white/[0.1] hover:text-white hover:border-white/[0.15]"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-black/40 text-white/85 border-white/20 hover:text-white hover:bg-black/55"
                 }`}
                 aria-label={isComparing ? "Remove from comparison" : "Add to comparison"}
               >
@@ -159,7 +159,7 @@ export const ListingCard = memo(function ListingCard({
             ) : (
               <PriceUnavailableBadge
                 label="Price unavailable"
-                className="bg-black/50 border-amber-300/40 text-amber-100 px-2 py-0.5 text-[10px] tracking-[0.1em]"
+                className="bg-black/50 border-primary/40 text-primary px-2 py-0.5 text-[10px] tracking-[0.1em]"
               />
             )}
             <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
@@ -171,16 +171,16 @@ export const ListingCard = memo(function ListingCard({
         {/* Content */}
         <div className="flex flex-1 flex-col p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground transition-colors group-hover:text-amber-50 truncate">
+            <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary truncate">
               {listingTitle}
             </h3>
-            <span className="shrink-0 text-[13px] font-bold text-zinc-400 num">{listing.year || "N/A"}</span>
+            <span className="shrink-0 text-[13px] font-semibold text-muted-foreground num">{listing.year || "N/A"}</span>
           </div>
 
           {/* Spec grid */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px] font-medium text-zinc-500">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <Gauge className="h-3 w-3 text-zinc-600" />
+              <Gauge className="h-3 w-3 text-muted-foreground/70" />
               {formatToken(listing.transmission)}
             </span>
             <span className="num">{formatMileage(listing.mileage_km)}</span>
@@ -189,21 +189,21 @@ export const ListingCard = memo(function ListingCard({
           </div>
 
           {/* Market position bar */}
-          <div className="rounded-lg border border-white/[0.05] bg-[hsl(220,8%,5%)] p-3">
+          <div className="rounded-xl border border-border bg-surface p-3">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600">Market position</p>
-              <p className={`text-[10px] font-bold num ${
-                marketDeltaPct === null ? "text-zinc-600" : marketDeltaPct <= 0 ? "text-emerald-400" : "text-rose-400"
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Market position</p>
+              <p className={`text-[11px] font-semibold num ${
+                marketDeltaPct === null ? "text-muted-foreground" : marketDeltaPct <= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
               }`}>
                 {marketDeltaPct === null
                   ? "Pending"
                   : `${Math.abs(marketDeltaPct).toFixed(1)}% ${marketDeltaPct <= 0 ? "below" : "above"}`}
               </p>
             </div>
-            <div className="relative h-1 overflow-hidden rounded-full bg-zinc-800/60">
+            <div className="relative h-1.5 overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
                 className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
-                  marketDeltaPct === null ? "bg-zinc-700" : marketDeltaPct <= 0 ? "bg-emerald-500/70" : "bg-rose-500/70"
+                  marketDeltaPct === null ? "bg-muted-foreground/50" : marketDeltaPct <= 0 ? "bg-emerald-500" : "bg-rose-500"
                 }`}
                 style={{ width: `${marketPosition}%` }}
               />
@@ -211,18 +211,18 @@ export const ListingCard = memo(function ListingCard({
           </div>
 
           {/* Footer */}
-          <div className="mt-auto flex items-center justify-between pt-3 border-t border-white/[0.04]">
+          <div className="mt-auto flex items-center justify-between pt-3 border-t border-border">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-400 truncate">
-                <MapPin className="h-3 w-3 shrink-0 text-zinc-600" />
+              <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
+                <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
                 {listing.district || "District N/A"}
               </p>
-              <p className="mt-0.5 text-[10px] text-zinc-600 truncate">
+              <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
                 {listing.source} · Score {integrityScore}/100
               </p>
             </div>
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/[0.06] transition-all group-hover:border-amber-400/15 group-hover:bg-amber-500/8">
-              <ArrowRight className="h-3 w-3 text-zinc-500 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-amber-300" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
             </div>
           </div>
         </div>

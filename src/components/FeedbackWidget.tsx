@@ -70,7 +70,7 @@ export function FeedbackWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#080a09]/92 text-zinc-300 backdrop-blur-xl transition-colors hover:border-amber-300/30 hover:text-amber-100 max-sm:hidden"
+        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary max-sm:hidden"
         aria-label="Send feedback"
         title="Send feedback"
       >
@@ -97,8 +97,8 @@ export function FeedbackWidget() {
                     onClick={() => setCategory(option.value)}
                     className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
                       category === option.value
-                        ? "border-amber-300/35 bg-amber-500/12 text-amber-100"
-                        : "border-white/10 bg-white/[0.03] text-zinc-400 hover:text-zinc-200"
+                        ? "border-primary/35 bg-primary/12 text-primary"
+                        : "border-white/10 bg-foreground/[0.03] text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -112,7 +112,7 @@ export function FeedbackWidget() {
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               placeholder="What should AutoLens fix or improve?"
-              className="min-h-[130px] rounded-xl border-white/10 bg-black/25 text-sm text-zinc-100 placeholder:text-zinc-600"
+              className="min-h-[130px] rounded-xl border-white/10 bg-black/25 text-sm text-foreground placeholder:text-muted-foreground"
             />
 
             <Input
@@ -120,17 +120,17 @@ export function FeedbackWidget() {
               onChange={(event) => setEmail(event.target.value)}
               type="email"
               placeholder="Email optional"
-              className="h-10 rounded-xl border-white/10 bg-black/25 text-sm text-zinc-100"
+              className="h-10 rounded-xl border-white/10 bg-black/25 text-sm text-foreground"
             />
 
             <div className="flex items-center justify-between gap-3">
-              <p className="ui-caption font-semibold text-zinc-500">
+              <p className="ui-caption font-semibold text-muted-foreground">
                 Route: {location.pathname || "/"}
               </p>
               <Button
                 disabled={!canSubmit}
                 onClick={submit}
-                className="h-10 rounded-xl bg-amber-500 px-4 text-xs font-bold uppercase tracking-[0.12em] text-black hover:bg-amber-400 disabled:opacity-50"
+                className="h-10 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-white hover:bg-primary disabled:opacity-50"
               >
                 <Send className="mr-2 h-3.5 w-3.5" />
                 {submitting ? "Sending" : "Send"}

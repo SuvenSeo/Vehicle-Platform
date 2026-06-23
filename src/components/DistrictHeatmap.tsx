@@ -51,7 +51,7 @@ export const DistrictHeatmap = memo(function DistrictHeatmap({ data, selectedDis
 
   if (points.length === 0) {
     return (
-      <div className="h-[420px] rounded-xl border border-white/[0.08] bg-black/30 flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-[420px] rounded-xl border border-border bg-black/30 flex items-center justify-center text-muted-foreground text-sm">
         No geo points available yet. Run sync and ensure district mapping exists.
       </div>
     );
@@ -59,16 +59,16 @@ export const DistrictHeatmap = memo(function DistrictHeatmap({ data, selectedDis
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 tech-label text-zinc-500">
+      <div className="flex items-center gap-2 tech-label text-muted-foreground">
         <span>Color = avg price</span>
-        <span className="text-zinc-700">•</span>
+        <span className="text-foreground">•</span>
         <span>Size = volume</span>
-        <span className="text-zinc-700">•</span>
+        <span className="text-foreground">•</span>
         <span>Click district to filter</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 tech-label font-bold">
-        <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-black/30 px-3 py-1.5 text-zinc-400">
+        <div className="flex items-center gap-2 rounded-full border border-border bg-black/30 px-3 py-1.5 text-muted-foreground">
           <span>Low</span>
           <div className="h-1.5 w-24 rounded-full bg-gradient-to-r from-[#7c9cbf] via-[#4fae8a] via-[#d4924a] to-[#e05c5c]" />
           <span>Hot</span>
@@ -77,14 +77,14 @@ export const DistrictHeatmap = memo(function DistrictHeatmap({ data, selectedDis
           <button
             type="button"
             onClick={() => onDistrictSelect?.(selectedDistrict)}
-            className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-amber-300"
+            className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary"
           >
             Selected: {selectedDistrict} (clear)
           </button>
         )}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-white/[0.08]" style={{ height: 420 }}>
+      <div className="overflow-hidden rounded-xl border border-border" style={{ height: 420 }}>
         <MapContainer
           center={SL_CENTER}
           zoom={7.5}

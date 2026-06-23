@@ -380,7 +380,7 @@ export default function Dashboard() {
     <div className="min-h-screen">
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section id="overview" className="relative overflow-hidden border-b border-white/[0.04]">
+      <section id="overview" className="relative overflow-hidden border-b border-border">
         {/* ambient gold wash */}
         <div
           aria-hidden
@@ -394,12 +394,12 @@ export default function Dashboard() {
           {/* ── Centered editorial headline ── */}
           <div className="mx-auto max-w-3xl text-center">
             <div className="flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.02] px-3.5 py-1.5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3.5 py-1.5">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
                 </span>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   Vehicle Intelligence · Sri Lanka
                 </p>
               </div>
@@ -410,18 +410,18 @@ export default function Dashboard() {
               <span className="bg-gradient-to-r from-[var(--gold-bright)] to-[var(--gold)] bg-clip-text text-transparent"> decoded.</span>
             </h1>
 
-            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-zinc-400 sm:text-[16px]">
-              <span className="font-semibold text-zinc-200 num">{marketPulseListings.toLocaleString()}</span> live listings from{" "}
-              <span className="font-semibold text-zinc-200 num">{marketPulseSources || 10}</span> sources across{" "}
-              <span className="font-semibold text-zinc-200 num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
+            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-[16px]">
+              <span className="font-semibold text-foreground num">{marketPulseListings.toLocaleString()}</span> live listings from{" "}
+              <span className="font-semibold text-foreground num">{marketPulseSources || 10}</span> sources across{" "}
+              <span className="font-semibold text-foreground num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
               deal scores, and the market intelligence dealers keep to themselves.
             </p>
 
             {/* Search (centered) */}
             <div className="mx-auto mt-8 max-w-2xl text-left">
                 <div className="relative">
-                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[hsl(220,8%,6%)] shadow-lg transition-all focus-within:border-amber-400/30 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.08),0_8px_32px_rgba(0,0,0,0.5)]">
-                    <Search className="ml-4 h-5 w-5 shrink-0 text-zinc-500" />
+                  <div className="flex items-center gap-2 rounded-xl border border-border bg-card shadow-lg transition-all focus-within:border-primary/30 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.08),0_8px_32px_rgba(0,0,0,0.5)]">
+                    <Search className="ml-4 h-5 w-5 shrink-0 text-muted-foreground" />
                     <label htmlFor="hero-search" className="sr-only">Search vehicles</label>
                     <input
                       id="hero-search"
@@ -439,45 +439,45 @@ export default function Dashboard() {
                       aria-controls="hero-suggestions"
                       className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-foreground placeholder-zinc-600 outline-none"
                     />
-                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-[var(--gold)] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[var(--gold-bright)]">
+                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-[var(--gold)] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[var(--gold-bright)]">
                       Search
                     </button>
                   </div>
 
                   {showHeroSuggestions && (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-white/[0.08] bg-[hsl(220,8%,6%)] p-1 shadow-xl">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-border bg-card p-1 shadow-xl">
                       {heroSuggestionsLoading ? (
-                        <p className="px-3 py-2 text-[11px] text-zinc-600">Searching...</p>
+                        <p className="px-3 py-2 text-[11px] text-muted-foreground">Searching...</p>
                       ) : heroSuggestions.length ? (
                         <div className="max-h-[240px] overflow-y-auto">
                           {heroSuggestions.map((s) => (
                             <button
                               key={`${s.id}-${s.make}-${s.model}`} type="button" role="option" aria-selected="false"
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
+                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.03]"
                             >
-                              <span className="text-[13px] font-semibold text-zinc-200">{s.make} {s.model} {s.year}</span>
-                              <span className="text-[12px] font-bold text-amber-400/80 num">
+                              <span className="text-[13px] font-semibold text-foreground">{s.make} {s.model} {s.year}</span>
+                              <span className="text-[12px] font-bold text-primary/80 num">
                                 {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
                               </span>
                             </button>
                           ))}
                         </div>
-                      ) : <p className="px-3 py-2 text-[11px] text-zinc-600">No matches.</p>}
+                      ) : <p className="px-3 py-2 text-[11px] text-muted-foreground">No matches.</p>}
                     </div>
                   )}
                 </div>
 
                 {heroSearchMessage && (
-                  <p className="mt-2 text-[11px] font-medium text-amber-300/70">{heroSearchMessage}</p>
+                  <p className="mt-2 text-[11px] font-medium text-primary/70">{heroSearchMessage}</p>
                 )}
 
                 {/* Quick scans */}
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Popular</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Popular</span>
                   {["Toyota Aqua", "Honda Vezel", "Wagon R", "Nissan Leaf", "Toyota Axio"].map((item) => (
                     <button key={item} type="button" onClick={() => setHeroSearch(item)}
-                      className="rounded-md border border-white/[0.06] bg-white/[0.015] px-2.5 py-1 text-[11px] font-medium text-zinc-400 transition-colors hover:border-amber-400/20 hover:text-zinc-200"
+                      className="rounded-md border border-border bg-white/[0.015] px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:text-foreground"
                     >{item}</button>
                   ))}
                 </div>
@@ -502,32 +502,32 @@ export default function Dashboard() {
                 {isPriceUnavailableMode ? "Unpriced inventory" : "Inventory"}
               </h2>
               {loadingListings ? (
-                <span className="inline-block h-4 w-14 animate-pulse rounded bg-white/[0.06]" aria-hidden />
+                <span className="inline-block h-4 w-14 animate-pulse rounded bg-foreground/[0.03]" aria-hidden />
               ) : (
-                <span className="text-[13px] font-medium text-zinc-400 num" aria-live="polite">
+                <span className="text-[13px] font-medium text-muted-foreground num" aria-live="polite">
                   {total.toLocaleString()}
                   {!isPriceUnavailableMode && activeFilterLabels.length === 0 ? (
-                    <span className="ml-1 text-zinc-600">priced</span>
+                    <span className="ml-1 text-muted-foreground">priced</span>
                   ) : null}
                 </span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setShowSavedListings(true)}
-                className="rounded-md border border-white/[0.05] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-400 transition-colors hover:border-white/[0.1] hover:text-zinc-200"
+                className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
               >{watchlistIds.length} saved</button>
               <button type="button" onClick={saveCurrentMarketAlert}
-                className="rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-300/80 transition-colors hover:bg-amber-400/10"
+                className="rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary/80 transition-colors hover:bg-primary/10"
               >Save alert</button>
               <button type="button" onClick={() => setShowMarketAlerts(true)}
-                className="rounded-md border border-white/[0.05] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500 transition-colors hover:text-zinc-300"
+                className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
               >{marketAlerts.length} alerts</button>
               <div className="hidden items-center gap-0.5 md:flex">
                 <button type="button" onClick={() => setMarketView("grid")} aria-label="Grid view" aria-pressed={marketView === "grid"}
-                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-white/[0.1] bg-white/[0.04] text-zinc-200" : "border-transparent text-zinc-600 hover:text-zinc-400"}`}
+                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><LayoutGrid className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setMarketView("list")} aria-label="List view" aria-pressed={marketView === "list"}
-                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "list" ? "border-white/[0.1] bg-white/[0.04] text-zinc-200" : "border-transparent text-zinc-600 hover:text-zinc-400"}`}
+                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "list" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><List className="h-3.5 w-3.5" /></button>
               </div>
             </div>
@@ -537,19 +537,19 @@ export default function Dashboard() {
           {activeFilterLabels.length > 0 && (
             <div className="mb-5 flex flex-wrap items-center gap-1.5">
               {activeFilterLabels.map((label) => (
-                <span key={label} className="rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-zinc-400">{label}</span>
+                <span key={label} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
               ))}
               <button type="button" onClick={() => setFilters({ sort: "newest", page: 1 })}
-                className="rounded-md px-2 py-1 text-[10px] font-semibold text-zinc-600 transition-colors hover:text-zinc-300"
+                className="rounded-md px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
               >Clear all</button>
             </div>
           )}
 
           {newLiveListingsAvailable && (
-            <div className="mb-5 flex items-center justify-between rounded-lg border border-amber-400/15 bg-amber-400/5 px-4 py-2.5">
-              <span className="text-[12px] font-semibold text-amber-200/80">New listings available</span>
+            <div className="mb-5 flex items-center justify-between rounded-lg border border-primary/15 bg-primary/5 px-4 py-2.5">
+              <span className="text-[12px] font-semibold text-primary/80">New listings available</span>
               <button type="button" onClick={() => { setFilters((p) => ({ ...p, sort: "newest", page: 1 })); setNewLiveListingsAvailable(false); }}
-                className="text-[10px] font-bold uppercase tracking-[0.1em] text-amber-300 transition-colors hover:text-amber-100"
+                className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary transition-colors hover:text-primary"
               >Refresh</button>
             </div>
           )}
@@ -568,11 +568,11 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : listings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.05] py-20 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">No results</p>
-                  <p className="mt-2 text-sm text-zinc-400">Widen your filters or clear them to browse.</p>
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">No results</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Widen your filters or clear them to browse.</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1 })}
-                    className="mt-4 rounded-lg border border-white/[0.06] px-4 py-2 text-[11px] font-semibold text-zinc-300 transition-colors hover:bg-white/[0.03]"
+                    className="mt-4 rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
                   >Reset filters</button>
                 </div>
               ) : marketView === "grid" ? (
@@ -586,23 +586,23 @@ export default function Dashboard() {
                   {listings.map((listing) => {
                     const hasPrice = isReasonableListingPrice(Number(listing.price_lkr));
                     return (
-                      <Link key={listing.id} to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-3 no-underline transition-all hover:border-white/[0.08] hover:bg-[hsl(220,8%,6.5%)]">
+                      <Link key={listing.id} to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-border hover:bg-card">
                         <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/30">
                           <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[14px] font-semibold text-foreground">{listing.make} {listing.model} {listing.variant || ""}</p>
-                          <p className="mt-0.5 truncate text-[11px] text-zinc-500">{listing.year || "N/A"} · {listing.district || "N/A"} · {listing.source}</p>
+                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{listing.year || "N/A"} · {listing.district || "N/A"} · {listing.source}</p>
                         </div>
                         <div className="shrink-0 text-right">
                           {hasPrice ? (
                             <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
                           ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
-                          <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score || 0) >= 0 ? "text-amber-400/70" : "text-zinc-600"}`}>
+                          <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score || 0) >= 0 ? "text-primary/70" : "text-muted-foreground"}`}>
                             {Number(listing.deal_score || 0) >= 0 ? "+" : ""}{Number(listing.deal_score || 0).toFixed(0)} deal
                           </p>
                         </div>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-400" />
+                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
                       </Link>
                     );
                   })}
@@ -611,17 +611,17 @@ export default function Dashboard() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-between border-t border-white/[0.04] pt-6">
-                  <p className="text-[11px] text-zinc-500">
-                    <span className="num text-zinc-300">{(filters.page - 1) * LISTINGS_PAGE_SIZE + 1}–{Math.min(filters.page * LISTINGS_PAGE_SIZE, total)}</span> of {total.toLocaleString()}
+                <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
+                  <p className="text-[11px] text-muted-foreground">
+                    <span className="num text-foreground">{(filters.page - 1) * LISTINGS_PAGE_SIZE + 1}–{Math.min(filters.page * LISTINGS_PAGE_SIZE, total)}</span> of {total.toLocaleString()}
                   </p>
                   <div className="flex items-center gap-1.5">
                     <button type="button" disabled={filters.page <= 1} onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.05] text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronLeft className="h-3.5 w-3.5" /></button>
-                    <span className="px-2 text-[11px] font-semibold text-zinc-400 num">{filters.page} / {totalPages}</span>
+                    <span className="px-2 text-[11px] font-semibold text-muted-foreground num">{filters.page} / {totalPages}</span>
                     <button type="button" disabled={filters.page >= totalPages} onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.05] text-zinc-400 transition-colors hover:text-zinc-200 disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
@@ -632,7 +632,7 @@ export default function Dashboard() {
       </section>
 
       {/* ── MARKET PULSE ────────────────────────────────────────── */}
-      <RevealSection className="border-t border-white/[0.04]">
+      <RevealSection className="border-t border-border">
         <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
           <div className="mb-9 flex items-end justify-between gap-4">
             <div>
@@ -648,7 +648,7 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground">Trending models</h3>
-                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400 no-underline transition-colors hover:text-amber-300">
+                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
                   All trends <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -656,21 +656,21 @@ export default function Dashboard() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {trendingModels.slice(0, 4).map((row) => (
                     <button key={`${row.make}-${row.model}`} type="button" onClick={() => focusModel(row.make, row.model)}
-                      className="group/trend flex items-center gap-3 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-3 text-left transition-all hover:border-white/[0.08] hover:bg-[hsl(220,8%,6.5%)]"
+                      className="group/trend flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-all hover:border-border hover:bg-card"
                     >
                       <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
                         <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model}</p>
-                        <p className="mt-0.5 text-[11px] text-zinc-400 num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
                       </div>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform group-hover/trend:translate-x-0.5 group-hover/trend:text-amber-300" />
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover/trend:translate-x-0.5 group-hover/trend:text-primary" />
                     </button>
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-zinc-600">Awaiting data</p>
+                <p className="text-[11px] text-muted-foreground">Awaiting data</p>
               )}
             </div>
 
@@ -678,9 +678,9 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-amber-400/70" /> Best deals
+                  <Flame className="h-4 w-4 text-primary/70" /> Best deals
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400 no-underline transition-colors hover:text-amber-300">
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
                   All picks <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -688,14 +688,14 @@ export default function Dashboard() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {hotDeals.slice(0, 4).map((row) => (
                     <Link key={row.id} to={`/listing/${row.id}`}
-                      className="group/deal flex items-center gap-3 rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-3 no-underline transition-all hover:border-white/[0.08] hover:bg-[hsl(220,8%,6.5%)]"
+                      className="group/deal flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-border hover:bg-card"
                     >
                       <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
                         <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
-                        <p className="mt-0.5 text-[11px] text-zinc-400 num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
                       </div>
                       <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-300 num">
                         +{Number(row.deal_score || 0).toFixed(0)}
@@ -704,14 +704,14 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-zinc-600">No deals found in current slice</p>
+                <p className="text-[11px] text-muted-foreground">No deals found in current slice</p>
               )}
             </div>
           </div>
 
           {/* Tool links */}
-          <div className="mt-12 border-t border-white/[0.04] pt-8">
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Intelligence tools</p>
+          <div className="mt-12 border-t border-border pt-8">
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Intelligence tools</p>
             <div className="flex flex-wrap gap-2">
             {[
               { label: "Valuation", to: "/estimate" },
@@ -721,10 +721,10 @@ export default function Dashboard() {
               { label: "EV Hub", to: "/ev-hub" },
             ].map((tool) => (
               <Link key={tool.label} to={tool.to}
-                className="group/tool flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-2.5 text-[12px] font-semibold text-zinc-300 no-underline transition-all hover:border-amber-400/20 hover:bg-amber-400/[0.04] hover:text-zinc-100"
+                className="group/tool flex items-center gap-1.5 rounded-lg border border-border bg-white/[0.015] px-4 py-2.5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/20 hover:bg-primary/[0.04] hover:text-foreground"
               >
                 {tool.label}
-                <ArrowUpRight className="h-3.5 w-3.5 text-zinc-500 transition-all group-hover/tool:text-amber-300 group-hover/tool:translate-x-0.5" />
+                <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover/tool:text-primary group-hover/tool:translate-x-0.5" />
               </Link>
             ))}
             </div>
@@ -735,17 +735,17 @@ export default function Dashboard() {
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
         <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,680px)] -translate-x-1/2">
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[hsl(220,8%,6%)]/95 px-4 py-3 shadow-xl backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-xl backdrop-blur-xl">
             <div className="flex items-center gap-3">
-              <Scale className="h-4 w-4 text-amber-400/60" />
+              <Scale className="h-4 w-4 text-primary/60" />
               <span className="text-[12px] font-semibold text-foreground">{compareIds.length} selected</span>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => setCompareListings([])}
-                className="flex h-8 items-center gap-1 rounded-lg border border-white/[0.06] px-3 text-[10px] font-semibold text-zinc-400 transition-colors hover:text-zinc-200"
+                className="flex h-8 items-center gap-1 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
               ><X className="h-3 w-3" /> Clear</button>
               <button type="button" disabled={compareIds.length < 2} onClick={() => setShowCompare(true)}
-                className="h-8 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black transition-colors hover:bg-[var(--gold-bright)] disabled:opacity-40"
+                className="h-8 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[var(--gold-bright)] disabled:opacity-40"
               >Compare</button>
             </div>
           </div>
@@ -754,41 +754,41 @@ export default function Dashboard() {
 
       {/* ── DIALOGS ─────────────────────────────────────────────── */}
       <Dialog open={showMarketAlerts} onOpenChange={setShowMarketAlerts}>
-        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-white/[0.06] bg-[hsl(220,8%,6%)] text-foreground">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-border bg-card text-foreground">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Market alerts</DialogTitle>
           </DialogHeader>
-          <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Current lane</p>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current lane</p>
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
-              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-white/[0.06] bg-transparent text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-black hover:bg-[var(--gold-bright)]">Save</button>
+              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-sm" />
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-[var(--gold-bright)]">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (
             <div className="space-y-1.5">
               {marketAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-3">
+                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{alert.label}</p>
-                    <p className="mt-0.5 text-[10px] text-zinc-500">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : "New listings"}</p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : "New listings"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
-                      className="h-7 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 text-[10px] font-semibold text-amber-300/80 hover:bg-amber-400/10">Open</button>
+                      className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary/80 hover:bg-primary/10">Open</button>
                     <button type="button" onClick={() => deleteMarketAlert(alert.id)}
-                      className="h-7 rounded-md border border-white/[0.05] px-2.5 text-[10px] font-semibold text-zinc-500 hover:text-zinc-300">Delete</button>
+                      className="h-7 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
                   </div>
                 </div>
               ))}
             </div>
-          ) : <p className="py-6 text-center text-[11px] text-zinc-600">No alerts saved</p>}
+          ) : <p className="py-6 text-center text-[11px] text-muted-foreground">No alerts saved</p>}
         </DialogContent>
       </Dialog>
 
       <Dialog open={showSavedListings} onOpenChange={setShowSavedListings}>
-        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-white/[0.06] bg-[hsl(220,8%,6%)] text-foreground">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-border bg-card text-foreground">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Saved listings</DialogTitle>
           </DialogHeader>
@@ -797,22 +797,22 @@ export default function Dashboard() {
           ) : savedListings.length ? (
             <div className="space-y-1.5">
               {savedListings.map((listing) => (
-                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-3">
+                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{listing.make} {listing.model} {listing.year || ""}</p>
-                    <p className="mt-0.5 text-[10px] text-zinc-500">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-amber-400/15 bg-amber-400/5 px-2.5 text-[10px] font-semibold text-amber-300/80 hover:bg-amber-400/10">Remove</button>
-                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-white/[0.05] px-2.5 text-[10px] font-semibold text-zinc-400 no-underline hover:text-zinc-200">
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary/80 hover:bg-primary/10">Remove</button>
+                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
                       Open <ExternalLink className="h-2.5 w-2.5" />
                     </Link>
                   </div>
                 </div>
               ))}
             </div>
-          ) : <p className="py-6 text-center text-[11px] text-zinc-600">No saved listings</p>}
-          {savedListingsError && <p className="text-[11px] text-amber-300/60">{savedListingsError}</p>}
+          ) : <p className="py-6 text-center text-[11px] text-muted-foreground">No saved listings</p>}
+          {savedListingsError && <p className="text-[11px] text-primary/60">{savedListingsError}</p>}
         </DialogContent>
       </Dialog>
 

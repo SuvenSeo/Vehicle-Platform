@@ -13,6 +13,6 @@ describe("DealerDashboard", () => {
 
     expect(screen.getByRole("heading", { name: /dealer command center/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Inventory Turnover" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Price Gaps vs Competitors" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Price Gaps" })).toBeInTheDocument();
   });
 });

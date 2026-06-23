@@ -8,8 +8,7 @@ import { Navbar } from "@/components/Navbar";
 import { AppFooter } from "@/components/AppFooter";
 import { Loader } from "@/components/Loader";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
-import { NoiseOverlay } from "@/components/NoiseOverlay";
-import { CustomCursor } from "@/components/CustomCursor";
+import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
@@ -76,17 +75,17 @@ const MinimalLoader = () => (
   <div className="flex h-[50vh] w-full items-center justify-center" aria-label="Loading" role="status">
     <div className="flex flex-col items-center gap-4">
       <div className="relative w-10 h-10">
-        <div className="absolute inset-0 rounded-full border-2 border-white/[0.06]" />
-        <div className="absolute inset-0 rounded-full border-t-2 border-amber-500 animate-spin" />
+        <div className="absolute inset-0 rounded-full border-2 border-foreground/[0.08]" />
+        <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" />
       </div>
-      <p className="tech-label text-zinc-600">Loading</p>
+      <p className="tech-label">Loading</p>
     </div>
   </div>
 );
 
 function MainLayout({ chatMounted }: { chatMounted: boolean }) {
   return (
-    <div className="min-h-screen app-shell selection:bg-primary/25 bg-[hsl(220,10%,3%)]">
+    <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Navbar />
       <ScrollToHash />
@@ -134,11 +133,10 @@ const App = () => {
       <AppPreferencesProvider>
         <TooltipProvider>
           <ScrollProgressBar />
-          <NoiseOverlay />
-          <CustomCursor />
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <RouteMeta />
             <Suspense fallback={<MinimalLoader />}>
               <Routes>
                 <Route element={<MainLayout chatMounted={chatMounted} />}>

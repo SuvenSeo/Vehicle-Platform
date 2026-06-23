@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
-  darkMode: ["class"],
+  darkMode: ["class", ".theme-dark"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
@@ -73,12 +73,12 @@ export default {
           foreground: "hsl(var(--surface-foreground))",
         },
         intelligence: {
-          amber: "#d4a444",
-          gold: "#e8b856",
-          ink: "#f0ebe0",
-          cyan: "#42aed0",
-          green: "#38a866",
-          red: "#d45555",
+          amber: "#0071e3",
+          gold: "#0a84ff",
+          ink: "#1a1a1c",
+          cyan: "#0a84ff",
+          green: "#1d9e75",
+          red: "#e24b4a",
         },
         deal: {
           green: "hsl(var(--deal-green))",
@@ -105,10 +105,13 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        console: "0 1px 0 rgba(255,255,255,0.02), 0 8px 24px rgba(0,0,0,0.45)",
-        "console-soft": "0 1px 0 rgba(255,255,255,0.02), 0 4px 14px rgba(0,0,0,0.35)",
-        "gold-glow": "0 0 24px rgba(212,164,68,0.15)",
-        "gold-glow-lg": "0 0 48px rgba(212,164,68,0.2)",
+        console: "0 2px 8px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)",
+        "console-soft": "0 1px 2px rgba(0,0,0,0.04)",
+        soft: "0 2px 8px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)",
+        "soft-lg": "0 8px 28px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)",
+        "soft-xl": "0 20px 56px rgba(0,0,0,0.12), 0 6px 16px rgba(0,0,0,0.06)",
+        "gold-glow": "0 0 0 4px rgba(0,113,227,0.12)",
+        "gold-glow-lg": "0 0 0 6px rgba(0,113,227,0.14)",
       },
       keyframes: {
         "accordion-down": {

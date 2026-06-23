@@ -22,13 +22,13 @@ export function SectionHeader({
     <div className={cn("mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end", className)}>
       <div className="max-w-2xl space-y-2.5 animate-fade-up">
         {eyebrow ? (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{eyebrow}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{eyebrow}</p>
         ) : null}
         <h2 className={cn("font-display text-[1.5rem] font-semibold tracking-tight text-foreground sm:text-[1.75rem]", titleClassName)}>
           {title}
         </h2>
         {description ? (
-          <p className="text-sm leading-relaxed text-zinc-500">{description}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? (

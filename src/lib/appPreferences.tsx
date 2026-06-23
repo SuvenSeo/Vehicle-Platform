@@ -16,7 +16,7 @@ type AppPreferencesContextValue = {
 
 const THEME_STORAGE_KEY = "autolens_theme_mode";
 const LANGUAGE_STORAGE_KEY = "autolens_language";
-const DEFAULT_THEME_MODE: ThemeMode = "dark";
+const DEFAULT_THEME_MODE: ThemeMode = "light";
 
 const DICTIONARIES: Record<Language, Dictionary> = {
   en: {
@@ -359,7 +359,7 @@ function writeStorage(key: string, value: string) {
 export function AppPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(DEFAULT_THEME_MODE);
   const [language, setLanguageState] = useState<Language>("en");
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("light");
 
   useEffect(() => {
     const savedTheme = (readStorage(THEME_STORAGE_KEY) as ThemeMode | null) || DEFAULT_THEME_MODE;

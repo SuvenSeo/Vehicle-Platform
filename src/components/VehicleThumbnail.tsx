@@ -73,8 +73,8 @@ export const VehicleThumbnail = memo(function VehicleThumbnail({
           onError={handleError}
         />
       ) : (
-        <div className={placeholderClassName || "w-full h-full flex items-center justify-center bg-zinc-900/40"}>
-          <Car className="w-8 h-8 text-zinc-700" />
+        <div className={placeholderClassName || "w-full h-full flex items-center justify-center bg-secondary/40"}>
+          <Car className="w-8 h-8 text-foreground" />
         </div>
       )}
     </>

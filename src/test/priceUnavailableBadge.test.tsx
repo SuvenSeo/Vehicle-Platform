@@ -7,7 +7,7 @@ describe("PriceUnavailableBadge", () => {
     render(<PriceUnavailableBadge label="Price unavailable" />);
 
     expect(screen.getByText("Price unavailable")).toBeInTheDocument();
-    expect(screen.getByText("Price unavailable").parentElement?.className).toContain("border-amber-300/60");
+    expect(screen.getByText("Price unavailable").parentElement?.className).toContain("border-primary/60");
   });
 
   it("renders an input call to action when provided", () => {

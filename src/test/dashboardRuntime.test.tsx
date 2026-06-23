@@ -96,7 +96,7 @@ beforeEach(() => {
 });
 
 describe("Dashboard runtime safety", () => {
-  it("renders the market trends section without throwing", () => {
+  it("renders the market pulse section without throwing", () => {
     render(
       <AppPreferencesProvider>
         <MemoryRouter>
@@ -105,10 +105,10 @@ describe("Dashboard runtime safety", () => {
       </AppPreferencesProvider>,
     );
 
-    expect(screen.getByRole("heading", { name: "Price history" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /what.s moving right now/i })).toBeInTheDocument();
   });
 
-  it("renders the geo intelligence section for district analysis", () => {
+  it("renders the trending models section", () => {
     render(
       <AppPreferencesProvider>
         <MemoryRouter>
@@ -117,7 +117,7 @@ describe("Dashboard runtime safety", () => {
       </AppPreferencesProvider>,
     );
 
-    expect(screen.getByText("Market concentration")).toBeInTheDocument();
+    expect(screen.getByText(/trending models/i)).toBeInTheDocument();
   });
 
   it("hides spotlight deal card when dashboard insights only provide zero-priced deals", async () => {
@@ -148,7 +148,7 @@ describe("Dashboard runtime safety", () => {
       </AppPreferencesProvider>,
     );
 
-    await screen.findByRole("heading", { name: "Price history" });
+    await screen.findByRole("heading", { name: /what.s moving right now/i });
     expect(screen.queryByText(/Toyota\s+Vitz/i)).not.toBeInTheDocument();
   });
 
@@ -161,10 +161,10 @@ describe("Dashboard runtime safety", () => {
       </AppPreferencesProvider>,
     );
 
-    await screen.findByText("Market concentration");
+    await screen.findByText(/trending models/i);
 
     await waitFor(() => {
-      expect(api.getDistrictQuickInsight).toHaveBeenCalledWith("Jaffna");
+      expect(api.getListings).toHaveBeenCalled();
     });
   });
 });

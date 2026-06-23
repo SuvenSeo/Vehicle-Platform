@@ -53,7 +53,7 @@ describe("BestPicks price guard", () => {
 
     expect(screen.queryByText(/Zero Price/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Tiny Price/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Qualified picks")).toBeInTheDocument();
-    expect(screen.getByText("ranked")).toBeInTheDocument();
+    expect(screen.getByText(/vehicles scored/i)).toBeInTheDocument();
+    expect(screen.getByText(/ranked by deal strength/i)).toBeInTheDocument();
   });
 });

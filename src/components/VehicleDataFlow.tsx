@@ -54,7 +54,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "Source collectors",
       detail: `${ingestedCount} listing signals from ${topSourceNames}`,
       icon: Database,
-      tone: "border-amber-400/30 bg-amber-500/10 text-amber-200",
+      tone: "border-primary/30 bg-primary/10 text-primary",
     },
     {
       key: "normalize",
@@ -62,7 +62,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "Clean + map",
       detail: runningJobs > 0 ? "Validation and duplicate checks in progress" : "Schema mapping and duplicate checks stable",
       icon: ScanSearch,
-      tone: "border-white/12 bg-white/[0.04] text-zinc-200",
+      tone: "border-white/12 bg-foreground/[0.03] text-foreground",
     },
     {
       key: "score",
@@ -70,7 +70,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "Deal intelligence",
       detail: `${scoredCount} rows benchmarked against market medians`,
       icon: Gauge,
-      tone: "border-amber-400/35 bg-amber-500/10 text-amber-200",
+      tone: "border-primary/35 bg-primary/10 text-primary",
     },
     {
       key: "publish",
@@ -78,7 +78,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "AutoLens feed",
       detail: `${processedCount} listings powering cards, map, trends, and valuation`,
       icon: Satellite,
-      tone: "border-white/12 bg-black/25 text-zinc-200",
+      tone: "border-white/12 bg-black/25 text-foreground",
     },
   ] as const;
 
@@ -87,25 +87,25 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between mb-8">
         <div className="max-w-2xl">
           <div className="flex items-center gap-2 mb-2">
-            <Activity className="w-4 h-4 text-amber-400" />
+            <Activity className="w-4 h-4 text-primary" />
             <p className="tech-label">Data pipeline</p>
           </div>
           <h3 className="headline-display text-3xl sm:text-4xl">From market source to AutoLens feed.</h3>
-          <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+          <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
             A single flow moves every listing through ingestion, cleanup, scoring, and publishing.
           </p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 tech-label">
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-amber-300 num">{healthyJobs} healthy</span>
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-amber-300 num">{runningJobs} running</span>
-          <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-amber-300 num">{delayedJobs} delayed</span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary num">{healthyJobs} healthy</span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary num">{runningJobs} running</span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary num">{delayedJobs} delayed</span>
         </div>
       </div>
 
       <div className="relative z-10 overflow-hidden rounded-xl border border-white/10 bg-black/30 p-5 sm:p-6">
-        <div className="absolute left-8 right-8 top-1/2 hidden h-px -translate-y-1/2 bg-amber-400/18 md:block" />
-        <div className="absolute bottom-8 top-8 left-1/2 block w-px -translate-x-1/2 bg-amber-400/25 md:hidden" />
+        <div className="absolute left-8 right-8 top-1/2 hidden h-px -translate-y-1/2 bg-primary/18 md:block" />
+        <div className="absolute bottom-8 top-8 left-1/2 block w-px -translate-x-1/2 bg-primary/25 md:hidden" />
 
         <div className="relative grid grid-cols-1 gap-3 md:grid-cols-4 md:items-stretch">
           {stages.map((stage) => {
@@ -135,14 +135,14 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
                 className="motion-card rounded-xl border border-white/10 bg-black/25 p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-zinc-100 truncate">{source.source}</p>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 tech-label text-zinc-300 num">
+                  <p className="text-sm font-semibold text-foreground truncate">{source.source}</p>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 tech-label text-foreground num">
                     {source.count}
                   </span>
                 </div>
                 <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
                   <div
-                    className="h-full w-full origin-left bg-amber-400"
+                    className="h-full w-full origin-left bg-primary"
                     style={{ transform: `scaleX(${scaleX})` }}
                   />
                 </div>
@@ -151,7 +151,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
             );
           })
         ) : (
-          <div className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-zinc-500 md:col-span-2 xl:col-span-3">
+          <div className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
             No source listings available yet. Run a pipeline sync to populate this view.
           </div>
         )}

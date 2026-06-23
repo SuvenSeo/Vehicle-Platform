@@ -26,7 +26,7 @@ function pickSentimentBand(score: number): SentimentBand {
     return { label: "Buy", toneClass: "text-emerald-200", icon: ArrowUpRight, text: "Momentum is positive, but sample depth is still important before making an offer." };
   }
   if (score >= 40) {
-    return { label: "Wait 3 Months", toneClass: "text-amber-300", icon: ArrowRight, text: "The signal is mixed, so compare fresh listings before moving quickly." };
+    return { label: "Wait 3 Months", toneClass: "text-primary", icon: ArrowRight, text: "The signal is mixed, so compare fresh listings before moving quickly." };
   }
   return { label: "Sell", toneClass: "text-rose-300", icon: ArrowDownRight, text: "Asking prices look soft versus the current listing flow." };
 }
@@ -61,7 +61,7 @@ export const MarketPredictor = memo(function MarketPredictor({ trendData, listin
     <section className="asset-surface rounded-xl p-5 md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="tech-label font-bold text-zinc-500">Market pulse</p>
+          <p className="tech-label font-bold text-muted-foreground">Market pulse</p>
           <h3 className="text-2xl font-bold tracking-tight text-white">Buy timing signal</h3>
         </div>
         <div className={`inline-flex items-center gap-2 rounded-lg border border-white/15 bg-black/30 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] ${band.toneClass}`}>
@@ -73,10 +73,10 @@ export const MarketPredictor = memo(function MarketPredictor({ trendData, listin
 
       <p className={`mt-3 text-sm ${band.toneClass}`}>{band.text}</p>
 
-      <ul className="mt-4 space-y-2 text-sm text-zinc-300">
+      <ul className="mt-4 space-y-2 text-sm text-foreground">
         {predictiveInsights.map((insight) => (
           <li key={insight} className="flex gap-2">
-            <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span className="mt-[7px] h-1.5 w-1.5 rounded-full bg-primary" />
             <span>{insight}</span>
           </li>
         ))}

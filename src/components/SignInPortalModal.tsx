@@ -31,11 +31,11 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl border-white/10 bg-[#0b0d0f] text-white rounded-xl p-8">
         <DialogHeader className="space-y-3">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/35 bg-amber-500/14 text-amber-200">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/35 bg-primary/14 text-primary">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <DialogTitle className="text-2xl tracking-tight">Sign In Portal</DialogTitle>
-          <DialogDescription className="text-zinc-400 leading-relaxed">
+          <DialogDescription className="text-muted-foreground leading-relaxed">
             Sign in to your Pro Intelligence account for full market analytics, or continue as a guest to browse public listings.
           </DialogDescription>
         </DialogHeader>
@@ -45,7 +45,7 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
             type="button"
             variant="outline"
             onClick={handleProAccess}
-            className="h-12 rounded-xl border-amber-500/35 bg-amber-500/12 text-amber-100 hover:bg-amber-500/20"
+            className="h-12 rounded-xl border-primary/35 bg-primary/12 text-primary hover:bg-primary/20"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Sign In to Pro Dashboard
@@ -54,7 +54,7 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
             type="button"
             variant="outline"
             onClick={handlePreviewAccess}
-            className="h-12 rounded-xl border-white/12 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.08]"
+            className="h-12 rounded-xl border-white/12 bg-foreground/[0.03] text-foreground hover:bg-foreground/[0.03]"
           >
             <ShieldCheck className="h-4 w-4 mr-2" />
             Preview Pro Features

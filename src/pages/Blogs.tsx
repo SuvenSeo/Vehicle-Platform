@@ -76,22 +76,22 @@ export default function Blogs() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <section className="border-b border-white/[0.04]">
+      <section className="border-b border-border">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Journal</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Market briefings.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-zinc-400">{filtered.length} signals in view · Ardeno Research</p>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">{filtered.length} signals in view · Ardeno Research</p>
 
           {/* Search + categories */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex flex-1 items-center gap-2 rounded-lg border border-white/[0.06] bg-[hsl(220,8%,5.5%)] px-3 focus-within:border-amber-400/20">
-              <Search className="h-3.5 w-3.5 text-zinc-600" />
+            <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-surface px-3 focus-within:border-primary/20">
+              <Search className="h-3.5 w-3.5 text-muted-foreground" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search topics or tags" className="h-10 w-full bg-transparent text-sm text-foreground placeholder-zinc-600 outline-none" />
             </div>
             <div className="flex flex-wrap gap-1">
               {CATEGORIES.map((c) => (
                 <button key={c} type="button" onClick={() => setCategory(c)}
-                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${c === category ? "bg-amber-400/8 text-amber-300 border border-amber-400/15" : "text-zinc-500 hover:text-zinc-300 border border-transparent"}`}
+                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${c === category ? "bg-primary/8 text-primary border border-primary/15" : "text-muted-foreground hover:text-foreground border border-transparent"}`}
                 >{c}</button>
               ))}
             </div>
@@ -102,38 +102,38 @@ export default function Blogs() {
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8">
         {/* Featured */}
         {active && (
-          <article className="grid gap-6 rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5 sm:p-6 lg:grid-cols-[1.3fr_0.7fr]">
+          <article className="grid gap-6 rounded-xl border border-border bg-card p-5 sm:p-6 lg:grid-cols-[1.3fr_0.7fr]">
             <div>
               <div className="flex items-center gap-2">
-                <span className="rounded-md border border-amber-400/15 bg-amber-400/5 px-2 py-0.5 text-[10px] font-semibold text-amber-300/80">{active.category}</span>
-                <span className="flex items-center gap-1 text-[10px] text-zinc-500"><Clock3 className="h-3 w-3" /> {active.readTime}</span>
-                <span className="text-[10px] text-zinc-600">{formatDate(active.publishedAt)}</span>
+                <span className="rounded-md border border-primary/15 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary/80">{active.category}</span>
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><Clock3 className="h-3 w-3" /> {active.readTime}</span>
+                <span className="text-[10px] text-muted-foreground">{formatDate(active.publishedAt)}</span>
               </div>
               <h2 className="mt-4 font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{active.title}</h2>
-              <p className="mt-3 text-[13px] leading-relaxed text-zinc-400">{active.excerpt}</p>
-              <p className="mt-4 text-[12px] leading-relaxed text-zinc-500">{active.content}</p>
+              <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">{active.excerpt}</p>
+              <p className="mt-4 text-[12px] leading-relaxed text-muted-foreground">{active.content}</p>
               <div className="mt-4 flex flex-wrap gap-1.5">
                 {active.tags.map((t) => (
-                  <button key={t} type="button" onClick={() => setQuery(t)} className="rounded-md border border-white/[0.05] px-2 py-0.5 text-[10px] font-medium text-zinc-500 hover:text-zinc-300">{t}</button>
+                  <button key={t} type="button" onClick={() => setQuery(t)} className="rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground">{t}</button>
                 ))}
               </div>
-              <p className="mt-4 text-[11px] text-zinc-600">By {active.author}</p>
+              <p className="mt-4 text-[11px] text-muted-foreground">By {active.author}</p>
             </div>
             <div className="space-y-3">
-              <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">{active.metricLabel}</p>
-                <p className="num mt-2 text-xl font-bold text-amber-400">{active.metricValue}</p>
-                <p className="mt-1 text-[10px] text-zinc-500">{active.metricDelta}</p>
+              <div className="rounded-lg border border-border bg-surface p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{active.metricLabel}</p>
+                <p className="num mt-2 text-xl font-bold text-primary">{active.metricValue}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">{active.metricDelta}</p>
               </div>
-              <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Signal</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">{active.signal}</p>
+              <div className="rounded-lg border border-border bg-surface p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Signal</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{active.signal}</p>
               </div>
-              <div className="rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Takeaways</p>
+              <div className="rounded-lg border border-border bg-surface p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Takeaways</p>
                 <ul className="mt-2 space-y-1.5">
                   {active.keyTakeaways.map((t) => (
-                    <li key={t} className="flex gap-2 text-[11px] text-zinc-400"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-400/60" />{t}</li>
+                    <li key={t} className="flex gap-2 text-[11px] text-muted-foreground"><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/60" />{t}</li>
                   ))}
                 </ul>
               </div>
@@ -145,10 +145,10 @@ export default function Blogs() {
           {/* Decision lab + grid */}
           <div className="space-y-6">
             {/* Decision lab */}
-            <div className="rounded-xl border border-white/[0.05] bg-[hsl(220,8%,6%)] p-5 sm:p-6">
+            <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-display text-sm font-semibold tracking-tight text-foreground">Decision lab</h3>
-                <span className="flex items-center gap-1.5 rounded-md border border-amber-400/15 bg-amber-400/5 px-2 py-0.5 text-[10px] font-semibold text-amber-300/80">
+                <span className="flex items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary/80">
                   <Target className="h-3 w-3" /> {decisionBrief.timeline}
                 </span>
               </div>
@@ -157,31 +157,31 @@ export default function Blogs() {
                   <div className="flex gap-1.5">
                     {(["value", "balanced", "premium"] as const).map((m) => (
                       <button key={m} type="button" onClick={() => setDecisionMode(m)}
-                        className={`rounded-md border px-2.5 py-1 text-[10px] font-semibold capitalize transition-colors ${m === decisionMode ? "border-amber-400/15 bg-amber-400/5 text-amber-300" : "border-white/[0.05] text-zinc-500 hover:text-zinc-300"}`}
+                        className={`rounded-md border px-2.5 py-1 text-[10px] font-semibold capitalize transition-colors ${m === decisionMode ? "border-primary/15 bg-primary/5 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
                       >{m}</button>
                     ))}
                   </div>
                   <div>
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500">
-                      <span className="flex items-center gap-1"><SlidersHorizontal className="h-3 w-3 text-amber-400/60" /> Risk</span>
-                      <span className="num font-semibold text-zinc-300">{riskTolerance}%</span>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span className="flex items-center gap-1"><SlidersHorizontal className="h-3 w-3 text-primary/60" /> Risk</span>
+                      <span className="num font-semibold text-foreground">{riskTolerance}%</span>
                     </div>
                     <input type="range" min={0} max={100} step={5} value={riskTolerance} onChange={(e) => setRiskTolerance(Number(e.target.value))} className="mt-1.5 w-full accent-amber-400" />
                   </div>
                   <div>
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500">
-                      <span>Timeline</span><span className="num font-semibold text-zinc-300">{timelineDays}d</span>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Timeline</span><span className="num font-semibold text-foreground">{timelineDays}d</span>
                     </div>
                     <input type="range" min={3} max={45} value={timelineDays} onChange={(e) => setTimelineDays(Number(e.target.value))} className="mt-1.5 w-full accent-amber-400" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Recommended</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Recommended</p>
                   {guidedPosts.map((p) => (
                     <button key={p.id} type="button" onClick={() => setActivePostId(p.id)}
-                      className="block w-full rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] p-3 text-left transition-colors hover:border-white/[0.08]"
+                      className="block w-full rounded-lg border border-border bg-surface p-3 text-left transition-colors hover:border-border"
                     >
-                      <p className="text-[10px] text-zinc-600">{p.category}</p>
+                      <p className="text-[10px] text-muted-foreground">{p.category}</p>
                       <p className="mt-1 text-[12px] font-semibold text-foreground truncate">{p.title}</p>
                     </button>
                   ))}
@@ -191,26 +191,26 @@ export default function Blogs() {
 
             {/* Grid */}
             <div>
-              <h3 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">All signals · {filtered.length}</h3>
+              <h3 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">All signals · {filtered.length}</h3>
               {filtered.length ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {filtered.map((p) => (
                     <button key={p.id} type="button" onClick={() => setActivePostId(p.id)}
-                      className={`rounded-xl border p-4 text-left transition-colors ${active?.id === p.id ? "border-amber-400/15 bg-amber-400/5" : "border-white/[0.04] bg-[hsl(220,8%,5.5%)] hover:border-white/[0.08]"}`}
+                      className={`rounded-xl border p-4 text-left transition-colors ${active?.id === p.id ? "border-primary/15 bg-primary/5" : "border-border bg-surface hover:border-border"}`}
                     >
-                      <div className="flex items-center justify-between text-[10px] text-zinc-500">
-                        <span className={active?.id === p.id ? "text-amber-300/80" : ""}>{p.category}</span>
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span className={active?.id === p.id ? "text-primary/80" : ""}>{p.category}</span>
                         <span>{p.readTime}</span>
                       </div>
                       <p className="mt-2 text-[13px] font-semibold text-foreground leading-snug">{p.title}</p>
-                      <p className="mt-1.5 text-[11px] text-zinc-500 line-clamp-2">{p.excerpt}</p>
+                      <p className="mt-1.5 text-[11px] text-muted-foreground line-clamp-2">{p.excerpt}</p>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-white/[0.05] py-12 text-center">
-                  <p className="text-[12px] text-zinc-500">No signals match this filter.</p>
-                  <button type="button" onClick={() => { setQuery(""); setCategory("All"); }} className="mt-2 text-[11px] font-semibold text-zinc-400 hover:text-zinc-200">Clear filters</button>
+                <div className="rounded-xl border border-dashed border-border py-12 text-center">
+                  <p className="text-[12px] text-muted-foreground">No signals match this filter.</p>
+                  <button type="button" onClick={() => { setQuery(""); setCategory("All"); }} className="mt-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground">Clear filters</button>
                 </div>
               )}
             </div>
@@ -218,23 +218,23 @@ export default function Blogs() {
 
           {/* Sidebar */}
           <aside className="space-y-4 self-start xl:sticky xl:top-20">
-            <div className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Topic signals</p>
+            <div className="rounded-xl border border-border bg-surface p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Topic signals</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {topicSignals.map(([t, c]) => (
-                  <button key={t} type="button" onClick={() => setQuery(t)} className="flex items-center gap-1 rounded-md border border-white/[0.05] px-2 py-1 text-[10px] font-medium text-zinc-400 hover:text-zinc-200">
-                    {t} <span className="num text-zinc-600">{c}</span>
+                  <button key={t} type="button" onClick={() => setQuery(t)} className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:text-foreground">
+                    {t} <span className="num text-muted-foreground">{c}</span>
                   </button>
                 ))}
               </div>
             </div>
-            <div className="rounded-xl border border-white/[0.04] bg-[hsl(220,8%,5.5%)] p-4 space-y-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Quick links</p>
-              <Link to="/" className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] px-3 py-2.5 text-[12px] font-semibold text-zinc-300 no-underline hover:border-white/[0.08]">
-                Dashboard <TrendingUp className="h-3 w-3 text-amber-400/60" />
+            <div className="rounded-xl border border-border bg-surface p-4 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Quick links</p>
+              <Link to="/" className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2.5 text-[12px] font-semibold text-foreground no-underline hover:border-border">
+                Dashboard <TrendingUp className="h-3 w-3 text-primary/60" />
               </Link>
-              <Link to="/best-picks" className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-[hsl(220,8%,5%)] px-3 py-2.5 text-[12px] font-semibold text-zinc-300 no-underline hover:border-white/[0.08]">
-                Best picks <BarChart3 className="h-3 w-3 text-amber-400/60" />
+              <Link to="/best-picks" className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2.5 text-[12px] font-semibold text-foreground no-underline hover:border-border">
+                Best picks <BarChart3 className="h-3 w-3 text-primary/60" />
               </Link>
             </div>
           </aside>

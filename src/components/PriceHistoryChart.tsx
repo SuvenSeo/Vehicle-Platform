@@ -88,13 +88,13 @@ export function PriceHistoryChart({
     <div className="asset-surface w-full rounded-xl p-4 sm:p-6 md:p-7">
       <div className="grid gap-5 lg:grid-cols-[0.78fr_1.32fr]">
         <aside className="data-card p-5">
-          <div className="headline-kicker text-zinc-400">
-            <BarChart3 className="h-3.5 w-3.5 text-amber-300" />
+          <div className="headline-kicker text-muted-foreground">
+            <BarChart3 className="h-3.5 w-3.5 text-primary" />
             Trend desk
           </div>
 
           <h3 className="headline-display mt-5 text-3xl leading-tight md:text-4xl">{title}</h3>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Median advertised price movement for the selected make, model, condition, and district filters.
           </p>
 
@@ -107,13 +107,13 @@ export function PriceHistoryChart({
               <p className="tech-label">Movement</p>
               <div className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${
                 !hasChangeSignal
-                  ? "bg-white/[0.04] text-zinc-400"
+                  ? "bg-foreground/[0.03] text-muted-foreground"
                   : changePositive
-                    ? "bg-amber-500/10 text-amber-200"
-                    : "bg-amber-500/10 text-amber-200"
+                    ? "bg-primary/10 text-primary"
+                    : "bg-primary/10 text-primary"
               }`}>
                 {!hasChangeSignal ? (
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted" />
                 ) : changePositive ? (
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 ) : (
@@ -143,11 +143,11 @@ export function PriceHistoryChart({
             </div>
             <div className="flex flex-col items-start gap-2 sm:items-end">
               <div className="status-chip w-fit">
-                <Gauge className="h-3.5 w-3.5 text-amber-300" />
+                <Gauge className="h-3.5 w-3.5 text-primary" />
                 {trendTone}
               </div>
               {coverageNote ? (
-                <p className="max-w-sm text-left text-caption font-semibold leading-5 text-amber-100/80 sm:text-right">
+                <p className="max-w-sm text-left text-caption font-semibold leading-5 text-primary/80 sm:text-right">
                   {coverageNote}
                 </p>
               ) : null}
@@ -158,13 +158,13 @@ export function PriceHistoryChart({
             {isLoading ? (
               <div className="skeleton-shimmer h-full w-full rounded-xl border border-white/5" />
             ) : chartData.length === 0 ? (
-              <div className="console-empty flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-sm leading-relaxed text-zinc-500">
+              <div className="console-empty flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-sm leading-relaxed text-muted-foreground">
                 <p>{emptyMessage}</p>
                 {emptyActionLabel && onEmptyAction ? (
                   <button
                     type="button"
                     onClick={onEmptyAction}
-                    className="tech-label rounded-lg border border-amber-300/25 bg-amber-500/10 px-3 py-2 text-amber-100 transition-colors hover:bg-amber-500/20"
+                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/20"
                   >
                     {emptyActionLabel}
                   </button>
@@ -226,7 +226,7 @@ export function PriceHistoryChart({
             )}
           </div>
 
-          <div className="mt-4 flex flex-col gap-2 border-t border-white/[0.06] pt-4 tech-label text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4 tech-label text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>Median advertised listings</span>
             <span className="num">{formatSampleCount(totalSamples)} tracked across this range</span>
           </div>

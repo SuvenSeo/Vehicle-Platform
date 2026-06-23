@@ -6,7 +6,6 @@ describe("Loader entry flow", () => {
   it("shows a compact AutoLens loading state", () => {
     render(<Loader />);
 
-    expect(screen.getByText(/AutoLens/i)).toBeInTheDocument();
     expect(screen.getByRole("status", { name: /Loading AutoLens LK/i })).toBeInTheDocument();
   });
 

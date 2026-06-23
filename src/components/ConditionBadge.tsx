@@ -7,9 +7,9 @@ interface ConditionBadgeProps {
 }
 
 const conditionConfig: Record<Condition, { label: string; className: string }> = {
-  brand_new: { label: "Brand New (0 Mileage)", className: "bg-amber-500/20 text-amber-400 border border-amber-500/30" },
-  reconditioned: { label: "Unregistered (Recon)", className: "bg-amber-500/15 text-amber-200 border border-amber-500/25" },
-  used: { label: "Registered / Pre-owned", className: "bg-zinc-800 text-zinc-300 border border-zinc-700" },
+  brand_new: { label: "Brand New (0 Mileage)", className: "bg-primary/20 text-primary border border-primary/30" },
+  reconditioned: { label: "Unregistered (Recon)", className: "bg-primary/15 text-primary border border-primary/25" },
+  used: { label: "Registered / Pre-owned", className: "bg-secondary text-foreground border border-border" },
 };
 
 export function ConditionBadge({ condition, className }: ConditionBadgeProps) {

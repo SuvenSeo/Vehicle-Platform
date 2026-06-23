@@ -71,7 +71,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
       {
         key: "price",
         label: "Price",
-        render: (listing) => <span className="font-semibold text-amber-200">{formatPrice(listing.price_lkr)}</span>,
+        render: (listing) => <span className="font-semibold text-primary">{formatPrice(listing.price_lkr)}</span>,
         value: (listing) => toNumber(listing.price_lkr),
         better: "lower",
       },
@@ -196,30 +196,30 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-h-[92vh] max-w-[1180px] overflow-hidden border-white/10 bg-[#050607] p-0 text-white">
         <div className="max-h-[92vh] overflow-y-auto">
-          <DialogHeader className="border-b border-white/[0.08] bg-[#080909] px-5 py-5 text-left md:px-7">
+          <DialogHeader className="border-b border-border bg-[#080909] px-5 py-5 text-left md:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/10 px-3 py-1.5 tech-label text-amber-200">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 tech-label text-primary">
                   <Scale className="h-3.5 w-3.5" />
                   Decision comparison
                 </div>
                 <DialogTitle className="text-3xl font-bold tracking-normal text-white md:text-4xl">Compare selected vehicles</DialogTitle>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   Price, deal score, age, mileage, source, and location in one ranked view.
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-left">
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
-                  <p className="tech-label text-zinc-500">Compared</p>
+                <div className="rounded-xl border border-border bg-foreground/[0.03] px-3 py-2.5">
+                  <p className="tech-label text-muted-foreground">Compared</p>
                   <p className="mt-1 text-lg font-bold text-white num">{listings.length}</p>
                 </div>
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
-                  <p className="tech-label text-zinc-500">Price gap</p>
+                <div className="rounded-xl border border-border bg-foreground/[0.03] px-3 py-2.5">
+                  <p className="tech-label text-muted-foreground">Price gap</p>
                   <p className="mt-1 truncate text-lg font-bold text-white num">{priceSpreadLabel}</p>
                 </div>
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5">
-                  <p className="tech-label text-zinc-500">Leader</p>
+                <div className="rounded-xl border border-border bg-foreground/[0.03] px-3 py-2.5">
+                  <p className="tech-label text-muted-foreground">Leader</p>
                   <p className="mt-1 truncate text-lg font-bold text-white">{bestDealListing ? `${bestDealListing.make} ${bestDealListing.model}` : "N/A"}</p>
                 </div>
               </div>
@@ -235,18 +235,18 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                 const isLowestPrice = lowestPriceListing?.id === listing.id;
 
                 return (
-                  <article key={listing.id} className="overflow-hidden rounded-xl border border-white/[0.09] bg-[#0b0d0d]">
+                  <article key={listing.id} className="overflow-hidden rounded-xl border border-border bg-[#0b0d0d]">
                     <div className="relative h-44 bg-black/40">
                       <VehicleThumbnail
                         src={image}
                         listingId={listing.id}
                         alt={`${listing.make} ${listing.model}`}
                         className="h-full w-full object-cover"
-                        placeholderClassName="flex h-full w-full items-center justify-center bg-black/40 text-xs uppercase tracking-[0.2em] text-zinc-600"
+                        placeholderClassName="flex h-full w-full items-center justify-center bg-black/40 text-xs uppercase tracking-[0.2em] text-muted-foreground"
                       />
                       <div className="absolute left-3 top-3 flex flex-wrap gap-2">
                         {isBestDeal ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-500/15 px-2.5 py-1 tech-label text-amber-100">
+                          <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 tech-label text-primary">
                             <BadgeCheck className="h-3 w-3" />
                             Best deal
                           </span>
@@ -265,46 +265,46 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                         <p className="truncate text-lg font-bold tracking-normal text-white">
                           {listing.make} {listing.model}
                         </p>
-                        <p className="mt-1 truncate tech-label text-zinc-500">
+                        <p className="mt-1 truncate tech-label text-muted-foreground">
                           {listing.year || "Year N/A"} / {formatToken(listing.condition)} / {formatToken(listing.source)}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5">
-                          <p className="tech-label text-zinc-500">Price</p>
-                          <p className="mt-1 text-base font-bold text-amber-200 num">{formatPrice(listing.price_lkr)}</p>
+                        <div className="rounded-xl border border-border bg-black/25 px-3 py-2.5">
+                          <p className="tech-label text-muted-foreground">Price</p>
+                          <p className="mt-1 text-base font-bold text-primary num">{formatPrice(listing.price_lkr)}</p>
                         </div>
-                        <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2.5">
-                          <p className="tech-label text-zinc-500">Deal score</p>
+                        <div className="rounded-xl border border-border bg-black/25 px-3 py-2.5">
+                          <p className="tech-label text-muted-foreground">Deal score</p>
                           <div className="mt-1">
                             <DealScoreBadge score={listing.deal_score} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-caption font-semibold text-zinc-300">
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 py-2">
-                          <Calendar className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                      <div className="grid grid-cols-2 gap-2 text-caption font-semibold text-foreground">
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                          <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {listing.year || "Unknown"}
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 py-2">
-                          <Gauge className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                          <Gauge className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {mileage ? `${Math.round(mileage / 1000)}k km` : "Mileage N/A"}
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 py-2">
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {listing.district || "District N/A"}
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-white/[0.08] bg-white/[0.03] px-2.5 py-2">
-                          <WalletCards className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                          <WalletCards className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {formatToken(listing.fuel_type)}
                         </span>
                       </div>
 
                       <Link
                         to={`/listing/${listing.id}`}
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 tech-label text-amber-100 no-underline transition-colors hover:bg-amber-500/15"
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 tech-label text-primary no-underline transition-colors hover:bg-primary/15"
                       >
                         Open listing
                         <ArrowUpRight className="h-3.5 w-3.5" />
@@ -315,9 +315,9 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
               })}
             </section>
 
-            <section className="overflow-hidden rounded-xl border border-white/[0.09] bg-[#0a0b0b]">
-              <div className="border-b border-white/[0.08] px-4 py-4">
-                <p className="tech-label text-zinc-500">Comparison matrix</p>
+            <section className="overflow-hidden rounded-xl border border-border bg-[#0a0b0b]">
+              <div className="border-b border-border px-4 py-4">
+                <p className="tech-label text-muted-foreground">Comparison matrix</p>
                 <h3 className="mt-1 text-xl font-bold tracking-normal text-white">Ranked listing details</h3>
               </div>
 
@@ -329,11 +329,11 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                       gridTemplateColumns: `minmax(140px, 180px) repeat(${listings.length}, minmax(190px, 1fr))`,
                     }}
                   >
-                    <div className="rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2 tech-label text-zinc-500">
+                    <div className="rounded-xl border border-border bg-black/25 px-3 py-2 tech-label text-muted-foreground">
                       Metric
                     </div>
                     {listings.map((listing) => (
-                      <div key={`header-${listing.id}`} className="truncate rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm font-bold text-white">
+                      <div key={`header-${listing.id}`} className="truncate rounded-xl border border-border bg-foreground/[0.03] px-3 py-2 text-sm font-bold text-white">
                         {listing.make} {listing.model}
                       </div>
                     ))}
@@ -347,7 +347,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                         gridTemplateColumns: `minmax(140px, 180px) repeat(${listings.length}, minmax(190px, 1fr))`,
                       }}
                     >
-                      <div className="flex items-center rounded-xl border border-white/[0.08] bg-black/25 px-3 py-2 tech-label text-zinc-500">
+                      <div className="flex items-center rounded-xl border border-border bg-black/25 px-3 py-2 tech-label text-muted-foreground">
                         {row.label}
                       </div>
 
@@ -358,14 +358,14 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                             key={`${row.key}-${listing.id}`}
                             className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold ${
                               isBest
-                                ? "border-amber-400/35 bg-amber-500/10 text-amber-100"
-                                : "border-white/[0.08] bg-white/[0.025] text-zinc-200"
+                                ? "border-primary/35 bg-primary/10 text-primary"
+                                : "border-border bg-white/[0.025] text-foreground"
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span className="min-w-0">{row.render(listing)}</span>
                               {isBest ? (
-                                <span className="shrink-0 rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 tech-label text-amber-200">
+                                <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 tech-label text-primary">
                                   Leader
                                 </span>
                               ) : null}

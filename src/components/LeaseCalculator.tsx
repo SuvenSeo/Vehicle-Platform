@@ -22,7 +22,7 @@ export function LeaseCalculator({ price }: { price: number }) {
   return (
     <div className="page-panel space-y-6 rounded-xl p-6">
       <div className="flex items-center gap-2">
-        <h3 className="field-label text-zinc-300">Lease payment calculator</h3>
+        <h3 className="field-label text-foreground">Lease payment calculator</h3>
       </div>
       
       <div className="grid grid-cols-1 gap-5 border-b border-white/5 pb-6">
@@ -37,11 +37,11 @@ export function LeaseCalculator({ price }: { price: number }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="field-label mb-1 block">Interest rate (%)</label>
-            <input type="number" step="0.5" value={interestRate} onChange={e => setInterestRate(Number(e.target.value))} className="w-full rounded-xl border border-white/10 bg-black/60 p-3 text-sm font-medium text-white outline-none transition-[border-color,background-color,color,box-shadow,transform,opacity] focus:ring-1 focus:ring-amber-400/50" />
+            <input type="number" step="0.5" value={interestRate} onChange={e => setInterestRate(Number(e.target.value))} className="w-full rounded-xl border border-white/10 bg-black/60 p-3 text-sm font-medium text-white outline-none transition-[border-color,background-color,color,box-shadow,transform,opacity] focus:ring-1 focus:ring-primary/50" />
           </div>
           <div>
             <label className="field-label mb-1 block">Term (years)</label>
-            <select value={years} onChange={e => setYears(Number(e.target.value))} className="w-full appearance-none rounded-xl border border-white/10 bg-black/60 p-3 text-sm font-medium text-white outline-none transition-[border-color,background-color,color,box-shadow,transform,opacity] focus:ring-1 focus:ring-amber-400/50">
+            <select value={years} onChange={e => setYears(Number(e.target.value))} className="w-full appearance-none rounded-xl border border-white/10 bg-black/60 p-3 text-sm font-medium text-white outline-none transition-[border-color,background-color,color,box-shadow,transform,opacity] focus:ring-1 focus:ring-primary/50">
               <option value="3">3 Years (36 mo)</option>
               <option value="5">5 Years (60 mo)</option>
               <option value="7">7 Years (84 mo)</option>
@@ -52,19 +52,19 @@ export function LeaseCalculator({ price }: { price: number }) {
       
       <div className="space-y-4">
          <div className="flex justify-between items-center px-1">
-           <span className="text-xs text-zinc-400 font-medium">Principal Amount</span>
+           <span className="text-xs text-muted-foreground font-medium">Principal Amount</span>
            <span className="text-sm font-medium text-white">{formatPrice(principal)}</span>
          </div>
          <div className="flex justify-between items-center px-1">
-           <span className="text-xs text-zinc-400 font-medium">Total Interest Paid</span>
+           <span className="text-xs text-muted-foreground font-medium">Total Interest Paid</span>
            <span className="text-sm font-medium text-white">{formatPrice(totalInterest)}</span>
          </div>
       </div>
       
       <div className="pt-2">
-        <div className="flex flex-col rounded-xl border border-amber-400/20 bg-amber-500/10 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <span className="mb-1 text-sm font-bold uppercase tracking-wider text-amber-300 sm:mb-0">Est. monthly payment</span>
-          <span className="text-2xl font-bold text-white tracking-tight">{formatPrice(monthlyPayment)}<span className="text-sm text-zinc-400 font-normal ml-1">/mo</span></span>
+        <div className="flex flex-col rounded-xl border border-primary/20 bg-primary/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <span className="mb-1 text-sm font-bold uppercase tracking-wider text-primary sm:mb-0">Est. monthly payment</span>
+          <span className="text-2xl font-bold text-white tracking-tight">{formatPrice(monthlyPayment)}<span className="text-sm text-muted-foreground font-normal ml-1">/mo</span></span>
         </div>
       </div>
     </div>

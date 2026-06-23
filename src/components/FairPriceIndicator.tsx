@@ -31,8 +31,8 @@ function getDealBadgeClasses(label: string, size: "sm" | "lg"): string {
   }
   // Fair Price classes — in-band, neutral amber
   return isSm
-    ? "bg-amber-500/10 border-amber-500/20 text-amber-400 p-1 px-2.5 text-label font-mono border"
-    : "text-amber-400 text-4xl tracking-tight p-0 border-0";
+    ? "bg-primary/10 border-primary/20 text-primary p-1 px-2.5 text-label font-mono border"
+    : "text-primary text-4xl tracking-tight p-0 border-0";
 }
 
 export function FairPriceIndicator({ score, condition, size = "sm", className }: FairPriceIndicatorProps) {
@@ -56,17 +56,17 @@ export function FairPriceIndicator({ score, condition, size = "sm", className }:
           className="max-w-[280px] bg-[#111] border border-white/10 p-4 shadow-2xl rounded-xl z-50"
         >
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-widest text-amber-400 font-bold border-b border-white/10 pb-2 mb-2">Dynamic Value Methodology</h4>
-            <p className="text-sm text-zinc-300 leading-relaxed font-medium">
+            <h4 className="text-xs uppercase tracking-widest text-primary font-bold border-b border-white/10 pb-2 mb-2">Dynamic Value Methodology</h4>
+            <p className="text-sm text-foreground leading-relaxed font-medium">
               We calculate <span className="text-white">Fair Price</span> using a proprietary multi-factor algorithm against thousands of active Sri Lankan listings.
             </p>
-            <ul className="text-xs text-zinc-400 space-y-1.5 font-medium">
-              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-amber-500" /> Adjusts for Vehicle Mileage & Age</li>
-              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-amber-500" /> Appraises Condition & Seller Trust</li>
-              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-amber-500" /> Accounts for live Market Demand</li>
-              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-amber-500" /> Factors in prevailing Import Duties</li>
+            <ul className="text-xs text-muted-foreground space-y-1.5 font-medium">
+              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Adjusts for Vehicle Mileage & Age</li>
+              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Appraises Condition & Seller Trust</li>
+              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Accounts for live Market Demand</li>
+              <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Factors in prevailing Import Duties</li>
             </ul>
-            <div className="bg-white/5 p-2 rounded border border-white/[0.05] mt-2">
+            <div className="bg-white/5 p-2 rounded border border-border mt-2">
               <p className="ui-caption italic">Scores between -5 and +8 typically fall comfortably within the {condition === "brand_new" ? "New Fair Price" : "Used Fair Price"} band.</p>
             </div>
           </div>
