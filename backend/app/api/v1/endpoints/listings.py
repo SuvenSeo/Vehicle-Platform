@@ -25,8 +25,11 @@ from app.models.schemas import (
     ComparableVehicle,
     SellerProfileResponse,
 )
+from app.services.rate_limit import RateLimiter
 
-router = APIRouter()
+_listings_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_listings_rate_limiter)])
 
 SOURCE_LABELS = {
     "ikman": "Ikman",

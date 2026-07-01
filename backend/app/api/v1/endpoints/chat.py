@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, Optional
 import re
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
@@ -13,8 +13,15 @@ from sqlalchemy.orm import Session
 from db.models import CarListing, MarketSignal, PriceAggregate, ScrapeRun
 from db.session import get_db
 from app.services.assistant_context import build_assistant_context
+from app.services.rate_limit import RateLimiter
 
 router = APIRouter()
+
+_chat_rate_limiter = RateLimiter(
+    max_requests=20,
+    window_seconds=60,
+    message="Too many chat messages. Please wait a moment before trying again.",
+)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip() or "llama-3.1-8b-instant"
@@ -380,7 +387,8 @@ def _build_fallback_response(
 
 
 @router.post("", response_model=dict)
-def chat_assistant(payload: ChatRequest, db: Session = Depends(get_db)):
+def chat_assistant(payload: ChatRequest, request: Request, db: Session = Depends(get_db)):
+    _chat_rate_limiter(request)
     message = payload.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")

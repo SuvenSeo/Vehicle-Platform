@@ -11,8 +11,11 @@ from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun
 from app.models.schemas import StatsSummary, DistrictPrice
 from app.models.schemas import DashboardInsightsResponse, DistrictQuickInsightResponse
+from app.services.rate_limit import RateLimiter
 
-router = APIRouter()
+_stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_stats_rate_limiter)])
 MIN_REASONABLE_PRICE_LKR = 100_000
 LIVE_STREAM_INTERVAL_SECONDS = 10
 

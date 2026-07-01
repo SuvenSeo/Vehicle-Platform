@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
@@ -14,10 +15,36 @@ structlog.configure(
 )
 logger = structlog.get_logger()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("starting_up")
+    # In a real app, we'd use migrations (Alembic)
+    # For now, we'll initialize the DB directly
+    try:
+        init_db()
+        logger.info("db_initialized")
+    except Exception as e:
+        logger.error("db_init_failed", error=str(e))
+
+    try:
+        start_daily_sync_scheduler()
+    except Exception as e:
+        logger.error("daily_sync_scheduler_start_failed", error=str(e))
+
+    yield
+
+    try:
+        stop_daily_sync_scheduler()
+    except Exception as e:
+        logger.error("daily_sync_scheduler_stop_failed", error=str(e))
+
+
 app = FastAPI(
     title="AutoLens LK API",
     description="Car Market Intelligence Platform for Sri Lanka",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 cors_origins = os.getenv("CORS_ORIGINS")
@@ -43,30 +70,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.on_event("startup")
-async def on_startup():
-    logger.info("starting_up")
-    # In a real app, we'd use migrations (Alembic)
-    # For now, we'll initialize the DB directly
-    try:
-        init_db()
-        logger.info("db_initialized")
-    except Exception as e:
-        logger.error("db_init_failed", error=str(e))
-
-    try:
-        start_daily_sync_scheduler()
-    except Exception as e:
-        logger.error("daily_sync_scheduler_start_failed", error=str(e))
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    try:
-        stop_daily_sync_scheduler()
-    except Exception as e:
-        logger.error("daily_sync_scheduler_stop_failed", error=str(e))
 
 @app.get("/health")
 def health_check():

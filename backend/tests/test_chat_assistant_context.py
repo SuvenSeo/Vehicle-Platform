@@ -19,6 +19,15 @@ def _session():
     return Session()
 
 
+class DummyRequest:
+    headers = {"user-agent": "pytest"}
+    client = type("Client", (), {"host": "127.0.0.1"})()
+
+
+def setup_function():
+    chat._chat_rate_limiter._buckets.clear()
+
+
 def _seed(db):
     now = datetime(2026, 5, 21, 10, 0, tzinfo=timezone.utc)
     listing = CarListing(
@@ -74,7 +83,7 @@ def test_chat_fallback_returns_context_metadata_and_market_signals(monkeypatch):
         message="Show Toyota Vitz deals in Colombo",
         page_context={"route": f"/listing/{listing.id}", "page": "Listing detail", "summary": "Inspecting one listing"},
     )
-    response = chat.chat_assistant(payload, db=db)
+    response = chat.chat_assistant(payload, DummyRequest(), db=db)
 
     assert response["provider"] == "rules"
     assert response["ai_powered"] is False
@@ -100,7 +109,7 @@ def test_chat_uses_configured_groq_with_server_context(monkeypatch):
     monkeypatch.setattr(chat, "_call_groq", fake_call)
 
     payload = chat.ChatRequest(message="What is the pipeline status?", api_key="client-key", model="client-model")
-    response = chat.chat_assistant(payload, db=db)
+    response = chat.chat_assistant(payload, DummyRequest(), db=db)
 
     assert response["provider"] == "groq"
     assert response["ai_powered"] is True
