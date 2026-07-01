@@ -165,7 +165,11 @@ def start_daily_sync_scheduler() -> None:
         next_runs=next_runs,
     )
 
-    if _env_truthy("DAILY_SYNC_RUN_ON_STARTUP", True):
+    # Defaults to False: firing a live scrape immediately on every cold boot
+    # (including on every redeploy) risks starving the event loop before the
+    # API has ever become reachable. The cron schedule above still covers
+    # regular syncs; set DAILY_SYNC_RUN_ON_STARTUP=true to opt back in.
+    if _env_truthy("DAILY_SYNC_RUN_ON_STARTUP", False):
         try:
             loop = asyncio.get_running_loop()
             loop.create_task(_run_daily_sync_job())

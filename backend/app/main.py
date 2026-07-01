@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,15 +16,22 @@ structlog.configure(
 )
 logger = structlog.get_logger()
 
+DB_INIT_TIMEOUT_SECONDS = 20
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("starting_up")
     # In a real app, we'd use migrations (Alembic)
-    # For now, we'll initialize the DB directly
+    # For now, we'll initialize the DB directly.
+    # Runs in a thread with a hard timeout: init_db() is a blocking sync call,
+    # and a stuck DB connection here would otherwise freeze the whole event
+    # loop forever, so the app never starts accepting requests.
     try:
-        init_db()
+        await asyncio.wait_for(asyncio.to_thread(init_db), timeout=DB_INIT_TIMEOUT_SECONDS)
         logger.info("db_initialized")
+    except asyncio.TimeoutError:
+        logger.error("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
     except Exception as e:
         logger.error("db_init_failed", error=str(e))
 
