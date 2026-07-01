@@ -67,6 +67,8 @@ export const VehicleThumbnail = memo(function VehicleThumbnail({
         <img
           src={imageSrc}
           alt={alt}
+          width={480}
+          height={270}
           className={className}
           loading="lazy"
           decoding="async"

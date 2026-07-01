@@ -4,14 +4,10 @@ import { useLocation } from "react-router-dom";
 type Meta = { title: string; description: string };
 
 const SITE = "AutoLens LK";
+const ORIGIN = "https://vehicle-platform-one.vercel.app";
 const DEFAULT_DESCRIPTION =
   "Track Sri Lankan vehicle prices, trends, deal signals, and valuation tools in one market intelligence cockpit.";
 
-/**
- * Per-route document metadata. Previously every route inherited the static
- * homepage <title>/description from index.html; this maps each path to its own.
- * Dynamic pages (e.g. listing detail) may still override the title afterwards.
- */
 const ROUTE_META: Record<string, Meta> = {
   "/": {
     title: `${SITE} — See the Real Price. Every Car. Every District.`,
@@ -87,6 +83,28 @@ function setProperty(property: string, content: string) {
   tag.setAttribute("content", content);
 }
 
+function setCanonical(href: string) {
+  let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", href);
+}
+
+function setJsonLd(data: Record<string, unknown>) {
+  const id = "autolens-jsonld";
+  let script = document.getElementById(id) as HTMLScriptElement | null;
+  if (!script) {
+    script = document.createElement("script");
+    script.id = id;
+    script.type = "application/ld+json";
+    document.head.appendChild(script);
+  }
+  script.textContent = JSON.stringify(data);
+}
+
 export function RouteMeta() {
   const { pathname } = useLocation();
 
@@ -101,8 +119,51 @@ export function RouteMeta() {
     setMeta("description", meta.description);
     setProperty("og:title", meta.title);
     setProperty("og:description", meta.description);
+    setProperty("og:url", `${ORIGIN}${pathname}`);
     setMeta("twitter:title", meta.title);
     setMeta("twitter:description", meta.description);
+    setCanonical(`${ORIGIN}${pathname}`);
+
+    if (pathname === "/") {
+      setJsonLd({
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: SITE,
+        url: ORIGIN,
+        description: DEFAULT_DESCRIPTION,
+        potentialAction: {
+          "@type": "SearchAction",
+          target: { "@type": "EntryPoint", urlTemplate: `${ORIGIN}/?q={search_term_string}` },
+          "query-input": "required name=search_term_string",
+        },
+      });
+    } else if (pathname === "/best-picks") {
+      setJsonLd({
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: "Best Vehicle Deals in Sri Lanka",
+        description: "Top-ranked vehicle deals from live market data.",
+        url: `${ORIGIN}/best-picks`,
+        itemListOrder: "https://schema.org/ItemListOrderDescending",
+      });
+    } else if (pathname.startsWith("/listing/")) {
+      setJsonLd({
+        "@context": "https://schema.org",
+        "@type": "Vehicle",
+        name: meta.title,
+        description: meta.description,
+        url: `${ORIGIN}${pathname}`,
+      });
+    } else {
+      setJsonLd({
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: meta.title,
+        description: meta.description,
+        url: `${ORIGIN}${pathname}`,
+        isPartOf: { "@type": "WebSite", name: SITE, url: ORIGIN },
+      });
+    }
   }, [pathname]);
 
   return null;

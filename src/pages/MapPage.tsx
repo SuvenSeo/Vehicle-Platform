@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense, useMemo } from "react";
 import { getDistrictPrices, formatPrice } from "@/services/api";
 import { DistrictPrice } from "@/types/car";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
 const MarketMap = lazy(() => import("@/components/MarketMap").then(m => ({ default: m.MarketMap })));
 

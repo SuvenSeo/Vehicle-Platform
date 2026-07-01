@@ -36,6 +36,15 @@ export default defineConfig({
           if (id.includes("@radix-ui") || id.includes("lucide-react")) {
             return "ui-vendor";
           }
+          if (id.includes("recharts") || id.includes("d3-")) {
+            return "chart-vendor";
+          }
+          if (id.includes("leaflet") || id.includes("react-leaflet")) {
+            return "map-vendor";
+          }
+          if (id.includes("framer-motion") || id.includes("motion")) {
+            return "motion-vendor";
+          }
         },
       },
     },
