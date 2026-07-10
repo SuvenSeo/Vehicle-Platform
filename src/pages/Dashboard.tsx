@@ -1,4 +1,5 @@
 import { startTransition, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { FilterState, CarListing, DashboardInsights } from "@/types/car";
 import {
@@ -107,13 +108,8 @@ export default function Dashboard() {
     });
   }, [searchParams]);
 
-  const [stats, setStats] = useState<StatsOverview | null>(null);
-  const [listings, setListings] = useState<CarListing[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loadingListings, setLoadingListings] = useState(true);
+  const queryClient = useQueryClient();
   const liveMarketSnapshot = useLiveMarketSnapshot();
-  const [dashboardInsights, setDashboardInsights] = useState<DashboardInsights | null>(null);
-  const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [compareListings, setCompareListings] = useState<CarListing[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [watchlistIds, setWatchlistIds] = useState<number[]>([]);
@@ -132,24 +128,31 @@ export default function Dashboard() {
   const [showMarketAlerts, setShowMarketAlerts] = useState(false);
   const [alertPriceInput, setAlertPriceInput] = useState("");
   const liveListingAtRef = useRef<string | null>(null);
-  const [marketDataUnavailable, setMarketDataUnavailable] = useState(false);
 
-  // ── Data fetching ──────────────────────────────────────────────
+  // ── Data fetching (React Query owns caching/retries/refetching) ──
+
+  const statsQuery = useQuery({ queryKey: ["stats"], queryFn: getStats });
+  const makesQuery = useQuery({ queryKey: ["makes"], queryFn: getMakes });
+  const insightsQuery = useQuery({
+    queryKey: ["dashboard-insights"],
+    queryFn: getDashboardInsights,
+    refetchInterval: 120_000,
+  });
+  const listingsQuery = useQuery({
+    queryKey: ["listings", filters],
+    queryFn: () => getListings(filters),
+  });
+
+  const stats: StatsOverview | null = statsQuery.data ?? null;
+  const makes = useMemo(() => makesQuery.data ?? [], [makesQuery.data]);
+  const dashboardInsights: DashboardInsights | null = insightsQuery.data ?? null;
+  const listings = useMemo(() => listingsQuery.data?.listings ?? [], [listingsQuery.data]);
+  const total = listingsQuery.data?.total ?? 0;
+  const loadingListings = listingsQuery.isPending;
 
   useEffect(() => {
-    getStats()
-      .then((data) => { setStats(data); setMarketDataUnavailable(false); })
-      .catch(() => setMarketDataUnavailable(true));
-    getMakes().then(setMakes).catch(() => {});
     setWatchlistIds(loadWatchlistIds());
     setMarketAlerts(loadMarketAlerts());
-  }, []);
-
-  useEffect(() => {
-    const refresh = () => { getDashboardInsights().then(setDashboardInsights).catch(() => {}); };
-    refresh();
-    const interval = window.setInterval(refresh, 120_000);
-    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => { saveWatchlistIds(watchlistIds); }, [watchlistIds]);
@@ -192,26 +195,21 @@ export default function Dashboard() {
     return () => { cancelled = true; };
   }, [showSavedListings, watchlistIds]);
 
-  const fetchListings = useCallback(async () => {
-    setLoadingListings(true);
-    try { const result = await getListings(filters); setListings(result.listings); setTotal(result.total); }
-    catch { setListings([]); setTotal(0); }
-    finally { setLoadingListings(false); }
-  }, [filters]);
-
-  useEffect(() => { fetchListings(); }, [fetchListings]);
-
   useEffect(() => {
     const latestAt = liveMarketSnapshot?.latest_listing_at || null;
     if (!latestAt) return;
     const previous = liveListingAtRef.current;
     liveListingAtRef.current = latestAt;
     if (!previous || previous === latestAt) return;
-    getStats().then(setStats).catch(() => {});
-    getDashboardInsights().then(setDashboardInsights).catch(() => {});
-    if (filters.page === 1 && filters.sort === "newest") { fetchListings(); setNewLiveListingsAvailable(false); }
-    else setNewLiveListingsAvailable(true);
-  }, [fetchListings, filters.page, filters.sort, liveMarketSnapshot?.latest_listing_at]);
+    queryClient.invalidateQueries({ queryKey: ["stats"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-insights"] });
+    if (filters.page === 1 && filters.sort === "newest") {
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+      setNewLiveListingsAvailable(false);
+    } else {
+      setNewLiveListingsAvailable(true);
+    }
+  }, [queryClient, filters.page, filters.sort, liveMarketSnapshot?.latest_listing_at]);
 
   // ── URL sync ───────────────────────────────────────────────────
 

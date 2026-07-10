@@ -1,4 +1,5 @@
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
@@ -70,6 +71,21 @@ vi.mock("@/services/api", () => ({
 import Dashboard from "@/pages/Dashboard";
 import * as api from "@/services/api";
 
+function renderDashboard(initialEntries: string[] = ["/"]) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AppPreferencesProvider>
+        <MemoryRouter initialEntries={initialEntries}>
+          <Dashboard />
+        </MemoryRouter>
+      </AppPreferencesProvider>
+    </QueryClientProvider>,
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getStats).mockResolvedValue(null);
@@ -97,25 +113,13 @@ beforeEach(() => {
 
 describe("Dashboard runtime safety", () => {
   it("renders the market pulse section without throwing", () => {
-    render(
-      <AppPreferencesProvider>
-        <MemoryRouter>
-          <Dashboard />
-        </MemoryRouter>
-      </AppPreferencesProvider>,
-    );
+    renderDashboard();
 
     expect(screen.getByRole("heading", { name: /what.s moving right now/i })).toBeInTheDocument();
   });
 
   it("renders the trending models section", () => {
-    render(
-      <AppPreferencesProvider>
-        <MemoryRouter>
-          <Dashboard />
-        </MemoryRouter>
-      </AppPreferencesProvider>,
-    );
+    renderDashboard();
 
     expect(screen.getByText(/trending models/i)).toBeInTheDocument();
   });
@@ -140,26 +144,14 @@ describe("Dashboard runtime safety", () => {
       ],
     });
 
-    render(
-      <AppPreferencesProvider>
-        <MemoryRouter>
-          <Dashboard />
-        </MemoryRouter>
-      </AppPreferencesProvider>,
-    );
+    renderDashboard();
 
     await screen.findByRole("heading", { name: /what.s moving right now/i });
     expect(screen.queryByText(/Toyota\s+Vitz/i)).not.toBeInTheDocument();
   });
 
   it("loads safely when district is provided in URL query", async () => {
-    render(
-      <AppPreferencesProvider>
-        <MemoryRouter initialEntries={["/?district=Jaffna"]}>
-          <Dashboard />
-        </MemoryRouter>
-      </AppPreferencesProvider>,
-    );
+    renderDashboard(["/?district=Jaffna"]);
 
     await screen.findByText(/trending models/i);
 
