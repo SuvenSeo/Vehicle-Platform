@@ -4,10 +4,13 @@ from fastapi import HTTPException, Request
 
 
 def _client_key(request: Request) -> str:
-    forwarded_for = str(request.headers.get("x-forwarded-for") or "").split(",", 1)[0].strip()
-    fly_client_ip = str(request.headers.get("fly-client-ip") or "").strip()
+    # Use the RIGHTMOST X-Forwarded-For hop: it is appended by the nearest
+    # trusted proxy, while leftmost entries are client-supplied and would let a
+    # caller rotate limiter keys with a forged header on every request.
+    forwarded_for = str(request.headers.get("x-forwarded-for") or "")
+    last_hop = forwarded_for.rsplit(",", 1)[-1].strip()
     client_host = getattr(getattr(request, "client", None), "host", None)
-    ip = forwarded_for or fly_client_ip or str(client_host or "unknown")
+    ip = last_hop or str(client_host or "unknown")
     user_agent = str(request.headers.get("user-agent") or "unknown")[:120]
     return f"{ip}|{user_agent}"
 

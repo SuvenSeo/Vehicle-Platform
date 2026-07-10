@@ -24,7 +24,7 @@ class DummyRequest:
 
 
 def setup_function():
-    feedback._RATE_LIMIT_BUCKETS.clear()
+    feedback._feedback_rate_limiter._buckets.clear()
 
 
 def test_create_feedback_persists_user_report():
@@ -59,10 +59,10 @@ def test_feedback_rate_limit_rejects_repeated_submissions():
     request = DummyRequest()
 
     for index in range(feedback.RATE_LIMIT_MAX_REQUESTS):
-        feedback._enforce_feedback_rate_limit(request, now=1000 + index)
+        feedback._feedback_rate_limiter(request, now=1000 + index)
 
     try:
-        feedback._enforce_feedback_rate_limit(request, now=1005)
+        feedback._feedback_rate_limiter(request, now=1005)
     except Exception as exc:
         assert getattr(exc, "status_code", None) == 429
     else:
