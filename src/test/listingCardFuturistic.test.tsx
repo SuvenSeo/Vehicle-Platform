@@ -28,15 +28,28 @@ const sampleListing: CarListing = {
   scraped_at: new Date().toISOString(),
 };
 
-describe("ListingCard futuristic module", () => {
-  it("shows integrity score and technical cc spec", () => {
+describe("ListingCard footer metadata", () => {
+  it("shows real days-on-market instead of a fabricated integrity score", () => {
     render(
       <MemoryRouter>
         <ListingCard listing={sampleListing} />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/\/100/i)).toBeInTheDocument();
+    // first_seen_at is now, so the card reports it was listed today.
+    expect(screen.getByText(/listed today/i)).toBeInTheDocument();
+    expect(screen.queryByText(/\/100/i)).not.toBeInTheDocument();
     expect(screen.getByText(/cc/i)).toBeInTheDocument();
+  });
+
+  it("reports day counts for older listings", () => {
+    const listedTenDaysAgo = new Date(Date.now() - 10 * 86_400_000).toISOString();
+    render(
+      <MemoryRouter>
+        <ListingCard listing={{ ...sampleListing, id: 12, first_seen_at: listedTenDaysAgo, scraped_at: listedTenDaysAgo }} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/listed 10 days/i)).toBeInTheDocument();
   });
 });

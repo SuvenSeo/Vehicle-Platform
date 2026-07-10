@@ -25,6 +25,23 @@ export function getListingDealLabel(rawScore: number): "Good Deal" | "Fair Price
   return "Fair Price";
 }
 
+export function getListingDaysOnMarket(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const listedAt = Date.parse(iso);
+  if (!Number.isFinite(listedAt)) return null;
+  const diffMs = Date.now() - listedAt;
+  if (diffMs < 0) return 0;
+  return Math.floor(diffMs / 86_400_000);
+}
+
+export function getListingDaysOnMarketLabel(iso: string | null | undefined): string | null {
+  const days = getListingDaysOnMarket(iso);
+  if (days === null) return null;
+  if (days === 0) return "Listed today";
+  if (days === 1) return "Listed 1 day";
+  return `Listed ${days} days`;
+}
+
 export function getListingRecencyLabel(iso: string | null): string {
   if (!iso) return "Today";
   const d = new Date(iso);

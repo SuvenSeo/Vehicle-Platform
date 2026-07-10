@@ -7,7 +7,12 @@ import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { FairPriceIndicator } from "@/components/FairPriceIndicator";
 import { isReasonableListingPrice } from "@/lib/formatting";
-import { getListingDealLabel, getListingImageUrl, getListingRecencyLabel } from "@/lib/listing-card-meta";
+import {
+  getListingDaysOnMarketLabel,
+  getListingDealLabel,
+  getListingImageUrl,
+  getListingRecencyLabel,
+} from "@/lib/listing-card-meta";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -47,19 +52,6 @@ function formatEngineCc(value: number | null | undefined): string {
   return `${Math.round(Number(value)).toLocaleString()} cc`;
 }
 
-function getIntegrityScore(listing: CarListing): number {
-  const nowYear = new Date().getFullYear();
-  const agePenalty = Math.max(0, nowYear - Number(listing.year || nowYear)) * 1.9;
-  const mileagePenalty = Number.isFinite(listing.mileage_km) ? Math.min(26, Number(listing.mileage_km) / 9000) : 14;
-  const conditionBoost =
-    listing.condition === "brand_new" ? 18
-      : listing.condition === "reconditioned" ? 13
-      : 7;
-  const dealBoost = clamp(Number(listing.deal_score || 0) * 0.55, -6, 8);
-  const dealerBoost = listing.is_dealer ? 4 : 0;
-  return clamp(Math.round(71 + conditionBoost + dealerBoost + dealBoost - agePenalty - mileagePenalty), 34, 97);
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -74,7 +66,7 @@ export const ListingCard = memo(function ListingCard({
   const dealScore = Number(listing.deal_score ?? 0);
   const imageUrl = getListingImageUrl(listing);
   const dealLabel = getListingDealLabel(dealScore);
-  const integrityScore = getIntegrityScore(listing);
+  const daysOnMarketLabel = getListingDaysOnMarketLabel(listing.first_seen_at || listing.scraped_at);
   const recency = getListingRecencyLabel(listing.first_seen_at || listing.scraped_at);
   const priceValue = Number(listing.price_lkr || 0);
   const hasKnownPrice = isReasonableListingPrice(priceValue);
@@ -218,7 +210,8 @@ export const ListingCard = memo(function ListingCard({
                 {listing.district || "District N/A"}
               </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
-                {listing.source} · Score {integrityScore}/100
+                {listing.source}
+                {daysOnMarketLabel ? ` · ${daysOnMarketLabel}` : ""}
               </p>
             </div>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
