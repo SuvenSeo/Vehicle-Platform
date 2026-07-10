@@ -103,70 +103,38 @@ npm run build
 
 Both should pass before deployment.
 
-## 6) Deploy Backend On Fly.io
+## 6) Deploy Backend On Hugging Face Spaces
 
-This repo now includes `backend/Dockerfile` and `backend/fly.toml` for Fly deployment.
+The production backend runs on Hugging Face Spaces:
 
-From repo root:
-
-```bash
-cd backend
-fly auth login
-fly launch --no-deploy
-```
-
-Set required backend secrets:
-
-```bash
-fly secrets set DATABASE_URL="postgresql://..." \
-  CORS_ORIGINS="https://vehicle-platform-one.vercel.app" \
-  ALLOW_SQLITE_FALLBACK="false"
-```
-
-Deploy:
-
-```bash
-fly deploy
+```text
+https://seo292-vehicle-platform-backend.hf.space
 ```
 
 After deploy, verify:
 
 ```bash
-curl https://<your-fly-app>.fly.dev/health
-curl https://<your-fly-app>.fly.dev/api/v1/stats/summary
+curl https://seo292-vehicle-platform-backend.hf.space/health
+curl https://seo292-vehicle-platform-backend.hf.space/api/v1/stats/summary
 ```
 
-## 7) Connect Vercel Frontend To Fly Backend
+## 7) Connect Vercel Frontend To Hugging Face Backend
 
 In Vercel Project Settings -> Environment Variables, set:
 
 ```env
-VITE_API_URL=https://<your-fly-app>.fly.dev/api/v1
+VITE_API_URL=https://seo292-vehicle-platform-backend.hf.space/api/v1
 ```
 
-Then redeploy frontend in Vercel. Your live stats/map/listings/trends should populate once API calls target Fly.
+Then redeploy frontend in Vercel. Your live stats/map/listings/trends should populate once API calls target Hugging Face.
 
 ## 8) Make Deployments Fully Automatic
 
 After one-time setup, every push updates production automatically.
 
-### Backend auto-deploy (GitHub -> Fly.io)
+### Backend auto-deploy (GitHub -> Hugging Face Spaces)
 
-This repo includes [deploy-backend-fly.yml](.github/workflows/deploy-backend-fly.yml). It deploys the backend whenever `backend/**` changes on `main`.
-
-One-time setup in GitHub:
-
-1. Generate Fly token:
-
-```bash
-fly auth token
-```
-
-1. In GitHub repo -> Settings -> Secrets and variables -> Actions, add:
-
-- `FLY_API_TOKEN` = output of `fly auth token`
-
-1. Confirm your Fly app is initialized once (`fly launch --no-deploy`) and `backend/fly.toml` app name matches your real Fly app.
+This repo includes [deploy-hf-backend.yml](.github/workflows/deploy-hf-backend.yml). It syncs backend code to the Hugging Face Space when backend files change on `main`.
 
 ### Frontend auto-deploy (GitHub -> Vercel)
 
@@ -178,12 +146,12 @@ Use Vercel Git integration:
 4. Set env var:
 
 ```env
-VITE_API_URL=https://<your-fly-app>.fly.dev/api/v1
+VITE_API_URL=https://seo292-vehicle-platform-backend.hf.space/api/v1
 ```
 
 Now pushes to `main` will:
 
-1. Auto deploy backend to Fly (if backend files changed).
+1. Auto deploy backend to Hugging Face Spaces (if backend files changed).
 2. Auto deploy frontend to Vercel (if frontend files changed).
 
 ### Optional: trigger Vercel redeploy even when only backend changes

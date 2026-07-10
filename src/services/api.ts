@@ -26,13 +26,8 @@ import type {
 import { normalizeVehicleImageUrlWithBase, pickVehicleImageUrl } from "@/lib/listingImage";
 import { formatPriceLkrMillions } from "@/lib/formatting";
 
-const LEGACY_HF_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
-const VERCEL_COLLOCATED_API = "/_/backend/api/v1";
+const DEFAULT_PRODUCTION_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const HF_COLD_START_TIMEOUT_MS = 60_000;
-
-function isAbsoluteHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value);
-}
 
 function normalizeApiBasePath(raw: string): string {
   const trimmed = raw.replace(/\/+$/, "");
@@ -48,15 +43,7 @@ function resolveApiBase() {
   }
 
   if (!configured) {
-    return normalizeApiBasePath(VERCEL_COLLOCATED_API);
-  }
-
-  if (isAbsoluteHttpUrl(configured)) {
-    // Legacy HF default is often unreachable; prefer the Vercel co-located API.
-    if (configured.replace(/\/+$/, "") === LEGACY_HF_API.replace(/\/+$/, "")) {
-      return normalizeApiBasePath(VERCEL_COLLOCATED_API);
-    }
-    return normalizeApiBasePath(configured);
+    return normalizeApiBasePath(DEFAULT_PRODUCTION_API);
   }
 
   return normalizeApiBasePath(configured);
