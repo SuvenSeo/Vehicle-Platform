@@ -2,10 +2,11 @@ import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 import structlog
 import os
 from .api.v1.api import api_router
-from db.session import init_db
+from db.session import init_db, hot_engine
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
 
 # Setup logging
@@ -79,9 +80,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+HEALTH_DB_PROBE_TIMEOUT_SECONDS = 5
+
+
+def _probe_db() -> None:
+    with hot_engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+
+
 @app.get("/health")
-def health_check():
-    return {"status": "ok", "version": "1.0.0"}
+async def health_check():
+    # A cheap bounded read probe: a Space with a dead database must not
+    # keep reporting itself healthy to uptime monitoring.
+    db_status = "ok"
+    try:
+        await asyncio.wait_for(asyncio.to_thread(_probe_db), timeout=HEALTH_DB_PROBE_TIMEOUT_SECONDS)
+    except Exception as exc:
+        db_status = "down"
+        logger.warning("health_db_probe_failed", error=str(exc))
+
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "db": db_status,
+        "version": "1.0.0",
+    }
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
