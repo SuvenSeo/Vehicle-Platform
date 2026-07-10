@@ -1,10 +1,13 @@
-from fastapi import APIRouter
-from .endpoints import chat, feedback, listings, market, pipeline, pro, stats
+from fastapi import APIRouter, Depends
+from .endpoints import auth, chat, feedback, listings, market, pipeline, pro, stats
+from .endpoints.auth import require_pro_access
 
 api_router = APIRouter()
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(listings.router, prefix="/listings", tags=["listings"])
 api_router.include_router(stats.router, prefix="/stats", tags=["stats"])
-api_router.include_router(pro.router, prefix="/pro", tags=["pro"])
+# Pro endpoints become a real server-side boundary when PRO_ACCESS_ENFORCED=true.
+api_router.include_router(pro.router, prefix="/pro", tags=["pro"], dependencies=[Depends(require_pro_access)])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
 api_router.include_router(pipeline.router, prefix="/pipeline", tags=["pipeline"])

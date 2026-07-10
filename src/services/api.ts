@@ -25,6 +25,7 @@ import type {
 } from "@/types/pro";
 import { normalizeVehicleImageUrlWithBase, pickVehicleImageUrl } from "@/lib/listingImage";
 import { formatPriceLkrMillions } from "@/lib/formatting";
+import { authHeaders } from "@/lib/authToken";
 
 const DEFAULT_PRODUCTION_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const HF_COLD_START_TIMEOUT_MS = 60_000;
@@ -723,7 +724,7 @@ function buildSnapshotTrendSeries(
   };
 }
 
-async function fetchJSON<T>(path: string, params?: Record<string, any>): Promise<T> {
+async function fetchJSON<T>(path: string, params?: Record<string, any>, headers?: Record<string, string>): Promise<T> {
   if (USE_MOCK) throw new Error("Mock mode is disabled");
 
   const url = new URL(`${API_BASE}${path}`, window.location.origin);
@@ -744,7 +745,7 @@ async function fetchJSON<T>(path: string, params?: Record<string, any>): Promise
 
     try {
       const response = await fetch(url.toString(), {
-        headers: { 'Accept': 'application/json' },
+        headers: { 'Accept': 'application/json', ...(headers || {}) },
         signal: controller.signal,
       });
 
@@ -1199,27 +1200,27 @@ export const getDashboardInsights = async (): Promise<DashboardInsights> => {
 };
 
 export const getProMarketSnapshot = async (): Promise<ProMarketSnapshot> => {
-  return fetchJSON<ProMarketSnapshot>("/pro/market-snapshot");
+  return fetchJSON<ProMarketSnapshot>("/pro/market-snapshot", undefined, authHeaders());
 };
 
 export const getProVehicleLanes = async (
   filters: ProVehicleLaneFilters = {},
 ): Promise<ProVehicleLane[]> => {
-  return fetchJSON<ProVehicleLane[]>("/pro/vehicle-lanes", filters);
+  return fetchJSON<ProVehicleLane[]>("/pro/vehicle-lanes", filters, authHeaders());
 };
 
 export const getProDistricts = async (): Promise<ProDistrictProfile[]> => {
-  return fetchJSON<ProDistrictProfile[]>("/pro/districts");
+  return fetchJSON<ProDistrictProfile[]>("/pro/districts", undefined, authHeaders());
 };
 
 export const getProVehicleLaneDetail = async (
   params: Pick<ProVehicleLaneFilters, "make" | "model" | "district" | "condition">,
 ): Promise<ProDetailPayload> => {
-  return fetchJSON<ProDetailPayload>("/pro/vehicle-lane-detail", params);
+  return fetchJSON<ProDetailPayload>("/pro/vehicle-lane-detail", params, authHeaders());
 };
 
 export const getProDistrictDetail = async (district: string): Promise<ProDetailPayload> => {
-  return fetchJSON<ProDetailPayload>("/pro/district-detail", { district });
+  return fetchJSON<ProDetailPayload>("/pro/district-detail", { district }, authHeaders());
 };
 
 export const getListingsForExport = async (

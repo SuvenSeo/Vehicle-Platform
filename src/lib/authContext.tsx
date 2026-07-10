@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { API_BASE } from "@/services/api";
+import { storeAuthToken } from "@/lib/authToken";
 
 export interface AuthUser {
   email: string;
@@ -132,6 +133,7 @@ async function loginWithBackend(email: string, password: string): Promise<AuthUs
   }
 
   const data = (await response.json().catch(() => ({}))) as LoginResponse;
+  storeAuthToken(data.token || null);
   return normalizeServerUser(data.user, email);
 }
 
@@ -176,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
+    storeAuthToken(null);
   }, []);
 
   return (

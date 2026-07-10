@@ -158,6 +158,28 @@ Now pushes to `main` will:
 
 Normally not required because frontend calls the same backend URL, but if needed you can manually click "Redeploy" in Vercel Deployments.
 
+### Real Pro authentication (optional)
+
+The backend ships an env-configured auth layer. Set on the backend:
+
+```env
+AUTH_TOKEN_SECRET=<long-random-string>
+AUTH_USERS=[{"email":"owner@example.com","password_sha256":"<hex>","name":"Owner","plan":"enterprise","subscription_status":"active"}]
+PRO_ACCESS_ENFORCED=true
+```
+
+Generate a password hash with:
+
+```bash
+python -c "import hashlib; print(hashlib.sha256(b'your-password').hexdigest())"
+```
+
+Then set `VITE_ENABLE_BACKEND_AUTH=true` on the frontend build. Sign-in
+goes through `POST /api/v1/auth/login`, the issued bearer token is sent
+on every `/api/v1/pro/*` call, and with `PRO_ACCESS_ENFORCED=true` those
+endpoints reject requests without a valid pro/enterprise token. With the
+flag unset, Pro endpoints stay public (previous behaviour).
+
 ### In-Space scheduler is off by default
 
 The backend also ships an optional APScheduler-based sync
