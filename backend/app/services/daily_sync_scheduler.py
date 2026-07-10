@@ -123,7 +123,12 @@ async def _run_daily_sync_job() -> None:
 def start_daily_sync_scheduler() -> None:
     global _scheduler
 
-    if not _env_truthy("DAILY_SYNC_ENABLED", True):
+    # Default OFF: GitHub Actions owns scraping. Running Playwright scrapes
+    # inside the API container both duplicates the Actions runs and competes
+    # with request handling for the Space's limited memory/CPU (this class of
+    # problem has taken the Space down before). Set DAILY_SYNC_ENABLED=true to
+    # opt back in on deployments that have no external scrape runner.
+    if not _env_truthy("DAILY_SYNC_ENABLED", False):
         log.info("daily_sync_disabled")
         return
 

@@ -158,6 +158,14 @@ Now pushes to `main` will:
 
 Normally not required because frontend calls the same backend URL, but if needed you can manually click "Redeploy" in Vercel Deployments.
 
+### In-Space scheduler is off by default
+
+The backend also ships an optional APScheduler-based sync
+(`DAILY_SYNC_ENABLED`, default `false`). GitHub Actions is the single
+owner of scraping; only enable the in-process scheduler on deployments
+that have no external scrape runner, because Playwright competes with
+API traffic for the container's memory.
+
 ## 9) Run Daily Scraping In GitHub Cloud
 
 This repo now includes `.github/workflows/daily-scrape.yml` to run scraping in GitHub Actions (no local data/wifi usage from your side).
