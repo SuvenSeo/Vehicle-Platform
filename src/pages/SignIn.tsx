@@ -73,15 +73,16 @@ export default function SignIn() {
 
           {DEMO_AUTH_ENABLED && (
             <div className="rounded-lg border border-primary/15 bg-primary/5 p-3.5 space-y-2">
-              <p className="text-[10px] font-semibold text-primary/80">Review credentials</p>
+              <p className="text-[10px] font-semibold text-primary/80">Review accounts</p>
               {DEMO_ACCOUNT_SUMMARY.map((acc) => (
-                <button key={acc.email} type="button" onClick={() => { setValue("email", acc.email); setValue("password", acc.password); setServerError(""); }}
+                <button key={acc.email} type="button" onClick={() => { setValue("email", acc.email); setServerError(""); }}
                   className="flex w-full items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 text-left hover:border-border"
                 >
                   <div><p className="text-[11px] font-semibold text-foreground">{acc.name}</p><p className="text-[10px] text-muted-foreground">{acc.email}</p></div>
                   <span className={`text-[9px] font-bold uppercase tracking-[0.08em] rounded-md border px-2 py-0.5 ${acc.subscriptionStatus === "active" ? "border-primary/15 text-primary/80" : "border-border text-muted-foreground"}`}>{acc.plan}</span>
                 </button>
               ))}
+              <p className="text-[10px] text-muted-foreground">Selecting an account fills the email — enter its password to sign in.</p>
             </div>
           )}
 

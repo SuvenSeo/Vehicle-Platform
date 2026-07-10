@@ -25,32 +25,11 @@ const BACKEND_AUTH_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_AUTH === "true"
 type DemoAccountRecord = AuthUser & { password: string };
 type LoginResponse = { user?: Partial<AuthUser>; token?: string };
 
-const BUILT_IN_REVIEW_ACCOUNTS: DemoAccountRecord[] = BACKEND_AUTH_ENABLED
-  ? []
-  : [
-      {
-        email: "owner@autolens.lk",
-        password: "AutoLensPro2026!",
-        name: "AutoLens Owner",
-        plan: "enterprise",
-        subscriptionStatus: "active",
-        avatarInitials: "AO",
-      },
-      {
-        email: "free@autolens.lk",
-        password: "AutoLensFree2026!",
-        name: "Free Preview User",
-        plan: "free",
-        subscriptionStatus: "none",
-        avatarInitials: "FU",
-      },
-    ];
-
+// No accounts are ever baked into the shipped bundle. Demo/review accounts
+// exist only when a build explicitly opts in via VITE_ENABLE_DEMO_AUTH=true
+// and provides them through VITE_DEMO_USERS.
 function parseDemoUsers(): Record<string, DemoAccountRecord> {
-  const users = BUILT_IN_REVIEW_ACCOUNTS.reduce<Record<string, DemoAccountRecord>>((acc, item) => {
-    acc[item.email] = item;
-    return acc;
-  }, {});
+  const users: Record<string, DemoAccountRecord> = {};
 
   if (import.meta.env.VITE_ENABLE_DEMO_AUTH !== "true") return users;
 
@@ -90,12 +69,13 @@ function parseDemoUsers(): Record<string, DemoAccountRecord> {
 const DEMO_USERS = parseDemoUsers();
 export const DEMO_AUTH_ENABLED = Object.keys(DEMO_USERS).length > 0;
 const PREVIEW_AUTH_ENABLED = !BACKEND_AUTH_ENABLED;
-export const DEMO_ACCOUNT_SUMMARY = Object.values(DEMO_USERS).map(({ email, name, plan, subscriptionStatus, password, avatarInitials }) => ({
+// Passwords are intentionally NOT exported: the sign-in page may list which
+// review accounts exist, but secrets never leave this module.
+export const DEMO_ACCOUNT_SUMMARY = Object.values(DEMO_USERS).map(({ email, name, plan, subscriptionStatus, avatarInitials }) => ({
   email,
   name,
   plan,
   subscriptionStatus,
-  password,
   avatarInitials,
 }));
 
