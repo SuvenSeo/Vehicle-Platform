@@ -1748,16 +1748,25 @@ def get_similar_listings(listing_id: int, db: Session = Depends(get_db)):
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found.")
-    
-    # Simple similarity: same make, similar price range (+/- 20%), exclude self
+
+    # Simple similarity: same make, similar price range (+/- 20%), exclude self.
+    # Listings without a usable price fall back to same make+model instead of a
+    # price band (float(None) previously crashed this endpoint with a 500).
+    filters = [
+        CarListing.id != listing_id,
+        CarListing.make == listing.make,
+        CarListing.is_outlier == False,
+    ]
+
+    base_price = float(listing.price_lkr) if listing.price_lkr is not None else 0.0
+    if base_price > 0:
+        filters.append(CarListing.price_lkr.between(base_price * 0.8, base_price * 1.2))
+    else:
+        filters.append(CarListing.model == listing.model)
+
     similar = (
         db.query(CarListing)
-        .filter(
-            CarListing.id != listing_id,
-            CarListing.make == listing.make,
-            CarListing.price_lkr.between(float(listing.price_lkr) * 0.8, float(listing.price_lkr) * 1.2),
-            CarListing.is_outlier == False
-        )
+        .filter(*filters)
         .limit(6)
         .all()
     )
