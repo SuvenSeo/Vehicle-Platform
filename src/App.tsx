@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
 import { AppFooter } from "@/components/AppFooter";
-import { Loader } from "@/components/Loader";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
@@ -44,12 +43,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-const ENTRY_SESSION_KEY = "autolens.has_entered";
-
-function getSessionFlag(key: string): boolean {
-  if (typeof window === "undefined") return false;
-  return window.sessionStorage.getItem(key) === "1";
-}
 
 function ScrollToHash() {
   const { pathname, hash } = useLocation();
@@ -105,27 +98,14 @@ function MainLayout({ chatMounted }: { chatMounted: boolean }) {
 }
 
 const App = () => {
-  const [hasEntered, setHasEntered] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return getSessionFlag(ENTRY_SESSION_KEY);
-  });
+  // Chat mounts after a short idle delay so its chunk never competes with
+  // first paint; nothing else is gated behind an artificial loader.
   const [chatMounted, setChatMounted] = useState(false);
 
   useEffect(() => {
-    if (!hasEntered) return;
     const id = window.setTimeout(() => setChatMounted(true), 2000);
     return () => window.clearTimeout(id);
-  }, [hasEntered]);
-
-  const handleEnter = () => {
-    setHasEntered(true);
-    if (typeof window === "undefined") return;
-    window.sessionStorage.setItem(ENTRY_SESSION_KEY, "1");
-  };
-
-  if (!hasEntered) {
-    return <Loader onEnter={handleEnter} />;
-  }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
