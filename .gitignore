@@ -33,6 +33,14 @@ backend/__pycache__
 **/__pycache__
 *.pyc
 
+# Local databases & caches
+*.db
+*.sqlite
+.pytest_cache/
+
+# Local agent/session config
+.claude/
+
 # Test
 coverage
 
