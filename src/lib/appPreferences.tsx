@@ -393,6 +393,12 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     writeStorage(THEME_STORAGE_KEY, mode);
   };
 
+  // Keep <html lang> in sync so screen readers and search engines see the
+  // selected language, not a hardcoded "en".
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   const setLanguage = (nextLanguage: Language) => {
     setLanguageState(nextLanguage);
     writeStorage(LANGUAGE_STORAGE_KEY, nextLanguage);
