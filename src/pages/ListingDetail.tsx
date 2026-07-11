@@ -48,6 +48,46 @@ export default function ListingDetail() {
       });
   }, [id]);
 
+  // Enrich the generic route JSON-LD (set by RouteMeta) with real vehicle data
+  // once the listing loads — same script element, so there is only ever one.
+  useEffect(() => {
+    if (!listing) return;
+    const script = document.getElementById('autolens-jsonld');
+    if (!script) return;
+
+    const price = Number(listing.price_lkr || 0);
+    const image = pickVehicleImageUrl(
+      [listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])],
+      [listing.url, listing.detail_url, listing.external_url],
+    );
+
+    script.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Vehicle',
+      name: [listing.year, listing.make, listing.model].filter(Boolean).join(' ') || listing.title,
+      brand: listing.make ? { '@type': 'Brand', name: listing.make } : undefined,
+      model: listing.model || undefined,
+      vehicleModelDate: listing.year ? String(listing.year) : undefined,
+      mileageFromOdometer:
+        Number.isFinite(Number(listing.mileage_km)) && Number(listing.mileage_km) > 0
+          ? { '@type': 'QuantitativeValue', value: Number(listing.mileage_km), unitCode: 'KMT' }
+          : undefined,
+      vehicleTransmission: listing.transmission || undefined,
+      bodyType: listing.body_type || undefined,
+      image: image || undefined,
+      url: `https://vehicle-platform-one.vercel.app/listing/${listing.id}`,
+      offers:
+        Number.isFinite(price) && price >= 100_000
+          ? {
+              '@type': 'Offer',
+              price,
+              priceCurrency: 'LKR',
+              availability: 'https://schema.org/InStock',
+            }
+          : undefined,
+    });
+  }, [listing]);
+
   // ── Loading ────────────────────────────────────────────────
   if (loading) {
     return (

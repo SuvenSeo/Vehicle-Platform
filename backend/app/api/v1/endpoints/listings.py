@@ -1239,6 +1239,28 @@ def get_sources(db: Session = Depends(get_db)):
         for key, value in sorted(counts.items(), key=lambda item: item[1], reverse=True)
     ]
 
+@router.get("/sitemap-ids")
+def get_sitemap_listing_ids(
+    limit: int = Query(5000, ge=1, le=20000),
+    db: Session = Depends(get_db),
+):
+    """Recent listing IDs + last-seen timestamps for sitemap generation."""
+    rows = (
+        db.query(CarListing.id, CarListing.last_seen_at)
+        .filter(CarListing.is_outlier == False, CarListing.is_duplicate == False)
+        .order_by(desc(CarListing.last_seen_at))
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": int(row.id),
+            "last_seen_at": row.last_seen_at.isoformat() if row.last_seen_at else None,
+        }
+        for row in rows
+    ]
+
+
 @router.get("/makes")
 def get_makes(db: Session = Depends(get_db)):
     results = (
