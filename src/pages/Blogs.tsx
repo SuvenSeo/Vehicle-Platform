@@ -2,24 +2,25 @@ import { useMemo, useState } from "react";
 import { ArrowRight, BarChart3, Clock3, Search, SlidersHorizontal, Target, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
+// Editorial guides only — no invented market statistics or fictional research
+// bylines. Anything with real numbers must come from the live API, not here.
 type BlogPost = {
   id: number; title: string; excerpt: string; content: string;
-  category: "Market Intel" | "Buying Guides" | "Data Stories" | "Platform Updates";
-  readTime: string; publishedAt: string; author: string; tags: string[];
+  category: "Reading the Market" | "Buying Guides" | "Platform Notes";
+  readTime: string; publishedAt: string; tags: string[];
   signal: string; keyTakeaways: string[];
-  metricLabel: string; metricValue: string; metricDelta: string;
 };
 
 const BLOG_POSTS: BlogPost[] = [
-  { id: 1, title: "Q2 2026 Snapshot: Hybrid SUVs Keep Gaining Share in Colombo", excerpt: "Demand is holding because pricing has become smarter, not because buyers are blind to value.", content: "Hybrid SUVs now account for a larger share of premium listing activity in Colombo compared to the same period last year. The stronger signal is tighter pricing discipline rather than volume alone.", category: "Market Intel", readTime: "5 min", publishedAt: "2026-04-16", author: "Ardeno Research", tags: ["Hybrid", "SUV", "Colombo", "Pricing"], signal: "Hybrid SUV pricing is compressing toward smarter seller expectations.", keyTakeaways: ["Median spreads are tightening in Colombo.", "Condition-adjusted comps matter more than list volume.", "District supply gaps still create negotiation openings."], metricLabel: "Market Spread", metricValue: "4.8%", metricDelta: "Tighter vs last quarter" },
-  { id: 2, title: "How to Validate a Fair Deal Score Before You Buy", excerpt: "A practical way to separate genuinely under-market listings from noisy scoring.", content: "A deal score only becomes trustworthy when three signals align: enough comparables, fresh listings, and a district context that is not distorted by tiny samples.", category: "Buying Guides", readTime: "4 min", publishedAt: "2026-04-10", author: "Ardeno Editorial", tags: ["Deal Score", "Checklist", "Negotiation"], signal: "Strong deal scores without sample depth should be treated with caution.", keyTakeaways: ["Check sample size before trusting the signal.", "Use freshness to avoid comparing against stale inventory.", "District context changes the confidence level."], metricLabel: "Score Confidence", metricValue: "3 checks", metricDelta: "Sample, freshness, district" },
-  { id: 3, title: "Inside the Live Sync Pipeline: What Updates Every 45 Seconds", excerpt: "A look at how Ardeno separates fast operational freshness from heavier market analysis.", content: "The platform pipeline batches source updates, validates schema quality, then refreshes operational and analytical layers on different cadences.", category: "Platform Updates", readTime: "6 min", publishedAt: "2026-04-07", author: "Ardeno Engineering", tags: ["Pipeline", "Freshness", "Operations"], signal: "Operational freshness and analytical trust are being tuned independently.", keyTakeaways: ["Fast UI signals and slower aggregate updates serve different purposes.", "Freshness labels should not be read as full-market recalculations.", "Operational transparency improves trust in the data layer."], metricLabel: "Sync Cadence", metricValue: "45s", metricDelta: "Operational refresh cycle" },
-  { id: 4, title: "District Demand Heat: Why Northern Supply Behaves Differently", excerpt: "Low supply does not always mean weak opportunity when buyer urgency stays high.", content: "Northern district activity shows a different relationship between listing concentration and price movement than Colombo-heavy markets.", category: "Data Stories", readTime: "5 min", publishedAt: "2026-04-03", author: "Ardeno Data Team", tags: ["Districts", "Demand", "Heatmap"], signal: "Scarcity effects are stronger when trusted listings are thin on the ground.", keyTakeaways: ["Low volume can still support firm pricing.", "Small-sample outliers distort district narratives quickly.", "Cross-district benchmarks prevent false confidence."], metricLabel: "District Signal", metricValue: "North +7%", metricDelta: "Relative urgency vs broader market" },
-  { id: 5, title: "Luxury Sedan Resale in 2026: What Actually Moves Price", excerpt: "Mileage and records are now beating year-only logic in higher-ticket segments.", content: "In premium sedan categories, condition-adjusted pricing is increasingly dominant. Listings with verifiable maintenance history close the gap faster.", category: "Market Intel", readTime: "7 min", publishedAt: "2026-03-29", author: "Ardeno Research", tags: ["Sedan", "Resale", "Premium"], signal: "Maintenance transparency is turning into a pricing multiplier in premium segments.", keyTakeaways: ["Year alone is weakening as the primary premium signal.", "Records and seller transparency now move faster than cosmetic polish.", "Condition-adjusted comp sets are mandatory in the segment."], metricLabel: "Premium Bias", metricValue: "Maintenance-led", metricDelta: "Quality signal shift" },
-  { id: 6, title: "From Saved Listings to Decision: A 15-Minute Buyer Routine", excerpt: "A short workflow that turns browsing into a tighter shortlist.", content: "Start with a broad saved list, remove stale and incomplete listings, then rank what remains by deal-score confidence, district convenience, and comparable depth.", category: "Buying Guides", readTime: "3 min", publishedAt: "2026-03-24", author: "Ardeno Editorial", tags: ["Saved Listings", "Workflow", "Shortlist"], signal: "Decision speed improves when noise is removed first, not analyzed longer.", keyTakeaways: ["Shortlisting is more valuable than over-reading weak candidates.", "Freshness and metadata completeness should eliminate entries early.", "Confidence beats volume when it is time to contact sellers."], metricLabel: "Decision Loop", metricValue: "15 min", metricDelta: "From saved list to shortlist" },
+  { id: 1, title: "How to Read Hybrid SUV Pricing Before You Negotiate", excerpt: "Segment pricing rewards buyers who compare against condition-adjusted peers, not just the asking column.", content: "Popular hybrid SUV listings cluster around visible reference prices, so an asking price alone tells you little. Compare against peers with similar mileage, condition, and district on the Trends and Valuation pages before you anchor a negotiation.", category: "Reading the Market", readTime: "5 min", publishedAt: "2026-04-16", tags: ["Hybrid", "SUV", "Pricing"], signal: "Asking prices anchor negotiations — comps break the anchor.", keyTakeaways: ["Use condition-adjusted comparables, not list volume.", "Check the same model across districts before trusting one price.", "Thin-supply districts can justify firmer asks."] },
+  { id: 2, title: "How to Validate a Fair Deal Score Before You Buy", excerpt: "A practical way to separate genuinely under-market listings from noisy scoring.", content: "A deal score only becomes trustworthy when three signals align: enough comparables, fresh listings, and a district context that is not distorted by tiny samples.", category: "Buying Guides", readTime: "4 min", publishedAt: "2026-04-10", tags: ["Deal Score", "Checklist", "Negotiation"], signal: "Strong deal scores without sample depth should be treated with caution.", keyTakeaways: ["Check sample size before trusting the signal.", "Use freshness to avoid comparing against stale inventory.", "District context changes the confidence level."] },
+  { id: 3, title: "How AutoLens Keeps Its Listing Data Fresh", excerpt: "What the scrape pipeline does, how often it runs, and what the freshness labels actually mean.", content: "Listings sync from ten Sri Lankan sources on a scheduled pipeline, then aggregates and deal scores refresh in a separate analysis pass. Freshness labels on the dashboard reflect the operational sync, not a full-market recalculation.", category: "Platform Notes", readTime: "4 min", publishedAt: "2026-04-07", tags: ["Pipeline", "Freshness", "Operations"], signal: "Operational freshness and analytical trust are tuned independently.", keyTakeaways: ["Fast UI signals and slower aggregate updates serve different purposes.", "Freshness labels are about sync recency, not recomputed medians.", "Pipeline status is public on the dashboard."] },
+  { id: 4, title: "Why Low-Supply Districts Price Differently", excerpt: "Low supply does not always mean weak opportunity when buyer urgency stays high.", content: "Outside the Colombo-centric market, fewer active listings mean each one carries more pricing power, and single outliers can distort the picture quickly. Cross-check any district read against national comparables before concluding a listing is cheap or expensive.", category: "Reading the Market", readTime: "5 min", publishedAt: "2026-04-03", tags: ["Districts", "Demand", "Supply"], signal: "Scarcity effects are stronger when trusted listings are thin on the ground.", keyTakeaways: ["Low volume can still support firm pricing.", "Small-sample outliers distort district narratives quickly.", "Cross-district benchmarks prevent false confidence."] },
+  { id: 5, title: "What Actually Moves Premium Resale Prices", excerpt: "Mileage and maintenance records matter more than year-only logic in higher-ticket segments.", content: "In premium categories, buyers pay for verifiable condition: service records, accident history, and consistent mileage. Two same-year sedans can sit millions of rupees apart on those factors alone, so compare within condition tiers.", category: "Reading the Market", readTime: "5 min", publishedAt: "2026-03-29", tags: ["Sedan", "Resale", "Premium"], signal: "Maintenance transparency acts as a pricing multiplier in premium segments.", keyTakeaways: ["Year alone is a weak premium signal.", "Records and seller transparency move price faster than cosmetic polish.", "Condition-adjusted comp sets are mandatory in the segment."] },
+  { id: 6, title: "From Saved Listings to Decision: A 15-Minute Buyer Routine", excerpt: "A short workflow that turns browsing into a tighter shortlist.", content: "Start with a broad saved list, remove stale and incomplete listings, then rank what remains by deal-score confidence, district convenience, and comparable depth.", category: "Buying Guides", readTime: "3 min", publishedAt: "2026-03-24", tags: ["Saved Listings", "Workflow", "Shortlist"], signal: "Decision speed improves when noise is removed first, not analyzed longer.", keyTakeaways: ["Shortlisting is more valuable than over-reading weak candidates.", "Freshness and metadata completeness should eliminate entries early.", "Confidence beats volume when it is time to contact sellers."] },
 ];
 
-const CATEGORIES = ["All", "Market Intel", "Buying Guides", "Data Stories", "Platform Updates"] as const;
+const CATEGORIES = ["All", "Reading the Market", "Buying Guides", "Platform Notes"] as const;
 type CategoryFilter = (typeof CATEGORIES)[number];
 
 function formatDate(iso: string): string {
@@ -56,9 +57,9 @@ export default function Blogs() {
   }, [filtered]);
 
   const decisionBrief = useMemo(() => {
-    let cat: BlogPost["category"] = decisionMode === "value" ? "Buying Guides" : decisionMode === "premium" ? "Market Intel" : "Data Stories";
+    let cat: BlogPost["category"] = decisionMode === "value" ? "Buying Guides" : "Reading the Market";
     if (riskTolerance <= 30) cat = "Buying Guides";
-    if (riskTolerance >= 75) cat = "Market Intel";
+    if (riskTolerance >= 75) cat = "Reading the Market";
     const timeline = timelineDays <= 7 ? "Immediate" : timelineDays <= 21 ? "Short watch" : "Patient watch";
     return { cat, timeline };
   }, [decisionMode, riskTolerance, timelineDays]);
@@ -80,13 +81,13 @@ export default function Blogs() {
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Journal</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Market briefings.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">{filtered.length} signals in view · Ardeno Research</p>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">{filtered.length} editorial guides · For live market numbers, see the dashboard and Trends</p>
 
           {/* Search + categories */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-surface px-3 focus-within:border-primary/20">
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search topics or tags" className="h-10 w-full bg-transparent text-sm text-foreground placeholder-zinc-600 outline-none" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search topics or tags" className="h-10 w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
             </div>
             <div className="flex flex-wrap gap-1">
               {CATEGORIES.map((c) => (
@@ -117,14 +118,9 @@ export default function Blogs() {
                   <button key={t} type="button" onClick={() => setQuery(t)} className="rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground">{t}</button>
                 ))}
               </div>
-              <p className="mt-4 text-[11px] text-muted-foreground">By {active.author}</p>
+              <p className="mt-4 text-[11px] text-muted-foreground">AutoLens Journal · editorial guide</p>
             </div>
             <div className="space-y-3">
-              <div className="rounded-lg border border-border bg-surface p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{active.metricLabel}</p>
-                <p className="num mt-2 text-xl font-bold text-primary">{active.metricValue}</p>
-                <p className="mt-1 text-[10px] text-muted-foreground">{active.metricDelta}</p>
-              </div>
               <div className="rounded-lg border border-border bg-surface p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Signal</p>
                 <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">{active.signal}</p>
@@ -166,13 +162,13 @@ export default function Blogs() {
                       <span className="flex items-center gap-1"><SlidersHorizontal className="h-3 w-3 text-primary/60" /> Risk</span>
                       <span className="num font-semibold text-foreground">{riskTolerance}%</span>
                     </div>
-                    <input type="range" min={0} max={100} step={5} value={riskTolerance} onChange={(e) => setRiskTolerance(Number(e.target.value))} className="mt-1.5 w-full accent-amber-400" />
+                    <input type="range" min={0} max={100} step={5} value={riskTolerance} onChange={(e) => setRiskTolerance(Number(e.target.value))} className="mt-1.5 w-full accent-primary" />
                   </div>
                   <div>
                     <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                       <span>Timeline</span><span className="num font-semibold text-foreground">{timelineDays}d</span>
                     </div>
-                    <input type="range" min={3} max={45} value={timelineDays} onChange={(e) => setTimelineDays(Number(e.target.value))} className="mt-1.5 w-full accent-amber-400" />
+                    <input type="range" min={3} max={45} value={timelineDays} onChange={(e) => setTimelineDays(Number(e.target.value))} className="mt-1.5 w-full accent-primary" />
                   </div>
                 </div>
                 <div className="space-y-2">

@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Battery, Car, CheckCircle2, PlugZap, ShieldCheck } from "lucide-react";
+import { getListings, formatPrice } from "@/services/api";
+import { isReasonableListingPrice } from "@/lib/formatting";
 
 const evModules = [
   { icon: Battery, step: "01", title: "Battery health", desc: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
@@ -7,19 +10,54 @@ const evModules = [
   { icon: PlugZap, step: "03", title: "Charging fit", desc: "Home vs public charging, range per use case, and cost comparison." },
 ];
 
-const readinessRows = [
-  { label: "City commuter", value: "High", width: "86%" },
-  { label: "Long-distance family", value: "Medium", width: "58%" },
-  { label: "Fleet delivery loop", value: "High", width: "78%" },
+const ownershipChecks = [
+  { label: "Battery reserve", value: "20-30%", note: "Guideline: keep this much SoH headroom when buying used" },
+  { label: "Home charging", value: "Priority", note: "Guideline: overnight charging beats public-charger dependence" },
+  { label: "Resale proof", value: "Records", note: "Guideline: battery reports protect resale value" },
 ];
 
-const ownershipChecks = [
-  { label: "Battery reserve", value: "20-30%" },
-  { label: "Home charging", value: "Priority" },
-  { label: "Resale proof", value: "Records" },
-];
+function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
 
 export default function EVHub() {
+  const evQuery = useQuery({
+    queryKey: ["listings", { fuel_type: "electric", sort: "newest", page: 1 }],
+    queryFn: () => getListings({ fuel_type: "electric", sort: "newest", page: 1 }),
+  });
+
+  const evTotal = evQuery.data?.total ?? null;
+  const sample = evQuery.data?.listings ?? [];
+  const sampledPrices = sample
+    .map((listing) => Number(listing.price_lkr || 0))
+    .filter((price) => isReasonableListingPrice(price));
+  const sampleMedian = median(sampledPrices);
+
+  const liveStats = [
+    {
+      label: "Electric listings live",
+      value: evQuery.isPending ? "…" : evTotal !== null ? evTotal.toLocaleString() : "N/A",
+      note: "Priced EV inventory tracked right now",
+    },
+    {
+      label: "Median of latest sample",
+      value: evQuery.isPending ? "…" : sampleMedian !== null ? formatPrice(sampleMedian) : "N/A",
+      note: `From the ${sampledPrices.length || 0} newest priced EV listings`,
+    },
+    {
+      label: "Newest EV arrival",
+      value: evQuery.isPending
+        ? "…"
+        : sample[0]
+          ? `${sample[0].make} ${sample[0].model}`.trim() || "N/A"
+          : "N/A",
+      note: sample[0]?.district ? `Listed in ${sample[0].district}` : "Latest tracked electric listing",
+    },
+  ];
+
   return (
     <div className="min-h-screen">
       <section className="border-b border-border">
@@ -31,6 +69,20 @@ export default function EVHub() {
       </section>
 
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-10">
+        {/* Live inventory pulse */}
+        <div>
+          <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground">Live EV inventory</h2>
+          <div className="grid gap-2 md:grid-cols-3">
+            {liveStats.map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-border bg-surface p-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{stat.label}</p>
+                <p className="num mt-2 text-xl font-bold text-foreground">{stat.value}</p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">{stat.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Decision modules */}
         <div>
           <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground">Decision modules</h2>
@@ -53,21 +105,17 @@ export default function EVHub() {
           </div>
         </div>
 
-        {/* Readiness + Action */}
+        {/* Market action */}
         <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
           <div className="rounded-xl border border-border bg-surface p-5 sm:p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Readiness matrix</p>
-            <h3 className="mt-1.5 text-[14px] font-semibold text-foreground">Use-case fit</h3>
-            <div className="mt-6 space-y-5">
-              {readinessRows.map((r) => (
-                <div key={r.label}>
-                  <div className="mb-1.5 flex items-center justify-between text-[11px]">
-                    <span className="font-medium text-foreground">{r.label}</span>
-                    <span className={`font-bold num ${r.value === "High" ? "text-emerald-400" : "text-primary"}`}>{r.value}</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-secondary/50">
-                    <div className={`h-full rounded-full ${r.value === "High" ? "bg-emerald-500/60" : "bg-primary/60"}`} style={{ width: r.width }} />
-                  </div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Ownership checks</p>
+            <h3 className="mt-1.5 text-[14px] font-semibold text-foreground">Buyer guidelines</h3>
+            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+              {ownershipChecks.map((c) => (
+                <div key={c.label} className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{c.label}</p>
+                  <p className="mt-2 text-xl font-bold text-foreground num">{c.value}</p>
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">{c.note}</p>
                 </div>
               ))}
             </div>
@@ -89,19 +137,6 @@ export default function EVHub() {
             <Link to="/?fuel_type=electric#market" className="mt-auto flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--gold)] text-[10px] font-bold uppercase tracking-[0.1em] text-white no-underline transition-colors hover:bg-[var(--gold-bright)]">
               Browse electric inventory <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-          </div>
-        </div>
-
-        {/* Ownership checks */}
-        <div>
-          <h2 className="mb-4 font-display text-sm font-semibold tracking-tight text-foreground">Ownership checks</h2>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {ownershipChecks.map((c) => (
-              <div key={c.label} className="rounded-xl border border-border bg-surface p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{c.label}</p>
-                <p className="mt-2 text-xl font-bold text-foreground num">{c.value}</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>

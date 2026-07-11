@@ -13,9 +13,9 @@ export default function Calculator() {
   const dutyTone = dutyRisk === "High" ? "text-rose-400" : dutyRisk === "Medium" ? "text-primary" : "text-emerald-400";
 
   const tiles = [
-    { label: "Planning reserve", value: formatPrice(Math.round(price * 0.12)), icon: WalletCards },
-    { label: "Duty sensitivity", value: dutyRisk, icon: ShieldCheck, tone: dutyTone },
-    { label: "Monthly buffer", value: formatPrice(monthlyBaseline), icon: Gauge },
+    { label: "Planning reserve", value: formatPrice(Math.round(price * 0.12)), note: "Rule of thumb: 12% of value for transfer, insurance & first repairs", icon: WalletCards },
+    { label: "Duty sensitivity", value: dutyRisk, note: "Based on engine capacity band — larger engines sit in higher excise bands", icon: ShieldCheck, tone: dutyTone },
+    { label: "Monthly buffer", value: formatPrice(monthlyBaseline), note: "Rule of thumb: ~1.8% of value/month for fuel, service & insurance", icon: Gauge },
   ];
 
   return (
@@ -76,15 +76,19 @@ export default function Calculator() {
 
         {/* Planning tiles */}
         <div>
-          <h2 className="mb-4 font-display text-sm font-semibold tracking-tight text-foreground">Ownership planning</h2>
+          <div className="mb-4 flex flex-wrap items-baseline gap-2">
+            <h2 className="font-display text-sm font-semibold tracking-tight text-foreground">Ownership planning</h2>
+            <span className="text-[11px] text-muted-foreground">Rules of thumb for budgeting — not quotes</span>
+          </div>
           <div className="grid gap-2 sm:grid-cols-3">
             {tiles.map((t) => {
               const Icon = t.icon;
               return (
-                <div key={t.label} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4">
+                <div key={t.label} className="flex items-start justify-between gap-3 rounded-xl border border-border bg-surface p-4">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{t.label}</p>
                     <p className={`mt-1.5 text-lg font-bold num ${t.tone || "text-foreground"}`}>{t.value}</p>
+                    <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">{t.note}</p>
                   </div>
                   <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 </div>
