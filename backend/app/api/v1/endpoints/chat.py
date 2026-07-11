@@ -64,9 +64,10 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    # No api_key field: the LLM key is server-side only and client-supplied
+    # keys/models are never honoured (unknown payload fields are ignored).
     message: str = Field(..., min_length=1, max_length=2000)
     history: List[ChatMessage] = Field(default_factory=list, max_length=12)
-    api_key: Optional[str] = Field(default=None, exclude=True, max_length=2000)
     model: Optional[str] = Field(default=None, max_length=100)
     page_context: Optional[Dict[str, Any]] = None
 
@@ -215,14 +216,6 @@ def _intent(message: str) -> str:
     if any(k in msg for k in ["source", "pipeline", "sync", "fresh", "updated", "status"]):
         return "operations"
     return "overview"
-
-
-def _resolved_groq_key(payload: ChatRequest) -> str:
-    return GROQ_API_KEY
-
-
-def _resolved_groq_model(payload: ChatRequest) -> str:
-    return GROQ_MODEL
 
 
 def _build_groq_prompt(message: str, context: Dict[str, Any], history: List[ChatMessage]) -> List[Dict[str, str]]:
@@ -401,8 +394,8 @@ def chat_assistant(payload: ChatRequest, request: Request, db: Session = Depends
     context = bundle["context"]
     listing_cards = bundle["listing_cards"]
 
-    configured_key = _resolved_groq_key(payload)
-    configured_model = _resolved_groq_model(payload)
+    configured_key = GROQ_API_KEY
+    configured_model = GROQ_MODEL
     has_groq = bool(configured_key)
 
     ai_response: Optional[str] = None

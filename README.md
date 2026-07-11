@@ -81,7 +81,6 @@ Open:
 
 If you hit a blank screen, check these first:
 
-- Frontend env has `VITE_API_URL=/api`.
 - Frontend env has `VITE_API_URL=/api/v1`.
 - Backend is running on `127.0.0.1:8000`.
 - Browser console for runtime errors.
@@ -194,30 +193,21 @@ This repo now includes `.github/workflows/daily-scrape.yml` to run scraping in G
 
 It supports:
 
-- **Scheduled run**: 12:10 AM and 12:10 PM Sri Lanka time
-- **Manual run**: GitHub -> Actions -> **Daily Vehicle Scraper** -> **Run workflow**
-- **Independent source jobs**: Ikman, Riyasewana, and Patpat run as separate jobs so one source cannot stop the others
+- **Scheduled run**: daily at 02:00 UTC (7:30 AM Sri Lanka time)
+- **Manual run**: GitHub -> Actions -> **Unified Vehicle Scraper** -> **Run workflow**
+- **Independent source jobs**: every source runs as its own matrix job so one source cannot stop the others
 
 ### One-time GitHub setup
 
-In GitHub repo -> **Settings** -> **Secrets and variables** -> **Actions**:
+In GitHub repo -> **Settings** -> **Secrets and variables** -> **Actions**, add secret:
 
-1. Add secret:
-
-- `DATABASE_URL` = your production PostgreSQL/Supabase URL
-
-1. (Optional) Add repository variables:
-
-- `SCRAPE_MAX_PAGES` = global page depth fallback (default is `500`)
-- `SCRAPE_MAX_PAGES_IKMAN` = Ikman page depth override
-- `SCRAPE_MAX_PAGES_RIYASEWANA` = Riyasewana page depth override
-- `SCRAPE_MAX_PAGES_PATPAT` = Patpat page depth override
-- `SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN` = per-source timeout in seconds (default `1800`)
-- `SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA` = per-source timeout in seconds (default `1800`)
-- `SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT` = per-source timeout in seconds (default `1800`)
+- `HOT_DATABASE_URL` = your production PostgreSQL/Supabase URL
 
 Notes:
 
+- Page depth and per-source timeouts are pinned inside the workflow file
+  (`SCRAPE_MAX_PAGES: 20`, 6h timeout per source) — edit
+  `.github/workflows/daily-scrape.yml` to change them.
 - Workflow forces `ALLOW_SQLITE_FALLBACK=false` so it fails fast if DB config is missing.
 - Playwright dependencies and Chromium are installed inside the runner automatically.
 - The workflow uses `SCRAPE_ENABLED_SOURCES` internally so each job runs only one source.
