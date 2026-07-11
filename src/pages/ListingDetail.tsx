@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
-  Share2, Fuel, Gauge, Settings2, Info,
+  Share2, Fuel, Gauge, Settings2, Info, MessageCircle,
   Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database
 } from 'lucide-react';
 import { getListing, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
@@ -31,11 +31,33 @@ export default function ListingDetail() {
     if (window.history.length > 1) navigate(-1);
     else navigate('/');
   };
+  const buildShareText = () => {
+    if (!listing) return document.title;
+    const name = [listing.year, listing.make, listing.model].filter(Boolean).join(' ');
+    const price = Number(listing.price_lkr || 0);
+    const priceText = Number.isFinite(price) && price >= 100_000 ? ` — ${formatPrice(price)}` : '';
+    return `${name}${priceText} on AutoLens LK`;
+  };
+
   const handleShare = async () => {
+    const text = buildShareText();
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: text, text, url: window.location.href });
+        return;
+      } catch {
+        // User dismissed the sheet or share failed — fall through to clipboard.
+      }
+    }
     try {
       if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(window.location.href); toast.success('Link copied'); }
       else toast.error('Copy unavailable');
     } catch { toast.error('Clipboard blocked'); }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = `${buildShareText()}\n${window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
@@ -172,6 +194,9 @@ export default function ListingDetail() {
                 View on {listing.source} <ExternalLink className="h-3 w-3" />
               </a>
             )}
+            <button type="button" onClick={handleWhatsAppShare} className="flex h-9 items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-600 transition-colors hover:bg-emerald-500/15 dark:text-emerald-400">
+              <MessageCircle className="h-3 w-3" /> WhatsApp
+            </button>
             <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground hover:text-foreground">
               <Share2 className="h-3 w-3" /> Share
             </button>
