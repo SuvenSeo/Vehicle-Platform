@@ -27,12 +27,6 @@ const externalLinks = [
   { label: "GitHub", href: "https://github.com/SuvenSeo/Vehicle-Platform" },
 ];
 
-const imageCredits = [
-  { label: "Dan Koehl", href: "https://commons.wikimedia.org/wiki/File:DKoehl_colombo_auto_rickshaw.JPG" },
-  { label: "Vincent van Zeijst", href: "https://commons.wikimedia.org/wiki/File:Sri_Lanka,_Kurunegala,_traffic_jam_(1).jpg" },
-  { label: "Indi Samarajiva", href: "https://commons.wikimedia.org/wiki/File:Trishaw_And_Jeep_On_A9.jpg" },
-];
-
 function FooterColumn({ title, links }: { title: string; links: Array<{ label: string; to: string }> }) {
   return (
     <div>
@@ -105,22 +99,6 @@ export function AppFooter() {
         {/* Bottom bar */}
         <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {year} Ardeno Studio</p>
-          <p className="hidden sm:block">
-            Imagery:{" "}
-            {imageCredits.map((credit, index) => (
-              <span key={credit.label}>
-                <a
-                  href={credit.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline-offset-2 transition-colors hover:text-muted-foreground hover:underline"
-                >
-                  {credit.label}
-                </a>
-                {index < imageCredits.length - 1 ? ", " : ""}
-              </span>
-            ))}
-          </p>
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
