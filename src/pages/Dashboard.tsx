@@ -11,6 +11,7 @@ import { ListingCard } from "@/components/ListingCard";
 import { ComparisonModal } from "@/components/ComparisonModal";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { MarketIntelligencePanel } from "@/components/MarketIntelligencePanel";
+import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { RevealSection } from "@/components/RevealSection";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -369,6 +370,7 @@ export default function Dashboard() {
   const marketPulseDistricts = Number(stats?.district_count || 0);
   const marketPulseSources = Number(stats?.source_count || liveMarketSnapshot?.source_status?.length || 0);
   const isPriceUnavailableMode = filters.price_availability === "unavailable";
+  const listingFreshnessAt = liveMarketSnapshot?.latest_listing_at ?? stats?.last_updated ?? null;
 
   // ═════════════════════════════════════════════════════════════════
   // RENDER
@@ -414,6 +416,12 @@ export default function Dashboard() {
               <span className="font-semibold text-foreground num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
               deal scores, and the market intelligence dealers keep to themselves.
             </p>
+            <div className="mx-auto mt-4 flex justify-center">
+              <DataFreshnessIndicator
+                latestListingAt={liveMarketSnapshot?.latest_listing_at}
+                lastUpdated={stats?.last_updated}
+              />
+            </div>
 
             {/* Search (centered) */}
             <div className="mx-auto mt-8 max-w-2xl text-left">
@@ -495,20 +503,30 @@ export default function Dashboard() {
 
           {/* Toolbar */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-baseline gap-2.5">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                {isPriceUnavailableMode ? "Unpriced inventory" : "Inventory"}
-              </h2>
-              {loadingListings ? (
-                <span className="inline-block h-4 w-14 animate-pulse rounded bg-foreground/[0.03]" aria-hidden />
-              ) : (
-                <span className="text-[13px] font-medium text-muted-foreground num" aria-live="polite">
-                  {total.toLocaleString()}
-                  {!isPriceUnavailableMode && activeFilterLabels.length === 0 ? (
-                    <span className="ml-1 text-muted-foreground">priced</span>
-                  ) : null}
-                </span>
-              )}
+            <div className="flex flex-col gap-2 sm:gap-2.5">
+              <div className="flex items-baseline gap-2.5">
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                  {isPriceUnavailableMode ? "Unpriced inventory" : "Inventory"}
+                </h2>
+                {loadingListings ? (
+                  <span className="inline-block h-4 w-14 animate-pulse rounded bg-foreground/[0.03]" aria-hidden />
+                ) : (
+                  <span className="text-[13px] font-medium text-muted-foreground num" aria-live="polite">
+                    {total.toLocaleString()}
+                    {!isPriceUnavailableMode && activeFilterLabels.length === 0 ? (
+                      <span className="ml-1 text-muted-foreground">priced</span>
+                    ) : null}
+                  </span>
+                )}
+              </div>
+              {listingFreshnessAt ? (
+                <DataFreshnessIndicator
+                  latestListingAt={liveMarketSnapshot?.latest_listing_at}
+                  lastUpdated={stats?.last_updated}
+                  variant="subline"
+                  className="normal-case tracking-normal"
+                />
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setShowSavedListings(true)}
@@ -551,6 +569,13 @@ export default function Dashboard() {
               >Refresh</button>
             </div>
           )}
+
+          <DataFreshnessIndicator
+            latestListingAt={liveMarketSnapshot?.latest_listing_at}
+            lastUpdated={stats?.last_updated}
+            variant="banner"
+            className="mb-5"
+          />
 
           {/* Filters + Grid */}
           <div className="flex flex-col items-start gap-6 lg:flex-row">

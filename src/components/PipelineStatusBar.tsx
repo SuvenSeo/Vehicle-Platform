@@ -1,10 +1,13 @@
 import { memo } from "react";
 import { AlertTriangle, CheckCircle2, Clock3, Loader2 } from "lucide-react";
+import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { PipelineJobStatus, PipelineStatusResponse } from "@/types/car";
 import { formatRelativeTime } from "@/lib/formatting";
 
 interface PipelineStatusBarProps {
   status: PipelineStatusResponse | null;
+  latestListingAt?: string | null;
+  lastUpdated?: string | null;
 }
 
 const JOB_LABELS: Record<string, string> = {
@@ -52,7 +55,11 @@ function statusIcon(status: "ok" | "running" | "delayed") {
   return AlertTriangle;
 }
 
-export const PipelineStatusBar = memo(function PipelineStatusBar({ status }: PipelineStatusBarProps) {
+export const PipelineStatusBar = memo(function PipelineStatusBar({
+  status,
+  latestListingAt,
+  lastUpdated,
+}: PipelineStatusBarProps) {
   const jobs = status?.jobs ?? [];
   const overall = status?.overall_status ?? "delayed";
   const loading = !status;
@@ -86,9 +93,12 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({ status }: Pip
         </div>
       </div>
 
-      <div className="px-6 py-3 border-b border-border bg-black/20 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-black/20 px-6 py-3">
         <p className="ui-caption">{overallMessage}</p>
-        <p className="tech-label text-muted-foreground">Status refreshed {generatedLabel}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <DataFreshnessIndicator latestListingAt={latestListingAt} lastUpdated={lastUpdated} />
+          <p className="tech-label text-muted-foreground">Pipeline refreshed {generatedLabel}</p>
+        </div>
       </div>
 
       <div className="p-5 sm:p-6">

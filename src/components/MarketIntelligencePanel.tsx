@@ -1,6 +1,8 @@
 import { memo, useMemo } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Flame, Radio } from "lucide-react";
 import { formatPrice } from "@/services/api";
+import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
+import { formatCompactAge, getListingDataFreshness } from "@/lib/dataFreshness";
 import { isReasonableListingPrice } from "@/lib/formatting";
 import { useCountUp } from "@/hooks/useCountUp";
 import type { DashboardInsights, LiveMarketSnapshot, StatsOverview } from "@/types/car";
@@ -32,18 +34,6 @@ function labelSource(raw: string): string {
     if (compact.startsWith(key)) return SOURCE_LABELS[key];
   }
   return raw || "Source";
-}
-
-function relativeTime(value: string | null | undefined): string {
-  if (!value) return "—";
-  const ts = new Date(value).getTime();
-  if (!Number.isFinite(ts)) return "—";
-  const mins = Math.max(0, Math.round((Date.now() - ts) / 60_000));
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.round(hrs / 24)}d`;
 }
 
 interface FeedRow {
@@ -99,8 +89,12 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   const momChange = Number(stats?.price_change_mom ?? 0);
   const new24h = Number(insights?.new_listings_24h ?? stats?.listings_this_week ?? 0);
   const goodDeals = Number(stats?.good_deals_count ?? 0);
-  const freshness = relativeTime(snapshot?.latest_listing_at || stats?.last_updated);
-  const isLive = freshness !== "—";
+  const freshness = getListingDataFreshness({
+    latestListingAt: snapshot?.latest_listing_at,
+    lastUpdated: stats?.last_updated,
+  });
+  const feedSyncAt = snapshot?.generated_at ?? freshness.primaryAt;
+  const feedSyncLabel = formatCompactAge(feedSyncAt);
 
   // Animated counters
   const liveCount = useCountUp(liveListings, 1400);
@@ -120,7 +114,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
         source: labelSource(r.source),
         fresh: Number(r.listings_new || 0),
         found: Number(r.listings_found || 0),
-        time: relativeTime(r.finished_at || r.started_at),
+        time: formatCompactAge(r.finished_at || r.started_at),
       }));
     if (runs.length) return runs;
 
@@ -165,13 +159,10 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
           <div className="relative flex h-full flex-col">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Live listings</p>
-              <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                <span className="relative flex h-2 w-2">
-                  {isLive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />}
-                  <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? "bg-[var(--gold)]" : "bg-muted"}`} />
-                </span>
-                Live {freshness}
-              </span>
+              <DataFreshnessIndicator
+                latestListingAt={snapshot?.latest_listing_at}
+                lastUpdated={stats?.last_updated}
+              />
             </div>
 
             <p
@@ -226,8 +217,12 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             <Activity className="h-3.5 w-3.5 text-[var(--gold)]/70" />
             Live incoming feed
           </p>
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-            <Radio className="h-3 w-3 text-[var(--gold)]/70" /> last sync
+          <span
+            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground"
+            title={feedSyncAt ? freshness.absoluteLabel : undefined}
+          >
+            <Radio className="h-3 w-3 text-[var(--gold)]/70" />
+            {feedSyncLabel === "—" ? "Awaiting sync" : `Synced ${feedSyncLabel}`}
           </span>
         </div>
         <div className="divide-y divide-white/[0.03]">
@@ -253,6 +248,33 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
           )}
         </div>
       </div>
+
+      {freshness.isStale ? (
+        <div className="mt-3">
+          <DataFreshnessIndicator
+            latestListingAt={snapshot?.latest_listing_at}
+            lastUpdated={stats?.last_updated}
+            variant="banner"
+          />
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+          <p
+            className="text-[11px] font-medium text-muted-foreground"
+            title={freshness.primaryAt ? freshness.absoluteLabel : undefined}
+          >
+            {freshness.dataAsOfLabel}
+            {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
+              <span> · stats refreshed {formatCompactAge(freshness.statsAt)} ago</span>
+            ) : null}
+          </p>
+          {snapshot?.generated_at ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
+              Snapshot {formatCompactAge(snapshot.generated_at)} ago
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 });

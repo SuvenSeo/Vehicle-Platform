@@ -2,10 +2,11 @@ import { memo } from "react";
 import { StatsOverview } from "@/types/car";
 import { formatPrice } from "@/services/api";
 import { useEffect, useState, useRef } from "react";
-import { formatRelativeTime } from "@/lib/formatting";
+import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 
 interface StatsBarProps {
   stats: StatsOverview;
+  latestListingAt?: string | null;
 }
 
 function useCountUp(target: number, duration = 1200): number {
@@ -36,12 +37,11 @@ function useCountUp(target: number, duration = 1200): number {
   return value;
 }
 
-export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
+export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: StatsBarProps) {
   const totalCount = useCountUp(stats.total_listings);
   const avgPrice = useCountUp(stats.avg_price_lkr);
   const dealsCount = useCountUp(stats.good_deals_count);
   const momChange = stats.price_change_mom ?? 0;
-  const freshnessLabel = stats.last_updated ? formatRelativeTime(stats.last_updated) : "awaiting sync";
   const sourceLabel = stats.source_count > 0 ? `${stats.source_count} sources` : "source scan pending";
 
   return (
@@ -95,13 +95,16 @@ export const StatsBar = memo(function StatsBar({ stats }: StatsBarProps) {
       </div>
 
       {/* Subline Data */}
-      <div className="flex items-center justify-between mt-8 px-4 opacity-50">
-        <p className="tech-label text-muted-foreground">
-            Multi-platform Aggregate · {sourceLabel} · Updated {freshnessLabel}
-        </p>
-        <p className="tech-label text-muted-foreground">
-            Build v1.4.2
-        </p>
+      <div className="mt-8 flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2 opacity-80">
+          <p className="tech-label text-muted-foreground">Multi-platform Aggregate · {sourceLabel}</p>
+          <DataFreshnessIndicator
+            latestListingAt={latestListingAt}
+            lastUpdated={stats.last_updated}
+            variant="subline"
+          />
+        </div>
+        <p className="tech-label text-muted-foreground opacity-80">Build v1.4.2</p>
       </div>
     </div>
   );
