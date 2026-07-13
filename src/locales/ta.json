@@ -1,0 +1,37 @@
+{
+  "nav.home": "முகப்பு",
+  "nav.market": "சந்தை",
+  "nav.trends": "போக்குகள்",
+  "nav.alerts": "விழிப்பூட்டல்கள்",
+  "nav.bestPicks": "சிறந்த தேர்வுகள்",
+  "nav.pro": "ப்ரோ",
+  "nav.overview": "கண்ணோட்டம்",
+  "nav.valuation": "மதிப்பீடு",
+  "nav.blog": "வலைப்பதிவு",
+  "nav.signIn": "உள்நுழைய",
+  "nav.live": "நேரடி",
+  "nav.syncing": "ஒத்திசைக்கிறது",
+  "nav.delayed": "தாமதம்",
+
+  "district.colombo": "கொழும்பு",
+  "district.gampaha": "கம்பஹா",
+  "district.kalutara": "களுத்துறை",
+  "district.kandy": "கண்டி",
+  "district.galle": "காலி",
+  "district.matara": "மாத்தறை",
+  "district.kurunegala": "குருநாகல்",
+  "district.ratnapura": "இரத்தினபுரி",
+  "district.badulla": "பதுளை",
+  "district.anuradhapura": "அனுராதபுரம்",
+
+  "currency.lkr": "இலங்கை ரூபாய்",
+
+  "common.search": "தேடு",
+  "common.save": "சேமி",
+  "common.alerts": "விழிப்பூட்டல்கள்",
+  "common.searching": "தேடுகிறது...",
+  "common.saved": "சேமிக்கப்பட்டது",
+  "common.saveAlert": "விழிப்பூட்டலை சேமி",
+  "common.inventory": "சரக்கு",
+  "common.unpricedInventory": "விலையில்லா சரக்கு"
+}

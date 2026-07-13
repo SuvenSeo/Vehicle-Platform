@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router-dom";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const ROUTER_FLAGS = {
@@ -10,9 +11,11 @@ const ROUTER_FLAGS = {
 
 function renderNav(initialPath = "/") {
   return render(
-    <MemoryRouter initialEntries={[initialPath]} future={ROUTER_FLAGS}>
-      <MobileBottomNav />
-    </MemoryRouter>,
+    <AppPreferencesProvider>
+      <MemoryRouter initialEntries={[initialPath]} future={ROUTER_FLAGS}>
+        <MobileBottomNav />
+      </MemoryRouter>
+    </AppPreferencesProvider>,
   );
 }
 

@@ -1,0 +1,37 @@
+{
+  "nav.home": "මුල් පිටුව",
+  "nav.market": "වෙළඳපොළ",
+  "nav.trends": "ප්‍රවණතා",
+  "nav.alerts": "ඇඟවීම්",
+  "nav.bestPicks": "හොඳම තෝරාගැනීම්",
+  "nav.pro": "ප්‍රෝ",
+  "nav.overview": "සාරාංශය",
+  "nav.valuation": "වටිනාකම",
+  "nav.blog": "බ්ලොග්",
+  "nav.signIn": "ප්‍රවේශ වන්න",
+  "nav.live": "සජීවී",
+  "nav.syncing": "සමමුහුර්ත කරමින්",
+  "nav.delayed": "ප්‍රමාදයි",
+
+  "district.colombo": "කොළඹ",
+  "district.gampaha": "ගම්පහ",
+  "district.kalutara": "කළුතර",
+  "district.kandy": "මහනුවර",
+  "district.galle": "ගාල්ල",
+  "district.matara": "මාතර",
+  "district.kurunegala": "කුරුණෑගල",
+  "district.ratnapura": "රත්නපුරය",
+  "district.badulla": "බදුල්ල",
+  "district.anuradhapura": "අනුරාධපුරය",
+
+  "currency.lkr": "රු",
+
+  "common.search": "සොයන්න",
+  "common.save": "සුරකින්න",
+  "common.alerts": "ඇඟවීම්",
+  "common.searching": "සොයමින්...",
+  "common.saved": "සුරකින ලදී",
+  "common.saveAlert": "ඇඟවීම සුරකින්න",
+  "common.inventory": "තොගය",
+  "common.unpricedInventory": "මිල නොමැති තොගය"
+}

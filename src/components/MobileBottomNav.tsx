@@ -1,20 +1,22 @@
 import { BarChart2, Bell, Crown, Home, Star, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 type NavTab = {
-  label: string;
+  labelKey: string;
+  fallback: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   matchHash?: string;
 };
 
 const TABS: NavTab[] = [
-  { label: "Home", href: "/", icon: Home },
-  { label: "Market", href: "/#market", icon: TrendingUp, matchHash: "market" },
-  { label: "Alerts", href: "/alerts", icon: Bell },
-  { label: "Trends", href: "/trends", icon: BarChart2 },
-  { label: "Best Picks", href: "/best-picks", icon: Star },
-  { label: "Pro", href: "/pro", icon: Crown },
+  { labelKey: "nav.home", fallback: "Home", href: "/", icon: Home },
+  { labelKey: "nav.market", fallback: "Market", href: "/#market", icon: TrendingUp, matchHash: "market" },
+  { labelKey: "nav.alerts", fallback: "Alerts", href: "/alerts", icon: Bell },
+  { labelKey: "nav.trends", fallback: "Trends", href: "/trends", icon: BarChart2 },
+  { labelKey: "nav.bestPicks", fallback: "Best Picks", href: "/best-picks", icon: Star },
+  { labelKey: "nav.pro", fallback: "Pro", href: "/pro", icon: Crown },
 ];
 
 function useIsTabActive(tab: NavTab): boolean {
@@ -33,12 +35,14 @@ function useIsTabActive(tab: NavTab): boolean {
 
 function TabItem({ tab }: { tab: NavTab }) {
   const isActive = useIsTabActive(tab);
+  const { t } = useAppPreferences();
   const Icon = tab.icon;
+  const label = t(tab.labelKey, tab.fallback);
 
   return (
     <Link
       to={tab.href}
-      aria-label={tab.label}
+      aria-label={label}
       aria-current={isActive ? "page" : undefined}
       data-active={isActive}
       className={`group flex flex-1 flex-col items-center justify-center gap-1 py-2 no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
@@ -64,7 +68,7 @@ function TabItem({ tab }: { tab: NavTab }) {
           isActive ? "text-primary" : ""
         }`}
       >
-        {tab.label}
+        {label}
       </span>
     </Link>
   );
