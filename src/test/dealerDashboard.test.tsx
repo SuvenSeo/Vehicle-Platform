@@ -2,12 +2,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import DealerDashboard, {
+import DealerDashboard from "@/pages/DealerDashboard";
+import {
   buildDealerNotifications,
   buildDistrictDemandRows,
   buildDistrictPriceGaps,
   buildTurnoverSeries,
-} from "@/pages/DealerDashboard";
+} from "@/lib/dealerDashboardData";
 
 vi.mock("@/services/api", () => ({
   getStats: vi.fn(),
