@@ -325,3 +325,74 @@ class ImportPriceSnapshotRead(BaseModel):
     raw_meta: Optional[dict] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DistrictVelocityPoint(BaseModel):
+    district: str
+    lat: float
+    lng: float
+    listing_count: int
+    new_7d_count: int
+    velocity_score: float
+
+
+class DistrictVelocityResponse(BaseModel):
+    points: List[DistrictVelocityPoint]
+    generated_at: datetime
+
+
+class MarketAlertCreate(BaseModel):
+    make: Optional[str] = Field(default=None, max_length=50)
+    model: Optional[str] = Field(default=None, max_length=100)
+    max_price: Optional[float] = Field(default=None, gt=0)
+    district: Optional[str] = Field(default=None, max_length=50)
+
+
+class MarketAlertRead(BaseModel):
+    id: int
+    user_token: str
+    make: Optional[str] = None
+    model: Optional[str] = None
+    max_price: Optional[Decimal] = None
+    district: Optional[str] = None
+    active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AlertMatchListing(BaseModel):
+    id: int
+    title: Optional[str] = None
+    make: str
+    model: str
+    year: Optional[int] = None
+    price_lkr: Optional[float] = None
+    district: Optional[str] = None
+    deal_score: Optional[float] = None
+    thumbnail_url: Optional[str] = None
+
+
+class AlertMatchResult(BaseModel):
+    alert_id: int
+    make: Optional[str] = None
+    model: Optional[str] = None
+    district: Optional[str] = None
+    max_price: Optional[float] = None
+    matching_count: int
+    listings: List[AlertMatchListing]
+
+
+class AlertMatchResponse(BaseModel):
+    results: List[AlertMatchResult]
+    checked_at: datetime
+
+
+class ProArbitrageGap(BaseModel):
+    buy_district: str
+    sell_district: str
+    buy_median_lkr: float
+    sell_median_lkr: float
+    gap_pct: float
+    buy_listing_count: int
+    sell_listing_count: int

@@ -194,3 +194,36 @@ class UserFeedback(Base):
     __table_args__ = (
         Index('idx_user_feedback_status_created', 'status', 'created_at'),
     )
+
+
+class MarketStatsCache(Base):
+    """Key-value materialized cache for heavy aggregate endpoints.
+
+    Rows are upserted by ``cache_key``; ``payload`` holds the JSON blob;
+    ``refreshed_at`` is used for TTL checks.  Valid keys: ``summary``,
+    ``district_prices``.
+    """
+
+    __tablename__ = 'market_stats_cache'
+
+    cache_key = Column(String(80), primary_key=True)
+    payload = Column(JSON, nullable=False)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class MarketAlert(Base):
+    __tablename__ = 'market_alerts'
+
+    id = Column(Integer, primary_key=True)
+    user_token = Column(String(36), nullable=False)
+    make = Column(String(50), nullable=True)
+    model = Column(String(100), nullable=True)
+    max_price = Column(Numeric(15, 2), nullable=True)
+    district = Column(String(50), nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index('idx_market_alerts_user_token', 'user_token'),
+        Index('idx_market_alerts_active', 'active'),
+    )
