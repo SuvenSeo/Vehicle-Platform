@@ -16,12 +16,16 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 - Hybrid 1,500cc excise cliff callout
 - Market signals strip on dashboard
 - MoM null shows "Building history" instead of `0.0%`
+- Ingest-time district normalization in `CarCleaner`
+- District backfill script (`backend/scripts/backfill_districts.py`)
+- Chunked listing sitemap index (131k-scale SEO)
+- Rich listing JSON-LD with district `areaServed`
 
 ## P0 — Data trust & scale
 
 | Item | Why | Approach |
 |------|-----|----------|
-| Ingest-time district normalization | Stops city strings polluting map/stats | Normalize in `CarCleaner` + backfill job |
+| Ingest-time district normalization | Stops city strings polluting map/stats | ~~Normalize in `CarCleaner`~~ + backfill job |
 | Cross-source deduplication | Double-counting inflates supply metrics | Fuzzy match on make/model/year/price/mileage |
 | Deal-score SQL bulk update | 131k+ row Python loop risks HF memory | JOIN to latest `PriceAggregate`, batch UPDATE |
 | Stats materialized cache | Heavy aggregates on every request | `market_stats_cache` refreshed post-scrape |
@@ -42,7 +46,7 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 | Item | Why | Approach |
 |------|-----|----------|
 | Server-side market alerts | Alerts are localStorage-only today | `POST /alerts` + post-scrape matcher |
-| Programmatic SEO pages | 131k listings, only 5k in sitemap | `/cars/:make-:model` hubs + sitemap index |
+| Programmatic SEO pages | 131k listings, only 5k in sitemap | `/cars/:make-:model` hubs + ~~sitemap index~~ |
 | Rich listing JSON-LD | Generic meta hurts search CTR | Pass make/model/price into `ListingDetail` schema |
 | Mobile bottom nav | Filters hidden on small screens | Sheet filters + tab bar |
 | Sinhala/Tamil i18n | Mass-market adoption | Settings-driven locale for districts/currency |
@@ -63,7 +67,7 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 |------|-----|----------|
 | Thumbnail CDN cache | External images break/slow | Persist thumbnails during scrape |
 | SSE connection limits | `/stats/live/stream` opens DB every 10s | Redis pub/sub or cap concurrent streams |
-| Sitemap chunking | 131k URLs exceed single sitemap cap | `sitemap-listings-N.xml` index |
+| Sitemap chunking | 131k URLs exceed single sitemap cap | ~~`sitemap-listings-N.xml` index~~ |
 | `httpx2` migration | Starlette test client deprecation | Add dev dependency when stable |
 
 ## Research references
