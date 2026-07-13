@@ -113,6 +113,11 @@ export function RouteMeta() {
       ROUTE_META[pathname] ??
       (pathname.startsWith("/listing/")
         ? { title: `Vehicle Detail — ${SITE}`, description: DEFAULT_DESCRIPTION }
+        : pathname.startsWith("/cars/")
+        ? {
+            title: `Vehicle Market Hub — ${SITE}`,
+            description: "Prices, district breakdown, and live listings for a specific vehicle in Sri Lanka.",
+          }
         : { title: `${SITE}`, description: DEFAULT_DESCRIPTION });
 
     document.title = meta.title;

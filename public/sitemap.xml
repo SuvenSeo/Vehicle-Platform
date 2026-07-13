@@ -45,4 +45,32 @@
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
+  <!-- Make-model hub pages follow the pattern /cars/:make/:model -->
+  <!-- e.g. /cars/toyota/prius, /cars/honda/fit, /cars/suzuki/alto -->
+  <!-- These are dynamically rendered; add high-volume make-model combos here for crawling -->
+  <url>
+    <loc>https://vehicle-platform-one.vercel.app/cars/toyota/prius</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vehicle-platform-one.vercel.app/cars/honda/fit</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vehicle-platform-one.vercel.app/cars/toyota/aqua</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vehicle-platform-one.vercel.app/cars/suzuki/alto</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vehicle-platform-one.vercel.app/cars/honda/vezel</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
