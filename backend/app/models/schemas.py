@@ -7,7 +7,7 @@ class CarListingBase(BaseModel):
     source: str
     source_id: str
     url: str
-    title: str
+    title: Optional[str] = None
     make: str
     model: str
     year: Optional[int] = None

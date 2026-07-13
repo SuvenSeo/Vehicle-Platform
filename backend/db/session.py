@@ -98,9 +98,12 @@ def get_cold_db():
 
 
 def init_db():
-    """Create all tables on the COLD (write) database if they don't exist."""
-    from .models import Base
-    Base.metadata.create_all(bind=cold_engine)
+    """Create missing tables/columns on cold and hot databases."""
+    from .schema_patches import apply_schema_patches
+
+    apply_schema_patches(cold_engine)
+    if hot_engine is not cold_engine:
+        apply_schema_patches(hot_engine)
 
 
 def is_dual_db_mode() -> bool:

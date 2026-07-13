@@ -1201,7 +1201,8 @@ def search_listings(
     elif sort == "mileage_asc":
         q = q.order_by(CarListing.mileage.asc())
 
-    total = q.count()
+    count_q = q._clone()
+    total = count_q.order_by(None).with_entities(func.count(CarListing.id)).scalar() or 0
     items = q.offset((page - 1) * size).limit(size).all()
 
     return ListingsResponse(
