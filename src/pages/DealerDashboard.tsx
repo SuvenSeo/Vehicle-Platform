@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Bell, ChevronDown, ChevronUp, Gauge, ShieldCheck } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, ShieldCheck } from "lucide-react";
 import { formatPrice } from "@/services/api";
 
 type WidgetKey = "turnover" | "priceGap" | "districtDemand";

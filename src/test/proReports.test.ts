@@ -3,7 +3,7 @@ import type { ProReportPayload } from "@/types/pro";
 
 const mocks = vi.hoisted(() => ({
   saveAs: vi.fn(),
-  autoTable: vi.fn((doc: any) => {
+  autoTable: vi.fn((doc: { lastAutoTable?: { finalY: number } }) => {
     doc.lastAutoTable = { finalY: 160 };
   }),
   pdfSave: vi.fn(),

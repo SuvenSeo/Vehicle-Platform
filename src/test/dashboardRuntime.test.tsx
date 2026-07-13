@@ -1,4 +1,4 @@
-import { MemoryRouter } from "react-router-dom";
+import { TestRouter } from "@/test/testUtils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,9 +78,9 @@ function renderDashboard(initialEntries: string[] = ["/"]) {
   return render(
     <QueryClientProvider client={queryClient}>
       <AppPreferencesProvider>
-        <MemoryRouter initialEntries={initialEntries}>
+        <TestRouter initialEntries={initialEntries}>
           <Dashboard />
-        </MemoryRouter>
+        </TestRouter>
       </AppPreferencesProvider>
     </QueryClientProvider>,
   );

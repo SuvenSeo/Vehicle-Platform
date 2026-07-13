@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from app.utils.time import utc_now
 import re
 from typing import Any
 from urllib.parse import urljoin
@@ -216,7 +217,7 @@ class MarketSignalImporter:
         return True
 
     def sync(self) -> dict[str, int]:
-        observed_at = datetime.utcnow()
+        observed_at = utc_now()
         inserted = 0
         updated = 0
         failed = 0

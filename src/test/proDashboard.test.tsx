@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { TestRouter } from "@/test/testUtils";
 import { AuthProvider } from "@/lib/authContext";
 import ProDashboard from "@/pages/ProDashboard";
+import type { ProDetailPayload, ProDistrictProfile, ProMarketSnapshot, ProVehicleLane } from "@/types/pro";
 
 vi.mock("@/components/AIChatWidget", () => ({
   AIChatWidget: () => null,
@@ -144,8 +145,8 @@ describe("ProDashboard", () => {
       "autolens.auth_user",
       JSON.stringify({ email: "pro@autolens.lk", name: "Pro User", plan: "pro", avatarInitials: "PU" }),
     );
-    vi.mocked(getProMarketSnapshot).mockResolvedValue(snapshot as any);
-    vi.mocked(getProVehicleLanes).mockResolvedValue([lane] as any);
+    vi.mocked(getProMarketSnapshot).mockResolvedValue(snapshot as ProMarketSnapshot);
+    vi.mocked(getProVehicleLanes).mockResolvedValue([lane] as ProVehicleLane[]);
     vi.mocked(getProDistricts).mockResolvedValue([
       {
         district: "Colombo",
@@ -162,16 +163,16 @@ describe("ProDashboard", () => {
         source_mix: [],
         sample_listings: [],
       },
-    ] as any);
-    vi.mocked(getProVehicleLaneDetail).mockResolvedValue(detail as any);
+    ] as ProDistrictProfile[]);
+    vi.mocked(getProVehicleLaneDetail).mockResolvedValue(detail as ProDetailPayload);
   });
 
   it("loads Pro data, switches to vehicle intelligence, and opens lane details", async () => {
     render(
       <AuthProvider>
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <TestRouter>
           <ProDashboard />
-        </MemoryRouter>
+        </TestRouter>
       </AuthProvider>,
     );
 
@@ -193,9 +194,9 @@ describe("ProDashboard", () => {
   it("opens the report studio and builds a customized report payload", async () => {
     render(
       <AuthProvider>
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <TestRouter>
           <ProDashboard />
-        </MemoryRouter>
+        </TestRouter>
       </AuthProvider>,
     );
 

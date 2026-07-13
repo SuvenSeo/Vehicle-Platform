@@ -24,4 +24,10 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
+  {
+    files: ["src/components/ui/**/*.{ts,tsx}", "src/lib/authContext.tsx", "src/lib/appPreferences.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );

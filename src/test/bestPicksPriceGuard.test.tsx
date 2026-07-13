@@ -1,4 +1,4 @@
-import { MemoryRouter } from "react-router-dom";
+import { TestRouter } from "@/test/testUtils";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +10,7 @@ vi.mock("@/services/api", () => ({
 
 import BestPicks from "@/pages/BestPicks";
 import * as api from "@/services/api";
+import type { CarListing } from "@/types/car";
 
 function makeListing(id: number, make: string, model: string, priceLkr: number, dealScore: number) {
   return {
@@ -25,7 +26,7 @@ function makeListing(id: number, make: string, model: string, priceLkr: number, 
     external_url: `https://example.com/listing/${id}`,
     thumbnail_url: null,
     images: [],
-  } as any;
+  } as CarListing;
 }
 
 describe("BestPicks price guard", () => {
@@ -44,9 +45,9 @@ describe("BestPicks price guard", () => {
 
   it("excludes zero and tiny malformed prices from best picks", async () => {
     render(
-      <MemoryRouter>
+      <TestRouter>
         <BestPicks />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     await screen.findByText(/Toyota Corolla/i);

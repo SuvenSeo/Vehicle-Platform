@@ -4,6 +4,7 @@ from sqlalchemy import String, cast, func, desc, and_, or_
 from typing import Optional, List, Dict, Any
 from statistics import median
 from datetime import datetime, timezone
+from app.utils.time import utc_now
 import ipaddress
 import json
 import math
@@ -907,7 +908,7 @@ def _enrich_listing_fields(
 
     current_mileage = getattr(listing, "mileage", None)
     mileage_missing = current_mileage is None or int(current_mileage or 0) <= 0
-    stale_year = bool(getattr(listing, "year", None) and int(getattr(listing, "year")) <= datetime.utcnow().year - 2)
+    stale_year = bool(getattr(listing, "year", None) and int(getattr(listing, "year")) <= utc_now().year - 2)
 
     resolved_mileage = int(current_mileage) if not mileage_missing else None
     if mileage_missing:

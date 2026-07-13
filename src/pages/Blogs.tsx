@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, BarChart3, Clock3, Search, SlidersHorizontal, Target, TrendingUp } from "lucide-react";
+import { BarChart3, Clock3, Search, SlidersHorizontal, Target, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 
 // Editorial guides only — no invented market statistics or fictional research
@@ -28,8 +28,6 @@ function formatDate(iso: string): string {
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString("en-LK", { day: "2-digit", month: "short", year: "numeric" });
 }
-
-function parseMin(v: string): number { const m = v.match(/\d+/); return m ? Number(m[0]) : 0; }
 
 export default function Blogs() {
   const [query, setQuery] = useState("");

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from app.utils.time import utc_now
 from statistics import median
 from typing import Annotated, Iterable, Optional
 
@@ -307,7 +308,7 @@ def _samples(db: Session, *, limit: int = 8, **scope) -> list[ProListingSample]:
 
 @router.get("/market-snapshot", response_model=ProMarketSnapshot)
 def get_pro_market_snapshot(db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = utc_now()
     seven_days_ago = now - timedelta(days=7)
     priced = _price_query(db)
     metrics = _scope_metrics(db, priced)
@@ -483,7 +484,7 @@ def get_pro_vehicle_lane_detail(
         kind="vehicle_lane",
         title=f"{make} {model}{district_label}",
         summary=f"{total} priced listings tracked for this lane across AutoLens sources.",
-        generated_at=datetime.utcnow(),
+        generated_at=utc_now(),
         metrics=[
             ProMetric(label="Listings", value=f"{total:,}", detail="Priced, non-outlier inventory"),
             ProMetric(label="Average price", value=f"Rs. {avg_price:,.0f}" if avg_price else "N/A"),
@@ -514,7 +515,7 @@ def get_pro_district_detail(
         kind="district",
         title=f"{district} market profile",
         summary=f"{top_label} leads the local sample across {total} priced listings.",
-        generated_at=datetime.utcnow(),
+        generated_at=utc_now(),
         metrics=[
             ProMetric(label="Listings", value=f"{total:,}", detail="Priced, non-outlier inventory"),
             ProMetric(label="Average price", value=f"Rs. {avg_price:,.0f}" if avg_price else "N/A"),

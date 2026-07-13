@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.utils.time import utc_now
 
 import httpx
 import structlog
@@ -33,7 +34,7 @@ class AutoStreamScraper:
         if existing:
             for key, value in payload.items():
                 setattr(existing, key, value)
-            existing.last_seen_at = datetime.utcnow()
+            existing.last_seen_at = utc_now()
             return False
 
         self.db.add(CarListing(**payload))
@@ -133,7 +134,7 @@ class AutoStreamScraper:
                             "mileage": self.cleaner.clean_mileage(str(row.get("mileage") or "")),
                             "engine_capacity": row.get("engineCc"),
                             "_text_blobs": [sellers_notes, listing_features],
-                            "scraped_at": datetime.utcnow(),
+                            "scraped_at": utc_now(),
                         }
 
                         normalized_payload = self.cleaner.normalize_listing_payload(payload)

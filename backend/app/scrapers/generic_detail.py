@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from app.utils.time import utc_now
 import re
 from urllib.parse import urljoin, urlparse
 
@@ -76,7 +77,7 @@ class GenericDetailScraper:
         if existing:
             for key, value in payload.items():
                 setattr(existing, key, value)
-            existing.last_seen_at = datetime.utcnow()
+            existing.last_seen_at = utc_now()
             return False
 
         self.db.add(CarListing(**payload))
@@ -320,7 +321,7 @@ class GenericDetailScraper:
             "district": district or "Sri Lanka",
             "_text_blobs": visible_text,
             "_allow_missing_price": has_unavailable_price,
-            "scraped_at": datetime.utcnow(),
+            "scraped_at": utc_now(),
         }
         return self.cleaner.normalize_listing_payload(payload)
 

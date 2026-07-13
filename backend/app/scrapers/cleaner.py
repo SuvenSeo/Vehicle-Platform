@@ -1,6 +1,7 @@
 import hashlib
 import re
 from datetime import datetime
+from app.utils.time import utc_now
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
 
@@ -362,7 +363,7 @@ class CarCleaner:
             year = int(normalized.get("year") or 0)
         except Exception:
             year = 0
-        current_year = datetime.utcnow().year
+        current_year = utc_now().year
         if not (1950 <= year <= current_year + 1):
             normalized["year"] = None  # Don't default to 2015 - leave as NULL
         else:

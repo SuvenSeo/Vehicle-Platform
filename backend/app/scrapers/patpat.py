@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.utils.time import utc_now
 import re
 from urllib.parse import urljoin
 
@@ -34,7 +35,7 @@ class PatpatScraper:
         if existing:
             for key, value in payload.items():
                 setattr(existing, key, value)
-            existing.last_seen_at = datetime.utcnow()
+            existing.last_seen_at = utc_now()
             return False
 
         self.db.add(CarListing(**payload))
@@ -207,7 +208,7 @@ class PatpatScraper:
                                 "thumbnail_url": thumb_url,
                                 "district": district or "Sri Lanka",
                                 "condition": None, "_text_blobs": card_text,
-                                "scraped_at": datetime.utcnow(),
+                                "scraped_at": utc_now(),
                             }
 
                             normalized_payload = self.cleaner.normalize_listing_payload(payload)

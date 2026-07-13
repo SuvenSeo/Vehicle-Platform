@@ -5,7 +5,6 @@ import { Gauge, MapPin, ArrowRight, Heart, Check, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
-import { FairPriceIndicator } from "@/components/FairPriceIndicator";
 import { isReasonableListingPrice } from "@/lib/formatting";
 import {
   getListingDaysOnMarketLabel,

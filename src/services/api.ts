@@ -30,6 +30,14 @@ import { authHeaders } from "@/lib/authToken";
 const DEFAULT_PRODUCTION_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const HF_COLD_START_TIMEOUT_MS = 60_000;
 
+type JsonRecord = Record<string, unknown>;
+type QueryParams = Record<string, string | number | boolean | undefined | null>;
+type EstimateParams = QueryParams;
+
+function asJsonRecord(value: unknown): JsonRecord {
+  return typeof value === "object" && value !== null ? (value as JsonRecord) : {};
+}
+
 function normalizeApiBasePath(raw: string): string {
   const trimmed = raw.replace(/\/+$/, "");
   if (trimmed.endsWith("/api") || trimmed.endsWith("/api/v1")) return trimmed;
@@ -223,7 +231,7 @@ async function parseApiError(response: Response): Promise<APIError> {
         detail = parsed.detail;
       } else if (Array.isArray(parsed?.detail)) {
         detail = parsed.detail
-          .map((item: any) => (typeof item?.msg === "string" ? item.msg : JSON.stringify(item)))
+          .map((item: JsonRecord) => (typeof item?.msg === "string" ? item.msg : JSON.stringify(item)))
           .join("; ");
       }
     } catch {
@@ -285,7 +293,7 @@ function normalizeBodyTypeValue(value: unknown): string | undefined {
   return undefined;
 }
 
-function normalizeListing(raw: any): CarListing {
+function normalizeListing(raw: JsonRecord): CarListing {
   const sourceUrls = [raw?.url, raw?.detail_url, raw?.external_url];
   const images = Array.isArray(raw?.images)
     ? raw.images
@@ -373,7 +381,7 @@ function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
   return snapshotCatalogPromise;
 }
 
-function normalizeStatsOverview(data: any): StatsOverview {
+function normalizeStatsOverview(data: JsonRecord): StatsOverview {
   return {
     total_listings: Number(data?.total_listings ?? data?.priced_listings ?? data?.offers_count) || 0,
     avg_price_lkr: toNumberOrNull(data?.avg_price_lkr ?? data?.average_price_lkr ?? data?.avg_price) ?? 0,
@@ -389,7 +397,7 @@ function normalizeStatsOverview(data: any): StatsOverview {
   };
 }
 
-function normalizeLiveMarketData(data: any): LiveMarketSnapshot {
+function normalizeLiveMarketData(data: JsonRecord): LiveMarketSnapshot {
   return {
     generated_at: String(data?.generated_at || new Date().toISOString()),
     total_listings: Number(data?.total_listings || 0),
@@ -400,19 +408,21 @@ function normalizeLiveMarketData(data: any): LiveMarketSnapshot {
     active_scrape_sources: Array.isArray(data?.active_scrape_sources)
       ? data.active_scrape_sources.map((row: unknown) => String(row)).filter(Boolean)
       : [],
-    latest_run: data?.latest_run
-      ? {
-          source: String(data.latest_run.source || "unknown"),
-          status: String(data.latest_run.status || "UNKNOWN"),
-          started_at: data.latest_run.started_at ? String(data.latest_run.started_at) : null,
-          finished_at: data.latest_run.finished_at ? String(data.latest_run.finished_at) : null,
-          listings_found: Number(data.latest_run.listings_found || 0),
-          listings_new: Number(data.latest_run.listings_new || 0),
-          error_message: data.latest_run.error_message ? String(data.latest_run.error_message) : null,
-        }
-      : null,
+    latest_run: (() => {
+      const latestRun = asJsonRecord(data.latest_run);
+      if (!data.latest_run) return null;
+      return {
+          source: String(latestRun.source || "unknown"),
+          status: String(latestRun.status || "UNKNOWN"),
+          started_at: latestRun.started_at ? String(latestRun.started_at) : null,
+          finished_at: latestRun.finished_at ? String(latestRun.finished_at) : null,
+          listings_found: Number(latestRun.listings_found || 0),
+          listings_new: Number(latestRun.listings_new || 0),
+          error_message: latestRun.error_message ? String(latestRun.error_message) : null,
+        };
+    })(),
     source_status: Array.isArray(data?.source_status)
-      ? data.source_status.map((row: any) => ({
+      ? data.source_status.map((row: JsonRecord) => ({
           source: String(row?.source || "unknown"),
           status: String(row?.status || "UNKNOWN"),
           started_at: row?.started_at ? String(row.started_at) : null,
@@ -425,17 +435,21 @@ function normalizeLiveMarketData(data: any): LiveMarketSnapshot {
   };
 }
 
-function normalizeDistrictPricesPayload(data: any): DistrictPrice[] {
-  return (data?.points || []).map((p: any) => ({
-    district: p.district,
-    avg_price: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? 0,
-    listing_count: Number(p.count ?? p.listing_count) || 0,
-    lat: toNumberOrNull(p.lat) ?? 0,
-    lng: toNumberOrNull(p.lng) ?? 0,
-    top_make: p?.top_make ? String(p.top_make) : undefined,
-    top_model: p?.top_model ? String(p.top_model) : undefined,
-    top_model_count: toNumberOrNull(p?.top_model_count) ?? undefined,
-  })).filter((p: DistrictPrice) => p.district && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+function normalizeDistrictPricesPayload(data: JsonRecord): DistrictPrice[] {
+  const points = Array.isArray(data.points) ? data.points : [];
+  return points.map((point): DistrictPrice => {
+    const p = asJsonRecord(point);
+    return {
+      district: String(p.district || ""),
+      avg_price: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? 0,
+      listing_count: Number(p.count ?? p.listing_count) || 0,
+      lat: toNumberOrNull(p.lat) ?? 0,
+      lng: toNumberOrNull(p.lng) ?? 0,
+      top_make: p?.top_make ? String(p.top_make) : undefined,
+      top_model: p?.top_model ? String(p.top_model) : undefined,
+      top_model_count: toNumberOrNull(p?.top_model_count) ?? undefined,
+    };
+  }).filter((p) => Boolean(p.district) && Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
 
 function normalizeListingSourceRows(rows: unknown): ListingSourceStat[] {
@@ -724,7 +738,7 @@ function buildSnapshotTrendSeries(
   };
 }
 
-async function fetchJSON<T>(path: string, params?: Record<string, any>, headers?: Record<string, string>): Promise<T> {
+async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record<string, string>): Promise<T> {
   if (USE_MOCK) throw new Error("Mock mode is disabled");
 
   const url = new URL(`${API_BASE}${path}`, window.location.origin);
@@ -768,7 +782,7 @@ async function fetchJSON<T>(path: string, params?: Record<string, any>, headers?
   throw lastError;
 }
 
-async function postJSON<T>(path: string, body: Record<string, any>, headers?: Record<string, string>): Promise<T> {
+async function postJSON<T>(path: string, body: Record<string, unknown>, headers?: Record<string, string>): Promise<T> {
   if (USE_MOCK) throw new Error("Mock mode is disabled");
 
   const controller = new AbortController();
@@ -793,18 +807,18 @@ async function postJSON<T>(path: string, body: Record<string, any>, headers?: Re
 }
 
 export const getStats = async (): Promise<StatsOverview> => {
-  const snapshot = await readSnapshot<any>("stats-summary.json");
+  const snapshot = await readSnapshot<JsonRecord>("stats-summary.json");
   if (snapshot) return normalizeStatsOverview(snapshot);
 
-  const data = await fetchJSON<any>("/stats/summary");
+  const data = await fetchJSON<JsonRecord>("/stats/summary");
   return normalizeStatsOverview(data);
 };
 
 export const getLiveMarketSnapshot = async (): Promise<LiveMarketSnapshot> => {
-  const snapshot = await readSnapshot<any>("live-market.json");
+  const snapshot = await readSnapshot<JsonRecord>("live-market.json");
   if (snapshot) return normalizeLiveMarketData(snapshot);
 
-  const data = await fetchJSON<any>("/stats/live");
+  const data = await fetchJSON<JsonRecord>("/stats/live");
   return normalizeLiveMarketData(data);
 };
 
@@ -816,18 +830,19 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return filterSnapshotListings(catalog, filters);
 
-  const data = await fetchJSON<any>("/listings", {
+  const data = await fetchJSON<JsonRecord>("/listings", {
     ...filters,
     size: LISTINGS_PAGE_SIZE,
   });
+  const items = Array.isArray(data.items) ? data.items : [];
   return {
-    listings: (data.items || []).map(normalizeListing),
-    total: data.total || 0
+    listings: items.map((item) => normalizeListing(asJsonRecord(item))),
+    total: Number(data.total) || 0,
   };
 };
 
 export const sendFeedback = async (payload: FeedbackInput): Promise<FeedbackReceipt> => {
-  const data = await postJSON<any>("/feedback", {
+  const data = await postJSON<JsonRecord>("/feedback", {
     category: payload.category,
     route: payload.route,
     message: payload.message,
@@ -850,12 +865,12 @@ export const getListing = async (id: string | number) => {
     if (match) return match;
   }
 
-  const data = await fetchJSON<any>(`/listings/${id}`);
+  const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
 };
 
 export const getSellerTrustProfile = async (id: string | number): Promise<SellerTrustProfile> => {
-  const data = await fetchJSON<any>(`/listings/${id}/seller-profile`);
+  const data = await fetchJSON<JsonRecord>(`/listings/${id}/seller-profile`);
   const sellerTypeRaw = String(data?.seller_type || "").toLowerCase();
   const sellerType: SellerTrustProfile["seller_type"] =
     sellerTypeRaw === "dealer" || sellerTypeRaw === "private" ? sellerTypeRaw : "unknown";
@@ -898,15 +913,15 @@ export const getSimilarListings = async (id: string | number) => {
     }
   }
 
-  const data = await fetchJSON<any[]>(`/listings/${id}/similar`);
+  const data = await fetchJSON<JsonRecord[]>(`/listings/${id}/similar`);
   return (data || []).map(normalizeListing);
 };
 
 export const getDistrictPrices = async (): Promise<DistrictPrice[]> => {
-  const snapshot = await readSnapshot<any>("district-prices.json");
+  const snapshot = await readSnapshot<JsonRecord>("district-prices.json");
   if (snapshot) return normalizeDistrictPricesPayload(snapshot);
 
-  const data = await fetchJSON<any>("/stats/district-prices");
+  const data = await fetchJSON<JsonRecord>("/stats/district-prices");
   return normalizeDistrictPricesPayload(data);
 };
 
@@ -930,7 +945,7 @@ export const getListingSearchSuggestions = async (
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return searchSuggestionsFromCatalog(catalog, query, limit);
 
-  const data = await fetchJSON<any[]>("/listings/search-suggestions", { q: query, limit });
+  const data = await fetchJSON<JsonRecord[]>("/listings/search-suggestions", { q: query, limit });
   if (!Array.isArray(data)) return [];
 
   return data
@@ -971,7 +986,7 @@ export const getListingSources = async (): Promise<ListingSourceStat[]> => {
     // Fall through to client-side source derivation for older backend deployments.
   }
 
-  const data = await fetchJSON<any>("/listings", { page: 1, size: 200, sort: "newest" });
+  const data = await fetchJSON<JsonRecord>("/listings", { page: 1, size: 200, sort: "newest" });
   const counts = new Map<string, number>();
   for (const item of Array.isArray(data?.items) ? data.items : []) {
     const source = canonicalSource(item?.source);
@@ -997,8 +1012,10 @@ export const getModels = async (make: string) => {
   return fetchJSON<{ model: string; count: number }[]>("/listings/models", { make });
 };
 
-export const estimatePrice = async (params: any): Promise<PriceEstimate> => {
-  const normalizedCondition = normalizeConditionFilter(params?.condition);
+export const estimatePrice = async (params: EstimateParams): Promise<PriceEstimate> => {
+  const normalizedCondition = normalizeConditionFilter(
+    params?.condition === undefined || params?.condition === null ? undefined : String(params.condition),
+  );
   const payload = {
     ...params,
     condition: normalizedCondition,
@@ -1006,7 +1023,7 @@ export const estimatePrice = async (params: any): Promise<PriceEstimate> => {
   };
 
   try {
-    const data = await fetchJSON<any>("/listings/estimate", payload);
+    const data = await fetchJSON<JsonRecord>("/listings/estimate", payload);
     const comparableCount = Number(data?.comparable_listings || 0);
     return {
       median: toNumberOrNull(data?.estimated_price_lkr) ?? 0,
@@ -1024,7 +1041,7 @@ export const estimatePrice = async (params: any): Promise<PriceEstimate> => {
       throw error;
     }
 
-    const fallback = await postJSON<any>("/listings/custom-estimate", {
+    const fallback = await postJSON<JsonRecord>("/listings/custom-estimate", {
       make: params?.make,
       model: params?.model,
       year: params?.year,
@@ -1060,7 +1077,7 @@ export const estimatePrice = async (params: any): Promise<PriceEstimate> => {
 export const estimateCustomVehicle = async (
   params: CustomVehicleEstimateInput,
 ): Promise<CustomVehicleEstimateResult> => {
-  const data = await postJSON<any>("/listings/custom-estimate", params);
+  const data = await postJSON<JsonRecord>("/listings/custom-estimate", { ...params });
   return {
     vehicle_label: String(data?.vehicle_label || `${params.make} ${params.model}`),
     estimated_low_lkr: toNumberOrNull(data?.estimated_low_lkr) ?? 0,
@@ -1073,7 +1090,7 @@ export const estimateCustomVehicle = async (
     delta_pct: toNumberOrNull(data?.delta_pct),
     methodology: String(data?.methodology || ""),
     comparables: Array.isArray(data?.comparables)
-      ? data.comparables.map((row: any) => ({
+      ? data.comparables.map((row: JsonRecord) => ({
           id: Number(row?.id),
           title: String(row?.title || "Listing"),
           price_lkr: toNumberOrNull(row?.price_lkr),
@@ -1101,18 +1118,22 @@ export const getPriceTrendSeries = async (
 
   const normalizedCondition = normalizeConditionFilter(condition);
   const normalizedDistrict = String(district || "").trim() || undefined;
-  const data = await fetchJSON<any>("/stats/trends", {
+  const data = await fetchJSON<JsonRecord>("/stats/trends", {
     make,
     model,
     ...(normalizedCondition ? { condition: normalizedCondition } : {}),
     ...(normalizedDistrict ? { district: normalizedDistrict } : {}),
   });
-  const points = (data.points || []).map((p: any) => ({
+  const trendPoints = Array.isArray(data.points) ? data.points : [];
+  const points = trendPoints.map((point) => {
+    const p = asJsonRecord(point);
+    return {
     month: `${p.year}-${String(p.month).padStart(2, "0")}`,
     median_price: toNumberOrNull(p.median_price_lkr ?? p.avg_price_lkr) ?? 0,
     avg_price: toNumberOrNull(p.avg_price_lkr) ?? 0,
     sample_count: Number(p.listing_count) || 0,
-  })).sort((a: PriceTrendPoint, b: PriceTrendPoint) => a.month.localeCompare(b.month));
+  };
+  }).sort((a: PriceTrendPoint, b: PriceTrendPoint) => a.month.localeCompare(b.month));
 
   const rawScope = String(data?.coverage_scope || "exact");
   const allowedScopes = new Set<PriceTrendSeries["coverage_scope"]>([
@@ -1206,7 +1227,7 @@ export const getProMarketSnapshot = async (): Promise<ProMarketSnapshot> => {
 export const getProVehicleLanes = async (
   filters: ProVehicleLaneFilters = {},
 ): Promise<ProVehicleLane[]> => {
-  return fetchJSON<ProVehicleLane[]>("/pro/vehicle-lanes", filters, authHeaders());
+  return fetchJSON<ProVehicleLane[]>("/pro/vehicle-lanes", { ...filters }, authHeaders());
 };
 
 export const getProDistricts = async (): Promise<ProDistrictProfile[]> => {
@@ -1231,14 +1252,15 @@ export const getListingsForExport = async (
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
 
-  const data = await fetchJSON<any>("/listings", {
+  const data = await fetchJSON<JsonRecord>("/listings", {
     ...filters,
     page: 1,
     size,
   });
 
+  const items = Array.isArray(data.items) ? data.items : [];
   return {
-    listings: (data.items || []).map(normalizeListing),
+    listings: items.map((item) => normalizeListing(asJsonRecord(item))),
     total: Number(data.total || 0),
   };
 };
@@ -1352,7 +1374,7 @@ export const sendChatMessage = async (
     response: String(data?.response || data?.message || "No response available"),
     listings: Array.isArray(data?.listings)
       ? data.listings
-          .map((row: any) => ({
+          .map((row: JsonRecord) => ({
             id: Number(row?.id),
             title: String(row?.title || "Listing"),
             price_lkr: toNumberOrNull(row?.price_lkr),

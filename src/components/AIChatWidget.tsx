@@ -392,9 +392,10 @@ export function AIChatWidget() {
         ...next,
         { role: "assistant", content: response.response, id: genId(), listings: response.listings || [] },
       ]);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : "";
       const fallback =
-        typeof err?.message === "string" && err.message.includes("API error")
+        errMessage.includes("API error")
           ? t("chat.error.serviceUnavailable", "The assistant service is temporarily unavailable. Please try again in a moment.")
           : t("chat.error.connection", "Connection issue. Please try again.");
       setMessages([...next, { role: "assistant", content: fallback, id: genId() }]);

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
@@ -32,8 +32,7 @@ class CarListingRead(CarListingBase):
     market_median_lkr: Optional[Decimal] = None
     is_outlier: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ListingsResponse(BaseModel):
     items: List[CarListingRead]
@@ -136,8 +135,7 @@ class FeedbackRead(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProListingSample(BaseModel):
@@ -304,8 +302,7 @@ class MarketSignalRead(BaseModel):
     observed_at: datetime
     raw_meta: Optional[dict] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ImportPriceSnapshotRead(BaseModel):
@@ -326,5 +323,4 @@ class ImportPriceSnapshotRead(BaseModel):
     source_market: Optional[str] = None
     raw_meta: Optional[dict] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

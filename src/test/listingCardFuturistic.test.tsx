@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { TestRouter } from "@/test/testUtils";
 import { ListingCard } from "@/components/ListingCard";
 import type { CarListing } from "@/types/car";
 
@@ -31,9 +31,9 @@ const sampleListing: CarListing = {
 describe("ListingCard footer metadata", () => {
   it("shows real days-on-market instead of a fabricated integrity score", () => {
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard listing={sampleListing} />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     // first_seen_at is now, so the card reports it was listed today.
@@ -45,9 +45,9 @@ describe("ListingCard footer metadata", () => {
   it("reports day counts for older listings", () => {
     const listedTenDaysAgo = new Date(Date.now() - 10 * 86_400_000).toISOString();
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard listing={{ ...sampleListing, id: 12, first_seen_at: listedTenDaysAgo, scraped_at: listedTenDaysAgo }} />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     expect(screen.getByText(/listed 10 days/i)).toBeInTheDocument();

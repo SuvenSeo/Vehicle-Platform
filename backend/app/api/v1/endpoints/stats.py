@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import case, func, desc, and_, or_
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+from app.utils.time import utc_now
 from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun
 from app.models.schemas import StatsSummary, DistrictPrice
@@ -165,7 +166,7 @@ def build_live_market_snapshot(db: Session) -> dict:
 
 @router.get("/summary", response_model=StatsSummary)
 def get_stats_summary(db: Session = Depends(get_db)):
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = utc_now() - timedelta(days=7)
 
     total = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
     avg_price = db.query(func.avg(CarListing.price_lkr)).filter(
@@ -192,7 +193,7 @@ def get_stats_summary(db: Session = Depends(get_db)):
 
     # MoM price change from aggregates
     price_change_mom = None
-    now = datetime.utcnow()
+    now = utc_now()
     cur_y, cur_m = now.year, now.month
     prev_m, prev_y = (cur_m - 1, cur_y) if cur_m > 1 else (12, cur_y - 1)
     cur_avg = db.query(func.avg(PriceAggregate.avg_price_lkr)).filter(
@@ -552,7 +553,7 @@ def get_price_trends(
     except (TypeError, ValueError):
         months_value = 12
 
-    now = datetime.utcnow()
+    now = utc_now()
     start_year = now.year
     start_month = now.month - months_value
     while start_month <= 0:
@@ -680,7 +681,7 @@ def get_price_trends(
 
 @router.get("/insights", response_model=DashboardInsightsResponse)
 def get_dashboard_insights(db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = utc_now()
     day_ago = now - timedelta(hours=24)
     current_30d = now - timedelta(days=30)
     previous_30d = now - timedelta(days=60)
@@ -841,7 +842,7 @@ def get_district_quick_insight(
             func.lower(CarListing.url).ilike(f"%-for-sale-{district_slug}%"),
         ),
     )
-    now = datetime.utcnow()
+    now = utc_now()
     current_30d = now - timedelta(days=30)
     previous_30d = now - timedelta(days=60)
 

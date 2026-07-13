@@ -1,6 +1,7 @@
 import random
 import json
 from datetime import datetime
+from app.utils.time import utc_now
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
@@ -40,7 +41,7 @@ class IkmanCarScraper:
         if existing:
             for key, value in payload.items():
                 setattr(existing, key, value)
-            existing.last_seen_at = datetime.utcnow()
+            existing.last_seen_at = utc_now()
             return False
 
         self.db.add(CarListing(**payload))
@@ -250,7 +251,7 @@ class IkmanCarScraper:
                                     "thumbnail_url": thumb_url,
                                     "district": district,
                                     "condition": None, "_text_blobs": (await listing.inner_text()),
-                                    "scraped_at": datetime.utcnow(),
+                                    "scraped_at": utc_now(),
                                 }
 
                                 normalized_payload = self.cleaner.normalize_listing_payload(

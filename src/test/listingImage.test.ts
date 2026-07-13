@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { CarListing } from "@/types/car";
 import { getListingImageUrl } from "@/lib/listing-card-meta";
+
+type ListingImageInput = Pick<CarListing, "thumbnail_url" | "images" | "url" | "external_url">;
 
 describe("getListingImageUrl", () => {
   it("prefers thumbnail_url when available", () => {
@@ -7,7 +10,7 @@ describe("getListingImageUrl", () => {
       getListingImageUrl({
         thumbnail_url: "https://example.com/thumb.jpg",
         images: ["https://example.com/gallery.jpg"],
-      } as any),
+      } as ListingImageInput),
     ).toBe("https://example.com/thumb.jpg");
   });
 
@@ -15,12 +18,12 @@ describe("getListingImageUrl", () => {
     expect(
       getListingImageUrl({
         images: ["https://example.com/gallery.jpg", "https://example.com/gallery-2.jpg"],
-      } as any),
+      } as ListingImageInput),
     ).toBe("https://example.com/gallery.jpg");
   });
 
   it("returns null when no image exists", () => {
-    expect(getListingImageUrl({} as any)).toBeNull();
+    expect(getListingImageUrl({} as ListingImageInput)).toBeNull();
   });
 
   it("resolves relative thumbnails against the listing source URL", () => {
@@ -28,7 +31,7 @@ describe("getListingImageUrl", () => {
       getListingImageUrl({
         thumbnail_url: "/images/listing-thumb.jpg",
         url: "https://www.riyasewana.com/buy/toyota-prius-1234",
-      } as any),
+      } as ListingImageInput),
     ).toBe("https://www.riyasewana.com/images/listing-thumb.jpg");
   });
 
@@ -37,7 +40,7 @@ describe("getListingImageUrl", () => {
       getListingImageUrl({
         images: ["gallery/cover.webp"],
         external_url: "https://ikman.lk/en/ad/toyota-vitz-for-sale-colombo",
-      } as any),
+      } as ListingImageInput),
     ).toBe("https://ikman.lk/en/ad/gallery/cover.webp");
   });
 });

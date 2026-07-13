@@ -1,4 +1,4 @@
-import { MemoryRouter } from "react-router-dom";
+import { TestRouter } from "@/test/testUtils";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ListingCard } from "@/components/ListingCard";
@@ -35,9 +35,9 @@ describe("ListingCard render states and interactions", () => {
     const listing = buildListing();
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard listing={listing} />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     const card = screen.getByRole("article", { name: /Toyota Aqua listing card/i });
@@ -59,9 +59,9 @@ describe("ListingCard render states and interactions", () => {
     });
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard listing={listing} />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     expect(screen.getByText("District N/A")).toBeInTheDocument();
@@ -75,9 +75,9 @@ describe("ListingCard render states and interactions", () => {
     });
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard listing={listing} />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     expect(screen.getByText("Price unavailable")).toBeInTheDocument();
@@ -95,9 +95,9 @@ describe("ListingCard render states and interactions", () => {
     });
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard listing={listing} />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     expect(screen.getByText(/market position/i)).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("ListingCard render states and interactions", () => {
     const onWatchlistToggle = vi.fn();
 
     render(
-      <MemoryRouter>
+      <TestRouter>
         <ListingCard
           listing={listing}
           onCompareToggle={onCompareToggle}
@@ -118,7 +118,7 @@ describe("ListingCard render states and interactions", () => {
           isComparing={false}
           isWatchlisted={false}
         />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     fireEvent.click(screen.getByLabelText("Add to watchlist"));

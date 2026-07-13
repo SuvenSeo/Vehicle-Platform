@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.utils.time import utc_now
 import json
 import os
 from typing import Any, Dict, List, Literal, Optional
@@ -182,7 +183,7 @@ def _extract_year(message: str) -> Optional[int]:
     if not years:
         return None
     y = int(years[-1])
-    return y if 1980 <= y <= datetime.utcnow().year + 1 else None
+    return y if 1980 <= y <= utc_now().year + 1 else None
 
 
 def _extract_price_cap(message: str) -> Optional[float]:
@@ -370,7 +371,7 @@ def _build_fallback_response(
         )
 
     return (
-        f"AutoLens live snapshot ({datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}):\n"
+        f"AutoLens live snapshot ({utc_now().strftime('%Y-%m-%d %H:%M UTC')}):\n"
         f"- Active listings: {scope_total}\n"
         f"- Market average: {_fmt_price(avg_price)}\n"
         f"- Price range: {_fmt_price(min_price)} to {_fmt_price(max_price)}\n"

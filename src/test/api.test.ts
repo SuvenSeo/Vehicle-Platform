@@ -7,14 +7,13 @@ describe("api module", () => {
   });
 
   it("exports sendChatMessage", async () => {
-    const api = await import("@/services/api");
+    const api: typeof import("@/services/api") = await import("@/services/api");
 
-    expect(typeof (api as Record<string, unknown>).sendChatMessage).toBe("function");
+    expect(typeof api.sendChatMessage).toBe("function");
   });
 
   it("formats prices in millions", async () => {
-    const api = await import("@/services/api");
-    const formatPrice = (api as Record<string, any>).formatPrice as (value: number | null) => string;
+    const { formatPrice } = await import("@/services/api");
 
     expect(formatPrice(null)).toBe("N/A");
     expect(formatPrice(925000)).toBe("Rs. 0.93M");
@@ -29,8 +28,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const result = await (api as Record<string, any>).sendChatMessage("hello", [
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.sendChatMessage("hello", [
       { role: "user", content: "previous message" },
     ]);
 
@@ -51,10 +50,10 @@ describe("api module", () => {
   });
 
   it("exports listing detail helpers", async () => {
-    const api = await import("@/services/api");
+    const api: typeof import("@/services/api") = await import("@/services/api");
 
-    expect(typeof (api as Record<string, unknown>).getListing).toBe("function");
-    expect(typeof (api as Record<string, unknown>).getSimilarListings).toBe("function");
+    expect(typeof api.getListing).toBe("function");
+    expect(typeof api.getSimilarListings).toBe("function");
   });
 
   it("requests listing detail and similar listings from the backend api", async () => {
@@ -71,9 +70,9 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const detail = await (api as Record<string, any>).getListing("42");
-    const similar = await (api as Record<string, any>).getSimilarListings("42");
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const detail = await api.getListing("42");
+    const similar = await api.getSimilarListings("42");
 
     expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/listings/42");
     expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/listings/42/similar");
@@ -112,8 +111,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const detail = await (api as Record<string, any>).getListing("77");
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const detail = await api.getListing("77");
 
     expect(detail.mileage_km).toBeNull();
     expect(detail.engine_cc).toBeUndefined();
@@ -131,8 +130,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    await (api as Record<string, any>).getListings({
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    await api.getListings({
       sort: "newest",
       page: 1,
       source: "ikman",
@@ -165,8 +164,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const result = await (api as Record<string, any>).getListings({
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.getListings({
       sort: "newest",
       page: 1,
     });
@@ -194,8 +193,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const result = await (api as Record<string, any>).estimateCustomVehicle({
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.estimateCustomVehicle({
       make: "Toyota",
       model: "Aqua",
       year: 2018,
@@ -243,8 +242,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const result = await (api as Record<string, any>).getListingSources();
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.getListingSources();
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/listings/sources");
@@ -272,8 +271,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const stats = await (api as Record<string, any>).getStats();
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const stats = await api.getStats();
 
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/summary");
     expect(stats.source_count).toBe(4);
@@ -303,8 +302,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const snapshot = await (api as Record<string, any>).getLiveMarketSnapshot();
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const snapshot = await api.getLiveMarketSnapshot();
 
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/live");
     expect(snapshot).toMatchObject({
@@ -337,8 +336,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const districts = await (api as Record<string, any>).getDistrictPrices();
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const districts = await api.getDistrictPrices();
 
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/district-prices");
     expect(districts[0]).toMatchObject({
@@ -368,8 +367,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const suggestions = await (api as Record<string, any>).getListingSearchSuggestions("vez", 5);
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const suggestions = await api.getListingSearchSuggestions("vez", 5);
 
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/listings/search-suggestions");
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("q=vez");
@@ -393,8 +392,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    await (api as Record<string, any>).getListings({ q: "Toyota Axio", sort: "newest", page: 1 });
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    await api.getListings({ q: "Toyota Axio", sort: "newest", page: 1 });
 
     const url = String(fetchMock.mock.calls[0]?.[0] || "");
     expect(url).toContain("/api/v1/listings");
@@ -421,8 +420,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const series = await (api as Record<string, any>).getPriceTrendSeries("Toyota", "Vitz", undefined, "Kandy");
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const series = await api.getPriceTrendSeries("Toyota", "Vitz", undefined, "Kandy");
 
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/trends");
     expect(series.coverage_scope).toBe("district_fallback");
@@ -448,8 +447,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const receipt = await (api as Record<string, any>).sendFeedback({
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const receipt = await api.sendFeedback({
       category: "bug",
       route: "/trends",
       message: "Trend fallback button needs checking",
@@ -492,8 +491,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const result = await (api as Record<string, any>).estimatePrice({
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.estimatePrice({
       make: "Toyota",
       model: "Aqua",
       year: 2018,
@@ -537,8 +536,8 @@ describe("api module", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    const api = await import("@/services/api");
-    const profile = await (api as Record<string, any>).getSellerTrustProfile(123);
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const profile = await api.getSellerTrustProfile(123);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/listings/123/seller-profile");

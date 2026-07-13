@@ -1,4 +1,4 @@
-import { CarListing } from "@/types/car";
+import { CarListing, type BodyType, type FuelType } from "@/types/car";
 
 const makes = ["Toyota", "Honda", "Suzuki", "Nissan", "Mitsubishi", "Hyundai", "Kia", "BMW", "Mercedes-Benz", "Mazda"];
 const models: Record<string, { model: string; body: string; fuel: string; cc: number }[]> = {
@@ -124,9 +124,9 @@ function generateListings(): CarListing[] {
           condition,
           mileage_km: mileage,
           transmission,
-          fuel_type: mm.fuel as any,
+          fuel_type: mm.fuel as FuelType,
           engine_cc: mm.cc,
-          body_type: mm.body as any,
+          body_type: mm.body as BodyType,
           color: ["White", "Black", "Silver", "Blue", "Red", "Grey"][Math.floor(rand() * 6)],
           price_lkr: price,
           deal_score: clampedScore,

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { TestRouter } from "@/test/testUtils";
 import { describe, expect, it, vi } from "vitest";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 
@@ -10,9 +10,9 @@ vi.mock("@/services/api", () => ({
 describe("FeedbackWidget", () => {
   it("opens the feedback dialog from the fixed feedback action", async () => {
     render(
-      <MemoryRouter initialEntries={["/?q=Toyota+Axio"]}>
+      <TestRouter initialEntries={["/?q=Toyota+Axio"]}>
         <FeedbackWidget />
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     const action = screen.getByRole("button", { name: /send feedback/i });

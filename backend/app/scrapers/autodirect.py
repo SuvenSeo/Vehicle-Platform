@@ -1,4 +1,5 @@
 from datetime import datetime
+from app.utils.time import utc_now
 import re
 from urllib.parse import urlencode
 
@@ -37,7 +38,7 @@ class AutoDirectScraper:
         if existing:
             for key, value in payload.items():
                 setattr(existing, key, value)
-            existing.last_seen_at = datetime.utcnow()
+            existing.last_seen_at = utc_now()
             return False
 
         self.db.add(CarListing(**payload))
@@ -319,7 +320,7 @@ class AutoDirectScraper:
                                     "body_type": body_type or None,
                                     "mileage": mileage,
                                     "engine_capacity": engine_capacity,
-                                    "scraped_at": datetime.utcnow(),
+                                    "scraped_at": utc_now(),
                                 }
 
                                 normalized_payload = self.cleaner.normalize_listing_payload(payload)

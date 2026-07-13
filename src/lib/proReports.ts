@@ -6,6 +6,7 @@ import type {
   ProReportSectionId,
   ProReportTheme,
 } from "@/types/pro";
+import type { FileChild } from "docx";
 import { formatPriceLkrMillions } from "@/lib/formatting";
 
 type JsPDFDoc = import("jspdf").jsPDF;
@@ -491,7 +492,14 @@ async function exportPdf(report: ProReportPayload) {
   doc.save(filename(report, "pdf"));
 }
 
-function tableCell(TableCell: any, Paragraph: any, TextRun: any, text: string, strong = false, fill?: string) {
+function tableCell(
+  TableCell: typeof import("docx").TableCell,
+  Paragraph: typeof import("docx").Paragraph,
+  TextRun: typeof import("docx").TextRun,
+  text: string,
+  strong = false,
+  fill?: string,
+) {
   return new TableCell({
     shading: fill ? { fill } : undefined,
     children: [
@@ -508,7 +516,7 @@ async function exportDocx(report: ProReportPayload) {
     import("docx"),
   ]);
   const theme = themeFor(report);
-  const children: any[] = [
+  const children: FileChild[] = [
     new Paragraph({
       children: [
         new TextRun({ text: "AUTOLENS LK PRO", bold: true, color: "0E9F6E", size: 20 }),

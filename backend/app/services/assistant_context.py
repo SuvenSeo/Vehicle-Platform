@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from app.utils.time import utc_now
 import re
 from typing import Any, Dict, List, Optional
 
@@ -128,7 +129,7 @@ def _extract_year(message: str) -> Optional[int]:
     if not years:
         return None
     y = int(years[-1])
-    return y if 1980 <= y <= datetime.utcnow().year + 1 else None
+    return y if 1980 <= y <= utc_now().year + 1 else None
 
 
 def _extract_price_cap(message: str) -> Optional[float]:
@@ -445,7 +446,7 @@ def build_assistant_context(
     }
 
     context = {
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": utc_now().isoformat() + "Z",
         "intent": intent,
         "question": message,
         "platform_capabilities": PLATFORM_CAPABILITIES,
