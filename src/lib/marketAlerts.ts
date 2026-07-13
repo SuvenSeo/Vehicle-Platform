@@ -10,6 +10,7 @@ export interface MarketAlert {
   target_price_lkr?: number;
   created_at: string;
   last_checked_at?: string;
+  server_id?: number;
 }
 
 function safeParseAlerts(raw: string | null): MarketAlert[] {
@@ -113,6 +114,13 @@ export function saveMarketAlert(filters: FilterState, targetPrice?: number): Mar
 
 export function removeMarketAlert(id: string): MarketAlert[] {
   const next = loadMarketAlerts().filter((alert) => alert.id !== id);
+  writeAlerts(next);
+  return next;
+}
+
+export function patchMarketAlertServerId(id: string, serverId: number): MarketAlert[] {
+  const alerts = loadMarketAlerts();
+  const next = alerts.map((a) => (a.id === id ? { ...a, server_id: serverId } : a));
   writeAlerts(next);
   return next;
 }
