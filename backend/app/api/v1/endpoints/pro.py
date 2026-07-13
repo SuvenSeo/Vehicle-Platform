@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.schemas import (
     DistrictTopModel,
+    ProArbitrageGap,
     ProBreakdownPoint,
     ProDetailPayload,
     ProDistrictProfile,
@@ -497,6 +498,68 @@ def get_pro_vehicle_lane_detail(
         trend_points=_trend_points(db, make=make, model=model, district=district),
         sample_listings=_samples(db, make=make, model=model, district=district, condition=condition, limit=10),
     )
+
+
+_MIN_DISTRICT_LISTINGS = 2
+
+
+@router.get("/arbitrage-gaps", response_model=list[ProArbitrageGap])
+def get_pro_arbitrage_gaps(
+    make: str = Query(..., min_length=1),
+    model: str = Query(..., min_length=1),
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+    db: Session = Depends(get_db),
+) -> list[ProArbitrageGap]:
+    rows = (
+        _apply_listing_scope(_price_query(db), make=make, model=model)
+        .with_entities(CarListing.district, CarListing.price_lkr)
+        .filter(CarListing.district.isnot(None))
+        .all()
+    )
+
+    buckets: dict[str, list[float]] = {}
+    for district, price in rows:
+        if district and price is not None:
+            buckets.setdefault(str(district), []).append(float(price))
+
+    district_stats: dict[str, tuple[float, int]] = {}
+    for district, prices in buckets.items():
+        if len(prices) >= _MIN_DISTRICT_LISTINGS:
+            med = _median(prices)
+            if med is not None:
+                district_stats[district] = (med, len(prices))
+
+    sorted_districts = sorted(district_stats.keys())
+    gaps: list[ProArbitrageGap] = []
+    for i, d_a in enumerate(sorted_districts):
+        for d_b in sorted_districts[i + 1:]:
+            med_a, count_a = district_stats[d_a]
+            med_b, count_b = district_stats[d_b]
+            if med_a == med_b:
+                continue
+            if med_a < med_b:
+                buy_d, sell_d = d_a, d_b
+                buy_med, sell_med = med_a, med_b
+                buy_count, sell_count = count_a, count_b
+            else:
+                buy_d, sell_d = d_b, d_a
+                buy_med, sell_med = med_b, med_a
+                buy_count, sell_count = count_b, count_a
+            gap_pct = round((sell_med - buy_med) / buy_med * 100, 2)
+            gaps.append(
+                ProArbitrageGap(
+                    buy_district=buy_d,
+                    sell_district=sell_d,
+                    buy_median_lkr=buy_med,
+                    sell_median_lkr=sell_med,
+                    gap_pct=gap_pct,
+                    buy_listing_count=buy_count,
+                    sell_listing_count=sell_count,
+                )
+            )
+
+    gaps.sort(key=lambda g: g.gap_pct, reverse=True)
+    return gaps[:limit]
 
 
 @router.get("/district-detail", response_model=ProDetailPayload)

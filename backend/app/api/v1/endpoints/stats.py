@@ -14,11 +14,18 @@ from app.utils.districts import (
     normalize_district_name,
 )
 from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
+from app.utils.stats_cache import (
+    get_cached_district_prices,
+    get_cached_summary,
+    store_district_prices_cache,
+    store_summary_cache,
+)
 from app.utils.time import utc_now
 from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun
 from app.models.schemas import StatsSummary, DistrictPrice
 from app.models.schemas import DashboardInsightsResponse, DistrictQuickInsightResponse
+from app.models.schemas import DistrictVelocityResponse, DistrictVelocityPoint
 from app.services.rate_limit import RateLimiter
 
 _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
@@ -139,6 +146,11 @@ def build_live_market_snapshot(db: Session) -> dict:
 
 @router.get("/summary", response_model=StatsSummary)
 def get_stats_summary(db: Session = Depends(get_db)):
+    # Serve from materialized cache when fresh (< 1 hour).
+    cached = get_cached_summary(db)
+    if cached is not None:
+        return cached
+
     seven_days_ago = utc_now() - timedelta(days=7)
 
     total = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
@@ -178,7 +190,7 @@ def get_stats_summary(db: Session = Depends(get_db)):
     if cur_avg and prev_avg and float(prev_avg) > 0:
         price_change_mom = round(((float(cur_avg) - float(prev_avg)) / float(prev_avg)) * 100, 1)
 
-    return StatsSummary(
+    result = StatsSummary(
         total_listings=total,
         avg_price_lkr=float(avg_price) if avg_price else None,
         price_change_mom=price_change_mom,
@@ -189,6 +201,8 @@ def get_stats_summary(db: Session = Depends(get_db)):
         source_count=int(source_count),
         last_updated=last_updated,
     )
+    store_summary_cache(db, result)
+    return result
 
 
 @router.get("/live", response_model=dict)
@@ -224,6 +238,11 @@ async def stream_live_market_snapshot(request: Request):
 
 @router.get("/district-prices")
 def get_district_prices(db: Session = Depends(get_db)):
+    # Serve from materialized cache when fresh (< 1 hour).
+    cached = get_cached_district_prices(db)
+    if cached is not None:
+        return cached
+
     median_by_district = build_district_median_map(db)
     results = (
         db.query(
@@ -308,7 +327,9 @@ def get_district_prices(db: Session = Depends(get_db)):
                 }
             )
         points.sort(key=lambda p: p["count"], reverse=True)
-        return {"points": points}
+        result = {"points": points}
+        store_district_prices_cache(db, result)
+        return result
 
     model_results = (
         db.query(
@@ -360,7 +381,9 @@ def get_district_prices(db: Session = Depends(get_db)):
                 "top_model": top["model"] if top else None,
                 "top_model_count": top["count"] if top else None,
             })
-    return {"points": points}
+    result = {"points": points}
+    store_district_prices_cache(db, result)
+    return result
 
 def _trend_response(points, scope: str, note: Optional[str] = None) -> dict:
     return {
@@ -838,6 +861,253 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/make-model-insight")
+def get_make_model_insight(
+    make: str = Query(..., min_length=1),
+    model: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+):
+    make_lower = make.strip().lower()
+    model_lower = model.strip().lower()
+
+    base_clause = and_(
+        CarListing.is_outlier == False,
+        func.lower(CarListing.make) == make_lower,
+        func.lower(CarListing.model) == model_lower,
+    )
+    priced_clause = and_(
+        base_clause,
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+    )
+
+    total = db.query(func.count(CarListing.id)).filter(base_clause).scalar() or 0
+    avg_price = db.query(func.avg(CarListing.price_lkr)).filter(priced_clause).scalar()
+    median_price = median_price_for_listings(db, priced_clause)
+
+    top_districts_rows = (
+        db.query(
+            CarListing.district,
+            func.count(CarListing.id).label("count"),
+            func.avg(CarListing.price_lkr).label("avg_price"),
+        )
+        .filter(base_clause, CarListing.district.isnot(None))
+        .group_by(CarListing.district)
+        .order_by(desc("count"))
+        .limit(6)
+        .all()
+    )
+
+    canonical = db.query(CarListing.make, CarListing.model).filter(base_clause).first()
+    canonical_make = str(canonical.make) if canonical else make.strip().title()
+    canonical_model = str(canonical.model) if canonical else model.strip().title()
+
+    return {
+        "make": canonical_make,
+        "model": canonical_model,
+        "total": int(total),
+        "avg_price_lkr": round(float(avg_price), 2) if avg_price is not None else None,
+        "median_price_lkr": round(float(median_price), 2) if median_price is not None else None,
+        "top_districts": [
+            {
+                "district": str(row.district),
+                "count": int(row.count),
+                "avg_price_lkr": round(float(row.avg_price), 2) if row.avg_price is not None else None,
+            }
+            for row in top_districts_rows
+            if row.district
+        ],
+    }
+
+
+_FUEL_CATEGORY_MAP: dict[str, str] = {
+    "petrol": "petrol",
+    "gasoline": "petrol",
+    "diesel": "diesel",
+    "hybrid": "hybrid",
+    "plugin_hybrid": "hybrid",
+    "phev": "hybrid",
+    "electric": "electric",
+    "ev": "electric",
+}
+
+_ORDERED_FUEL_CATEGORIES = ["petrol", "hybrid", "electric", "diesel", "other"]
+
+
+@router.get("/fuel-mix")
+def get_fuel_mix(db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            CarListing.fuel_type,
+            func.count(CarListing.id).label("count"),
+        )
+        .filter(CarListing.is_outlier == False)
+        .group_by(CarListing.fuel_type)
+        .all()
+    )
+
+    totals: dict[str, int] = {cat: 0 for cat in _ORDERED_FUEL_CATEGORIES}
+
+    for row in rows:
+        raw = str(row.fuel_type or "").strip().lower().replace(" ", "_").replace("-", "_")
+        category = _FUEL_CATEGORY_MAP.get(raw, "other")
+        totals[category] += int(row.count or 0)
+
+    total = sum(totals.values())
+
+    buckets = [
+        {
+            "fuel_type": ft,
+            "count": totals[ft],
+            "pct": round(totals[ft] / total * 100, 1) if total > 0 else 0.0,
+        }
+        for ft in _ORDERED_FUEL_CATEGORIES
+    ]
+
+    return {
+        "total": total,
+        "buckets": buckets,
+        "generated_at": utc_now().isoformat(),
+    }
+
+
+_HYBRID_FUEL_TYPES = {"hybrid", "plugin_hybrid", "phev"}
+
+_HYBRID_BANDS: list[dict] = [
+    {"key": "le1500", "label": "≤1500cc", "cc_max": 1500},
+    {"key": "1501_2000", "label": "1501–2000cc", "cc_max": 2000},
+    {"key": "gt2000", "label": ">2000cc", "cc_max": None},
+]
+
+
+def _classify_hybrid_band(cc: int) -> str:
+    if cc <= 1500:
+        return "le1500"
+    if cc <= 2000:
+        return "1501_2000"
+    return "gt2000"
+
+
+@router.get("/hybrid-bands")
+def get_hybrid_bands(db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            CarListing.engine_capacity,
+            CarListing.price_lkr,
+        )
+        .filter(
+            CarListing.is_outlier == False,
+            func.lower(CarListing.fuel_type).in_(list(_HYBRID_FUEL_TYPES)),
+            CarListing.engine_capacity.isnot(None),
+        )
+        .all()
+    )
+
+    band_counts: dict[str, int] = {b["key"]: 0 for b in _HYBRID_BANDS}
+    band_prices: dict[str, list[float]] = {b["key"]: [] for b in _HYBRID_BANDS}
+
+    for row in rows:
+        cc = int(row.engine_capacity)
+        key = _classify_hybrid_band(cc)
+        band_counts[key] += 1
+        if row.price_lkr and float(row.price_lkr) >= MIN_REASONABLE_PRICE_LKR:
+            band_prices[key].append(float(row.price_lkr))
+
+    result_bands = []
+    for band in _HYBRID_BANDS:
+        key = band["key"]
+        prices = sorted(band_prices[key])
+        n = len(prices)
+        if n == 0:
+            median_price = None
+        elif n % 2 == 1:
+            median_price = prices[n // 2]
+        else:
+            median_price = (prices[n // 2 - 1] + prices[n // 2]) / 2.0
+
+        result_bands.append(
+            {
+                "label": band["label"],
+                "cc_max": band["cc_max"],
+                "count": band_counts[key],
+                "median_price_lkr": round(median_price, 2) if median_price is not None else None,
+            }
+        )
+
+    return {
+        "total_hybrids": sum(band_counts.values()),
+        "bands": result_bands,
+        "generated_at": utc_now().isoformat(),
+    }
+
+
+@router.get("/source-quality")
+def get_source_quality(db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
+    cutoff_24h = now - timedelta(hours=24)
+
+    fresh_ts = func.coalesce(
+        CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at
+    )
+
+    rows = (
+        db.query(
+            CarListing.source,
+            func.count(CarListing.id).label("total"),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            CarListing.price_lkr.isnot(None),
+                            CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ).label("priced"),
+            func.sum(
+                case((fresh_ts >= cutoff_24h, 1), else_=0)
+            ).label("fresh_24h"),
+            func.sum(
+                case((CarListing.is_outlier == True, 1), else_=0)
+            ).label("outliers"),
+            func.sum(
+                case((CarListing.is_duplicate == True, 1), else_=0)
+            ).label("duplicates"),
+        )
+        .filter(CarListing.source.isnot(None))
+        .group_by(CarListing.source)
+        .order_by(desc("total"))
+        .all()
+    )
+
+    sources = []
+    for row in rows:
+        total = int(row.total or 0)
+        if total == 0:
+            continue
+        priced = int(row.priced or 0)
+        fresh = int(row.fresh_24h or 0)
+        outliers = int(row.outliers or 0)
+        duplicates = int(row.duplicates or 0)
+        sources.append(
+            {
+                "source": str(row.source),
+                "listing_count": total,
+                "price_fill_rate": round(priced / total, 4),
+                "fresh_24h_pct": round(fresh / total, 4),
+                "outlier_rate": round(outliers / total, 4),
+                "duplicate_rate": round(duplicates / total, 4),
+            }
+        )
+
+    return {
+        "generated_at": now.isoformat(),
+        "sources": sources,
+    }
+
+
 @router.get("/district-insight", response_model=DistrictQuickInsightResponse)
 def get_district_quick_insight(
     district: str = Query(..., min_length=2),
@@ -930,3 +1200,83 @@ def get_district_quick_insight(
             for row in top_models
         ],
     }
+
+
+@router.get("/district-velocity", response_model=DistrictVelocityResponse)
+def get_district_velocity(db: Session = Depends(get_db)):
+    now = utc_now()
+    seven_days_ago = now - timedelta(days=7)
+
+    first_seen_ts = func.coalesce(CarListing.first_seen_at, CarListing.scraped_at)
+
+    total_rows = (
+        db.query(
+            CarListing.district,
+            func.count(CarListing.id).label("listing_count"),
+        )
+        .filter(
+            CarListing.district.isnot(None),
+            CarListing.is_outlier == False,
+        )
+        .group_by(CarListing.district)
+        .all()
+    )
+
+    new_rows = (
+        db.query(
+            CarListing.district,
+            func.count(CarListing.id).label("new_7d_count"),
+        )
+        .filter(
+            CarListing.district.isnot(None),
+            CarListing.is_outlier == False,
+            first_seen_ts >= seven_days_ago,
+        )
+        .group_by(CarListing.district)
+        .all()
+    )
+
+    new_by_district: dict[str, int] = {
+        normalize_district_name(str(row.district)) or str(row.district): int(row.new_7d_count or 0)
+        for row in new_rows
+        if row.district
+    }
+
+    agg: dict[str, dict] = {}
+    for row in total_rows:
+        normalized = normalize_district_name(str(row.district))
+        if not normalized or normalized == "Sri Lanka":
+            continue
+        coords = SL_DISTRICT_COORDS.get(normalized)
+        if not coords:
+            continue
+        total = int(row.listing_count or 0)
+        new_7d = new_by_district.get(normalized, 0)
+        velocity = round(new_7d / total, 4) if total > 0 else 0.0
+
+        entry = agg.get(normalized)
+        if entry is None:
+            agg[normalized] = {
+                "district": normalized,
+                "lat": coords[0],
+                "lng": coords[1],
+                "listing_count": total,
+                "new_7d_count": new_7d,
+                "velocity_score": velocity,
+            }
+        else:
+            combined_total = entry["listing_count"] + total
+            combined_new = entry["new_7d_count"] + new_7d
+            agg[normalized] = {
+                **entry,
+                "listing_count": combined_total,
+                "new_7d_count": combined_new,
+                "velocity_score": round(combined_new / combined_total, 4) if combined_total > 0 else 0.0,
+            }
+
+    points = sorted(agg.values(), key=lambda p: p["listing_count"], reverse=True)
+
+    return DistrictVelocityResponse(
+        points=[DistrictVelocityPoint(**p) for p in points],
+        generated_at=now,
+    )

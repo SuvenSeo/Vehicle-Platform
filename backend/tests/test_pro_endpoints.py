@@ -93,6 +93,85 @@ def test_pro_district_detail_returns_models_source_mix_and_samples():
     assert len(detail.sample_listings) == 3
 
 
+def test_pro_arbitrage_gaps_returns_top_pairs_sorted_by_gap():
+    db = _session()
+    db.add_all(
+        [
+            _listing("cmb-1", price_lkr=7_200_000, district="Colombo"),
+            _listing("cmb-2", price_lkr=7_400_000, district="Colombo"),
+            _listing("knd-1", price_lkr=6_200_000, district="Kandy"),
+            _listing("knd-2", price_lkr=6_000_000, district="Kandy"),
+            _listing("gmp-1", price_lkr=7_800_000, district="Gampaha"),
+            _listing("gmp-2", price_lkr=7_900_000, district="Gampaha"),
+        ]
+    )
+    db.commit()
+
+    gaps = pro.get_pro_arbitrage_gaps(make="Toyota", model="Vitz", db=db)
+
+    assert len(gaps) >= 1
+    assert gaps[0].gap_pct >= gaps[-1].gap_pct, "gaps must be sorted descending by gap_pct"
+    gap_districts = [(g.buy_district, g.sell_district) for g in gaps]
+    assert all(
+        g.buy_median_lkr <= g.sell_median_lkr for g in gaps
+    ), "buy_median must always be <= sell_median"
+    assert all(
+        g.buy_district != g.sell_district for g in gaps
+    ), "buy and sell districts must differ"
+    assert ("Kandy", "Gampaha") in gap_districts
+
+
+def test_pro_arbitrage_gaps_requires_min_two_listings_per_district():
+    db = _session()
+    db.add_all(
+        [
+            _listing("cmb-1", price_lkr=7_200_000, district="Colombo"),
+            _listing("cmb-2", price_lkr=7_400_000, district="Colombo"),
+            _listing("knd-only", price_lkr=5_500_000, district="Kandy"),
+        ]
+    )
+    db.commit()
+
+    gaps = pro.get_pro_arbitrage_gaps(make="Toyota", model="Vitz", db=db)
+
+    assert gaps == [], "single-listing district should be excluded from gap calculation"
+
+
+def test_pro_arbitrage_gaps_limit_caps_results():
+    db = _session()
+    districts = ["Colombo", "Kandy", "Gampaha", "Galle", "Kurunegala"]
+    for i, district in enumerate(districts):
+        base_price = 5_000_000 + i * 500_000
+        db.add_all(
+            [
+                _listing(f"{district}-a", price_lkr=base_price, district=district),
+                _listing(f"{district}-b", price_lkr=base_price + 100_000, district=district),
+            ]
+        )
+    db.commit()
+
+    gaps = pro.get_pro_arbitrage_gaps(make="Toyota", model="Vitz", limit=3, db=db)
+
+    assert len(gaps) <= 3
+
+
+def test_pro_arbitrage_gaps_excludes_outliers_and_low_prices():
+    db = _session()
+    db.add_all(
+        [
+            _listing("cmb-valid", price_lkr=7_200_000, district="Colombo"),
+            _listing("cmb-valid-2", price_lkr=7_400_000, district="Colombo"),
+            _listing("knd-outlier", price_lkr=6_000_000, district="Kandy", is_outlier=True),
+            _listing("knd-cheap", price_lkr=50_000, district="Kandy"),
+        ]
+    )
+    db.commit()
+
+    gaps = pro.get_pro_arbitrage_gaps(make="Toyota", model="Vitz", db=db)
+
+    assert gaps == [], "Kandy district dropped — outlier and cheap listing both excluded"
+
+
 def test_pro_vehicle_lane_detail_respects_vehicle_district_and_condition_filters():
     db = _session()
     db.add_all(
