@@ -1,8 +1,16 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Battery, Car, CheckCircle2, PlugZap, ShieldCheck } from "lucide-react";
-import { getListings, formatPrice } from "@/services/api";
-import { isReasonableListingPrice } from "@/lib/formatting";
+import {
+  ArrowRight,
+  Battery,
+  Car,
+  CheckCircle2,
+  PlugZap,
+  ShieldCheck,
+  TrendingDown,
+  Zap,
+} from "lucide-react";
+import { getEvInsight, formatPrice } from "@/services/api";
 
 const evModules = [
   { icon: Battery, step: "01", title: "Battery health", desc: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
@@ -16,45 +24,51 @@ const ownershipChecks = [
   { label: "Resale proof", value: "Records", note: "Guideline: battery reports protect resale value" },
 ];
 
-function median(values: number[]): number | null {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-}
+const TCO_FUEL_COST_PER_KM_PETROL_LKR = 28;
+const TCO_FUEL_COST_PER_KM_EV_LKR = 6;
+const TCO_KM_PER_YEAR = 20_000;
 
 export default function EVHub() {
-  const evQuery = useQuery({
-    queryKey: ["listings", { fuel_type: "electric", sort: "newest", page: 1 }],
-    queryFn: () => getListings({ fuel_type: "electric", sort: "newest", page: 1 }),
+  const insightQuery = useQuery({
+    queryKey: ["ev-insight"],
+    queryFn: getEvInsight,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const evTotal = evQuery.data?.total ?? null;
-  const sample = evQuery.data?.listings ?? [];
-  const sampledPrices = sample
-    .map((listing) => Number(listing.price_lkr || 0))
-    .filter((price) => isReasonableListingPrice(price));
-  const sampleMedian = median(sampledPrices);
+  const insight = insightQuery.data;
+  const pending = insightQuery.isPending;
+
+  const evCount = insight?.ev_count ?? null;
+  const evPct = insight?.ev_pct ?? null;
+  const medianEvPrice = insight?.median_ev_price_lkr ?? null;
+  const topModels = insight?.top_ev_models ?? [];
+  const benchmark = insight?.hybrid_benchmark ?? null;
+
+  const annualFuelSavingLkr = (TCO_FUEL_COST_PER_KM_PETROL_LKR - TCO_FUEL_COST_PER_KM_EV_LKR) * TCO_KM_PER_YEAR;
+  const evPremiumLkr =
+    medianEvPrice !== null && benchmark?.median_price_lkr
+      ? medianEvPrice - benchmark.median_price_lkr
+      : null;
+  const paybackYears =
+    evPremiumLkr !== null && annualFuelSavingLkr > 0
+      ? Math.ceil(evPremiumLkr / annualFuelSavingLkr)
+      : null;
 
   const liveStats = [
     {
       label: "Electric listings live",
-      value: evQuery.isPending ? "…" : evTotal !== null ? evTotal.toLocaleString() : "N/A",
-      note: "Priced EV inventory tracked right now",
+      value: pending ? "…" : evCount !== null ? evCount.toLocaleString() : "N/A",
+      note: "Active EV inventory tracked across all sources",
     },
     {
-      label: "Median of latest sample",
-      value: evQuery.isPending ? "…" : sampleMedian !== null ? formatPrice(sampleMedian) : "N/A",
-      note: `From the ${sampledPrices.length || 0} newest priced EV listings`,
+      label: "EV market share",
+      value: pending ? "…" : evPct !== null ? `${evPct.toFixed(1)}%` : "N/A",
+      note: "Share of all tracked listings that are electric",
     },
     {
-      label: "Newest EV arrival",
-      value: evQuery.isPending
-        ? "…"
-        : sample[0]
-          ? `${sample[0].make} ${sample[0].model}`.trim() || "N/A"
-          : "N/A",
-      note: sample[0]?.district ? `Listed in ${sample[0].district}` : "Latest tracked electric listing",
+      label: "Median EV price",
+      value: pending ? "…" : medianEvPrice !== null ? formatPrice(medianEvPrice) : "N/A",
+      note: "Median price across all priced EV listings",
     },
   ];
 
@@ -80,6 +94,83 @@ export default function EVHub() {
                 <p className="mt-1.5 text-[11px] text-muted-foreground">{stat.note}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Top EV models */}
+        {(pending || topModels.length > 0) && (
+          <div>
+            <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground">Top EV models</h2>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {pending
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-border bg-surface p-5 animate-pulse">
+                      <div className="h-3 w-2/3 rounded bg-muted-foreground/10 mb-3" />
+                      <div className="h-5 w-1/2 rounded bg-muted-foreground/10" />
+                    </div>
+                  ))
+                : topModels.map((m) => (
+                    <div key={`${m.make}-${m.model}`} className="rounded-xl border border-border bg-surface p-5">
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-foreground/[0.03]">
+                          <Zap className="h-3.5 w-3.5 text-[var(--gold)]/70" />
+                        </div>
+                        <p className="text-[12px] font-semibold text-foreground leading-tight">{m.make} {m.model}</p>
+                      </div>
+                      <p className="num text-base font-bold text-foreground">
+                        {m.median_price_lkr !== null ? formatPrice(m.median_price_lkr) : "—"}
+                      </p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">{m.listing_count} listing{m.listing_count !== 1 ? "s" : ""} · median</p>
+                    </div>
+                  ))}
+            </div>
+          </div>
+        )}
+
+        {/* TCO comparison callout */}
+        <div className="rounded-xl border border-[var(--gold)]/30 bg-[var(--gold)]/[0.04] p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.08]">
+              <TrendingDown className="h-4 w-4 text-[var(--gold)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--gold)]/80">TCO comparison</p>
+              <h3 className="mt-1 text-[14px] font-semibold text-foreground">EV vs. Toyota Aqua hybrid — real running cost</h3>
+              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+                Fuel saving estimated at <span className="font-semibold text-foreground">Rs.{annualFuelSavingLkr.toLocaleString()}/yr</span> (LKR {TCO_FUEL_COST_PER_KM_EV_LKR} vs LKR {TCO_FUEL_COST_PER_KM_PETROL_LKR} per km, {(TCO_KM_PER_YEAR / 1000).toFixed(0)}k km/yr).
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-border bg-surface p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Median EV price</p>
+                  <p className="num mt-1.5 text-base font-bold text-foreground">
+                    {pending ? "…" : medianEvPrice !== null ? formatPrice(medianEvPrice) : "N/A"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-surface p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Toyota Aqua benchmark</p>
+                  <p className="num mt-1.5 text-base font-bold text-foreground">
+                    {pending ? "…" : benchmark?.median_price_lkr != null ? formatPrice(benchmark.median_price_lkr) : "N/A"}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {benchmark?.listing_count ? `${benchmark.listing_count} listings` : "hybrid benchmark"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border bg-surface p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Fuel savings payback</p>
+                  <p className="num mt-1.5 text-base font-bold text-foreground">
+                    {pending
+                      ? "…"
+                      : paybackYears !== null
+                        ? `~${paybackYears} yr${paybackYears !== 1 ? "s" : ""}`
+                        : "N/A"}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">to recover EV price premium</p>
+                </div>
+              </div>
+              <p className="mt-3 text-[10px] text-muted-foreground/60">
+                Indicative only. Actual savings vary by charging cost, mileage, and model.
+              </p>
+            </div>
           </div>
         </div>
 

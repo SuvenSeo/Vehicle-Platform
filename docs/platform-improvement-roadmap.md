@@ -9,6 +9,12 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 - **`ProDashboard` export gate** — `ExportButtons` in `src/pages/ProDashboard.tsx` checks `PRO_EXPORTS_ENFORCED` before triggering any download.  Unauthenticated users or free-plan holders see a Sonner toast ("Pro subscription required") with a "Sign in" action that navigates to `/sign-in`.  When enforcement is off (local / preview), behaviour is unchanged.
 - **Tests** — `backend/tests/test_pro_access.py` adds 6 pytest tests (env monkeypatching): default-off, truthy strings, no-op when unenforced, 401 on missing token, 403 on free-plan token, pass on valid Pro token.  All 207 backend tests continue to pass.
 
+## Completed — Price recovery job
+
+- **`RUN_PRICE_RECOVERY` backend env var** — `backend/run_sync.py` reads `RUN_PRICE_RECOVERY` (default `false`).  When `true`, calls `recover_missing_prices()` from `backend/scripts/recover_missing_prices.py` after every nightly scrape cycle with `dry_run=False, mark_retry=True`: finds `price_lkr IS NULL` listings seen within the last 7 days, writes a JSON retry manifest to `/tmp/`, and touches `last_seen_at` to flag them for re-evaluation on the next pass.
+- **Nightly CI step** — `RUN_PRICE_RECOVERY: "true"` added to the `market-analysis` job in `.github/workflows/daily-scrape.yml` so recovery runs once after all scrape-source shards finish.
+- **Tests** — `backend/tests/test_price_recovery.py` adds 15 pytest tests covering `find_missing_price_listings`, `recover_missing_prices` (dry-run, mark-retry, report-only), and the `run_sync` hook (enabled, disabled, absent, exception-tolerance) via monkeypatching.
+
 ## Completed — Post-scrape job flags enabled in CI
 
 Three post-scrape processing jobs are now activated via env vars in the `market-analysis` CI job (`.github/workflows/daily-scrape.yml`):
@@ -46,7 +52,7 @@ All three flags are set on the `market-analysis` job, which runs once after all 
 | ~~Cross-source deduplication~~ | ~~Double-counting inflates supply metrics~~ | Fuzzy match on make/model/year/price/mileage — **`RUN_DEDUP=true` in CI** |
 | ~~Deal-score SQL bulk update~~ | ~~131k+ row Python loop risks HF memory~~ | JOIN to latest `PriceAggregate`, batch UPDATE — **`RUN_DEAL_SCORE_REFRESH=true` in CI** |
 | ~~Stats materialized cache~~ | ~~Heavy aggregates on every request~~ | `market_stats_cache` refreshed post-scrape — **`RUN_STATS_CACHE_REFRESH=true` in CI** |
-| Price recovery job | 528 unpriced listings | Nightly re-scrape of `price_lkr IS NULL` rows |
+| ~~Price recovery job~~ | ~~528 unpriced listings~~ | ~~Nightly re-scrape of `price_lkr IS NULL` rows~~ — **`RUN_PRICE_RECOVERY=true` in CI** |
 
 ## P1 — Product differentiation (Sri Lanka)
 

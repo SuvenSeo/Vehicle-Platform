@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, Bell, ChevronDown, ChevronUp, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Bell, ChevronDown, ChevronUp, RefreshCw, ShieldCheck, Upload } from "lucide-react";
 import {
+  benchmarkDealerUrls,
   formatPrice,
   getDashboardInsights,
   getDistrictPrices,
   getProMarketSnapshot,
   getStats,
 } from "@/services/api";
+import type { UrlBenchmarkResult } from "@/services/api";
 import { getStoredAuthToken } from "@/lib/authToken";
 import type { ProMarketSnapshot } from "@/types/pro";
 import {
@@ -19,7 +21,7 @@ import {
   buildTurnoverSeries,
 } from "@/lib/dealerDashboardData";
 
-type WidgetKey = "turnover" | "priceGap" | "districtDemand";
+type WidgetKey = "turnover" | "priceGap" | "districtDemand" | "inventoryBenchmark";
 
 const TOOLTIP_STYLE = { background: "hsl(220,8%,6%)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "8px", fontSize: "11px" } as const;
 
@@ -83,8 +85,174 @@ function WidgetShell({
   );
 }
 
+function gapTone(pct: number | null): string {
+  if (pct === null) return "text-muted-foreground";
+  if (pct <= -5) return "text-emerald-400";
+  if (pct >= 5) return "text-rose-400";
+  return "text-amber-400";
+}
+
+function InventoryBenchmark() {
+  const [urlsText, setUrlsText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<UrlBenchmarkResult[] | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSubmit = async () => {
+    const urls = urlsText.split("\n").map((u) => u.trim()).filter(Boolean);
+    if (!urls.length) return;
+    setLoading(true);
+    setSubmitError(null);
+    setResults(null);
+    try {
+      const data = await benchmarkDealerUrls(urls);
+      setResults(data);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Request failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClear = () => {
+    setUrlsText("");
+    setResults(null);
+    setSubmitError(null);
+    textareaRef.current?.focus();
+  };
+
+  const urlCount = urlsText.split("\n").filter((l) => l.trim()).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border bg-surface/50 p-4">
+        <label className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground mb-2">
+          Listing URLs <span className="normal-case">(one per line, max 50)</span>
+        </label>
+        <textarea
+          ref={textareaRef}
+          value={urlsText}
+          onChange={(e) => setUrlsText(e.target.value)}
+          placeholder={"https://ikman.lk/en/ad/toyota-vitz-2018-for-sale-...\nhttps://riyasewana.com/listing/..."}
+          rows={5}
+          className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+        />
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="text-[10px] text-muted-foreground num">{urlCount > 0 ? `${urlCount} URL${urlCount === 1 ? "" : "s"}` : "Paste URLs above"}</span>
+          <div className="flex items-center gap-2">
+            {(results !== null || urlsText) && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={loading || !urlCount}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary/90 px-4 text-[10px] font-semibold text-primary-foreground hover:bg-primary disabled:opacity-40"
+            >
+              {loading ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 animate-spin rounded-full border border-current/30 border-t-current" />
+                  Benchmarking…
+                </span>
+              ) : (
+                <>
+                  <Upload className="h-3 w-3" />
+                  Benchmark
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {submitError && (
+        <div className="flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/5 px-3 py-2.5">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-400/80" />
+          <p className="text-[11px] text-rose-300/90">{submitError}</p>
+        </div>
+      )}
+
+      {results !== null && results.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[600px] text-[11px]">
+            <thead>
+              <tr className="border-b border-border bg-secondary/30">
+                <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground">URL</th>
+                <th className="px-3 py-2.5 text-left font-semibold text-muted-foreground">Vehicle</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground">Listing price</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground">Market median</th>
+                <th className="px-3 py-2.5 text-right font-semibold text-muted-foreground">Gap</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((row, idx) => (
+                <tr key={row.url + String(idx)} className="border-b border-border/50 last:border-0 hover:bg-foreground/[0.02]">
+                  <td className="max-w-[180px] px-3 py-2.5">
+                    <a
+                      href={row.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate text-primary/80 hover:text-primary"
+                      title={row.url}
+                    >
+                      {row.url.replace(/^https?:\/\//, "").slice(0, 45)}{row.url.length > 50 ? "…" : ""}
+                    </a>
+                    {row.error && (
+                      <span className="mt-0.5 block text-[9px] text-rose-400/80">{row.error}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-foreground">
+                    {row.make ? (
+                      <span>
+                        {row.make}{row.model ? ` ${row.model}` : ""}{row.year ? ` (${row.year})` : ""}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right num text-foreground">
+                    {row.listing_price != null ? formatPrice(row.listing_price) : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-right num text-foreground">
+                    {row.market_median != null ? (
+                      <span title={`${row.comparable_count} comparables`}>
+                        {formatPrice(row.market_median)}
+                        <span className="ml-1 text-[9px] text-muted-foreground">({row.comparable_count})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className={`px-3 py-2.5 text-right num font-semibold ${gapTone(row.price_gap_pct)}`}>
+                    {row.price_gap_pct != null ? (
+                      `${row.price_gap_pct > 0 ? "+" : ""}${row.price_gap_pct.toFixed(1)}%`
+                    ) : (
+                      <span className="font-normal text-muted-foreground">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {results !== null && results.length === 0 && (
+        <p className="py-6 text-center text-[11px] text-muted-foreground">No results returned.</p>
+      )}
+    </div>
+  );
+}
+
 export default function DealerDashboard() {
-  const [collapsed, setCollapsed] = useState<Record<WidgetKey, boolean>>({ turnover: false, priceGap: false, districtDemand: false });
+  const [collapsed, setCollapsed] = useState<Record<WidgetKey, boolean>>({ turnover: false, priceGap: false, districtDemand: false, inventoryBenchmark: false });
   const [notifIdx, setNotifIdx] = useState(0);
   const hasAuthToken = Boolean(getStoredAuthToken());
 
@@ -209,6 +377,7 @@ export default function DealerDashboard() {
                   { label: "Price Gap Scanner", meta: priceGaps.length ? `${priceGaps.length} districts` : "—" },
                   { label: "District Demand", meta: districtDemand.length ? `${districtDemand.length} zones` : "—" },
                   { label: "Lead Notifications", meta: notifications.length > 1 ? "live" : "standby" },
+                  { label: "Inventory Benchmark", meta: "URL upload" },
                 ].map((i) => (
                   <div key={i.label} className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2">
                     <span className="text-[11px] text-foreground">{i.label}</span>
@@ -332,6 +501,15 @@ export default function DealerDashboard() {
                   </div>
                 ))}
               </div>
+            </WidgetShell>
+
+            <WidgetShell
+              title="Inventory Benchmark"
+              subtitle="Paste listing URLs to benchmark against the current market"
+              collapsed={collapsed.inventoryBenchmark}
+              onToggle={() => toggle("inventoryBenchmark")}
+            >
+              <InventoryBenchmark />
             </WidgetShell>
           </main>
         </div>

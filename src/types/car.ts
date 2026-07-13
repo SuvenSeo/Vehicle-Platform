@@ -298,6 +298,29 @@ export interface HybridBandsData {
   generated_at: string;
 }
 
+export interface EvModelEntry {
+  make: string;
+  model: string;
+  listing_count: number;
+  median_price_lkr: number | null;
+}
+
+export interface EvHybridBenchmark {
+  make: string;
+  model: string;
+  median_price_lkr: number | null;
+  listing_count: number;
+}
+
+export interface EvInsightData {
+  ev_count: number;
+  ev_pct: number;
+  median_ev_price_lkr: number | null;
+  top_ev_models: EvModelEntry[];
+  hybrid_benchmark: EvHybridBenchmark;
+  generated_at: string;
+}
+
 export interface SourceQualityRow {
   source: string;
   listing_count: number;
@@ -310,6 +333,27 @@ export interface SourceQualityRow {
 export interface SourceQualityResponse {
   generated_at: string;
   sources: SourceQualityRow[];
+}
+
+export type ImportEra = "pre_freeze" | "post_freeze";
+
+export interface ImportEraEntry {
+  era: ImportEra;
+  label: string;
+  count: number;
+  median_price_lkr: number | null;
+}
+
+export interface ImportEraMakeRow {
+  make: string;
+  pre_freeze: ImportEraEntry;
+  post_freeze: ImportEraEntry;
+}
+
+export interface ImportEraSplitData {
+  makes: ImportEraMakeRow[];
+  freeze_boundary_year: number;
+  generated_at: string;
 }
 
 export interface FilterState {

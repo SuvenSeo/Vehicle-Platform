@@ -154,6 +154,7 @@ jobs:
           RUN_DEAL_SCORE_REFRESH: "true"
           RUN_STATS_CACHE_REFRESH: "true"
           RUN_DEDUP: "true"
+          RUN_PRICE_RECOVERY: "true"
         run: python run_sync.py
 
   snapshot-export:

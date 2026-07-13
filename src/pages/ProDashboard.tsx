@@ -53,6 +53,7 @@ import { PRO_EXPORTS_ENFORCED, useAuth } from "@/lib/authContext";
 import { customizeProReport } from "@/lib/proReportCustomize";
 import { formatPriceLkrMillions, formatRelativeTime } from "@/lib/formatting";
 import {
+  getImportEraSplit,
   getProArbitrageGaps,
   getProDistrictDetail,
   getProDistricts,
@@ -60,6 +61,7 @@ import {
   getProVehicleLaneDetail,
   getProVehicleLanes,
 } from "@/services/api";
+import type { ImportEraSplitData } from "@/types/car";
 import type {
   ProArbitrageGap,
   ProBreakdownPoint,
@@ -512,6 +514,8 @@ export default function ProDashboard() {
   const [arbitrageLaneKey, setArbitrageLaneKey] = useState("");
   const [arbitrageGaps, setArbitrageGaps] = useState<ProArbitrageGap[]>([]);
   const [loadingArbitrage, setLoadingArbitrage] = useState(false);
+  const [eraData, setEraData] = useState<ImportEraSplitData | null>(null);
+  const [loadingEra, setLoadingEra] = useState(false);
 
   const loadWorkspace = useCallback(async () => {
     setError(null);
@@ -589,6 +593,17 @@ export default function ProDashboard() {
       cancelled = true;
     };
   }, [arbitrageLaneKey]);
+
+  useEffect(() => {
+    if (activeTab !== "trends" || eraData) return;
+    let cancelled = false;
+    setLoadingEra(true);
+    getImportEraSplit()
+      .then((data) => { if (!cancelled) setEraData(data); })
+      .catch(() => { if (!cancelled) setEraData(null); })
+      .finally(() => { if (!cancelled) setLoadingEra(false); });
+    return () => { cancelled = true; };
+  }, [activeTab, eraData]);
 
   const filteredLanes = useMemo(() => {
     const query = laneSearch.trim().toLowerCase();
@@ -1204,6 +1219,96 @@ export default function ProDashboard() {
                   </div>
                 )}
               </div>
+            </section>
+
+            {/* Import-era depreciation cohort split */}
+            <SectionTitle eyebrow="Import-era market" title="Pre-freeze vs post-freeze cohorts">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
+                  Pre-freeze ≤2024
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-semibold text-sky-400">
+                  Post-freeze ≥2025
+                </span>
+              </div>
+            </SectionTitle>
+            <section className="page-panel rounded-xl p-5" aria-label="Import era split chart">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Median asking price comparison per make between pre-2025 import cohort (older stock, higher supply) and
+                post-2025 cohort (restricted imports, supply premium). Only priced, non-outlier listings with a known
+                manufacture year are included.
+              </p>
+              <div className="h-[360px]">
+                {loadingEra ? (
+                  <Skeleton className="h-full w-full rounded-[10px] bg-foreground/[0.03]" />
+                ) : (eraData?.makes?.length ?? 0) === 0 ? (
+                  <div className="console-empty flex h-full flex-col items-center justify-center gap-3">
+                    <TrendingUp className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+                    <p className="text-sm text-muted-foreground">Import-era split data is not yet available.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={(eraData?.makes ?? []).map((row) => ({
+                        make: row.make,
+                        pre: row.pre_freeze.median_price_lkr !== null ? row.pre_freeze.median_price_lkr / 1_000_000 : null,
+                        post: row.post_freeze.median_price_lkr !== null ? row.post_freeze.median_price_lkr / 1_000_000 : null,
+                        preCount: row.pre_freeze.count,
+                        postCount: row.post_freeze.count,
+                      }))}
+                      margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="make" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
+                      <Tooltip
+                        contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12 }}
+                        formatter={(value: unknown, name: string, props: { payload?: Record<string, unknown> }) => {
+                          const numVal = typeof value === "number" ? value : null;
+                          const isPost = name === "post";
+                          const count = isPost ? (props.payload?.postCount ?? 0) : (props.payload?.preCount ?? 0);
+                          const label = isPost ? "Post-freeze ≥2025" : "Pre-freeze ≤2024";
+                          return [numVal !== null ? `${numVal.toFixed(2)}M LKR (${count} listings)` : "—", label];
+                        }}
+                      />
+                      <Bar dataKey="pre" name="Pre-freeze ≤2024" fill="#e9b652" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="post" name="Post-freeze ≥2025" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+              {(eraData?.makes?.length ?? 0) > 0 && (
+                <div className="mt-4 overflow-auto rounded-lg border border-border" aria-label="Import era split table">
+                  <table className="w-full min-w-[580px] text-sm">
+                    <thead className="bg-[#0c0d0e]">
+                      <tr>
+                        {["Make", "Pre-freeze count", "Pre-freeze median", "Post-freeze count", "Post-freeze median", "Premium"].map((h) => (
+                          <th key={h} className="border-b border-border px-4 py-2.5 text-left field-label">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(eraData?.makes ?? []).map((row) => {
+                        const preMed = row.pre_freeze.median_price_lkr;
+                        const postMed = row.post_freeze.median_price_lkr;
+                        const premium = preMed && postMed ? ((postMed - preMed) / preMed) * 100 : null;
+                        return (
+                          <tr key={row.make} className="border-t border-border hover:bg-white/[0.025]">
+                            <td className="px-4 py-2.5 font-semibold text-white">{row.make}</td>
+                            <td className="px-4 py-2.5 text-muted-foreground num">{row.pre_freeze.count.toLocaleString()}</td>
+                            <td className="px-4 py-2.5 text-foreground num">{preMed !== null ? fmtMoney(preMed) : "—"}</td>
+                            <td className="px-4 py-2.5 text-muted-foreground num">{row.post_freeze.count.toLocaleString()}</td>
+                            <td className="px-4 py-2.5 text-foreground num">{postMed !== null ? fmtMoney(postMed) : "—"}</td>
+                            <td className={`px-4 py-2.5 font-bold num ${premium === null ? "text-muted-foreground" : premium >= 0 ? "text-sky-400" : "text-amber-400"}`}>
+                              {premium !== null ? `${premium >= 0 ? "+" : ""}${premium.toFixed(1)}%` : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
           </TabsContent>
 

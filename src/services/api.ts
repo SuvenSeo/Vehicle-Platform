@@ -22,6 +22,10 @@ import {
   SourceQualityResponse,
   DistrictVelocityData,
   DistrictVelocityPoint,
+  EvInsightData,
+  ImportEraSplitData,
+  ImportEraEntry,
+  ImportEraMakeRow,
 } from "@/types/car";
 import type {
   ProArbitrageGap,
@@ -1603,9 +1607,65 @@ export const getHybridBands = async (): Promise<HybridBandsData> => {
   return normalizeHybridBandsData(data);
 };
 
+function normalizeEvInsightData(data: JsonRecord): EvInsightData {
+  const topEvModels = Array.isArray(data.top_ev_models)
+    ? (data.top_ev_models as JsonRecord[]).map((row) => ({
+        make: String(row.make || ""),
+        model: String(row.model || ""),
+        listing_count: Number(row.listing_count || 0),
+        median_price_lkr: toNumberOrNull(row.median_price_lkr),
+      }))
+    : [];
+
+  const benchmarkRaw = asJsonRecord(data.hybrid_benchmark);
+  const hybridBenchmark = {
+    make: String(benchmarkRaw.make || "Toyota"),
+    model: String(benchmarkRaw.model || "Aqua"),
+    median_price_lkr: toNumberOrNull(benchmarkRaw.median_price_lkr),
+    listing_count: Number(benchmarkRaw.listing_count || 0),
+  };
+
+  return {
+    ev_count: Number(data.ev_count || 0),
+    ev_pct: Number(data.ev_pct ?? 0),
+    median_ev_price_lkr: toNumberOrNull(data.median_ev_price_lkr),
+    top_ev_models: topEvModels,
+    hybrid_benchmark: hybridBenchmark,
+    generated_at: String(data.generated_at || new Date().toISOString()),
+  };
+}
+
+export const getEvInsight = async (): Promise<EvInsightData> => {
+  const data = await fetchJSON<JsonRecord>("/stats/ev-insight");
+  return normalizeEvInsightData(data);
+};
+
 export const formatNumber = (num: number): string => {
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toString();
+};
+
+// ---------------------------------------------------------------------------
+// Dealer — inventory benchmark
+// ---------------------------------------------------------------------------
+
+export interface UrlBenchmarkResult {
+  url: string;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  listing_price: number | null;
+  market_median: number | null;
+  price_gap_pct: number | null;
+  comparable_count: number;
+  error: string | null;
+}
+
+export const benchmarkDealerUrls = async (
+  urls: string[],
+): Promise<UrlBenchmarkResult[]> => {
+  const data = await postJSON<UrlBenchmarkResult[]>("/dealer/benchmark-urls", { urls });
+  return Array.isArray(data) ? data : [];
 };
 
 export const sendChatMessage = async (
@@ -1674,5 +1734,40 @@ export const getSourceQuality = async (): Promise<SourceQualityResponse> => {
   return {
     generated_at: String(data.generated_at || new Date().toISOString()),
     sources,
+  };
+};
+
+function normalizeImportEraEntry(raw: Record<string, unknown>): ImportEraEntry {
+  const eraRaw = String(raw?.era || "");
+  const era = eraRaw === "post_freeze" ? "post_freeze" : "pre_freeze";
+  return {
+    era,
+    label: String(raw?.label || (era === "pre_freeze" ? "Pre-freeze (≤2024)" : "Post-freeze (≥2025)")),
+    count: Number(raw?.count || 0),
+    median_price_lkr: toNumberOrNull(raw?.median_price_lkr),
+  };
+}
+
+function normalizeImportEraMakeRow(raw: Record<string, unknown>): ImportEraMakeRow {
+  return {
+    make: String(raw?.make || ""),
+    pre_freeze: normalizeImportEraEntry(asJsonRecord(raw?.pre_freeze)),
+    post_freeze: normalizeImportEraEntry(asJsonRecord(raw?.post_freeze)),
+  };
+}
+
+export const getImportEraSplit = async (topN?: number): Promise<ImportEraSplitData> => {
+  const params: QueryParams = {};
+  if (topN !== undefined) params.top_n = topN;
+  const data = await fetchJSON<Record<string, unknown>>("/stats/import-era-split", params);
+  const makes: ImportEraMakeRow[] = Array.isArray(data?.makes)
+    ? (data.makes as Record<string, unknown>[])
+        .map(normalizeImportEraMakeRow)
+        .filter((row) => Boolean(row.make))
+    : [];
+  return {
+    makes,
+    freeze_boundary_year: Number(data?.freeze_boundary_year || 2025),
+    generated_at: String(data?.generated_at || new Date().toISOString()),
   };
 };

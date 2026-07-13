@@ -28,6 +28,7 @@ import {
   List,
   Scale,
   Search,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
 import type { StatsOverview } from "@/types/car";
@@ -36,6 +37,7 @@ import {
   getListingSearchSuggestions,
   type ListingSearchSuggestion,
 } from "@/services/api";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { loadWatchlistIds, saveWatchlistIds, toggleWatchlistId } from "@/lib/watchlist";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
@@ -44,6 +46,7 @@ import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
 import { loadMarketAlerts, patchMarketAlertServerId, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
+import { MobileFilterSheet } from "@/components/MobileFilterSheet";
 
 const DistrictVelocityMap = lazy(() =>
   import("@/components/DistrictVelocityMap").then((m) => ({ default: m.DistrictVelocityMap }))
@@ -116,10 +119,12 @@ export default function Dashboard() {
     });
   }, [searchParams]);
 
+  const { t } = useAppPreferences();
   const queryClient = useQueryClient();
   const liveMarketSnapshot = useLiveMarketSnapshot();
   const [compareListings, setCompareListings] = useState<CarListing[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
   const [watchlistIds, setWatchlistIds] = useState<number[]>([]);
   const [heroSearch, setHeroSearch] = useState("");
   const [heroSearchMessage, setHeroSearchMessage] = useState<string | null>(null);
@@ -473,7 +478,7 @@ export default function Dashboard() {
                 <div className="relative">
                   <div className="flex items-center gap-2 rounded-xl border border-border bg-card shadow-lg transition-all focus-within:border-primary/30 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.08),0_8px_32px_rgba(0,0,0,0.5)]">
                     <Search className="ml-4 h-5 w-5 shrink-0 text-muted-foreground" />
-                    <label htmlFor="hero-search" className="sr-only">Search vehicles</label>
+                    <label htmlFor="hero-search" className="sr-only">{t("common.search", "Search")} vehicles</label>
                     <input
                       id="hero-search"
                       value={heroSearch}
@@ -491,14 +496,14 @@ export default function Dashboard() {
                       className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-foreground placeholder-zinc-600 outline-none"
                     />
                     <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-[var(--gold)] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[var(--gold-bright)]">
-                      Search
+                      {t("common.search", "Search")}
                     </button>
                   </div>
 
                   {showHeroSuggestions && (
                     <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-border bg-card p-1 shadow-xl">
                       {heroSuggestionsLoading ? (
-                        <p className="px-3 py-2 text-[11px] text-muted-foreground">Searching...</p>
+                        <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("common.searching", "Searching...")}</p>
                       ) : heroSuggestions.length ? (
                         <div className="max-h-[240px] overflow-y-auto">
                           {heroSuggestions.map((s) => (
@@ -553,7 +558,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-2 sm:gap-2.5">
               <div className="flex items-baseline gap-2.5">
                 <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                  {isPriceUnavailableMode ? "Unpriced inventory" : "Inventory"}
+                  {isPriceUnavailableMode ? t("common.unpricedInventory", "Unpriced inventory") : t("common.inventory", "Inventory")}
                 </h2>
                 {loadingListings ? (
                   <span className="inline-block h-4 w-14 animate-pulse rounded bg-foreground/[0.03]" aria-hidden />
@@ -578,13 +583,13 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setShowSavedListings(true)}
                 className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-              >{watchlistIds.length} saved</button>
+              >{watchlistIds.length} {t("common.saved", "saved")}</button>
               <button type="button" onClick={saveCurrentMarketAlert}
                 className="rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary/80 transition-colors hover:bg-primary/10"
-              >Save alert</button>
+              >{t("common.saveAlert", "Save alert")}</button>
               <button type="button" onClick={() => setShowMarketAlerts(true)}
                 className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
-              >{marketAlerts.length} alerts</button>
+              >{marketAlerts.length} {t("common.alerts", "alerts")}</button>
               <div className="hidden items-center gap-0.5 md:flex">
                 <button type="button" onClick={() => setMarketView("grid")} aria-label="Grid view" aria-pressed={marketView === "grid"}
                   className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
@@ -832,6 +837,23 @@ export default function Dashboard() {
         </div>
       </RevealSection>
 
+      {/* ── MOBILE QUICK FILTER BUTTON ──────────────────────────── */}
+      <button
+        type="button"
+        aria-label="Open quick filters"
+        onClick={() => setShowMobileFilter(true)}
+        className="md:hidden fixed bottom-[4.75rem] right-4 z-[1100] flex h-12 items-center gap-2 rounded-full border border-border bg-card/95 pl-3.5 pr-4 shadow-xl backdrop-blur-xl transition-all hover:bg-card active:scale-95"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
+        <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+        <span className="text-[12px] font-semibold text-foreground">Filters</span>
+        {activeFilterLabels.length > 0 && (
+          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
+            {activeFilterLabels.length}
+          </span>
+        )}
+      </button>
+
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
         <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,680px)] -translate-x-1/2">
@@ -915,6 +937,13 @@ export default function Dashboard() {
           {savedListingsError && <p className="text-[11px] text-primary/60">{savedListingsError}</p>}
         </DialogContent>
       </Dialog>
+
+      <MobileFilterSheet
+        open={showMobileFilter}
+        onOpenChange={setShowMobileFilter}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
 
       <ComparisonModal listings={comparedListings} open={showCompare} onClose={() => setShowCompare(false)} />
     </div>
