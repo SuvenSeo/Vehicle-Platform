@@ -48,6 +48,68 @@ def _listing(
     )
 
 
+def test_dashboard_insights_trending_models_use_30d_price_movement(monkeypatch):
+    fixed_now = datetime(2026, 4, 19, 10, 0, tzinfo=timezone.utc).replace(tzinfo=None)
+    monkeypatch.setattr(stats, "utc_now", lambda: fixed_now)
+
+    current_30d = fixed_now - stats.timedelta(days=30)
+    previous_30d = fixed_now - stats.timedelta(days=60)
+
+    db = _session()
+    db.add_all(
+        [
+            _listing("vitz-current-1", 8_000_000, 5.0, make="Toyota", model="Vitz"),
+            _listing("vitz-current-2", 8_200_000, 6.0, make="Toyota", model="Vitz"),
+            CarListing(
+                source="ikman",
+                source_id="vitz-previous-1",
+                scraped_at=previous_30d + stats.timedelta(days=5),
+                first_seen_at=previous_30d + stats.timedelta(days=5),
+                last_seen_at=previous_30d + stats.timedelta(days=5),
+                make="Toyota",
+                model="Vitz",
+                year=2018,
+                price_lkr=7_000_000,
+                deal_score=4.0,
+                district="Colombo",
+                city="Colombo",
+                title="Toyota Vitz vitz-previous-1",
+                url="https://example.com/vitz-previous-1",
+                is_outlier=False,
+            ),
+            CarListing(
+                source="ikman",
+                source_id="vitz-previous-2",
+                scraped_at=current_30d - stats.timedelta(days=1),
+                first_seen_at=current_30d - stats.timedelta(days=1),
+                last_seen_at=current_30d - stats.timedelta(days=1),
+                make="Toyota",
+                model="Vitz",
+                year=2018,
+                price_lkr=7_200_000,
+                deal_score=4.5,
+                district="Colombo",
+                city="Colombo",
+                title="Toyota Vitz vitz-previous-2",
+                url="https://example.com/vitz-previous-2",
+                is_outlier=False,
+            ),
+        ]
+    )
+    db.commit()
+
+    payload = stats.get_dashboard_insights(db=db)
+    vitz = next(
+        item
+        for item in payload["trending_models"]
+        if item["make"] == "Toyota" and item["model"] == "Vitz"
+    )
+
+    assert vitz["listing_count"] == 2
+    assert vitz["avg_price_lkr"] == 8_100_000
+    assert vitz["movement_pct"] == 14.1
+
+
 def test_dashboard_insights_hot_deals_exclude_non_positive_and_tiny_prices():
     db = _session()
     db.add_all(

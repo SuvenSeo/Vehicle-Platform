@@ -735,7 +735,6 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
             CarListing.model,
             func.count(CarListing.id).label("count"),
             func.avg(CarListing.price_lkr).label("avg_price"),
-            func.avg(CarListing.deal_score).label("movement"),
             func.max(CarListing.thumbnail_url).label("thumbnail_url"),
         )
         .filter(
@@ -751,17 +750,50 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
         .all()
     )
 
-    trending_payload = [
-        {
-            "make": str(row.make),
-            "model": str(row.model),
-            "listing_count": int(row.count or 0),
-            "avg_price_lkr": round(float(row.avg_price), 2) if row.avg_price else 0.0,
-            "movement_pct": round(float(row.movement), 1) if row.movement is not None else None,
-            "thumbnail_url": str(row.thumbnail_url) if row.thumbnail_url else None,
-        }
-        for row in trending_models
-    ]
+    previous_trending_models = (
+        db.query(
+            CarListing.make,
+            CarListing.model,
+            func.avg(CarListing.price_lkr).label("avg_price"),
+        )
+        .filter(
+            CarListing.make.isnot(None),
+            CarListing.model.isnot(None),
+            CarListing.price_lkr.isnot(None),
+            CarListing.scraped_at >= previous_30d,
+            CarListing.scraped_at < current_30d,
+            CarListing.is_outlier == False,
+        )
+        .group_by(CarListing.make, CarListing.model)
+        .all()
+    )
+
+    previous_trending_map = {
+        (str(row.make).lower(), str(row.model).lower()): float(row.avg_price)
+        for row in previous_trending_models
+        if row.make and row.model and row.avg_price
+    }
+
+    trending_payload = []
+    for row in trending_models:
+        current_avg = float(row.avg_price) if row.avg_price else 0.0
+        previous_avg = previous_trending_map.get(
+            (str(row.make).lower(), str(row.model).lower())
+        )
+        movement_pct = None
+        if previous_avg and previous_avg > 0:
+            movement_pct = round(((current_avg - previous_avg) / previous_avg) * 100, 1)
+
+        trending_payload.append(
+            {
+                "make": str(row.make),
+                "model": str(row.model),
+                "listing_count": int(row.count or 0),
+                "avg_price_lkr": round(current_avg, 2),
+                "movement_pct": movement_pct,
+                "thumbnail_url": str(row.thumbnail_url) if row.thumbnail_url else None,
+            }
+        )
 
     hot_deals = (
         db.query(CarListing)
