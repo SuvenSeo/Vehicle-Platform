@@ -160,7 +160,10 @@ export default function DealerDashboard() {
     setNotifIdx(0);
   }, [notifications]);
 
-  const activeNotif = notifications[notifIdx] ?? notifications[0] ?? FALLBACK_NOTIFICATIONS[0];
+  const activeNotif =
+    notifications[notifIdx] ??
+    notifications[0] ??
+    "Market intelligence syncs from live listing data when available.";
   const toggle = (k: WidgetKey) => setCollapsed((p) => ({ ...p, [k]: !p[k] }));
 
   const retryAll = () => {
