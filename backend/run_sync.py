@@ -20,11 +20,14 @@ from app.scrapers.saleme import SaleMeScraper
 from app.services.aggregator import CarPriceAggregator
 from app.services.market_signals import MarketSignalImporter
 from app.services.source_aliases import canonical_source_key, source_alias_tokens
+from app.utils.alert_matcher import run_alert_match_pass
 from app.utils.deal_scores import bulk_refresh_deal_scores
 from app.utils.deduplication import mark_duplicates_batch
 from app.utils.stats_cache import refresh_stats_cache
+from app.utils.thumbnail_cache import backfill_thumbnail_cache
 from db.models import CarListing, ScrapeRun
 from db.session import ColdSessionLocal as SessionLocal, init_db
+from scripts.recover_missing_prices import recover_missing_prices
 
 log = structlog.get_logger()
 MARKET_ANALYSIS_LOCK_KEY = 6182701
@@ -507,6 +510,9 @@ async def main(profile_override: str | None = None):
     run_deal_score_refresh = _resolve_bool_env("RUN_DEAL_SCORE_REFRESH", False)
     run_dedup = _resolve_bool_env("RUN_DEDUP", False)
     run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", False)
+    run_thumbnail_cache = _resolve_bool_env("RUN_THUMBNAIL_CACHE", False)
+    run_alert_match = _resolve_bool_env("RUN_ALERT_MATCH", False)
+    run_price_recovery = _resolve_bool_env("RUN_PRICE_RECOVERY", False)
 
     log.info(
         "starting_sync",
@@ -519,6 +525,9 @@ async def main(profile_override: str | None = None):
         run_deal_score_refresh=run_deal_score_refresh,
         run_dedup=run_dedup,
         run_stats_cache_refresh=run_stats_cache_refresh,
+        run_thumbnail_cache=run_thumbnail_cache,
+        run_price_recovery=run_price_recovery,
+        run_alert_match=run_alert_match,
         source_max_pages={source: pages for source, _cls, pages, _timeout in source_configs},
         source_timeouts={
             source: timeout_seconds
@@ -594,6 +603,58 @@ async def main(profile_override: str | None = None):
                 _close_db_session(db, context="stats_cache_refresh")
         else:
             log.info("stats_cache_refresh_skipped", reason="run_stats_cache_refresh_disabled")
+
+        if run_thumbnail_cache:
+            db = SessionLocal()
+            try:
+                log.info("running_thumbnail_cache_backfill")
+                updated = backfill_thumbnail_cache(db)
+                log.info("thumbnail_cache_backfill_complete", listings_updated=updated)
+            except Exception as exc:
+                db.rollback()
+                log.error("thumbnail_cache_backfill_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="thumbnail_cache_backfill")
+        else:
+            log.info("thumbnail_cache_backfill_skipped", reason="run_thumbnail_cache_disabled")
+
+        if run_price_recovery:
+            db = SessionLocal()
+            try:
+                log.info("running_price_recovery")
+                recovery_result = recover_missing_prices(
+                    db,
+                    dry_run=False,
+                    mark_retry=True,
+                )
+                log.info(
+                    "price_recovery_complete",
+                    count=recovery_result["count"],
+                    action=recovery_result["action"],
+                    touched=recovery_result.get("touched", 0),
+                    output_path=recovery_result.get("output_path"),
+                )
+            except Exception as exc:
+                db.rollback()
+                log.error("price_recovery_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="price_recovery")
+        else:
+            log.info("price_recovery_skipped", reason="run_price_recovery_disabled")
+
+        if run_alert_match:
+            db = SessionLocal()
+            try:
+                log.info("running_alert_match_pass")
+                match_summary = run_alert_match_pass(db)
+                log.info("alert_match_pass_done", **match_summary)
+            except Exception as exc:
+                db.rollback()
+                log.error("alert_match_pass_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="alert_match_pass")
+        else:
+            log.info("alert_match_pass_skipped", reason="run_alert_match_disabled")
 
         duration = (datetime.now() - start_time).total_seconds()
         log.info("sync_completed", profile=profile, duration_seconds=round(duration, 2))

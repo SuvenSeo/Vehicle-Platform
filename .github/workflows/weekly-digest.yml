@@ -1,0 +1,67 @@
+name: Weekly Pro Digest
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # 06:00 UTC every Monday
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print to stdout only (no email sent)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate script compiles
+        run: python -m py_compile scripts/send_pro_digest.py
+
+      - name: Run digest (dry-run — cron default)
+        if: ${{ github.event_name == 'schedule' || inputs.dry_run == 'true' }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          # AUTH_USERS is read to resolve pro-recipient list; omit to fall back
+          # to DIGEST_RECIPIENTS.
+          AUTH_USERS: ${{ secrets.AUTH_USERS }}
+          DIGEST_RECIPIENTS: ${{ secrets.DIGEST_RECIPIENTS }}
+          DIGEST_FROM_EMAIL: ${{ vars.DIGEST_FROM_EMAIL || 'noreply@autolens.lk' }}
+          DIGEST_SUBJECT: ${{ vars.DIGEST_SUBJECT || 'AutoLens Pro — Weekly Market Digest' }}
+          # SENDGRID_API_KEY intentionally NOT set here → forces dry-run mode.
+        run: python scripts/send_pro_digest.py --dry-run
+
+      - name: Send live digest
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'false' }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          AUTH_USERS: ${{ secrets.AUTH_USERS }}
+          DIGEST_RECIPIENTS: ${{ secrets.DIGEST_RECIPIENTS }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          DIGEST_FROM_EMAIL: ${{ vars.DIGEST_FROM_EMAIL || 'noreply@autolens.lk' }}
+          DIGEST_SUBJECT: ${{ vars.DIGEST_SUBJECT || 'AutoLens Pro — Weekly Market Digest' }}
+        run: python scripts/send_pro_digest.py

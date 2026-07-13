@@ -59,6 +59,7 @@ class CarListing(Base):
 
     # Image & Thumbnails
     thumbnail_url = Column(Text)
+    thumbnail_url_cached = Column(Text, nullable=True)
 
     # Valuation
     deal_score = Column(Numeric(5, 1))
@@ -226,4 +227,24 @@ class MarketAlert(Base):
     __table_args__ = (
         Index('idx_market_alerts_user_token', 'user_token'),
         Index('idx_market_alerts_active', 'active'),
+    )
+
+
+class MarketAlertMatch(Base):
+    """Persists the most recent alert-match pass result for each active alert.
+
+    Rows are upserted (one row per alert_id) by ``run_alert_match_pass`` after
+    every scrape cycle.  ``match_count`` reflects the current live-listing
+    count and ``last_matched_at`` records when the pass ran.
+    """
+
+    __tablename__ = 'market_alert_matches'
+
+    id = Column(Integer, primary_key=True)
+    alert_id = Column(Integer, ForeignKey('market_alerts.id'), nullable=False, unique=True)
+    match_count = Column(Integer, nullable=False, default=0)
+    last_matched_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index('idx_market_alert_matches_alert_id', 'alert_id'),
     )

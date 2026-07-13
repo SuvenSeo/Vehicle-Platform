@@ -1,7 +1,8 @@
 import asyncio
 import json
+import os
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func, desc, and_, or_
@@ -13,6 +14,7 @@ from app.utils.districts import (
     find_district_from_url,
     normalize_district_name,
 )
+from app.utils.import_era import classify_import_era, era_label, FREEZE_BOUNDARY_YEAR
 from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
 from app.utils.stats_cache import (
     get_cached_district_prices,
@@ -34,6 +36,9 @@ router = APIRouter(dependencies=[Depends(_stats_rate_limiter)])
 MIN_REASONABLE_PRICE_LKR = 100_000
 LIVE_STREAM_INTERVAL_SECONDS = 10
 RECENT_SUCCESS_HOURS = 24
+
+MAX_SSE_CONNECTIONS: int = int(os.getenv("SSE_MAX_CONNECTIONS", "50"))
+_sse_active_connections: int = 0
 
 def _to_utc(dt):
     if not dt:
@@ -212,19 +217,35 @@ def get_live_market_snapshot(db: Session = Depends(get_db)):
 
 @router.get("/live/stream")
 async def stream_live_market_snapshot(request: Request):
+    global _sse_active_connections
+
+    if _sse_active_connections >= MAX_SSE_CONNECTIONS:
+        return Response(
+            status_code=503,
+            content=json.dumps({"detail": "SSE connection limit reached. Try again later."}),
+            media_type="application/json",
+            headers={"Retry-After": "30"},
+        )
+
+    _sse_active_connections += 1
+
     async def events():
-        while True:
-            if await request.is_disconnected():
-                break
+        global _sse_active_connections
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
 
-            db = SessionLocal()
-            try:
-                snapshot = build_live_market_snapshot(db)
-            finally:
-                db.close()
+                db = SessionLocal()
+                try:
+                    snapshot = build_live_market_snapshot(db)
+                finally:
+                    db.close()
 
-            yield f"event: snapshot\ndata: {json.dumps(snapshot)}\n\n"
-            await asyncio.sleep(LIVE_STREAM_INTERVAL_SECONDS)
+                yield f"event: snapshot\ndata: {json.dumps(snapshot)}\n\n"
+                await asyncio.sleep(LIVE_STREAM_INTERVAL_SECONDS)
+        finally:
+            _sse_active_connections -= 1
 
     return StreamingResponse(
         events(),
@@ -1202,6 +1223,125 @@ def get_district_quick_insight(
     }
 
 
+_EV_FUEL_TYPES = {"electric", "ev"}
+
+
+@router.get("/ev-insight")
+def get_ev_insight(
+    top_n: int = Query(5, ge=1, le=20),
+    db: Session = Depends(get_db),
+):
+    """EV market share, top models, median price, and Toyota Aqua hybrid benchmark."""
+    now = utc_now()
+
+    priced_clause = and_(
+        CarListing.is_outlier == False,
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+    )
+
+    ev_clause = and_(
+        CarListing.is_outlier == False,
+        func.lower(CarListing.fuel_type).in_(list(_EV_FUEL_TYPES)),
+    )
+    ev_priced_clause = and_(
+        ev_clause,
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+    )
+
+    total_count = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
+    ev_count = db.query(func.count(CarListing.id)).filter(ev_clause).scalar() or 0
+    ev_pct = round(ev_count / total_count * 100, 2) if total_count > 0 else 0.0
+
+    ev_price_rows = (
+        db.query(CarListing.price_lkr)
+        .filter(ev_priced_clause)
+        .all()
+    )
+    ev_prices = sorted(float(row.price_lkr) for row in ev_price_rows)
+    n = len(ev_prices)
+    if n == 0:
+        median_ev_price = None
+    elif n % 2 == 1:
+        median_ev_price = round(ev_prices[n // 2], 2)
+    else:
+        median_ev_price = round((ev_prices[n // 2 - 1] + ev_prices[n // 2]) / 2.0, 2)
+
+    top_models_rows = (
+        db.query(
+            CarListing.make,
+            CarListing.model,
+            func.count(CarListing.id).label("listing_count"),
+        )
+        .filter(ev_clause, CarListing.make.isnot(None), CarListing.model.isnot(None))
+        .group_by(CarListing.make, CarListing.model)
+        .order_by(desc("listing_count"))
+        .limit(top_n)
+        .all()
+    )
+
+    top_ev_models = []
+    for row in top_models_rows:
+        model_priced = (
+            db.query(CarListing.price_lkr)
+            .filter(
+                ev_priced_clause,
+                func.lower(CarListing.make) == str(row.make).lower(),
+                func.lower(CarListing.model) == str(row.model).lower(),
+            )
+            .all()
+        )
+        model_prices = sorted(float(r.price_lkr) for r in model_priced)
+        mn = len(model_prices)
+        if mn == 0:
+            model_median = None
+        elif mn % 2 == 1:
+            model_median = round(model_prices[mn // 2], 2)
+        else:
+            model_median = round((model_prices[mn // 2 - 1] + model_prices[mn // 2]) / 2.0, 2)
+
+        top_ev_models.append(
+            {
+                "make": str(row.make),
+                "model": str(row.model),
+                "listing_count": int(row.listing_count or 0),
+                "median_price_lkr": model_median,
+            }
+        )
+
+    aqua_clause = and_(
+        CarListing.is_outlier == False,
+        func.lower(CarListing.make) == "toyota",
+        func.lower(CarListing.model) == "aqua",
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+    )
+    aqua_price_rows = db.query(CarListing.price_lkr).filter(aqua_clause).all()
+    aqua_prices = sorted(float(row.price_lkr) for row in aqua_price_rows)
+    an = len(aqua_prices)
+    if an == 0:
+        aqua_median = None
+    elif an % 2 == 1:
+        aqua_median = round(aqua_prices[an // 2], 2)
+    else:
+        aqua_median = round((aqua_prices[an // 2 - 1] + aqua_prices[an // 2]) / 2.0, 2)
+
+    return {
+        "ev_count": int(ev_count),
+        "ev_pct": ev_pct,
+        "median_ev_price_lkr": median_ev_price,
+        "top_ev_models": top_ev_models,
+        "hybrid_benchmark": {
+            "make": "Toyota",
+            "model": "Aqua",
+            "median_price_lkr": aqua_median,
+            "listing_count": int(an),
+        },
+        "generated_at": now.isoformat(),
+    }
+
+
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
 def get_district_velocity(db: Session = Depends(get_db)):
     now = utc_now()
@@ -1280,3 +1420,93 @@ def get_district_velocity(db: Session = Depends(get_db)):
         points=[DistrictVelocityPoint(**p) for p in points],
         generated_at=now,
     )
+
+
+# ---------------------------------------------------------------------------
+# Import-era split: pre-freeze (≤2024) vs post-freeze (≥2025)
+# ---------------------------------------------------------------------------
+
+_ERA_TOP_MAKES_LIMIT = 10
+
+
+def get_import_era_split(db: Session, top_n: int = _ERA_TOP_MAKES_LIMIT) -> dict:
+    """Return median prices and listing counts per import era for the top makes.
+
+    Uses year as a proxy for import timing: vehicles manufactured up to and
+    including 2024 are classified as pre-freeze stock; 2025 onwards are
+    post-freeze.  Only non-outlier, priced listings with a known year are
+    considered.
+
+    ``top_n`` controls how many makes (by total listing count) are returned.
+    """
+    eligible = and_(
+        CarListing.is_outlier == False,
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+        CarListing.year.isnot(None),
+        CarListing.make.isnot(None),
+    )
+
+    # ── rank makes by total eligible listing volume ───────────────────────
+    make_counts = (
+        db.query(CarListing.make, func.count(CarListing.id).label("total"))
+        .filter(eligible)
+        .group_by(CarListing.make)
+        .order_by(desc("total"))
+        .limit(top_n)
+        .all()
+    )
+    top_makes = [str(row.make) for row in make_counts]
+    if not top_makes:
+        return {"makes": [], "generated_at": utc_now().isoformat()}
+
+    # ── fetch (make, year, price_lkr) for the top makes ───────────────────
+    rows = (
+        db.query(CarListing.make, CarListing.year, CarListing.price_lkr)
+        .filter(eligible, CarListing.make.in_(top_makes))
+        .all()
+    )
+
+    # ── bucket into {make -> {era -> [prices]}} ────────────────────────────
+    buckets: dict[str, dict[str, list[float]]] = {
+        make: {"pre_freeze": [], "post_freeze": []}
+        for make in top_makes
+    }
+    for make, year, price_lkr in rows:
+        era = classify_import_era(year)
+        if era is None:
+            continue
+        key = str(make)
+        if key not in buckets:
+            continue
+        buckets[key][era].append(float(price_lkr))
+
+    # ── assemble response ──────────────────────────────────────────────────
+    makes_out = []
+    for make in top_makes:
+        era_data: dict[str, dict] = {}
+        for era_key in ("pre_freeze", "post_freeze"):
+            prices = buckets[make][era_key]
+            median_val = median_from_values(prices)
+            era_data[era_key] = {
+                "era": era_key,
+                "label": era_label(era_key),  # type: ignore[arg-type]
+                "count": len(prices),
+                "median_price_lkr": round(median_val, 2) if median_val is not None else None,
+            }
+        makes_out.append({"make": make, **era_data})
+
+    return {
+        "makes": makes_out,
+        "freeze_boundary_year": FREEZE_BOUNDARY_YEAR,
+        "generated_at": utc_now().isoformat(),
+    }
+
+
+@router.get("/import-era-split")
+def import_era_split_endpoint(
+    top_n: int = Query(default=_ERA_TOP_MAKES_LIMIT, ge=1, le=30),
+    db: Session = Depends(get_db),
+):
+    """Pre-2025 vs post-2025 import-freeze cohort median prices per make."""
+    return get_import_era_split(db=db, top_n=top_n)
