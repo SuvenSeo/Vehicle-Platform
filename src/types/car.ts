@@ -149,6 +149,20 @@ export interface DashboardInsights {
   hot_deals: HotDealInsight[];
 }
 
+export interface MarketSignal {
+  id: number;
+  source: string;
+  signal_type: string;
+  period_year: number | null;
+  period_month: number | null;
+  metric: string;
+  category: string | null;
+  value_numeric: number | null;
+  unit: string | null;
+  source_url: string;
+  observed_at: string;
+}
+
 export interface DistrictTopModel {
   make: string;
   model: string;

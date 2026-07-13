@@ -11,6 +11,7 @@ import { ListingCard } from "@/components/ListingCard";
 import { ComparisonModal } from "@/components/ComparisonModal";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { MarketIntelligencePanel } from "@/components/MarketIntelligencePanel";
+import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { RevealSection } from "@/components/RevealSection";
 import { Input } from "@/components/ui/input";
@@ -491,8 +492,9 @@ export default function Dashboard() {
           </div>
 
           {/* ── Full-width live intelligence console ── */}
-          <div className="mt-12 lg:mt-16">
+          <div className="mt-12 space-y-6 lg:mt-16">
             <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+            <MarketSignalsStrip />
           </div>
         </div>
       </section>

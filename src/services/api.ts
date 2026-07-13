@@ -14,6 +14,7 @@ import {
   DashboardInsights,
   DistrictQuickInsight,
   LiveMarketSnapshot,
+  MarketSignal,
   SellerTrustProfile,
 } from "@/types/car";
 import type {
@@ -1327,6 +1328,27 @@ export const getDistrictQuickInsight = async (district: string): Promise<Distric
     change_pct_30d: toNumberOrNull(data.change_pct_30d),
     top_models: topModels,
   };
+};
+
+function normalizeMarketSignal(row: JsonRecord): MarketSignal {
+  return {
+    id: Number(row.id || 0),
+    source: String(row.source || "unknown"),
+    signal_type: String(row.signal_type || "unknown"),
+    period_year: toNumberOrNull(row.period_year),
+    period_month: toNumberOrNull(row.period_month),
+    metric: String(row.metric || ""),
+    category: row.category ? String(row.category) : null,
+    value_numeric: toNumberOrNull(row.value_numeric),
+    unit: row.unit ? String(row.unit) : null,
+    source_url: String(row.source_url || ""),
+    observed_at: String(row.observed_at || ""),
+  };
+}
+
+export const getMarketSignals = async (limit = 6): Promise<MarketSignal[]> => {
+  const data = await fetchJSON<JsonRecord[]>("/market/signals", { limit });
+  return (data || []).map(normalizeMarketSignal);
 };
 
 export const formatPrice = (price: number | null): string => {
