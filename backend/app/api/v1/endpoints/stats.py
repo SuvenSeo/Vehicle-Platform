@@ -13,6 +13,7 @@ from app.utils.districts import (
     find_district_from_url,
     normalize_district_name,
 )
+from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
 from app.utils.time import utc_now
 from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun
@@ -222,6 +223,7 @@ async def stream_live_market_snapshot(request: Request):
 
 @router.get("/district-prices")
 def get_district_prices(db: Session = Depends(get_db)):
+    median_by_district = build_district_median_map(db)
     results = (
         db.query(
             CarListing.district,
@@ -262,9 +264,10 @@ def get_district_prices(db: Session = Depends(get_db)):
                 normalized = find_district_from_url(url)
             if not normalized:
                 continue
-            item = agg.setdefault(normalized, {"count": 0, "total": 0.0, "model_counts": {}})
+            item = agg.setdefault(normalized, {"count": 0, "total": 0.0, "model_counts": {}, "prices": []})
             item["count"] += 1
             item["total"] += float(price)
+            item["prices"].append(float(price))
             make_model = f"{str(make or '').strip()} {str(model or '').strip()}".strip()
             if make_model:
                 item["model_counts"][make_model] = item["model_counts"].get(make_model, 0) + 1
@@ -274,6 +277,7 @@ def get_district_prices(db: Session = Depends(get_db)):
             if not coords or values["count"] <= 0:
                 continue
             avg_price = values["total"] / values["count"]
+            district_median = median_from_values(values["prices"]) or avg_price
             top_model_name = None
             top_model_count = None
             if values["model_counts"]:
@@ -296,7 +300,7 @@ def get_district_prices(db: Session = Depends(get_db)):
                     "lng": coords[1],
                     "count": values["count"],
                     "avg_price_lkr": round(float(avg_price), 2),
-                    "median_price_lkr": round(float(avg_price), 2),
+                    "median_price_lkr": round(float(district_median), 2),
                     "top_make": top_make,
                     "top_model": top_model,
                     "top_model_count": int(top_model_count) if top_model_count else None,
@@ -343,13 +347,14 @@ def get_district_prices(db: Session = Depends(get_db)):
         coords = SL_DISTRICT_COORDS.get(normalized)
         if coords and avg_price:
             top = top_model_by_district.get(normalized)
+            district_median = median_by_district.get(normalized, float(avg_price))
             points.append({
                 "district": normalized,
                 "lat": coords[0],
                 "lng": coords[1],
                 "count": count,
                 "avg_price_lkr": round(float(avg_price), 2),
-                "median_price_lkr": round(float(avg_price), 2),
+                "median_price_lkr": round(float(district_median), 2),
                 "top_make": top["make"] if top else None,
                 "top_model": top["model"] if top else None,
                 "top_model_count": top["count"] if top else None,
@@ -906,12 +911,13 @@ def get_district_quick_insight(
         .all()
     )
 
+    district_median = median_price_for_listings(db, district_clause)
+
     return {
         "district": normalized,
         "listing_count": int(listing_count),
         "avg_price_lkr": round(float(avg_price), 2) if avg_price else None,
-        # Approximate median with average for now when percentile functions are unavailable.
-        "median_price_lkr": round(float(avg_price), 2) if avg_price else None,
+        "median_price_lkr": round(float(district_median), 2) if district_median is not None else None,
         "change_pct_30d": change_pct_30d,
         "top_models": [
             {

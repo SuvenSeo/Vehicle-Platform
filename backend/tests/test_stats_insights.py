@@ -337,6 +337,41 @@ def test_district_prices_include_top_model_metadata():
     assert by_district["Colombo"]["top_model_count"] == 2
 
 
+def test_district_prices_use_true_median_not_average():
+    db = _session()
+    db.add_all(
+        [
+            _listing("cmb-low", 6_000_000, 5.0, make="Toyota", model="Vitz", district="Colombo"),
+            _listing("cmb-mid", 7_000_000, 5.0, make="Toyota", model="Vitz", district="Colombo"),
+            _listing("cmb-high", 10_000_000, 5.0, make="Toyota", model="Vitz", district="Colombo"),
+        ]
+    )
+    db.commit()
+
+    payload = stats.get_district_prices(db=db)
+    colombo = next(item for item in payload["points"] if item["district"] == "Colombo")
+
+    assert colombo["median_price_lkr"] == 7_000_000
+    assert colombo["avg_price_lkr"] == round((6_000_000 + 7_000_000 + 10_000_000) / 3, 2)
+
+
+def test_district_insight_uses_true_median():
+    db = _session()
+    db.add_all(
+        [
+            _listing("kandy-low", 5_000_000, 5.0, district="Kandy"),
+            _listing("kandy-mid", 6_000_000, 5.0, district="Kandy"),
+            _listing("kandy-high", 9_000_000, 5.0, district="Kandy"),
+        ]
+    )
+    db.commit()
+
+    payload = stats.get_district_quick_insight(district="Kandy", db=db)
+
+    assert payload["median_price_lkr"] == 6_000_000
+    assert payload["avg_price_lkr"] == round((5_000_000 + 6_000_000 + 9_000_000) / 3, 2)
+
+
 def test_price_trends_fall_back_to_national_lane_when_district_samples_are_thin():
     db = _session()
     db.add_all(
