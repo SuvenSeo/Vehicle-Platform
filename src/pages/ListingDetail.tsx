@@ -94,10 +94,14 @@ export default function ListingDetail() {
         Number.isFinite(Number(listing.mileage_km)) && Number(listing.mileage_km) > 0
           ? { '@type': 'QuantitativeValue', value: Number(listing.mileage_km), unitCode: 'KMT' }
           : undefined,
+      fuelType: listing.fuel_type || undefined,
       vehicleTransmission: listing.transmission || undefined,
       bodyType: listing.body_type || undefined,
       image: image || undefined,
       url: `https://vehicle-platform-one.vercel.app/listing/${listing.id}`,
+      areaServed: listing.district
+        ? { '@type': 'AdministrativeArea', name: `${listing.district}, Sri Lanka` }
+        : undefined,
       offers:
         Number.isFinite(price) && price >= 100_000
           ? {
@@ -105,6 +109,7 @@ export default function ListingDetail() {
               price,
               priceCurrency: 'LKR',
               availability: 'https://schema.org/InStock',
+              areaServed: listing.district || 'Sri Lanka',
             }
           : undefined,
     });
