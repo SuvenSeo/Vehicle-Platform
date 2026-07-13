@@ -27,9 +27,11 @@ vi.mock("@/services/api", () => ({
   getProDistricts: vi.fn(),
   getProVehicleLaneDetail: vi.fn(),
   getProDistrictDetail: vi.fn(),
+  getProArbitrageGaps: vi.fn(),
 }));
 
 import {
+  getProArbitrageGaps,
   getProDistricts,
   getProMarketSnapshot,
   getProVehicleLaneDetail,
@@ -165,6 +167,7 @@ describe("ProDashboard", () => {
       },
     ] as ProDistrictProfile[]);
     vi.mocked(getProVehicleLaneDetail).mockResolvedValue(detail as ProDetailPayload);
+    vi.mocked(getProArbitrageGaps).mockResolvedValue([]);
   });
 
   it("loads Pro data, switches to vehicle intelligence, and opens lane details", async () => {
@@ -189,6 +192,35 @@ describe("ProDashboard", () => {
     });
     expect(await screen.findByText(/2 priced listings tracked/i)).toBeInTheDocument();
     expect(screen.getByText(/sample listings/i)).toBeInTheDocument();
+  }, 10_000);
+
+  it("shows arbitrage gaps table in the areas tab when gaps are available", async () => {
+    vi.mocked(getProArbitrageGaps).mockResolvedValue([
+      {
+        buy_district: "Kandy",
+        sell_district: "Colombo",
+        buy_median_lkr: 6_300_000,
+        sell_median_lkr: 7_300_000,
+        gap_pct: 15.87,
+        buy_listing_count: 8,
+        sell_listing_count: 42,
+      },
+    ]);
+
+    render(
+      <AuthProvider>
+        <TestRouter>
+          <ProDashboard />
+        </TestRouter>
+      </AuthProvider>,
+    );
+
+    expect(await screen.findByText(/Pro dashboard\./i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /areas/i }));
+
+    expect(await screen.findByText(/Arbitrage gaps/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Kandy/)).toBeInTheDocument();
+    expect(await screen.findByText(/\+15\.9%/)).toBeInTheDocument();
   }, 10_000);
 
   it("opens the report studio and builds a customized report payload", async () => {

@@ -140,6 +140,22 @@ export interface ProReportPayload {
   };
 }
 
+export interface ProArbitrageGap {
+  buy_district: string;
+  sell_district: string;
+  buy_median_lkr: number;
+  sell_median_lkr: number;
+  gap_pct: number;
+  buy_listing_count: number;
+  sell_listing_count: number;
+}
+
+export interface ProArbitrageGapsParams {
+  make: string;
+  model: string;
+  limit?: number;
+}
+
 export interface ProReportOptions {
   title?: string;
   subtitle?: string;

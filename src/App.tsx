@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
@@ -32,6 +33,8 @@ const MapPage = lazy(() => import("./pages/MapPage"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const ProDashboard = lazy(() => import("./pages/ProDashboard"));
 const ProPreview = lazy(() => import("./pages/ProPreview"));
+const MakeModelHub = lazy(() => import("./pages/MakeModelHub"));
+const Alerts = lazy(() => import("./pages/Alerts"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,10 +92,11 @@ function MainLayout({ chatMounted }: { chatMounted: boolean }) {
           <AIChatWidget />
         </Suspense>
       )}
-      <main id="main-content" className="relative z-[1] pt-[4rem]">
+      <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
         <Outlet />
       </main>
       <AppFooter />
+      <MobileBottomNav />
     </div>
   );
 }
@@ -131,6 +135,8 @@ const App = () => {
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/map" element={<MapPage />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
+                  <Route path="/cars/:make/:model" element={<MakeModelHub />} />
+                  <Route path="/alerts" element={<Alerts />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={<SignIn />} />

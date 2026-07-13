@@ -40,6 +40,18 @@ vi.mock("@/components/RevealSection", () => ({
   RevealSection: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+vi.mock("@/hooks/useServerMarketAlerts", () => ({
+  useServerMarketAlerts: () => ({
+    alerts: [],
+    loading: false,
+    error: null,
+    token: "test-token",
+    refresh: () => Promise.resolve(),
+    create: () => Promise.resolve(),
+    remove: () => Promise.resolve(),
+  }),
+}));
+
 vi.mock("@/services/api", () => ({
   APIError: class APIError extends Error {
     status = 500;
@@ -65,6 +77,14 @@ vi.mock("@/services/api", () => ({
   estimateCustomVehicle: vi.fn(),
   sendFeedback: vi.fn(),
   getListingThumbnailProxyUrl: vi.fn().mockReturnValue("https://example.com/thumbnail.jpg"),
+  getFuelMix: vi.fn().mockResolvedValue({ total: 0, buckets: [], generated_at: new Date().toISOString() }),
+  getHybridBands: vi.fn().mockResolvedValue({ total_hybrids: 0, bands: [], generated_at: new Date().toISOString() }),
+  getOrCreateAlertToken: vi.fn().mockReturnValue("test-token-abc"),
+  getAlerts: vi.fn().mockResolvedValue([]),
+  createAlert: vi.fn(),
+  deleteAlert: vi.fn(),
+  matchAlerts: vi.fn().mockResolvedValue({ results: [], checked_at: new Date().toISOString() }),
+  getDistrictVelocity: vi.fn().mockResolvedValue({ points: [], generated_at: new Date().toISOString() }),
   formatPrice: (value: number | null) => (value == null ? "N/A" : `Rs. ${value}`),
 }));
 

@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import {
   Activity,
+  ArrowRightLeft,
   BarChart3,
   Car,
   CheckCircle2,
@@ -37,6 +38,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AIChatWidget } from "@/components/AIChatWidget";
+import { SourceQualityScorecard } from "@/components/SourceQualityScorecard";
 import { Checkbox } from "@/components/ui/checkbox";
 // Surface and AmbientBackground removed — using direct styling
 import { Button } from "@/components/ui/button";
@@ -47,10 +49,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/lib/authContext";
+import { PRO_EXPORTS_ENFORCED, useAuth } from "@/lib/authContext";
 import { customizeProReport } from "@/lib/proReportCustomize";
 import { formatPriceLkrMillions, formatRelativeTime } from "@/lib/formatting";
 import {
+  getProArbitrageGaps,
   getProDistrictDetail,
   getProDistricts,
   getProMarketSnapshot,
@@ -58,6 +61,7 @@ import {
   getProVehicleLanes,
 } from "@/services/api";
 import type {
+  ProArbitrageGap,
   ProBreakdownPoint,
   ProDetailPayload,
   ProDistrictProfile,
@@ -181,7 +185,20 @@ function MetricCard({ label, value, detail, icon: Icon }: { label: string; value
 }
 
 function ExportButtons({ report }: { report: ProReportPayload }) {
+  const { hasProAccess, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
   const runExport = async (format: ProExportFormat) => {
+    if (PRO_EXPORTS_ENFORCED && (!isAuthenticated || !hasProAccess)) {
+      toast.error("Pro subscription required", {
+        description: "Sign in with a Pro account to download reports.",
+        action: {
+          label: "Sign in",
+          onClick: () => navigate("/sign-in"),
+        },
+      });
+      return;
+    }
     try {
       await exportReport(report, format);
       toast.success(`${format.toUpperCase()} export started`);
@@ -492,6 +509,9 @@ export default function ProDashboard() {
   const [reportNotes, setReportNotes] = useState("");
   const [reportListingLimit, setReportListingLimit] = useState(12);
   const [buildingReport, setBuildingReport] = useState(false);
+  const [arbitrageLaneKey, setArbitrageLaneKey] = useState("");
+  const [arbitrageGaps, setArbitrageGaps] = useState<ProArbitrageGap[]>([]);
+  const [loadingArbitrage, setLoadingArbitrage] = useState(false);
 
   const loadWorkspace = useCallback(async () => {
     setError(null);
@@ -542,7 +562,33 @@ export default function ProDashboard() {
     setReportVehicleKey((current) => current || (lanes[0] ? `${lanes[0].make}|||${lanes[0].model}` : ""));
     setReportDistrict((current) => current || districts[0]?.district || "");
     setReportSource((current) => current || snapshot?.source_coverage?.[0]?.label || "");
+    setArbitrageLaneKey((current) => current || (lanes[0] ? `${lanes[0].make}|||${lanes[0].model}` : ""));
   }, [districts, lanes, snapshot]);
+
+  useEffect(() => {
+    if (!arbitrageLaneKey) {
+      setArbitrageGaps([]);
+      return;
+    }
+    const [make, model] = arbitrageLaneKey.split("|||");
+    if (!make || !model) return;
+
+    let cancelled = false;
+    setLoadingArbitrage(true);
+    getProArbitrageGaps(make, model)
+      .then((gaps) => {
+        if (!cancelled) setArbitrageGaps(gaps);
+      })
+      .catch(() => {
+        if (!cancelled) setArbitrageGaps([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingArbitrage(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [arbitrageLaneKey]);
 
   const filteredLanes = useMemo(() => {
     const query = laneSearch.trim().toLowerCase();
@@ -1052,6 +1098,66 @@ export default function ProDashboard() {
                 ))}
               </div>
             )}
+
+            <SectionTitle eyebrow="Cross-district scanner" title="Arbitrage gaps">
+              <Select value={arbitrageLaneKey} onValueChange={setArbitrageLaneKey}>
+                <SelectTrigger className="control-dark w-full md:w-[260px]">
+                  <SelectValue placeholder="Select vehicle" />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#111] text-white">
+                  {lanes.slice(0, 80).map((lane) => (
+                    <SelectItem key={`${lane.make}|||${lane.model}`} value={`${lane.make}|||${lane.model}`}>
+                      {lane.make} {lane.model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SectionTitle>
+
+            {loadingArbitrage ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-14 rounded-xl bg-foreground/[0.03]" />
+                ))}
+              </div>
+            ) : arbitrageGaps.length === 0 ? (
+              <div className="console-empty">
+                <ArrowRightLeft className="mx-auto mb-3 h-7 w-7 text-muted-foreground" aria-hidden="true" />
+                <p className="text-sm text-muted-foreground">
+                  {arbitrageLaneKey
+                    ? "Not enough district data for this vehicle to compute gaps."
+                    : "Select a vehicle to scan for cross-district price gaps."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-auto rounded-xl border border-border" aria-label="Arbitrage gaps table">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead className="sticky top-0 z-10 bg-[#0c0d0e]">
+                    <tr>
+                      {["Buy in", "Sell in", "Buy median", "Sell median", "Gap %", "Buy depth", "Sell depth"].map((heading) => (
+                        <th key={heading} className="border-b border-border px-4 py-3 text-left field-label">{heading}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {arbitrageGaps.map((gap) => (
+                      <tr
+                        key={`${gap.buy_district}-${gap.sell_district}`}
+                        className="border-t border-border hover:bg-white/[0.025]"
+                      >
+                        <td className="px-4 py-3 font-semibold text-emerald-400">{gap.buy_district}</td>
+                        <td className="px-4 py-3 font-semibold text-primary">{gap.sell_district}</td>
+                        <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.buy_median_lkr)}</td>
+                        <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.sell_median_lkr)}</td>
+                        <td className="px-4 py-3 font-bold text-primary num">+{gap.gap_pct.toFixed(1)}%</td>
+                        <td className="px-4 py-3 text-muted-foreground num">{gap.buy_listing_count}</td>
+                        <td className="px-4 py-3 text-muted-foreground num">{gap.sell_listing_count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="trends" className="space-y-5">
@@ -1136,6 +1242,8 @@ export default function ProDashboard() {
                 ))}
               </div>
             )}
+            <SectionTitle eyebrow="Quality metrics" title="Source quality scorecard" />
+            <SourceQualityScorecard />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-5">

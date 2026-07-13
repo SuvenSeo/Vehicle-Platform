@@ -15,9 +15,16 @@ import {
   DistrictQuickInsight,
   LiveMarketSnapshot,
   MarketSignal,
+  MakeModelInsight,
   SellerTrustProfile,
+  FuelMixData,
+  HybridBandsData,
+  SourceQualityResponse,
+  DistrictVelocityData,
+  DistrictVelocityPoint,
 } from "@/types/car";
 import type {
+  ProArbitrageGap,
   ProDetailPayload,
   ProDistrictProfile,
   ProMarketSnapshot,
@@ -926,6 +933,24 @@ export const getDistrictPrices = async (): Promise<DistrictPrice[]> => {
   return normalizeDistrictPricesPayload(data);
 };
 
+export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
+  const raw = await fetchJSON<Record<string, unknown>>("/stats/district-velocity");
+  const points: DistrictVelocityPoint[] = Array.isArray(raw?.points)
+    ? (raw.points as Record<string, unknown>[]).map((p) => ({
+        district: String(p?.district ?? ""),
+        lat: Number(p?.lat ?? 0),
+        lng: Number(p?.lng ?? 0),
+        listing_count: Math.round(Number(p?.listing_count ?? 0)),
+        new_7d_count: Math.round(Number(p?.new_7d_count ?? 0)),
+        velocity_score: Number(p?.velocity_score ?? 0),
+      }))
+    : [];
+  return {
+    points,
+    generated_at: String(raw?.generated_at ?? new Date().toISOString()),
+  };
+};
+
 export const getMakes = async () => {
   const snapshot = await readSnapshot<unknown>("listing-makes.json");
   if (Array.isArray(snapshot)) return snapshot as { make: string; count: number }[];
@@ -1245,6 +1270,14 @@ export const getProDistrictDetail = async (district: string): Promise<ProDetailP
   return fetchJSON<ProDetailPayload>("/pro/district-detail", { district }, authHeaders());
 };
 
+export const getProArbitrageGaps = async (
+  make: string,
+  model: string,
+  limit = 10,
+): Promise<ProArbitrageGap[]> => {
+  return fetchJSON<ProArbitrageGap[]>("/pro/arbitrage-gaps", { make, model, limit }, authHeaders());
+};
+
 export const getListingsForExport = async (
   filters: FilterState,
   maxRows = 100,
@@ -1351,8 +1384,223 @@ export const getMarketSignals = async (limit = 6): Promise<MarketSignal[]> => {
   return (data || []).map(normalizeMarketSignal);
 };
 
+export const getMakeModelInsight = async (make: string, model: string): Promise<MakeModelInsight> => {
+  const catalog = await getSnapshotListingCatalog();
+  if (catalog) {
+    const makeKey = make.trim().toLowerCase();
+    const modelKey = model.trim().toLowerCase();
+    const rows = catalog.filter(
+      (l) =>
+        String(l.make || "").toLowerCase() === makeKey &&
+        String(l.model || "").toLowerCase() === modelKey,
+    );
+    const prices = rows
+      .map((l) => toNumberOrNull(l.price_lkr))
+      .filter((p): p is number => p !== null && p >= MIN_REASONABLE_PRICE_LKR);
+    const avg = prices.length ? prices.reduce((s, p) => s + p, 0) / prices.length : null;
+    const sortedPrices = [...prices].sort((a, b) => a - b);
+    const mid = Math.floor(sortedPrices.length / 2);
+    const medianVal = sortedPrices.length
+      ? sortedPrices.length % 2 === 0
+        ? (sortedPrices[mid - 1] + sortedPrices[mid]) / 2
+        : sortedPrices[mid]
+      : null;
+
+    const districtMap = new Map<string, { count: number; total: number; priced: number }>();
+    for (const l of rows) {
+      const d = String(l.district || "").trim();
+      if (!d) continue;
+      const entry = districtMap.get(d) ?? { count: 0, total: 0, priced: 0 };
+      entry.count += 1;
+      const price = toNumberOrNull(l.price_lkr);
+      if (price !== null && price >= MIN_REASONABLE_PRICE_LKR) {
+        entry.total += price;
+        entry.priced += 1;
+      }
+      districtMap.set(d, entry);
+    }
+    const top_districts = Array.from(districtMap.entries())
+      .map(([district, { count, total, priced }]) => ({
+        district,
+        count,
+        avg_price_lkr: priced > 0 ? total / priced : null,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    const sample = rows[0];
+    return {
+      make: sample ? String(sample.make || make).trim() : make.trim(),
+      model: sample ? String(sample.model || model).trim() : model.trim(),
+      total: rows.length,
+      avg_price_lkr: avg,
+      median_price_lkr: medianVal,
+      top_districts,
+    };
+  }
+
+  const data = await fetchJSON<JsonRecord>("/stats/make-model-insight", { make, model });
+  return {
+    make: String(data.make || make),
+    model: String(data.model || model),
+    total: Number(data.total || 0),
+    avg_price_lkr: toNumberOrNull(data.avg_price_lkr),
+    median_price_lkr: toNumberOrNull(data.median_price_lkr),
+    top_districts: Array.isArray(data.top_districts)
+      ? (data.top_districts as JsonRecord[]).map((row) => ({
+          district: String(row.district || ""),
+          count: Number(row.count || 0),
+          avg_price_lkr: toNumberOrNull(row.avg_price_lkr),
+        }))
+      : [],
+  };
+};
+
 export const formatPrice = (price: number | null): string => {
   return formatPriceLkrMillions(price);
+};
+
+// ---------------------------------------------------------------------------
+// Market Alerts — server-side (anonymous token pattern)
+// ---------------------------------------------------------------------------
+
+const ALERT_TOKEN_KEY = "autolens.alert_token.v1";
+
+export function getOrCreateAlertToken(): string {
+  try {
+    if (typeof window === "undefined") return "";
+    const stored = window.localStorage.getItem(ALERT_TOKEN_KEY);
+    if (stored && stored.length >= 8 && stored.length <= 36) return stored;
+    const fresh = crypto.randomUUID();
+    window.localStorage.setItem(ALERT_TOKEN_KEY, fresh);
+    return fresh;
+  } catch {
+    return "";
+  }
+}
+
+export interface AlertCreateInput {
+  make?: string;
+  model?: string;
+  max_price?: number;
+  district?: string;
+}
+
+export interface ServerMarketAlert {
+  id: number;
+  user_token: string;
+  make: string | null;
+  model: string | null;
+  max_price: number | null;
+  district: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface AlertMatchListing {
+  id: number;
+  title: string | null;
+  make: string;
+  model: string;
+  year: number | null;
+  price_lkr: number | null;
+  district: string | null;
+  deal_score: number | null;
+  thumbnail_url: string | null;
+}
+
+export interface AlertMatchResult {
+  alert_id: number;
+  make: string | null;
+  model: string | null;
+  district: string | null;
+  max_price: number | null;
+  matching_count: number;
+  listings: AlertMatchListing[];
+}
+
+export interface AlertMatchResponse {
+  results: AlertMatchResult[];
+  checked_at: string;
+}
+
+function alertTokenHeader(token: string): Record<string, string> {
+  return token ? { "X-Alert-Token": token } : {};
+}
+
+export const getAlerts = async (token: string): Promise<ServerMarketAlert[]> => {
+  if (!token) return [];
+  return fetchJSON<ServerMarketAlert[]>("/alerts", { token });
+};
+
+export const createAlert = async (token: string, data: AlertCreateInput): Promise<ServerMarketAlert> => {
+  return postJSON<ServerMarketAlert>("/alerts", { ...data }, alertTokenHeader(token));
+};
+
+export const deleteAlert = async (token: string, id: number): Promise<void> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const url = new URL(`${API_BASE}/alerts/${id}`, window.location.origin).toString();
+  const response = await fetch(url, {
+    method: "DELETE",
+    headers: { Accept: "application/json", ...alertTokenHeader(token) },
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
+  if (!response.ok && response.status !== 204) {
+    throw await parseApiError(response);
+  }
+};
+
+export const matchAlerts = async (token: string): Promise<AlertMatchResponse> => {
+  if (!token) return { results: [], checked_at: new Date().toISOString() };
+  return fetchJSON<AlertMatchResponse>("/alerts/match", { token });
+};
+
+function normalizeFuelMixData(data: JsonRecord): FuelMixData {
+  const buckets = Array.isArray(data.buckets)
+    ? data.buckets.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          fuel_type: String(item.fuel_type || "other"),
+          count: Number(item.count || 0),
+          pct: Number(item.pct ?? 0),
+        };
+      })
+    : [];
+  return {
+    total: Number(data.total || 0),
+    buckets,
+    generated_at: String(data.generated_at || new Date().toISOString()),
+  };
+}
+
+function normalizeHybridBandsData(data: JsonRecord): HybridBandsData {
+  const bands = Array.isArray(data.bands)
+    ? data.bands.map((row) => {
+        const item = row as Record<string, unknown>;
+        return {
+          label: String(item.label || ""),
+          cc_max: toNumberOrNull(item.cc_max),
+          count: Number(item.count || 0),
+          median_price_lkr: toNumberOrNull(item.median_price_lkr),
+        };
+      })
+    : [];
+  return {
+    total_hybrids: Number(data.total_hybrids || 0),
+    bands,
+    generated_at: String(data.generated_at || new Date().toISOString()),
+  };
+}
+
+export const getFuelMix = async (): Promise<FuelMixData> => {
+  const data = await fetchJSON<JsonRecord>("/stats/fuel-mix");
+  return normalizeFuelMixData(data);
+};
+
+export const getHybridBands = async (): Promise<HybridBandsData> => {
+  const data = await fetchJSON<JsonRecord>("/stats/hybrid-bands");
+  return normalizeHybridBandsData(data);
 };
 
 export const formatNumber = (num: number): string => {
@@ -1408,5 +1656,23 @@ export const sendChatMessage = async (
           }))
           .filter((row: ChatListingResult) => Number.isFinite(row.id) && row.id > 0)
       : [],
+  };
+};
+
+export const getSourceQuality = async (): Promise<SourceQualityResponse> => {
+  const data = await fetchJSON<Record<string, unknown>>("/stats/source-quality");
+  const sources = Array.isArray(data.sources)
+    ? (data.sources as Record<string, unknown>[]).map((row) => ({
+        source: String(row.source || ""),
+        listing_count: Number(row.listing_count || 0),
+        price_fill_rate: Number(row.price_fill_rate ?? 0),
+        fresh_24h_pct: Number(row.fresh_24h_pct ?? 0),
+        outlier_rate: Number(row.outlier_rate ?? 0),
+        duplicate_rate: Number(row.duplicate_rate ?? 0),
+      }))
+    : [];
+  return {
+    generated_at: String(data.generated_at || new Date().toISOString()),
+    sources,
   };
 };

@@ -23,6 +23,14 @@ const STORAGE_KEY = "autolens.auth_user";
 const DEMO_USERS_ENV = "VITE_DEMO_USERS";
 const BACKEND_AUTH_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_AUTH === "true";
 
+/**
+ * When true, Pro export actions require an authenticated Pro/Enterprise session.
+ * Enabled explicitly via VITE_PRO_ACCESS_ENFORCED=true, or automatically in
+ * production builds (import.meta.env.PROD), matching the backend PRO_ACCESS_ENFORCED flag.
+ */
+export const PRO_EXPORTS_ENFORCED: boolean =
+  import.meta.env.VITE_PRO_ACCESS_ENFORCED === "true" || import.meta.env.PROD === true;
+
 type DemoAccountRecord = AuthUser & { password: string };
 type LoginResponse = { user?: Partial<AuthUser>; token?: string };
 

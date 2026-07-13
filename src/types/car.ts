@@ -114,6 +114,20 @@ export interface DistrictPrice {
   top_model_count?: number;
 }
 
+export interface DistrictVelocityPoint {
+  district: string;
+  lat: number;
+  lng: number;
+  listing_count: number;
+  new_7d_count: number;
+  velocity_score: number;
+}
+
+export interface DistrictVelocityData {
+  points: DistrictVelocityPoint[];
+  generated_at: string;
+}
+
 export interface SegmentPerformance {
   segment: string;
   listing_count: number;
@@ -242,6 +256,60 @@ export interface PipelineTriggerResponse {
   pid: number;
   command: string;
   started_at: string;
+}
+
+export interface MakeModelDistrictEntry {
+  district: string;
+  count: number;
+  avg_price_lkr: number | null;
+}
+
+export interface MakeModelInsight {
+  make: string;
+  model: string;
+  total: number;
+  avg_price_lkr: number | null;
+  median_price_lkr: number | null;
+  top_districts: MakeModelDistrictEntry[];
+}
+
+export interface FuelMixBucket {
+  fuel_type: string;
+  count: number;
+  pct: number;
+}
+
+export interface FuelMixData {
+  total: number;
+  buckets: FuelMixBucket[];
+  generated_at: string;
+}
+
+export interface HybridBand {
+  label: string;
+  cc_max: number | null;
+  count: number;
+  median_price_lkr: number | null;
+}
+
+export interface HybridBandsData {
+  total_hybrids: number;
+  bands: HybridBand[];
+  generated_at: string;
+}
+
+export interface SourceQualityRow {
+  source: string;
+  listing_count: number;
+  price_fill_rate: number;
+  fresh_24h_pct: number;
+  outlier_rate: number;
+  duplicate_rate: number;
+}
+
+export interface SourceQualityResponse {
+  generated_at: string;
+  sources: SourceQualityRow[];
 }
 
 export interface FilterState {

@@ -1,10 +1,10 @@
-import { startTransition, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { startTransition, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { FilterState, CarListing, DashboardInsights } from "@/types/car";
 import {
   getStats, getListings, getMakes,
-  formatPrice, getDashboardInsights, LISTINGS_PAGE_SIZE
+  formatPrice, getDashboardInsights, LISTINGS_PAGE_SIZE, getDistrictVelocity,
 } from "@/services/api";
 import { useLiveMarketSnapshot } from "@/hooks/useLiveMarketSnapshot";
 import { ListingCard } from "@/components/ListingCard";
@@ -12,6 +12,7 @@ import { ComparisonModal } from "@/components/ComparisonModal";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { MarketIntelligencePanel } from "@/components/MarketIntelligencePanel";
 import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
+import { FuelMixStrip } from "@/components/FuelMixStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { RevealSection } from "@/components/RevealSection";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,12 @@ import { isReasonableListingPrice } from "@/lib/formatting";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
-import { loadMarketAlerts, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
+import { loadMarketAlerts, patchMarketAlertServerId, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
+import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
+
+const DistrictVelocityMap = lazy(() =>
+  import("@/components/DistrictVelocityMap").then((m) => ({ default: m.DistrictVelocityMap }))
+);
 
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
 
@@ -140,6 +146,11 @@ export default function Dashboard() {
     queryFn: getDashboardInsights,
     refetchInterval: 120_000,
   });
+  const velocityQuery = useQuery({
+    queryKey: ["district-velocity"],
+    queryFn: getDistrictVelocity,
+    staleTime: 300_000,
+  });
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
     queryFn: () => getListings(filters),
@@ -151,6 +162,8 @@ export default function Dashboard() {
   const listings = useMemo(() => listingsQuery.data?.listings ?? [], [listingsQuery.data]);
   const total = listingsQuery.data?.total ?? 0;
   const loadingListings = listingsQuery.isPending;
+
+  const serverAlerts = useServerMarketAlerts();
 
   useEffect(() => {
     setWatchlistIds(loadWatchlistIds());
@@ -343,11 +356,42 @@ export default function Dashboard() {
 
   const saveCurrentMarketAlert = useCallback(() => {
     const target = Number(alertPriceInput.replace(/[^\d]/g, ""));
-    const next = saveMarketAlert(filters, Number.isFinite(target) ? target : undefined);
-    setMarketAlerts(next); setAlertPriceInput(""); setShowMarketAlerts(true);
-  }, [alertPriceInput, filters]);
+    const targetPrice = Number.isFinite(target) && target > 0 ? target : undefined;
+    const next = saveMarketAlert(filters, targetPrice);
+    setMarketAlerts(next);
+    setAlertPriceInput("");
+    setShowMarketAlerts(true);
 
-  const deleteMarketAlert = useCallback((id: string) => { setMarketAlerts(removeMarketAlert(id)); }, []);
+    const newAlert = next[0];
+    if (newAlert) {
+      serverAlerts.create({
+        make: filters.make ?? undefined,
+        model: filters.model ?? undefined,
+        district: filters.district ?? undefined,
+        max_price: filters.price_max ?? targetPrice,
+      }).then(() => {
+        if (serverAlerts.alerts.length > 0) {
+          const created = serverAlerts.alerts[0];
+          if (created?.id) {
+            const patched = patchMarketAlertServerId(newAlert.id, created.id);
+            setMarketAlerts(patched);
+          }
+        }
+      }).catch(() => {
+        // Server unavailable — localStorage copy is the fallback.
+      });
+    }
+  }, [alertPriceInput, filters, serverAlerts]);
+
+  const deleteMarketAlert = useCallback((id: string) => {
+    const alertToDelete = marketAlerts.find((a) => a.id === id);
+    setMarketAlerts(removeMarketAlert(id));
+    if (alertToDelete?.server_id) {
+      serverAlerts.remove(alertToDelete.server_id).catch(() => {
+        // Server unavailable — the local delete still succeeded.
+      });
+    }
+  }, [marketAlerts, serverAlerts]);
 
   const activeFilterLabels = useMemo(
     () => [
@@ -494,6 +538,7 @@ export default function Dashboard() {
           {/* ── Full-width live intelligence console ── */}
           <div className="mt-12 space-y-6 lg:mt-16">
             <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+            <FuelMixStrip />
             <MarketSignalsStrip />
           </div>
         </div>
@@ -732,6 +777,36 @@ export default function Dashboard() {
                 <p className="text-[11px] text-muted-foreground">No deals found in current slice</p>
               )}
             </div>
+          </div>
+
+          {/* District demand velocity */}
+          <div className="mt-12 border-t border-border pt-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500/70">Demand velocity</p>
+                <h3 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
+                  Regional listing momentum — last 7 days
+                </h3>
+              </div>
+              <Link
+                to="/map"
+                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary"
+              >
+                Full map <ArrowUpRight className="h-3 w-3" />
+              </Link>
+            </div>
+            <Suspense
+              fallback={
+                <div className="h-[420px] rounded-xl border border-border bg-[#111] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full border-2 border-primary/20 border-t-emerald-500 animate-spin" />
+                </div>
+              }
+            >
+              <DistrictVelocityMap
+                data={velocityQuery.data?.points ?? []}
+                isLoading={velocityQuery.isPending}
+              />
+            </Suspense>
           </div>
 
           {/* Tool links */}

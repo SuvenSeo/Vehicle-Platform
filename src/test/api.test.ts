@@ -574,4 +574,52 @@ describe("api module", () => {
       rating: 4.2,
     });
   });
+
+  it("exports getProArbitrageGaps function", async () => {
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    expect(typeof api.getProArbitrageGaps).toBe("function");
+  });
+
+  it("calls /pro/arbitrage-gaps with make, model, and limit params", async () => {
+    const mockGaps = [
+      {
+        buy_district: "Kandy",
+        sell_district: "Colombo",
+        buy_median_lkr: 6_300_000,
+        sell_median_lkr: 7_300_000,
+        gap_pct: 15.87,
+        buy_listing_count: 8,
+        sell_listing_count: 42,
+      },
+    ];
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockGaps,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.getProArbitrageGaps("Toyota", "Vitz", 5);
+
+    const calledUrl = String(fetchMock.mock.calls[0]?.[0] || "");
+    expect(calledUrl).toContain("/api/v1/pro/arbitrage-gaps");
+    expect(calledUrl).toContain("make=Toyota");
+    expect(calledUrl).toContain("model=Vitz");
+    expect(calledUrl).toContain("limit=5");
+    expect(result).toEqual(mockGaps);
+  });
+
+  it("returns empty array from getProArbitrageGaps when response is empty", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const result = await api.getProArbitrageGaps("Honda", "Fit");
+
+    expect(result).toEqual([]);
+  });
 });
