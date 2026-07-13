@@ -60,6 +60,7 @@ class StatsSummary(BaseModel):
     good_deals_count: int
     listings_this_week: int
     districts_covered: int
+    district_count: Optional[int] = None
     source_count: int = 0
     last_updated: Optional[datetime] = None
 

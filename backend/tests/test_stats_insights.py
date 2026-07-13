@@ -160,6 +160,7 @@ def test_stats_summary_counts_normalized_districts():
     summary = stats.get_stats_summary(db=db)
 
     assert summary.districts_covered == 3
+    assert summary.district_count == 3
 
 
 def test_stats_summary_exposes_freshness_and_source_coverage():

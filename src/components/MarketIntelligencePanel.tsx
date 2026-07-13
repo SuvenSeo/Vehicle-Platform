@@ -86,7 +86,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   const sourceCount = Number(snapshot?.active_scrape_sources?.length || stats?.source_count || 0);
   const districtCount = Number(stats?.district_count || 0);
   const avgPrice = Number(snapshot?.avg_price_lkr ?? stats?.avg_price_lkr ?? 0);
-  const momChange = Number(stats?.price_change_mom ?? 0);
+  const momChange = stats?.price_change_mom ?? null;
   const new24h = Number(insights?.new_listings_24h ?? stats?.listings_this_week ?? 0);
   const goodDeals = Number(stats?.good_deals_count ?? 0);
   const freshness = getListingDataFreshness({
@@ -203,8 +203,8 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
         <MetricCell label="Avg price" value={avgPrice > 0 ? formatPrice(avgCount) : "—"} />
         <MetricCell
           label="MoM change"
-          value={`${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`}
-          tone={momChange > 0 ? "up" : momChange < 0 ? "down" : undefined}
+          value={momChange == null ? "Building history" : `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`}
+          tone={momChange == null ? undefined : momChange > 0 ? "up" : momChange < 0 ? "down" : undefined}
         />
         <MetricCell label="New · 24h" value={new24h > 0 ? newCount.toLocaleString() : "—"} />
         <MetricCell label="Good deals" value={goodDeals > 0 ? dealsCount.toLocaleString() : "—"} />

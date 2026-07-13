@@ -185,6 +185,7 @@ def get_stats_summary(db: Session = Depends(get_db)):
         good_deals_count=good_deals,
         listings_this_week=this_week,
         districts_covered=districts,
+        district_count=int(districts),
         source_count=int(source_count),
         last_updated=last_updated,
     )
