@@ -106,6 +106,18 @@ describe("MarketIntelligencePanel freshness", () => {
     expect(screen.getByText(/Listing data is 10h old/i)).toBeInTheDocument();
     expect(screen.getByText(/Stale · 10h/i)).toBeInTheDocument();
   });
+
+  it("shows building history when month-over-month change is unavailable", () => {
+    render(
+      <MarketIntelligencePanel
+        snapshot={freshSnapshot}
+        stats={{ ...freshStats, price_change_mom: null }}
+        insights={null}
+      />,
+    );
+
+    expect(screen.getByText("Building history")).toBeInTheDocument();
+  });
 });
 
 describe("StatsBar freshness", () => {

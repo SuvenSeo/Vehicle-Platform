@@ -41,7 +41,7 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
   const totalCount = useCountUp(stats.total_listings);
   const avgPrice = useCountUp(stats.avg_price_lkr);
   const dealsCount = useCountUp(stats.good_deals_count);
-  const momChange = stats.price_change_mom ?? 0;
+  const momChange = stats.price_change_mom;
   const sourceLabel = stats.source_count > 0 ? `${stats.source_count} sources` : "source scan pending";
 
   return (
@@ -58,10 +58,20 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
                 {formatPrice(avgPrice)}
               </p>
               <div className={`mt-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 tech-label num ${
-                momChange < 0 ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                momChange == null
+                  ? "bg-muted/30 text-muted-foreground border border-border"
+                  : momChange < 0
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-red-500/10 text-red-400 border border-red-500/20"
               }`}>
-                <span>{momChange < 0 ? '▼' : '▲'}</span>
-                {Math.abs(momChange)}% Movement vs month-0
+                {momChange == null ? (
+                  "Building history"
+                ) : (
+                  <>
+                    <span>{momChange < 0 ? "▼" : "▲"}</span>
+                    {Math.abs(momChange)}% Movement vs month-0
+                  </>
+                )}
               </div>
             </div>
           </div>

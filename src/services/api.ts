@@ -387,7 +387,7 @@ function normalizeStatsOverview(data: JsonRecord): StatsOverview {
     total_listings: Number(data?.total_listings ?? data?.priced_listings ?? data?.offers_count) || 0,
     avg_price_lkr: toNumberOrNull(data?.avg_price_lkr ?? data?.average_price_lkr ?? data?.avg_price) ?? 0,
     listings_this_week: Number(data?.listings_this_week ?? data?.new_listings_this_week) || 0,
-    price_change_mom: toNumberOrNull(data?.price_change_mom ?? data?.mom_change_pct) ?? 0,
+    price_change_mom: toNumberOrNull(data?.price_change_mom ?? data?.mom_change_pct),
     top_makes: Array.isArray(data?.top_makes) ? data.top_makes : [],
     district_count: Number(data?.district_count ?? data?.districts_covered) || 0,
     good_deals_count: Number(data?.good_deals_count ?? data?.hot_deals_count) || 0,

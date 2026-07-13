@@ -61,7 +61,7 @@ export interface StatsOverview {
   total_listings: number;
   avg_price_lkr: number;
   listings_this_week: number;
-  price_change_mom: number;
+  price_change_mom: number | null;
   top_makes: { make: string; count: number }[];
   district_count: number;
   good_deals_count: number;

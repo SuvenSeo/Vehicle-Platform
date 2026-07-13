@@ -279,6 +279,29 @@ describe("api module", () => {
     expect(stats.last_updated).toBeNull();
   });
 
+  it("preserves null month-over-month change when backend has no history", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total_listings: 120,
+        avg_price_lkr: 7800000,
+        listings_this_week: 11,
+        price_change_mom: null,
+        good_deals_count: 9,
+        district_count: 6,
+        source_count: 4,
+        last_updated: "2026-07-13T10:00:00Z",
+      }),
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const stats = await api.getStats();
+
+    expect(stats.price_change_mom).toBeNull();
+  });
+
   it("normalizes live market snapshot responses", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
