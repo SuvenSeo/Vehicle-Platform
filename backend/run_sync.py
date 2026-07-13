@@ -20,6 +20,9 @@ from app.scrapers.saleme import SaleMeScraper
 from app.services.aggregator import CarPriceAggregator
 from app.services.market_signals import MarketSignalImporter
 from app.services.source_aliases import canonical_source_key, source_alias_tokens
+from app.utils.deal_scores import bulk_refresh_deal_scores
+from app.utils.deduplication import mark_duplicates_batch
+from app.utils.stats_cache import refresh_stats_cache
 from db.models import CarListing, ScrapeRun
 from db.session import ColdSessionLocal as SessionLocal, init_db
 
@@ -501,6 +504,9 @@ async def main(profile_override: str | None = None):
     run_scrapers = _resolve_bool_env("RUN_SCRAPERS", True)
     run_market_analysis = _resolve_bool_env("RUN_MARKET_ANALYSIS", True)
     run_market_signals = _resolve_bool_env("RUN_MARKET_SIGNALS", run_market_analysis)
+    run_deal_score_refresh = _resolve_bool_env("RUN_DEAL_SCORE_REFRESH", False)
+    run_dedup = _resolve_bool_env("RUN_DEDUP", False)
+    run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", False)
 
     log.info(
         "starting_sync",
@@ -510,6 +516,9 @@ async def main(profile_override: str | None = None):
         run_scrapers=run_scrapers,
         run_market_analysis=run_market_analysis,
         run_market_signals=run_market_signals,
+        run_deal_score_refresh=run_deal_score_refresh,
+        run_dedup=run_dedup,
+        run_stats_cache_refresh=run_stats_cache_refresh,
         source_max_pages={source: pages for source, _cls, pages, _timeout in source_configs},
         source_timeouts={
             source: timeout_seconds
@@ -527,6 +536,20 @@ async def main(profile_override: str | None = None):
             for _source, scraper_cls, max_pages, timeout_seconds in active_configs:
                 await _run_source(scraper_cls, max_pages, timeout_seconds)
 
+        if run_dedup:
+            db = SessionLocal()
+            try:
+                log.info("running_deduplication")
+                marked = mark_duplicates_batch(db)
+                log.info("deduplication_complete", listings_marked=marked)
+            except Exception as exc:
+                db.rollback()
+                log.error("deduplication_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="deduplication")
+        else:
+            log.info("deduplication_skipped", reason="run_dedup_disabled")
+
         if run_market_analysis:
             db = SessionLocal()
             lock_acquired = False
@@ -542,7 +565,11 @@ async def main(profile_override: str | None = None):
                     aggregator = CarPriceAggregator(db)
                     current = datetime.now()
                     aggregator.compute_aggregates(current.year, current.month)
-                    aggregator.update_deal_scores()
+                    if run_deal_score_refresh:
+                        bulk_result = bulk_refresh_deal_scores(db)
+                        log.info("deal_scores_bulk_refreshed", **bulk_result)
+                    else:
+                        aggregator.update_deal_scores()
             except OperationalError as exc:
                 db.rollback()
                 if _is_statement_timeout_error(exc):
@@ -555,6 +582,18 @@ async def main(profile_override: str | None = None):
                 _close_db_session(db, context="market_analysis")
         else:
             log.info("market_analysis_skipped", reason="run_market_analysis_disabled")
+
+        if run_stats_cache_refresh:
+            db = SessionLocal()
+            try:
+                log.info("running_stats_cache_refresh")
+                refresh_stats_cache(db)
+            except Exception as exc:
+                log.error("stats_cache_refresh_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="stats_cache_refresh")
+        else:
+            log.info("stats_cache_refresh_skipped", reason="run_stats_cache_refresh_disabled")
 
         duration = (datetime.now() - start_time).total_seconds()
         log.info("sync_completed", profile=profile, duration_seconds=round(duration, 2))
