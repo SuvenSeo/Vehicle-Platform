@@ -7,6 +7,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import case, func, desc, and_, or_
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+from app.utils.districts import (
+    SL_DISTRICT_COORDS,
+    count_canonical_districts,
+    find_district_from_url,
+    normalize_district_name,
+)
 from app.utils.time import utc_now
 from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun
@@ -19,58 +25,7 @@ _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 router = APIRouter(dependencies=[Depends(_stats_rate_limiter)])
 MIN_REASONABLE_PRICE_LKR = 100_000
 LIVE_STREAM_INTERVAL_SECONDS = 10
-
-SL_DISTRICT_COORDS = {
-    "Colombo": (6.9271, 79.8612), "Gampaha": (7.0840, 80.0098),
-    "Kalutara": (6.5854, 79.9607), "Kandy": (7.2906, 80.6337),
-    "Matale": (7.4675, 80.6234), "Nuwara Eliya": (6.9497, 80.7891),
-    "Galle": (6.0535, 80.2210), "Matara": (5.9549, 80.5550),
-    "Hambantota": (6.1243, 81.1185), "Jaffna": (9.6615, 80.0255),
-    "Kilinochchi": (9.3803, 80.3770), "Mannar": (8.9810, 79.9044),
-    "Vavuniya": (8.7514, 80.4971), "Batticaloa": (7.7310, 81.6747),
-    "Ampara": (7.2964, 81.6747), "Trincomalee": (8.5874, 81.2152),
-    "Kurunegala": (7.4863, 80.3647), "Puttalam": (8.0362, 79.8283),
-    "Anuradhapura": (8.3114, 80.4037), "Polonnaruwa": (7.9403, 81.0188),
-    "Badulla": (6.9934, 81.0550), "Monaragala": (6.8728, 81.3507),
-    "Ratnapura": (6.6828, 80.3992), "Kegalle": (7.2513, 80.3464),
-    "Sri Lanka": (7.8731, 80.7718),
-}
-
-DISTRICT_ALIASES = {
-    "nuwaraeliya": "Nuwara Eliya",
-    "nuwara eliya": "Nuwara Eliya",
-    "gampaha district": "Gampaha",
-    "colombo district": "Colombo",
-    "kegalle district": "Kegalle",
-}
-
-
-def _normalize_district_name(value: Optional[str]) -> Optional[str]:
-    if not value:
-        return None
-    cleaned = " ".join(str(value).strip().replace("-", " ").split())
-    key = cleaned.lower()
-    if key in DISTRICT_ALIASES:
-        return DISTRICT_ALIASES[key]
-    title = cleaned.title()
-    return title if title in SL_DISTRICT_COORDS else None
-
-
-def _find_district_from_url(url: Optional[str]) -> Optional[str]:
-    if not url:
-        return None
-    lower = str(url).lower()
-    candidates = sorted(
-        [d for d in SL_DISTRICT_COORDS.keys() if d != "Sri Lanka"],
-        key=len,
-        reverse=True,
-    )
-    for district in candidates:
-        slug = district.lower().replace(" ", "-")
-        if f"-for-sale-{slug}" in lower:
-            return district
-    return None
-
+RECENT_SUCCESS_HOURS = 24
 
 def _to_utc(dt):
     if not dt:
@@ -78,6 +33,25 @@ def _to_utc(dt):
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def _is_running_scrape(run: ScrapeRun, now: datetime) -> bool:
+    started_at = _to_utc(run.started_at)
+    return (
+        str(run.status or "").upper() == "RUNNING"
+        and started_at is not None
+        and run.finished_at is None
+        and now - started_at <= timedelta(hours=6)
+    )
+
+
+def _is_recent_success(run: ScrapeRun, now: datetime) -> bool:
+    finished_at = _to_utc(run.finished_at)
+    return (
+        str(run.status or "").upper() == "SUCCESS"
+        and finished_at is not None
+        and now - finished_at <= timedelta(hours=RECENT_SUCCESS_HOURS)
+    )
 
 
 def build_live_market_snapshot(db: Session) -> dict:
@@ -119,19 +93,17 @@ def build_live_market_snapshot(db: Session) -> dict:
         .all()
     )
     latest_by_source: dict[str, ScrapeRun] = {}
-    active_sources: list[str] = []
+    active_sources: set[str] = set()
     for run in recent_runs:
         source = str(run.source or "unknown")
         if source not in latest_by_source:
             latest_by_source[source] = run
-        started_at = _to_utc(run.started_at)
-        if (
-            str(run.status or "").upper() == "RUNNING"
-            and started_at is not None
-            and run.finished_at is None
-            and now - started_at <= timedelta(hours=6)
-        ):
-            active_sources.append(source)
+        if _is_running_scrape(run, now):
+            active_sources.add(source)
+
+    for source, run in latest_by_source.items():
+        if _is_recent_success(run, now):
+            active_sources.add(source)
 
     latest_run = recent_runs[0] if recent_runs else None
     return {
@@ -141,7 +113,7 @@ def build_live_market_snapshot(db: Session) -> dict:
         "unavailable_price_listings": int(unavailable_listings),
         "avg_price_lkr": round(float(avg_price), 2) if avg_price is not None else None,
         "latest_listing_at": _to_utc(latest_listing_at).isoformat() if latest_listing_at else None,
-        "active_scrape_sources": sorted(set(active_sources)),
+        "active_scrape_sources": sorted(active_sources),
         "latest_run": {
             "source": str(latest_run.source or "unknown"),
             "status": str(latest_run.status or "UNKNOWN"),
@@ -178,9 +150,9 @@ def get_stats_summary(db: Session = Depends(get_db)):
     this_week = db.query(func.count(CarListing.id)).filter(
         CarListing.first_seen_at >= seven_days_ago
     ).scalar() or 0
-    districts = db.query(func.count(func.distinct(CarListing.district))).filter(
-        CarListing.district.isnot(None)
-    ).scalar() or 0
+    districts = count_canonical_districts(
+        db.query(CarListing).filter(CarListing.district.isnot(None))
+    )
     source_count = db.query(func.count(func.distinct(CarListing.source))).filter(
         CarListing.is_outlier == False,
         CarListing.source.isnot(None),
@@ -285,9 +257,9 @@ def get_district_prices(db: Session = Depends(get_db)):
 
         agg = {}
         for district, url, price, make, model in rows:
-            normalized = _normalize_district_name(district)
+            normalized = normalize_district_name(district)
             if normalized == "Sri Lanka" or normalized is None:
-                normalized = _find_district_from_url(url)
+                normalized = find_district_from_url(url)
             if not normalized:
                 continue
             item = agg.setdefault(normalized, {"count": 0, "total": 0.0, "model_counts": {}})
@@ -352,7 +324,7 @@ def get_district_prices(db: Session = Depends(get_db)):
 
     top_model_by_district = {}
     for district, make, model, model_count in model_results:
-        normalized = _normalize_district_name(district)
+        normalized = normalize_district_name(district)
         if not normalized:
             continue
         current = top_model_by_district.get(normalized)
@@ -365,7 +337,7 @@ def get_district_prices(db: Session = Depends(get_db)):
             }
 
     for district, count, avg_price in results:
-        normalized = _normalize_district_name(district)
+        normalized = normalize_district_name(district)
         if not normalized:
             continue
         coords = SL_DISTRICT_COORDS.get(normalized)
@@ -833,7 +805,7 @@ def get_district_quick_insight(
     district: str = Query(..., min_length=2),
     db: Session = Depends(get_db),
 ):
-    normalized = _normalize_district_name(district) or " ".join(district.strip().split()).title()
+    normalized = normalize_district_name(district) or " ".join(district.strip().split()).title()
     district_slug = normalized.lower().replace(" ", "-")
     district_clause = and_(
         CarListing.is_outlier == False,

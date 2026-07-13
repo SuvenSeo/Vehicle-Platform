@@ -97,7 +97,16 @@ def test_stats_summary_exposes_freshness_and_source_coverage():
     assert summary.last_updated is not None
 
 
-def test_live_market_snapshot_excludes_unavailable_prices_from_average():
+def test_live_market_snapshot_excludes_unavailable_prices_from_average(monkeypatch):
+    fixed_now = datetime(2026, 4, 19, 14, 0, tzinfo=timezone.utc)
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is not None else fixed_now.replace(tzinfo=None)
+
+    monkeypatch.setattr(stats, "datetime", FixedDateTime)
+
     db = _session()
     db.add_all(
         [
@@ -123,6 +132,59 @@ def test_live_market_snapshot_excludes_unavailable_prices_from_average():
     assert payload["unavailable_price_listings"] == 1
     assert payload["avg_price_lkr"] == 8_000_000
     assert payload["latest_run"]["source"] == "riyahub"
+    assert payload["active_scrape_sources"] == ["riyahub"]
+
+
+def test_live_market_snapshot_active_sources_include_recent_success_runs(monkeypatch):
+    fixed_now = datetime(2026, 4, 19, 14, 0, tzinfo=timezone.utc)
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is not None else fixed_now.replace(tzinfo=None)
+
+    monkeypatch.setattr(stats, "datetime", FixedDateTime)
+
+    db = _session()
+    db.add_all(
+        [
+            _listing("priced-1", 7_000_000, 5.0),
+            ScrapeRun(
+                source="ikman",
+                started_at=datetime(2026, 4, 19, 12, 0, tzinfo=timezone.utc),
+                finished_at=datetime(2026, 4, 19, 12, 45, tzinfo=timezone.utc),
+                status="SUCCESS",
+                listings_found=120,
+                listings_new=8,
+            ),
+            ScrapeRun(
+                source="riyasewana",
+                started_at=datetime(2026, 4, 19, 8, 0, tzinfo=timezone.utc),
+                finished_at=datetime(2026, 4, 19, 9, 0, tzinfo=timezone.utc),
+                status="SUCCESS",
+                listings_found=90,
+                listings_new=4,
+            ),
+            ScrapeRun(
+                source="autolanka",
+                started_at=datetime(2026, 4, 10, 8, 0, tzinfo=timezone.utc),
+                finished_at=datetime(2026, 4, 10, 9, 0, tzinfo=timezone.utc),
+                status="SUCCESS",
+                listings_found=40,
+                listings_new=1,
+            ),
+        ]
+    )
+    db.commit()
+
+    payload = stats.build_live_market_snapshot(db)
+
+    assert payload["active_scrape_sources"] == ["ikman", "riyasewana"]
+    assert {row["source"] for row in payload["source_status"]} == {
+        "ikman",
+        "riyasewana",
+        "autolanka",
+    }
 
 
 def test_live_market_stream_serializes_snapshot(monkeypatch):
