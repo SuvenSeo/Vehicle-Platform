@@ -2,6 +2,7 @@ import hashlib
 import re
 from datetime import datetime
 from app.utils.time import utc_now
+from app.utils.districts import resolve_canonical_district
 from typing import Optional, Dict, Any
 from urllib.parse import urlparse
 
@@ -342,6 +343,13 @@ class CarCleaner:
             if key in normalized and normalized[key] is not None:
                 trimmed = self._truncate_text(normalized[key], max_len)
                 normalized[key] = trimmed if trimmed else None
+
+        listing_url = normalized.get("url")
+        canonical_district = resolve_canonical_district(normalized.get("district"), listing_url)
+        if canonical_district:
+            normalized["district"] = canonical_district
+        elif normalized.get("district") and str(normalized["district"]).strip().lower() == "sri lanka":
+            normalized["district"] = None
 
         for key, max_len in self._TECHNICAL_FIELD_MAX_LENGTHS.items():
             if normalized.get(key):

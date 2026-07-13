@@ -162,3 +162,30 @@ def test_normalize_listing_payload_rejects_invalid_critical_fields(updates: dict
     payload.update(updates)
 
     assert cleaner.normalize_listing_payload(payload) is None
+
+
+def test_normalize_listing_payload_normalizes_district_aliases():
+    cleaner = CarCleaner()
+    payload = _base_payload(source="ikman", source_id="listing-district")
+    payload["district"] = "colombo district"
+
+    normalized = cleaner.normalize_listing_payload(payload)
+
+    assert normalized is not None
+    assert normalized["district"] == "Colombo"
+
+
+def test_normalize_listing_payload_infers_district_from_url_when_generic():
+    cleaner = CarCleaner()
+    payload = _base_payload(
+        source="ikman",
+        source_id="https://ikman.lk/en/ad/toyota-prius-for-sale-kandy-123",
+    )
+    payload["url"] = payload["source_id"]
+    payload["district"] = "Sri Lanka"
+
+    normalized = cleaner.normalize_listing_payload(payload)
+
+    assert normalized is not None
+    assert normalized["district"] == "Kandy"
+
