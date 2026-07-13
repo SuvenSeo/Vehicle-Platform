@@ -24,6 +24,7 @@ from sqlalchemy.orm import load_only  # noqa: E402
 
 from app.api.v1.endpoints import listings as listings_endpoint  # noqa: E402
 from app.api.v1.endpoints import stats as stats_endpoint  # noqa: E402
+from app.utils.districts import count_canonical_districts  # noqa: E402
 from db.models import CarListing, ScrapeRun  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
 
@@ -133,11 +134,8 @@ def build_stats_summary(db) -> dict[str, Any]:
         .scalar()
         or 0
     )
-    districts = (
-        db.query(func.count(func.distinct(CarListing.district)))
-        .filter(CarListing.district.isnot(None), CarListing.is_outlier == False)
-        .scalar()
-        or 0
+    districts = count_canonical_districts(
+        db.query(CarListing).filter(CarListing.district.isnot(None), CarListing.is_outlier == False)
     )
     source_count = (
         db.query(func.count(func.distinct(CarListing.source)))

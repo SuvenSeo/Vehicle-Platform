@@ -65,6 +65,41 @@ def test_dashboard_insights_hot_deals_exclude_non_positive_and_tiny_prices():
     assert all(item["price_lkr"] >= 100_000 for item in payload["hot_deals"])
 
 
+def test_stats_summary_counts_normalized_districts():
+    db = _session()
+    db.add_all(
+        [
+            _listing("colombo-1", 7_100_000, 5.0, district="Colombo"),
+            _listing("colombo-2", 7_200_000, 5.0, district="colombo"),
+            _listing("colombo-3", 7_300_000, 5.0, district="Colombo District"),
+            _listing("gampaha-1", 8_100_000, 7.0, district="Gampaha"),
+            _listing("gampaha-2", 8_200_000, 7.0, district="gampaha district"),
+            CarListing(
+                source="ikman",
+                source_id="url-inferred-kandy",
+                scraped_at=datetime(2026, 4, 19, 10, 0, tzinfo=timezone.utc),
+                first_seen_at=datetime(2026, 4, 19, 10, 0, tzinfo=timezone.utc),
+                last_seen_at=datetime(2026, 4, 19, 10, 0, tzinfo=timezone.utc),
+                make="Toyota",
+                model="Vitz",
+                year=2018,
+                price_lkr=7_500_000,
+                deal_score=6.0,
+                district="Sri Lanka",
+                city="Sri Lanka",
+                title="Toyota Vitz url-inferred-kandy",
+                url="https://example.com/ad-for-sale-kandy/toyota-vitz",
+                is_outlier=False,
+            ),
+        ]
+    )
+    db.commit()
+
+    summary = stats.get_stats_summary(db=db)
+
+    assert summary.districts_covered == 3
+
+
 def test_stats_summary_exposes_freshness_and_source_coverage():
     db = _session()
     db.add_all(

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from app.utils.districts import count_canonical_districts
 from app.utils.time import utc_now
 from statistics import median
 from typing import Annotated, Iterable, Optional
@@ -326,7 +327,7 @@ def get_pro_market_snapshot(db: Session = Depends(get_db)):
         min_price_lkr=metrics["min_price_lkr"],
         max_price_lkr=metrics["max_price_lkr"],
         new_listings_7d=int(priced.filter(CarListing.first_seen_at >= seven_days_ago).count()),
-        districts_covered=int(priced.with_entities(func.count(func.distinct(CarListing.district))).scalar() or 0),
+        districts_covered=count_canonical_districts(priced),
         source_count=int(source_count),
         hot_deal_count=int(priced.filter(CarListing.deal_score >= 8).count()),
         last_updated=priced.with_entities(func.max(func.coalesce(CarListing.last_seen_at, CarListing.scraped_at, CarListing.first_seen_at))).scalar(),
