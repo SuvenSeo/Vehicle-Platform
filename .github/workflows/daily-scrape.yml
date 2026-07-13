@@ -151,6 +151,9 @@ jobs:
           RUN_SCRAPERS: "false"
           RUN_MARKET_ANALYSIS: "true"
           RUN_MARKET_SIGNALS: "true"
+          RUN_DEAL_SCORE_REFRESH: "true"
+          RUN_STATS_CACHE_REFRESH: "true"
+          RUN_DEDUP: "true"
         run: python run_sync.py
 
   snapshot-export:
