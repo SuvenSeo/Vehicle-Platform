@@ -73,3 +73,35 @@ def test_sitemap_ids_respects_limit():
     rows = listings.get_sitemap_listing_ids(limit=2, db=db)
 
     assert len(rows) == 2
+
+
+def test_sitemap_ids_supports_offset():
+    db = _session()
+    db.add_all([_listing(f"item-{i}", days_ago=i) for i in range(5)])
+    db.commit()
+
+    first_page = listings.get_sitemap_listing_ids(limit=2, offset=0, db=db)
+    second_page = listings.get_sitemap_listing_ids(limit=2, offset=2, db=db)
+
+    assert len(first_page) == 2
+    assert len(second_page) == 2
+    assert first_page[0]["id"] != second_page[0]["id"]
+
+
+def test_sitemap_count_excludes_outliers_and_duplicates():
+    db = _session()
+    db.add_all(
+        [
+            _listing("clean-1", days_ago=1),
+            _listing("clean-2", days_ago=2),
+            _listing("outlier", days_ago=0, is_outlier=True),
+            _listing("dupe", days_ago=0, is_duplicate=True),
+        ]
+    )
+    db.commit()
+
+    payload = listings.get_sitemap_listing_count(db=db)
+
+    assert payload["total"] == 2
+    assert payload["page_size"] == 5000
+

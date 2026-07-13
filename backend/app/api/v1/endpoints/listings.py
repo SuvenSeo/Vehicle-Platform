@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, Response
 from sqlalchemy.orm import Session, load_only
 from sqlalchemy import String, cast, func, desc, and_, or_
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Annotated
 from statistics import median
 from datetime import datetime, timezone
 from app.utils.time import utc_now
@@ -1242,7 +1242,8 @@ def get_sources(db: Session = Depends(get_db)):
 
 @router.get("/sitemap-ids")
 def get_sitemap_listing_ids(
-    limit: int = Query(5000, ge=1, le=20000),
+    limit: Annotated[int, Query(ge=1, le=20000)] = 5000,
+    offset: Annotated[int, Query(ge=0)] = 0,
     db: Session = Depends(get_db),
 ):
     """Recent listing IDs + last-seen timestamps for sitemap generation."""
@@ -1250,6 +1251,7 @@ def get_sitemap_listing_ids(
         db.query(CarListing.id, CarListing.last_seen_at)
         .filter(CarListing.is_outlier == False, CarListing.is_duplicate == False)
         .order_by(desc(CarListing.last_seen_at))
+        .offset(offset)
         .limit(limit)
         .all()
     )
@@ -1261,6 +1263,16 @@ def get_sitemap_listing_ids(
         for row in rows
     ]
 
+
+@router.get("/sitemap-count")
+def get_sitemap_listing_count(db: Session = Depends(get_db)):
+    """Total clean listings available for chunked sitemap generation."""
+    total = (
+        db.query(func.count(CarListing.id))
+        .filter(CarListing.is_outlier == False, CarListing.is_duplicate == False)
+        .scalar()
+    )
+    return {"total": int(total or 0), "page_size": 5000}
 
 @router.get("/makes")
 def get_makes(db: Session = Depends(get_db)):
