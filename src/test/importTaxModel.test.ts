@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computeImportTaxes } from "@/lib/importTaxModel";
+import {
+  computeImportTaxes,
+  getExciseRatePerCc,
+  getHybridExciseCliffInsight,
+  HYBRID_EXCISE_CLIFF_CC,
+  isAtHybridExciseCliff,
+} from "@/lib/importTaxModel";
 
 function line(result: ReturnType<typeof computeImportTaxes>, key: string) {
   const found = result.lines.find((item) => item.key === key);
@@ -55,5 +61,36 @@ describe("computeImportTaxes", () => {
 
     expect(result.totalTax).toBeCloseTo(sum);
     expect(result.totalOnRoad).toBeCloseTo(6_000_000 + sum);
+  });
+});
+
+describe("getExciseRatePerCc", () => {
+  it("returns the ≤1500 hybrid band rate at exactly 1500 cc", () => {
+    expect(getExciseRatePerCc("hybrid", 1500)).toBe(3_850);
+    expect(getExciseRatePerCc("hybrid", 1501)).toBe(4_700);
+  });
+});
+
+describe("getHybridExciseCliffInsight", () => {
+  it("derives the 1500 cc cliff step-up and hybrid-vs-petrol saving from band rates", () => {
+    const insight = getHybridExciseCliffInsight();
+
+    expect(insight.cliffCc).toBe(HYBRID_EXCISE_CLIFF_CC);
+    expect(insight.rateAtOrBelowCliff).toBe(3_850);
+    expect(insight.rateAboveCliff).toBe(4_700);
+    expect(insight.petrolRateAtCliff).toBe(4_450);
+    expect(insight.exciseAtCliff).toBe(1500 * 3_850);
+    expect(insight.exciseOneCcAbove).toBe(1501 * 4_700);
+    expect(insight.exciseStepUp).toBe(1501 * 4_700 - 1500 * 3_850);
+    expect(insight.exciseSavingVsPetrolAtCliff).toBe(1500 * (4_450 - 3_850));
+  });
+});
+
+describe("isAtHybridExciseCliff", () => {
+  it("flags capacities near the 1500 cc boundary", () => {
+    expect(isAtHybridExciseCliff(1500)).toBe(true);
+    expect(isAtHybridExciseCliff(1450)).toBe(true);
+    expect(isAtHybridExciseCliff(1550)).toBe(true);
+    expect(isAtHybridExciseCliff(1600)).toBe(false);
   });
 });

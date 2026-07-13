@@ -91,6 +91,54 @@ function bandRate(bands: Band[], units: number): number {
   return band.ratePerUnit;
 }
 
+/** Common Sri Lanka hybrid excise band boundary — many imports target ≤ this capacity. */
+export const HYBRID_EXCISE_CLIFF_CC = 1500;
+
+export function getExciseRatePerCc(
+  fuelType: Exclude<ImportFuelType, "electric">,
+  engineCc: number,
+): number {
+  const cc = Math.max(0, Number(engineCc) || 0);
+  return bandRate(EXCISE_BANDS_PER_CC[fuelType], cc);
+}
+
+export interface HybridExciseCliffInsight {
+  cliffCc: number;
+  rateAtOrBelowCliff: number;
+  rateAboveCliff: number;
+  exciseAtCliff: number;
+  exciseOneCcAbove: number;
+  exciseStepUp: number;
+  petrolRateAtCliff: number;
+  exciseSavingVsPetrolAtCliff: number;
+}
+
+export function getHybridExciseCliffInsight(
+  cliffCc: number = HYBRID_EXCISE_CLIFF_CC,
+): HybridExciseCliffInsight {
+  const rateAtOrBelowCliff = getExciseRatePerCc("hybrid", cliffCc);
+  const rateAboveCliff = getExciseRatePerCc("hybrid", cliffCc + 1);
+  const petrolRateAtCliff = getExciseRatePerCc("petrol", cliffCc);
+  const exciseAtCliff = cliffCc * rateAtOrBelowCliff;
+  const exciseOneCcAbove = (cliffCc + 1) * rateAboveCliff;
+
+  return {
+    cliffCc,
+    rateAtOrBelowCliff,
+    rateAboveCliff,
+    exciseAtCliff,
+    exciseOneCcAbove,
+    exciseStepUp: exciseOneCcAbove - exciseAtCliff,
+    petrolRateAtCliff,
+    exciseSavingVsPetrolAtCliff: cliffCc * (petrolRateAtCliff - rateAtOrBelowCliff),
+  };
+}
+
+export function isAtHybridExciseCliff(engineCc: number, toleranceCc = 50): boolean {
+  const cc = Math.max(0, Number(engineCc) || 0);
+  return Math.abs(cc - HYBRID_EXCISE_CLIFF_CC) <= toleranceCc;
+}
+
 export function computeImportTaxes(input: ImportTaxInput): ImportTaxResult {
   const cif = Math.max(0, Number(input.cifLkr) || 0);
 

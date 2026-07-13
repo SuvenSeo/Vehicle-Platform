@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ArrowRight, Leaf } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { formatPrice } from "@/services/api";
 import {
   computeImportTaxes,
+  getHybridExciseCliffInsight,
+  isAtHybridExciseCliff,
   TAX_MODEL_REVIEWED,
   type ImportFuelType,
 } from "@/lib/importTaxModel";
@@ -14,6 +17,49 @@ const FUEL_OPTIONS: { value: ImportFuelType; label: string }[] = [
   { value: "electric", label: "Electric" },
 ];
 
+function HybridTaxAdvantageCallout({ engineCapacity }: { engineCapacity: number }) {
+  const location = useLocation();
+  const insight = getHybridExciseCliffInsight();
+  const onCalculator = location.pathname.startsWith("/calculator");
+  const atCliff = isAtHybridExciseCliff(engineCapacity);
+
+  return (
+    <div className="flex gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] p-3">
+      <Leaf className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden="true" />
+      <div className="min-w-0 space-y-1.5">
+        <p className="text-[11px] font-semibold text-emerald-300">Hybrid tax advantage</p>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Hybrid excise is charged per cm³ in capacity bands. At{" "}
+          <span className="num font-medium text-foreground">{insight.cliffCc.toLocaleString()} cc</span> the rate is Rs.{" "}
+          <span className="num font-medium text-foreground">{insight.rateAtOrBelowCliff.toLocaleString()}</span>/cc — one
+          cc over moves to Rs.{" "}
+          <span className="num font-medium text-foreground">{insight.rateAboveCliff.toLocaleString()}</span>/cc, stepping excise
+          up by <span className="num font-medium text-foreground">{formatPrice(insight.exciseStepUp)}</span> on this model.
+          At the cliff, hybrid saves{" "}
+          <span className="num font-medium text-foreground">{formatPrice(insight.exciseSavingVsPetrolAtCliff)}</span> in excise
+          alone vs petrol (Rs. {insight.petrolRateAtCliff.toLocaleString()}/cc).
+          {atCliff && (
+            <>
+              {" "}
+              Your {engineCapacity.toLocaleString()} cc input sits on this boundary — confirm the declared capacity before
+              import.
+            </>
+          )}
+        </p>
+        {!onCalculator && (
+          <Link
+            to="/calculator"
+            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-300 no-underline transition-colors hover:text-emerald-200"
+          >
+            Model import duty in calculator
+            <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function TaxBreakdown({ price, engineCapacity = 1500 }: { price: number; engineCapacity?: number }) {
   const [fuelType, setFuelType] = useState<ImportFuelType>("petrol");
   const [motorKw, setMotorKw] = useState(110);
@@ -24,6 +70,8 @@ export function TaxBreakdown({ price, engineCapacity = 1500 }: { price: number; 
     engineCc: engineCapacity,
     motorKw,
   });
+
+  const showHybridAdvantage = fuelType === "hybrid" || isAtHybridExciseCliff(engineCapacity);
 
   return (
     <div className="page-panel space-y-4 rounded-xl p-6">
@@ -84,6 +132,8 @@ export function TaxBreakdown({ price, engineCapacity = 1500 }: { price: number; 
           </div>
         ))}
       </div>
+
+      {showHybridAdvantage && <HybridTaxAdvantageCallout engineCapacity={engineCapacity} />}
 
       <div className="space-y-2 border-t border-border pt-4">
         <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-3">
