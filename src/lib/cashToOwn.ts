@@ -49,6 +49,14 @@ export const CBSL_LTV_CAPS: Record<VehicleFinanceClass, number> = {
   electric_commercial: 0.7,
 };
 
+/** Stable order for finance-class selectors. */
+export const VEHICLE_FINANCE_CLASSES: readonly VehicleFinanceClass[] = [
+  "registered_used",
+  "unregistered",
+  "brand_new",
+  "electric_commercial",
+];
+
 export const DEFAULT_INTEREST_RATE_PCT = 15;
 export const DEFAULT_TERM_YEARS = 5;
 export const DEFAULT_STAMP_DUTY_PCT = 2;
@@ -141,4 +149,32 @@ export function computeCashToOwn(input: CashToOwnInput): CashToOwnResult | null 
 /** Down-payment % needed to meet LTV (for sliders: e.g. 40 when LTV is 60%). */
 export function minDownPaymentPctForClass(financeClass: VehicleFinanceClass): number {
   return Math.round((1 - CBSL_LTV_CAPS[financeClass]) * 100);
+}
+
+/**
+ * Min cash down (LTV gap) for a listing price. Defaults to registered_used
+ * for comparable ranking when listing metadata is incomplete.
+ */
+export function minCashDownForPrice(
+  priceLkr: number,
+  financeClass: VehicleFinanceClass = "registered_used",
+): number | null {
+  return computeCashToOwn({ priceLkr, financeClass })?.minCashDownLkr ?? null;
+}
+
+/**
+ * Rank listings by ascending min cash down (CBSL LTV gap). Ties break by
+ * higher deal_score so strong deals still surface among similar cash needs.
+ */
+export function sortListingsByAffordability<
+  T extends { price_lkr?: number | null; deal_score?: number | null },
+>(listings: T[], financeClass: VehicleFinanceClass = "registered_used"): T[] {
+  return [...listings].sort((a, b) => {
+    const aDown =
+      minCashDownForPrice(Number(a.price_lkr || 0), financeClass) ?? Number.POSITIVE_INFINITY;
+    const bDown =
+      minCashDownForPrice(Number(b.price_lkr || 0), financeClass) ?? Number.POSITIVE_INFINITY;
+    if (aDown !== bDown) return aDown - bDown;
+    return Number(b.deal_score || 0) - Number(a.deal_score || 0);
+  });
 }

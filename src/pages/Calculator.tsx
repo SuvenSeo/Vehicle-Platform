@@ -4,10 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Banknote, Gauge, ShieldCheck, WalletCards } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { TaxBreakdown } from "@/components/TaxBreakdown";
+import { CashToOwnStrip } from "@/components/CashToOwnStrip";
+import {
+  VEHICLE_FINANCE_CLASSES,
+  getFinanceClassLabel,
+  type VehicleFinanceClass,
+} from "@/lib/cashToOwn";
 
 export default function Calculator() {
   const [price, setPrice] = useState(15000000);
   const [engineCapacity, setEngineCapacity] = useState(1500);
+  const [financeClass, setFinanceClass] = useState<VehicleFinanceClass>("registered_used");
   const dutyRisk = engineCapacity > 2000 ? "High" : engineCapacity > 1500 ? "Medium" : "Low";
   const monthlyBaseline = Math.round(price * 0.018 / 1000) * 1000;
   const dutyTone = dutyRisk === "High" ? "text-rose-400" : dutyRisk === "Medium" ? "text-primary" : "text-emerald-400";
@@ -53,6 +60,19 @@ export default function Calculator() {
                 <Input id="calc-cc" type="number" min={0} value={engineCapacity} onChange={(e) => setEngineCapacity(Number(e.target.value))} className="h-11 rounded-lg border-border bg-surface text-base font-semibold text-foreground num" />
                 <p className="text-[10px] text-muted-foreground">{engineCapacity.toLocaleString()} cc · sensitivity <span className={dutyTone}>{dutyRisk}</span></p>
               </div>
+              <div className="space-y-1.5">
+                <label htmlFor="calc-finance-class" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Finance class (CBSL LTV)</label>
+                <select
+                  id="calc-finance-class"
+                  value={financeClass}
+                  onChange={(e) => setFinanceClass(e.target.value as VehicleFinanceClass)}
+                  className="h-11 w-full appearance-none rounded-lg border border-border bg-surface px-3 text-sm font-semibold text-foreground outline-none transition-[border-color,box-shadow] focus:ring-1 focus:ring-primary/50"
+                >
+                  {VEHICLE_FINANCE_CLASSES.map((cls) => (
+                    <option key={cls} value={cls}>{getFinanceClassLabel(cls)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
@@ -64,8 +84,12 @@ export default function Calculator() {
           {/* Modules */}
           <div className="space-y-6">
             <div>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Cash to own</p>
+              <CashToOwnStrip priceLkr={price} financeClass={financeClass} />
+            </div>
+            <div>
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Lease scenario</p>
-              <LeaseCalculator price={price} />
+              <LeaseCalculator price={price} financeClass={financeClass} />
             </div>
             <div>
               <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Import duty & tax</p>

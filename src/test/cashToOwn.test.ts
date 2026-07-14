@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   CBSL_LTV_CAPS,
+  VEHICLE_FINANCE_CLASSES,
   computeCashToOwn,
   estimateInsuranceAnnual,
   getFinanceClassLabel,
   inferFinanceClass,
+  minCashDownForPrice,
   minDownPaymentPctForClass,
+  sortListingsByAffordability,
 } from "@/lib/cashToOwn";
 
 describe("cashToOwn", () => {
@@ -51,5 +54,25 @@ describe("cashToOwn", () => {
     expect(minDownPaymentPctForClass("registered_used")).toBe(40);
     expect(getFinanceClassLabel("registered_used")).toMatch(/Registered used/i);
     expect(estimateInsuranceAnnual(10_000_000)).toBeGreaterThanOrEqual(80_000);
+    expect(VEHICLE_FINANCE_CLASSES).toContain("registered_used");
+  });
+
+  it("returns min cash down for a price under registered_used default", () => {
+    expect(minCashDownForPrice(10_000_000)).toBe(4_000_000);
+    expect(minCashDownForPrice(50_000)).toBeNull();
+  });
+
+  it("sorts listings by ascending min cash down with deal_score tie-break", () => {
+    const ranked = sortListingsByAffordability([
+      { id: 1, price_lkr: 12_000_000, deal_score: 9 },
+      { id: 2, price_lkr: 8_000_000, deal_score: 11 },
+      { id: 3, price_lkr: 8_000_000, deal_score: 14 },
+      { id: 4, price_lkr: 50_000, deal_score: 20 },
+    ]);
+
+    expect(ranked.map((l) => l.id)).toEqual([3, 2, 1, 4]);
+    expect(minCashDownForPrice(ranked[0].price_lkr!)).toBeLessThan(
+      minCashDownForPrice(ranked[2].price_lkr!)!,
+    );
   });
 });

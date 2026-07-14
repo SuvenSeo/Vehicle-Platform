@@ -11,6 +11,7 @@ import { VehicleThumbnail } from '@/components/VehicleThumbnail';
 import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { toast } from 'sonner';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
+import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
 import { CashToOwnStrip } from '@/components/CashToOwnStrip';
@@ -314,6 +315,11 @@ export default function ListingDetail() {
                 <Info className="mt-0.5 h-3 w-3 shrink-0" />
                 <span>Median: <span className="num font-semibold text-foreground">{formatPrice(listing.market_median_lkr || (hasPrice ? listingPrice : null))}</span></span>
               </div>
+              {hasPrice &&
+                Number.isFinite(Number(listing.market_median_lkr)) &&
+                Number(listing.market_median_lkr) > 0 && (
+                  <DealLadder askingPrice={listingPrice} marketMedianLkr={Number(listing.market_median_lkr)} />
+                )}
             </div>
 
             {/* Seller */}

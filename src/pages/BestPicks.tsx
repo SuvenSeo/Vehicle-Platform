@@ -6,9 +6,12 @@ import type { CarListing, FilterState } from "@/types/car";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
+import { minCashDownForPrice, sortListingsByAffordability } from "@/lib/cashToOwn";
 
 const PICKS_PAGES = 4;
 const MIN_DEAL_SCORE = 8;
+
+export type BestPicksSortMode = "deal_score" | "affordability";
 
 function dealBand(score: number): "elite" | "strong" | "watch" {
   if (score >= 15) return "elite";
@@ -32,10 +35,24 @@ function dealMeter(score: number): string {
   return dealBand(score) === "watch" ? "bg-primary/60" : "bg-emerald-500/60";
 }
 
+function sortPicks(listings: CarListing[], mode: BestPicksSortMode): CarListing[] {
+  switch (mode) {
+    case "affordability":
+      return sortListingsByAffordability(listings, "registered_used");
+    case "deal_score":
+      return [...listings].sort((a, b) => Number(b.deal_score || 0) - Number(a.deal_score || 0));
+    default: {
+      const _exhaustive: never = mode;
+      return _exhaustive;
+    }
+  }
+}
+
 export default function BestPicks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [picks, setPicks] = useState<CarListing[]>([]);
+  const [sortMode, setSortMode] = useState<BestPicksSortMode>("deal_score");
 
   useEffect(() => {
     let cancelled = false;
@@ -57,8 +74,13 @@ export default function BestPicks() {
     return () => { cancelled = true; };
   }, []);
 
-  const topScore = useMemo(() => picks.reduce((mx, l) => Math.max(mx, Number(l.deal_score || 0)), 0), [picks]);
-  const [featured, ...rest] = picks;
+  const ranked = useMemo(() => sortPicks(picks, sortMode), [picks, sortMode]);
+  const topScore = useMemo(() => ranked.reduce((mx, l) => Math.max(mx, Number(l.deal_score || 0)), 0), [ranked]);
+  const [featured, ...rest] = ranked;
+  const rankCaption =
+    sortMode === "affordability"
+      ? "ranked by min cash down (CBSL LTV)"
+      : "ranked by deal strength";
 
   return (
     <div className="min-h-screen">
@@ -67,8 +89,34 @@ export default function BestPicks() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Best picks</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Deal-score picks.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-            {loading ? "Scanning inventory..." : `${picks.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ranked by deal strength.`}
+            {loading ? "Scanning inventory..." : `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`}
           </p>
+          {!loading && !error && picks.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Sort best picks">
+              <button
+                type="button"
+                onClick={() => setSortMode("deal_score")}
+                className={`rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                  sortMode === "deal_score"
+                    ? "border-[var(--gold)]/40 bg-[var(--gold)]/10 text-[var(--gold)]"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Deal score
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortMode("affordability")}
+                className={`rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                  sortMode === "affordability"
+                    ? "border-[var(--gold)]/40 bg-[var(--gold)]/10 text-[var(--gold)]"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Affordability
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -86,7 +134,7 @@ export default function BestPicks() {
             <p className="text-[13px] text-muted-foreground">{error}</p>
             <Link to="/#market" className="rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground no-underline hover:bg-foreground/[0.03]">Open inventory</Link>
           </div>
-        ) : picks.length === 0 ? (
+        ) : ranked.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
             <TrendingUp className="h-5 w-5 text-muted-foreground" />
             <p className="text-[13px] text-muted-foreground">No vehicles meet the deal-score gate right now.</p>
@@ -98,6 +146,7 @@ export default function BestPicks() {
             {featured && (() => {
               const score = Number(featured.deal_score || 0);
               const pct = topScore > 0 ? Math.min(100, Math.round((score / topScore) * 100)) : 0;
+              const cashDown = minCashDownForPrice(Number(featured.price_lkr || 0));
               return (
                 <article className="grid overflow-hidden rounded-xl border border-border bg-card lg:grid-cols-[1.1fr_1fr]">
                   <Link to={`/listing/${featured.id}`} className="block aspect-[16/10] overflow-hidden bg-black/30 no-underline lg:aspect-auto lg:min-h-[300px]">
@@ -117,7 +166,11 @@ export default function BestPicks() {
                       </Link>
                       <div className="flex items-baseline justify-between border-t border-border pt-3">
                         <p className="num text-2xl font-bold text-foreground">{formatPrice(Number(featured.price_lkr || 0))}</p>
-                        <p className="num text-[12px] font-bold text-emerald-400">+{score.toFixed(0)} deal</p>
+                        {sortMode === "affordability" && cashDown != null ? (
+                          <p className="num text-[12px] font-bold text-[var(--gold)]">{formatPrice(cashDown)} down</p>
+                        ) : (
+                          <p className="num text-[12px] font-bold text-emerald-400">+{score.toFixed(0)} deal</p>
+                        )}
                       </div>
                       <div className="h-1 overflow-hidden rounded-full bg-secondary/50">
                         <div className={`h-full rounded-full ${dealMeter(score)}`} style={{ width: `${pct}%` }} />
@@ -140,13 +193,16 @@ export default function BestPicks() {
             {rest.length > 0 && (
               <div>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Ranked picks</h3>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {sortMode === "affordability" ? "Lowest cash down" : "Ranked picks"}
+                  </h3>
                   <span className="text-[10px] text-muted-foreground num">{rest.length} more</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {rest.map((listing, idx) => {
                     const score = Number(listing.deal_score || 0);
                     const pct = topScore > 0 ? Math.min(100, Math.round((score / topScore) * 100)) : 0;
+                    const cashDown = minCashDownForPrice(Number(listing.price_lkr || 0));
                     return (
                       <article key={listing.id} className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-border">
                         <Link to={`/listing/${listing.id}`} className="relative block aspect-[16/10] overflow-hidden bg-black/30 no-underline">
@@ -164,7 +220,11 @@ export default function BestPicks() {
                           </Link>
                           <div className="flex items-baseline justify-between">
                             <span className="num text-base font-bold text-foreground">{formatPrice(Number(listing.price_lkr || 0))}</span>
-                            <span className="num text-[10px] font-bold text-emerald-400">+{score.toFixed(0)}</span>
+                            {sortMode === "affordability" && cashDown != null ? (
+                              <span className="num text-[10px] font-bold text-[var(--gold)]">{formatPrice(cashDown)} down</span>
+                            ) : (
+                              <span className="num text-[10px] font-bold text-emerald-400">+{score.toFixed(0)}</span>
+                            )}
                           </div>
                           <div className="mt-auto h-1 overflow-hidden rounded-full bg-secondary/50">
                             <div className={`h-full rounded-full ${dealMeter(score)}`} style={{ width: `${pct}%` }} />

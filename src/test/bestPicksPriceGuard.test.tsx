@@ -1,5 +1,5 @@
 import { TestRouter } from "@/test/testUtils";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services/api", () => ({
@@ -38,8 +38,10 @@ describe("BestPicks price guard", () => {
         makeListing(1, "Zero", "Price", 0, 13),
         makeListing(2, "Tiny", "Price", 42_000, 16),
         makeListing(3, "Toyota", "Corolla", 8_700_000, 11),
+        makeListing(4, "Honda", "Fit", 6_000_000, 10),
+        makeListing(5, "BMW", "X5", 18_000_000, 15),
       ],
-      total: 3,
+      total: 5,
     }));
   });
 
@@ -56,5 +58,25 @@ describe("BestPicks price guard", () => {
     expect(screen.queryByText(/Tiny Price/i)).not.toBeInTheDocument();
     expect(screen.getByText(/vehicles scored/i)).toBeInTheDocument();
     expect(screen.getByText(/ranked by deal strength/i)).toBeInTheDocument();
+  });
+
+  it("re-ranks high deal_score listings by affordability cash down", async () => {
+    render(
+      <TestRouter>
+        <BestPicks />
+      </TestRouter>,
+    );
+
+    await screen.findByText(/BMW X5/i);
+    // Default deal_score mode: highest score featured first.
+    expect(screen.getByRole("heading", { name: /BMW X5/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Affordability/i }));
+
+    expect(await screen.findByText(/ranked by min cash down/i)).toBeInTheDocument();
+    // Lowest ask among gate survivors (Honda Fit) should feature under affordability.
+    const headings = screen.getAllByRole("heading", { level: 2 });
+    expect(headings[0]).toHaveTextContent(/Honda Fit/i);
+    expect(screen.getByText(/Lowest cash down/i)).toBeInTheDocument();
   });
 });
