@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
+import { CashToOwnStrip } from '@/components/CashToOwnStrip';
+import { inferFinanceClass } from '@/lib/cashToOwn';
 
 function formatToken(value: string | null | undefined): string {
   if (!value) return 'Unknown';
@@ -261,8 +263,25 @@ export default function ListingDetail() {
             {hasPrice && (
               <div>
                 <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Ownership planning</p>
+                <div className="mb-3">
+                  <CashToOwnStrip
+                    priceLkr={listingPrice}
+                    financeClass={inferFinanceClass({
+                      condition: listing.condition,
+                      fuelType: listing.fuel_type,
+                      year: listing.year,
+                    })}
+                  />
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <LeaseCalculator price={listingPrice} />
+                  <LeaseCalculator
+                    price={listingPrice}
+                    financeClass={inferFinanceClass({
+                      condition: listing.condition,
+                      fuelType: listing.fuel_type,
+                      year: listing.year,
+                    })}
+                  />
                   <TaxBreakdown price={listingPrice} engineCapacity={typeof listing.engine_cc === 'number' ? listing.engine_cc : undefined} />
                 </div>
               </div>

@@ -1,8 +1,21 @@
 import { useState } from "react";
 import { formatPrice } from "@/services/api";
+import {
+  CBSL_LTV_CAPS,
+  getFinanceClassLabel,
+  minDownPaymentPctForClass,
+  type VehicleFinanceClass,
+} from "@/lib/cashToOwn";
 
-export function LeaseCalculator({ price }: { price: number }) {
-  const [downPaymentPct, setDownPaymentPct] = useState(30);
+export function LeaseCalculator({
+  price,
+  financeClass = "registered_used",
+}: {
+  price: number;
+  financeClass?: VehicleFinanceClass;
+}) {
+  const ltvMinDown = minDownPaymentPctForClass(financeClass);
+  const [downPaymentPct, setDownPaymentPct] = useState(() => Math.max(30, ltvMinDown));
   const [interestRate, setInterestRate] = useState(15);
   const [years, setYears] = useState(5);
 
@@ -10,6 +23,8 @@ export function LeaseCalculator({ price }: { price: number }) {
   const principal = price - downPayment;
   const monthlyInterestRate = (interestRate / 100) / 12;
   const numberOfPayments = years * 12;
+  const financedShare = 1 - downPaymentPct / 100;
+  const exceedsLtv = financedShare > CBSL_LTV_CAPS[financeClass] + 0.001;
 
   const monthlyPayment =
     monthlyInterestRate === 0
@@ -21,8 +36,11 @@ export function LeaseCalculator({ price }: { price: number }) {
 
   return (
     <div className="page-panel space-y-6 rounded-xl p-6">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-1">
         <h3 className="field-label text-foreground">Lease payment calculator</h3>
+        <p className="text-[10px] text-muted-foreground">
+          CBSL-oriented max LTV {Math.round(CBSL_LTV_CAPS[financeClass] * 100)}% · {getFinanceClassLabel(financeClass)}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 border-b border-border pb-6">
@@ -81,6 +99,13 @@ export function LeaseCalculator({ price }: { price: number }) {
           <span className="text-sm font-medium text-foreground num">{formatPrice(totalInterest)}</span>
         </div>
       </div>
+
+      {exceedsLtv ? (
+        <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90">
+          Financed share exceeds typical CBSL LTV for this class. Raise down payment to at least{" "}
+          {ltvMinDown}% (about {formatPrice(price * (ltvMinDown / 100))}) for a realistic cash gap.
+        </p>
+      ) : null}
 
       <div className="pt-2">
         <div className="flex flex-col rounded-xl border border-primary/20 bg-primary/10 p-5 sm:flex-row sm:items-center sm:justify-between">
