@@ -14,6 +14,7 @@ import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
 import { CashToOwnStrip } from '@/components/CashToOwnStrip';
+import { HybridCliffBadge } from '@/components/HybridCliffBadge';
 import { inferFinanceClass } from '@/lib/cashToOwn';
 
 function formatToken(value: string | null | undefined): string {
@@ -294,6 +295,9 @@ export default function ListingDetail() {
             <div className="rounded-xl border border-border bg-card p-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Asking price</p>
               <p className="num mt-2 text-3xl font-bold tracking-tight text-foreground">{hasPrice ? formatPrice(listingPrice) : 'Unlisted'}</p>
+              <div className="mt-3">
+                <HybridCliffBadge fuelType={listing.fuel_type} engineCc={listing.engine_cc} />
+              </div>
               <div className="mt-4 flex items-center gap-3">
                 <FairPriceIndicator score={dealScore} condition={listing.condition} size="lg" className="num" />
                 <span className={`num text-[11px] font-bold ${dealTone}`}>{dealDelta}</span>

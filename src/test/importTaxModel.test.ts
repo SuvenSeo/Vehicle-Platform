@@ -94,3 +94,17 @@ describe("isAtHybridExciseCliff", () => {
     expect(isAtHybridExciseCliff(1600)).toBe(false);
   });
 });
+
+describe("getHybridCliffBadge", () => {
+  it("returns null for non-hybrid fuels or missing cc", () => {
+    expect(getHybridCliffBadge("petrol", 1500)).toBeNull();
+    expect(getHybridCliffBadge("hybrid", null)).toBeNull();
+  });
+
+  it("labels tax-safe, near-cliff, and above-cliff hybrids", () => {
+    expect(getHybridCliffBadge("hybrid", 1200)?.kind).toBe("tax_safe");
+    expect(getHybridCliffBadge("plugin_hybrid", 1490)?.kind).toBe("at_cliff");
+    expect(getHybridCliffBadge("hybrid", 1790)?.kind).toBe("above_cliff");
+    expect(getHybridCliffBadge("hybrid", 1790)?.label).toMatch(/1790/);
+  });
+});

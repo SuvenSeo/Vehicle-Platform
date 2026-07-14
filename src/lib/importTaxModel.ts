@@ -139,6 +139,51 @@ export function isAtHybridExciseCliff(engineCc: number, toleranceCc = 50): boole
   return Math.abs(cc - HYBRID_EXCISE_CLIFF_CC) <= toleranceCc;
 }
 
+export type HybridCliffBadgeKind = "tax_safe" | "at_cliff" | "above_cliff";
+
+export interface HybridCliffBadgeInfo {
+  kind: HybridCliffBadgeKind;
+  label: string;
+  detail: string;
+  engineCc: number;
+}
+
+function isHybridFuel(fuelType: string | null | undefined): boolean {
+  const fuel = String(fuelType || "").toLowerCase();
+  return fuel.includes("hybrid") || fuel === "phev" || fuel.includes("plugin");
+}
+
+/** Classify a listing for hybrid excise cliff messaging (import planning). */
+export function getHybridCliffBadge(
+  fuelType: string | null | undefined,
+  engineCc: number | null | undefined,
+): HybridCliffBadgeInfo | null {
+  if (!isHybridFuel(fuelType)) return null;
+  const cc = Number(engineCc);
+  if (!Number.isFinite(cc) || cc <= 0) return null;
+
+  const insight = getHybridExciseCliffInsight();
+
+  if (cc <= HYBRID_EXCISE_CLIFF_CC) {
+    const nearCliff = cc >= HYBRID_EXCISE_CLIFF_CC - 50;
+    return {
+      kind: nearCliff ? "at_cliff" : "tax_safe",
+      label: nearCliff ? "Near 1,500cc cliff" : "Tax-safe ≤1,500cc HV",
+      detail: nearCliff
+        ? `Hybrid at ${cc.toLocaleString()}cc sits at the preferred ≤${HYBRID_EXCISE_CLIFF_CC}cc excise band (≈ Rs. ${insight.rateAtOrBelowCliff.toLocaleString()}/cc). Crossing adds roughly Rs. ${Math.round(insight.exciseStepUp / 1_000_000)}M+.`
+        : `Hybrid ${cc.toLocaleString()}cc is inside the ≤${HYBRID_EXCISE_CLIFF_CC}cc band (≈ Rs. ${insight.rateAtOrBelowCliff.toLocaleString()}/cc).`,
+      engineCc: cc,
+    };
+  }
+
+  return {
+    kind: "above_cliff",
+    label: `Cliff: ${cc.toLocaleString()}cc`,
+    detail: `Hybrid above ${HYBRID_EXCISE_CLIFF_CC}cc moves to ≈ Rs. ${insight.rateAboveCliff.toLocaleString()}/cc. Prefer a ≤${HYBRID_EXCISE_CLIFF_CC}cc alternative when import tax matters.`,
+    engineCc: cc,
+  };
+}
+
 export function computeImportTaxes(input: ImportTaxInput): ImportTaxResult {
   const cif = Math.max(0, Number(input.cifLkr) || 0);
 

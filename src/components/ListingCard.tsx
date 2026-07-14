@@ -12,6 +12,7 @@ import {
   getListingImageUrl,
   getListingRecencyLabel,
 } from "@/lib/listing-card-meta";
+import { HybridCliffBadge } from "@/components/HybridCliffBadge";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -178,6 +179,12 @@ export const ListingCard = memo(function ListingCard({
             <span>{formatToken(listing.fuel_type)}</span>
             <span className="num">{formatEngineCc(listing.engine_cc)}</span>
           </div>
+          <HybridCliffBadge
+            fuelType={listing.fuel_type}
+            engineCc={listing.engine_cc}
+            compact
+            className="self-start"
+          />
 
           {/* Market position bar */}
           <div className="rounded-xl border border-border bg-surface p-3">
