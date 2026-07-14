@@ -13,6 +13,7 @@ import {
   getListingRecencyLabel,
 } from "@/lib/listing-card-meta";
 import { HybridCliffBadge } from "@/components/HybridCliffBadge";
+import { MileageTrustChip } from "@/components/MileageTrustChip";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -184,6 +185,11 @@ export const ListingCard = memo(function ListingCard({
             engineCc={listing.engine_cc}
             compact
             className="self-start"
+          />
+          <MileageTrustChip
+            mileageKm={listing.mileage_km}
+            year={listing.year}
+            className="self-start !px-1.5 !py-0.5 !text-[9px]"
           />
 
           {/* Market position bar */}
