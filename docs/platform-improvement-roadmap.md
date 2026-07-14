@@ -41,18 +41,24 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 - ESLint / audit / browserslist; `.env.example`; `utc_now()` + Pydantic `ConfigDict`
 - True district medians; MoM "Building history"; freshness UX; Dealer dashboard live APIs
 
-## Remaining (future work)
+## Completed — Market decision features (`cursor/market-decision-features-2000`)
+
+- Cash-to-own CBSL LTV strip + LeaseCalculator LTV warnings
+- Hybrid 1,500cc excise cliff badges on cards/detail
+- Mileage trust anomaly chips (km/year vs cohort)
+- Public import-era cohorts + Pro arbitrage teaser on Trends
+
+## Remaining (ops activation)
 
 | Item | Notes |
 |------|-------|
-| Province-level heatmap | District velocity done; aggregate to Western/Southern provinces |
+| Flip Pro enforcement in deploy | Set `PRO_ACCESS_ENFORCED=true` (HF) + `VITE_PRO_ACCESS_ENFORCED=true` (Vercel) |
+| Live weekly digest email | Add GitHub secrets `SENDGRID_API_KEY` + `DIGEST_RECIPIENTS` |
+| Province-level heatmap | District velocity done; aggregate provinces |
 | Full i18n coverage | Foundation only — extend to all pages |
-| Live weekly digest email | Scaffold exists; needs `SENDGRID_API_KEY` + production recipients |
-| `PRO_ACCESS_ENFORCED=true` on HF/Vercel | Code ready; flip env in deployment |
 | Redis pub/sub for SSE | Connection cap in place; full Redis fan-out optional |
 | Physical thumbnail download | CDN proxy URLs stored; binary cache optional |
 | `httpx2` migration | Wait for stable release |
-| DB migration for `thumbnail_url_cached` | `ALTER TABLE car_listings ADD COLUMN thumbnail_url_cached TEXT` on prod |
 
 ## Nightly CI pipeline (`market-analysis` job)
 
