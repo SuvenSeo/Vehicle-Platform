@@ -48,13 +48,19 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 - Mileage trust anomaly chips (km/year vs cohort)
 - Public import-era cohorts + Pro arbitrage teaser on Trends
 
+## Completed — Decision wave 2 (`cursor/decision-wave2-2000`)
+
+- Province-level demand velocity heatmap on Dashboard
+- Deal Ladder (“cut X to Good Deal”) on listing detail
+- Cash-to-own finance class on Calculator page
+- Best Picks Affordability sort (min cash-down under LTV)
+
 ## Remaining (ops activation)
 
 | Item | Notes |
 |------|-------|
 | Flip Pro enforcement in deploy | Set `PRO_ACCESS_ENFORCED=true` (HF) + `VITE_PRO_ACCESS_ENFORCED=true` (Vercel) |
 | Live weekly digest email | Add GitHub secrets `SENDGRID_API_KEY` + `DIGEST_RECIPIENTS` |
-| Province-level heatmap | District velocity done; aggregate provinces |
 | Full i18n coverage | Foundation only — extend to all pages |
 | Redis pub/sub for SSE | Connection cap in place; full Redis fan-out optional |
 | Physical thumbnail download | CDN proxy URLs stored; binary cache optional |
