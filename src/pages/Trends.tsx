@@ -3,6 +3,7 @@ import { getMakes, getModels, getPriceTrendSeries, getHybridBands, formatPrice }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
+import { ImportEraPublicSection } from "@/components/ImportEraPublicSection";
 import { RotateCcw, Zap } from "lucide-react";
 import type { HybridBandsData, PriceTrendPoint } from "@/types/car";
 import {
@@ -179,6 +180,8 @@ export default function Trends() {
           loading={hybridLoading}
           error={hybridError}
         />
+
+        <ImportEraPublicSection />
       </div>
     </div>
   );
