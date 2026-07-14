@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeImportTaxes,
   getExciseRatePerCc,
+  getHybridCliffBadge,
   getHybridExciseCliffInsight,
   HYBRID_EXCISE_CLIFF_CC,
   isAtHybridExciseCliff,
