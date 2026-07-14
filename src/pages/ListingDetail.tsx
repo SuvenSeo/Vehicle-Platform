@@ -17,6 +17,8 @@ import { TaxBreakdown } from '@/components/TaxBreakdown';
 import { CashToOwnStrip } from '@/components/CashToOwnStrip';
 import { HybridCliffBadge } from '@/components/HybridCliffBadge';
 import { MileageTrustChip } from '@/components/MileageTrustChip';
+import { SellSpeedChip } from '@/components/SellSpeedChip';
+import { AdvertHealthChip } from '@/components/AdvertHealthChip';
 import { inferFinanceClass } from '@/lib/cashToOwn';
 
 function formatToken(value: string | null | undefined): string {
@@ -300,6 +302,8 @@ export default function ListingDetail() {
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <HybridCliffBadge fuelType={listing.fuel_type} engineCc={listing.engine_cc} />
                 <MileageTrustChip mileageKm={listing.mileage_km} year={listing.year} />
+                <SellSpeedChip listing={listing} />
+                <AdvertHealthChip listing={listing} />
               </div>
               <div className="mt-4 flex items-center gap-3">
                 <FairPriceIndicator score={dealScore} condition={listing.condition} size="lg" className="num" />
