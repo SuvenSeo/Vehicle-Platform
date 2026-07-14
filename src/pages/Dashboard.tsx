@@ -51,6 +51,9 @@ import { MobileFilterSheet } from "@/components/MobileFilterSheet";
 const DistrictVelocityMap = lazy(() =>
   import("@/components/DistrictVelocityMap").then((m) => ({ default: m.DistrictVelocityMap }))
 );
+const ProvinceVelocityStrip = lazy(() =>
+  import("@/components/ProvinceVelocityStrip").then((m) => ({ default: m.ProvinceVelocityStrip }))
+);
 
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
 
@@ -807,10 +810,16 @@ export default function Dashboard() {
                 </div>
               }
             >
-              <DistrictVelocityMap
-                data={velocityQuery.data?.points ?? []}
-                isLoading={velocityQuery.isPending}
-              />
+              <div className="space-y-4">
+                <ProvinceVelocityStrip
+                  data={velocityQuery.data?.points ?? []}
+                  isLoading={velocityQuery.isPending}
+                />
+                <DistrictVelocityMap
+                  data={velocityQuery.data?.points ?? []}
+                  isLoading={velocityQuery.isPending}
+                />
+              </div>
             </Suspense>
           </div>
 
