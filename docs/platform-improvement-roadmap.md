@@ -55,6 +55,12 @@ Last updated: 2026-07-13. Live inventory baseline: **131,913 listings** across *
 - Cash-to-own finance class on Calculator page
 - Best Picks Affordability sort (min cash-down under LTV)
 
+## Completed — Decision wave 3 (`cursor/decision-wave3-2000`)
+
+- Sell-speed rating chip on listing detail
+- Advert merchandising health chip on listing detail
+- Private-seller fair-ask pack (ask / walkaway / dealer band + WhatsApp copy) on Estimate
+
 ## Remaining (ops activation)
 
 | Item | Notes |
