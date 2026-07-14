@@ -40,7 +40,7 @@ export function computeMileageTrust(input: MileageTrustInput): MileageTrustResul
     };
   }
 
-  if (!Number.isFinite(mileage) || mileage < 0) {
+  if (input.mileageKm == null || !Number.isFinite(mileage) || mileage < 0) {
     return {
       risk: "unknown",
       label: "Mileage unverified",
