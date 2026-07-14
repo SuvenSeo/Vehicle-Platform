@@ -39,7 +39,7 @@ describe("ListingCard footer metadata", () => {
     // first_seen_at is now, so the card reports it was listed today.
     expect(screen.getByText(/listed today/i)).toBeInTheDocument();
     expect(screen.queryByText(/\/100/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/cc/i)).toBeInTheDocument();
+    expect(screen.getByText(/1,?496\s*cc/i)).toBeInTheDocument();
   });
 
   it("reports day counts for older listings", () => {

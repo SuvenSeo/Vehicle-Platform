@@ -103,6 +103,11 @@ vi.mock("@/services/api", () => ({
   getModels: vi.fn().mockResolvedValue([{ model: "Aqua", count: 5 }]),
   getPriceTrendSeries: vi.fn().mockResolvedValue({ points: [], coverage_note: null }),
   getHybridBands: vi.fn(),
+  getImportEraSplit: vi.fn().mockResolvedValue({
+    makes: [],
+    freeze_boundary_year: 2025,
+    generated_at: "2026-07-14T00:00:00Z",
+  }),
   formatPrice: (v: number | null) => (v == null ? "N/A" : `Rs. ${(v / 1_000_000).toFixed(1)}M`),
 }));
 
