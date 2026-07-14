@@ -4,6 +4,7 @@ import { PriceEstimate, PriceTrendPoint } from "@/types/car";
 import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { SellerFairAskCard } from "@/components/SellerFairAskCard";
 import { AlertTriangle, BarChart3, Gauge, ShieldCheck, TrendingUp } from "lucide-react";
 
 type EstimateForm = {
@@ -321,6 +322,13 @@ export default function Estimate() {
                     </p>
                   )}
                 </div>
+
+                <SellerFairAskCard
+                  marketMedian={result.median}
+                  make={form.make}
+                  model={form.model}
+                  year={form.year}
+                />
 
                 {/* Methodology */}
                 <div className="rounded-lg border border-border bg-surface p-4">
