@@ -205,12 +205,19 @@ export default function Calculator() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold tracking-wide transition-all ${
+                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold tracking-wide transition-colors z-10 ${
                   activeTab === tab.id
-                    ? "bg-primary text-black font-bold shadow-md shadow-primary/20"
-                    : "text-muted-foreground hover:text-white hover:bg-white/[0.02]"
+                    ? "text-black font-bold"
+                    : "text-muted-foreground hover:text-white"
                 }`}
               >
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="active-tab-indicator"
+                    className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-md shadow-primary/20"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
                 <Icon className="h-3.5 w-3.5" />
                 {tab.label}
               </button>

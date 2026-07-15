@@ -208,8 +208,11 @@ export function computeImportTaxes(input: ImportTaxInput): ImportTaxResult {
   const luxuryExcess = Math.max(0, cif - luxury.thresholdLkr);
   const luxuryTax = luxuryExcess * luxury.rateOnExcess;
 
-  // Luxury tax is levied on the CIF excess and is not part of the VAT base.
-  const vat = (cif + cid + surcharge + excise) * VAT_RATE;
+  // SSCL (2.5%) on (CIF + CID + Surcharge + Excise)
+  const sscl = (cif + cid + surcharge + excise) * 0.025;
+
+  // VAT (18%) on top of duty-inclusive + SSCL base
+  const vat = (cif + cid + surcharge + excise + sscl) * VAT_RATE;
 
   const lines: ImportTaxLine[] = [
     { key: "cid", label: `Customs Import Duty (${Math.round(CID_RATE * 100)}%)`, amount: cid },
@@ -220,7 +223,8 @@ export function computeImportTaxes(input: ImportTaxInput): ImportTaxResult {
       amount: excise,
       note: exciseNote,
     },
-    { key: "vat", label: `VAT (${Math.round(VAT_RATE * 100)}% on duty-inclusive value)`, amount: vat },
+    { key: "sscl", label: "SSCL Levy (2.5%)", amount: sscl },
+    { key: "vat", label: `VAT (${Math.round(VAT_RATE * 100)}% on duty-inclusive + SSCL base)`, amount: vat },
   ];
 
   if (luxuryTax > 0) {

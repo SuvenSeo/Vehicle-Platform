@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
   Share2, Fuel, Gauge, Settings2, Info, MessageCircle,
-  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database
+  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
 } from 'lucide-react';
 import { getListing, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
 import type { CarListing, SellerTrustProfile } from '@/types/car';
@@ -316,12 +316,44 @@ export default function ListingDetail() {
             </motion.div>
 
             {/* Finance Dashboard widgets */}
-            {hasPrice && (
-              <motion.div variants={itemVariants} className="space-y-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership planning</p>
-                <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-md">
-                  <CashToOwnStrip
-                    priceLkr={listingPrice}
+            {hasPrice && (() => {
+              const isUnregistered = 
+                listing.condition === 'brand_new' || 
+                listing.condition === 'unregistered' || 
+                (typeof listing.year === 'number' && listing.year >= 2025);
+              const maxLtvPercent = isUnregistered ? 40 : 60;
+              const minEquityPercent = 100 - maxLtvPercent;
+              const minEquityLkr = listingPrice * (minEquityPercent / 100);
+              const maxLoanLkr = listingPrice * (maxLtvPercent / 100);
+
+              return (
+                <motion.div variants={itemVariants} className="space-y-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership planning</p>
+                  
+                  {/* CBSL LTV COMPLIANCE ALERT */}
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.02] p-4 flex gap-3.5 items-start backdrop-blur-md">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1 w-full">
+                      <h4 className="text-xs font-bold text-white">CBSL Loan-to-Value (LTV) Compliance</h4>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-semibold">
+                        Under CBSL regulations, {isUnregistered ? 'unregistered / brand new imports' : 'registered used vehicles'} are capped at <span className="text-white font-bold">{maxLtvPercent}% LTV</span>.
+                      </p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/90">
+                        <div className="rounded-lg bg-white/[0.01] border border-white/5 p-2.5">
+                          <span className="text-amber-400">Min Down Payment ({minEquityPercent}%)</span>
+                          <p className="text-sm font-bold text-white mt-1 num">Rs. {minEquityLkr.toLocaleString()}</p>
+                        </div>
+                        <div className="rounded-lg bg-white/[0.01] border border-white/5 p-2.5">
+                          <span>Max Allowable Loan ({maxLtvPercent}%)</span>
+                          <p className="text-sm font-bold text-white mt-1 num">Rs. {maxLoanLkr.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-md">
+                    <CashToOwnStrip
+                      priceLkr={listingPrice}
                     financeClass={inferFinanceClass({
                       condition: listing.condition,
                       fuelType: listing.fuel_type,
@@ -345,7 +377,8 @@ export default function ListingDetail() {
                   </div>
                 </div>
               </motion.div>
-            )}
+            )
+          })()}
           </div>
 
           {/* ── SIDEBAR ───────────────────────────────────────── */}

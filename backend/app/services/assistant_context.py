@@ -206,6 +206,58 @@ def _listing_id_from_page_context(page_context: Dict[str, Any]) -> Optional[int]
         return None
 
 
+import time
+
+# Simple in-memory cache with 5-minute TTL to prevent distinct queries on every message
+_METADATA_CACHE = {
+    "makes": None,
+    "districts": None,
+    "sources": None,
+    "models": {},
+    "updated_at": 0
+}
+CACHE_TTL_SECONDS = 300
+
+def _get_cached_metadata(db: Session):
+    global _METADATA_CACHE
+    now = time.time()
+    if (
+        _METADATA_CACHE["makes"] is None or 
+        _METADATA_CACHE["districts"] is None or 
+        _METADATA_CACHE["sources"] is None or 
+        now - _METADATA_CACHE["updated_at"] > CACHE_TTL_SECONDS
+    ):
+        makes = [m[0] for m in db.query(CarListing.make).filter(CarListing.make.isnot(None)).distinct().all()]
+        districts = [d[0] for d in db.query(CarListing.district).filter(CarListing.district.isnot(None)).distinct().all()]
+        sources = [s[0] for s in db.query(CarListing.source).filter(CarListing.source.isnot(None)).distinct().all()]
+        
+        _METADATA_CACHE["makes"] = makes
+        _METADATA_CACHE["districts"] = districts
+        _METADATA_CACHE["sources"] = sources
+        _METADATA_CACHE["updated_at"] = now
+        _METADATA_CACHE["models"] = {}
+        
+    return _METADATA_CACHE["makes"], _METADATA_CACHE["districts"], _METADATA_CACHE["sources"]
+
+def _get_cached_models(db: Session, make: str):
+    global _METADATA_CACHE
+    now = time.time()
+    make_key = make.lower()
+    if (
+        make_key not in _METADATA_CACHE["models"] or
+        now - _METADATA_CACHE["updated_at"] > CACHE_TTL_SECONDS
+    ):
+        model_choices = [
+            m[0]
+            for m in db.query(CarListing.model)
+            .filter(CarListing.model.isnot(None), func.lower(CarListing.make) == make_key)
+            .distinct()
+            .all()
+        ]
+        _METADATA_CACHE["models"][make_key] = model_choices
+    return _METADATA_CACHE["models"][make_key]
+
+
 def build_assistant_context(
     *,
     db: Session,
@@ -216,9 +268,7 @@ def build_assistant_context(
     intent = detect_intent(msg_l)
     safe_page_context = _sanitize_page_context(page_context)
 
-    makes = [m[0] for m in db.query(CarListing.make).filter(CarListing.make.isnot(None)).distinct().all()]
-    districts = [d[0] for d in db.query(CarListing.district).filter(CarListing.district.isnot(None)).distinct().all()]
-    sources = [s[0] for s in db.query(CarListing.source).filter(CarListing.source.isnot(None)).distinct().all()]
+    makes, districts, sources = _get_cached_metadata(db)
 
     district_choices = list({*(d for d in districts if d), *KNOWN_DISTRICTS})
     make_filter = _find_token(msg_l, makes)
@@ -229,13 +279,7 @@ def build_assistant_context(
 
     model_filter = None
     if make_filter:
-        model_choices = [
-            m[0]
-            for m in db.query(CarListing.model)
-            .filter(CarListing.model.isnot(None), func.lower(CarListing.make) == make_filter.lower())
-            .distinct()
-            .all()
-        ]
+        model_choices = _get_cached_models(db, make_filter)
         model_filter = _find_token(msg_l, model_choices)
 
     base = db.query(CarListing).filter(
