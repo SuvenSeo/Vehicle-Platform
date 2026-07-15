@@ -5,11 +5,11 @@ signed with AUTH_TOKEN_SECRET. Nothing is enabled unless both are set, so
 existing deployments keep working untouched.
 
 AUTH_USERS example:
-    [{"email": "owner@example.com", "password_sha256": "<hex>",
+    [{"email": "owner@example.com", "password_hash": "$2b$12$...",
       "name": "Owner", "plan": "enterprise", "subscription_status": "active"}]
 
 Generate a password hash with:
-    python -c "import hashlib; print(hashlib.sha256(b'your-password').hexdigest())"
+    python -c "import bcrypt; print(bcrypt.hashpw(b'your-password', bcrypt.gensalt()).decode())"
 
 Set PRO_ACCESS_ENFORCED=true to require a valid pro/enterprise token on all
 /api/v1/pro/* endpoints (default: off / public, matching prior behaviour).
@@ -22,6 +22,7 @@ import json
 import os
 import time
 from typing import Optional
+import bcrypt
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -62,6 +63,26 @@ def _token_ttl_seconds() -> int:
     return TOKEN_TTL_SECONDS_DEFAULT
 
 
+def _hash_password(password: str) -> str:
+    salt = bcrypt.gensalt(rounds=12)
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+
+def _verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        # Check if the hash looks like a bcrypt hash
+        if hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
+            return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        pass
+    # Fallback to unsalted SHA-256 for backward-compatibility transition
+    try:
+        supplied_hash = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+        return hmac.compare_digest(supplied_hash, hashed_password)
+    except Exception:
+        return False
+
+
 def _configured_users() -> dict[str, dict]:
     raw = os.getenv("AUTH_USERS", "").strip()
     if not raw:
@@ -78,16 +99,20 @@ def _configured_users() -> dict[str, dict]:
         if not isinstance(item, dict):
             continue
         email = str(item.get("email") or "").strip().lower()
-        password_sha256 = str(item.get("password_sha256") or "").strip().lower()
+        password_hash = str(item.get("password_hash") or item.get("password_sha256") or "").strip()
         plain_password = str(item.get("password") or "")
-        if not email or (not password_sha256 and not plain_password):
+        if not email or (not password_hash and not plain_password):
             continue
 
         plan = str(item.get("plan") or "pro").strip().lower()
         subscription_status = str(item.get("subscription_status") or "active").strip().lower()
+        
+        # If plain password is provided, hash it with bcrypt
+        final_hash = password_hash or _hash_password(plain_password)
+        
         users[email] = {
             "email": email,
-            "password_sha256": password_sha256 or hashlib.sha256(plain_password.encode()).hexdigest(),
+            "password_hash": final_hash,
             "name": str(item.get("name") or email.split("@")[0]),
             "plan": plan if plan in ALLOWED_PLANS else "pro",
             "subscription_status": subscription_status
@@ -163,9 +188,8 @@ def login(payload: LoginRequest, request: Request):
 
     email = payload.email.strip().lower()
     record = _configured_users().get(email)
-    supplied_hash = hashlib.sha256(payload.password.encode()).hexdigest()
 
-    if not record or not hmac.compare_digest(supplied_hash, record["password_sha256"]):
+    if not record or not _verify_password(payload.password, record["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     token, expires_at = issue_token(record["email"], record["plan"])
@@ -174,6 +198,7 @@ def login(payload: LoginRequest, request: Request):
         "token": token,
         "expires_at": expires_at,
     }
+
 
 
 @router.get("/me", response_model=dict)

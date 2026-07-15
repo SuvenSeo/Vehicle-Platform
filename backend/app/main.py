@@ -31,10 +31,12 @@ async def lifespan(app: FastAPI):
     try:
         await asyncio.wait_for(asyncio.to_thread(init_db), timeout=DB_INIT_TIMEOUT_SECONDS)
         logger.info("db_initialized")
-    except asyncio.TimeoutError:
-        logger.error("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError as e:
+        logger.critical("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
+        raise RuntimeError("Database initialization timed out. Aborting startup.") from e
     except Exception as e:
-        logger.error("db_init_failed", error=str(e))
+        logger.critical("db_init_failed", error=str(e))
+        raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
 
     try:
         start_daily_sync_scheduler()
@@ -88,6 +90,8 @@ def _probe_db() -> None:
         conn.execute(text("SELECT 1"))
 
 
+from fastapi.responses import JSONResponse
+
 @app.get("/health")
 async def health_check():
     # A cheap bounded read probe: a Space with a dead database must not
@@ -99,11 +103,15 @@ async def health_check():
         db_status = "down"
         logger.warning("health_db_probe_failed", error=str(exc))
 
-    return {
+    content = {
         "status": "ok" if db_status == "ok" else "degraded",
         "db": db_status,
         "version": "1.0.0",
     }
+    
+    if db_status != "ok":
+        return JSONResponse(status_code=503, content=content)
+    return content
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")

@@ -248,3 +248,40 @@ class MarketAlertMatch(Base):
     __table_args__ = (
         Index('idx_market_alert_matches_alert_id', 'alert_id'),
     )
+
+
+class ImportTaxConfig(Base):
+    __tablename__ = 'import_tax_configs'
+
+    id = Column(Integer, primary_key=True)
+    effective_from = Column(DateTime(timezone=True), nullable=False)
+    cid_rate = Column(Numeric(5, 4), nullable=False, default=0.20)
+    cid_surcharge_rate = Column(Numeric(5, 4), nullable=False, default=0.50)
+    sscl_rate = Column(Numeric(5, 4), nullable=False, default=0.025)
+    vat_rate = Column(Numeric(5, 4), nullable=False, default=0.18)
+    special_levy_2_5 = Column(Boolean, nullable=False, default=True)
+    surcharge_50 = Column(Boolean, nullable=False, default=True)
+    notes = Column(Text)
+
+
+class VehiclePermit(Base):
+    __tablename__ = 'vehicle_permits'
+
+    id = Column(Integer, primary_key=True)
+    permit_name = Column(String(100), nullable=False)
+    permit_type = Column(String(50), nullable=False)
+    market_price_lkr = Column(Numeric(15, 2), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+class VehiclePriceHistory(Base):
+    __tablename__ = 'vehicle_price_history'
+
+    id = Column(Integer, primary_key=True)
+    vehicle_id = Column(Integer, ForeignKey('car_listings.id', ondelete='CASCADE'), nullable=False)
+    price_lkr = Column(Numeric(15, 2), nullable=False)
+    scraped_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index('idx_vehicle_price_history_lookup', 'vehicle_id', 'scraped_at'),
+    )

@@ -37,7 +37,7 @@ _cold_raw = _cold_raw.strip()
 HOT_URL  = _normalise(_hot_raw)  if _hot_raw  else ""
 COLD_URL = _normalise(_cold_raw) if _cold_raw else ""
 
-allow_sqlite_fallback = os.getenv("ALLOW_SQLITE_FALLBACK", "true").lower() == "true"
+allow_sqlite_fallback = os.getenv("ALLOW_SQLITE_FALLBACK", "false").lower() == "true"
 
 if not HOT_URL and not COLD_URL:
     if not allow_sqlite_fallback:

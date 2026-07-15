@@ -30,7 +30,7 @@ def test_health_reports_degraded_when_db_probe_fails(monkeypatch):
     client = TestClient(main.app)
     response = client.get("/health")
 
-    assert response.status_code == 200
+    assert response.status_code == 503
     body = response.json()
     assert body["status"] == "degraded"
     assert body["db"] == "down"

@@ -5,10 +5,14 @@ on:
     - cron: "0 2 * * *"  # 2 AM UTC daily (7:30 AM Sri Lanka time)
   workflow_dispatch:
 
+concurrency:
+  group: daily-scrape-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scrape-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hours max per job
+    timeout-minutes: 45  # 45 minutes max per job
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +39,17 @@ jobs:
       - name: Install Playwright system dependencies
         run: python -m playwright install-deps chromium
 
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browser
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: python -m playwright install chromium
 
       - name: Validate scraper modules compile
@@ -92,20 +106,20 @@ jobs:
           SCRAPE_MAX_PAGES_SALEME: "20"
           SCRAPE_MAX_PAGES_RIYAHUB: "20"
           SCRAPE_MAX_PAGES_DIMO: "20"
-          # 6 hours timeout per source (21600s)
-          SCRAPE_SOURCE_TIMEOUT_SECONDS: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOLANKA: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTO_LANKA_SITE: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTODIRECT: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOSTREAM: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARSHOP: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "21600"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "21600"
+          # 30 minutes timeout per source (1800s)
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOLANKA: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTO_LANKA_SITE: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTODIRECT: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOSTREAM: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARSHOP: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "1800"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
@@ -123,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: scrape-source
     if: ${{ !cancelled() }}
-    timeout-minutes: 90
+    timeout-minutes: 30
 
     defaults:
       run:
@@ -163,7 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [scrape-source, market-analysis]
     if: ${{ !cancelled() && needs.market-analysis.result == 'success' }}
-    timeout-minutes: 90
+    timeout-minutes: 30
 
     defaults:
       run:

@@ -505,6 +505,37 @@ def _is_safe_external_fetch_url(value: Optional[str]) -> bool:
     return bool(addresses) and all(_is_public_network_address(address) for address in addresses)
 
 
+class SSRFSafeTransport(httpx.HTTPTransport):
+    def handle_request(self, request: httpx.Request, *args, **kwargs):
+        url = request.url
+        host = url.host
+        
+        try:
+            ip = ipaddress.ip_address(host)
+            if not _is_public_network_address(str(ip)):
+                raise httpx.ConnectError("Blocked unsafe IP connection (SSRF Prevention)")
+        except ValueError:
+            try:
+                infos = socket.getaddrinfo(host, url.port or (443 if url.scheme == "https" else 80), type=socket.SOCK_STREAM)
+                addresses = {info[4][0] for info in infos if info and info[4]}
+            except OSError as e:
+                raise httpx.ConnectError(f"DNS resolution failed for {host}") from e
+                
+            if not addresses:
+                raise httpx.ConnectError(f"No IP addresses resolved for {host}")
+                
+            for addr in addresses:
+                if not _is_public_network_address(addr):
+                    raise httpx.ConnectError(f"Blocked unsafe resolved address {addr} (SSRF Prevention)")
+            
+            resolved_ip = list(addresses)[0]
+            request.url = request.url.copy_with(host=resolved_ip)
+            request.extensions["sni_hostname"] = host
+            request.headers["Host"] = host
+
+        return super().handle_request(request, *args, **kwargs)
+
+
 def _checked_get(client: httpx.Client, url: str, *, timeout: float) -> httpx.Response:
     current = url
     for _ in range(MAX_FETCH_REDIRECTS + 1):
@@ -528,7 +559,7 @@ def _extract_thumbnail_from_detail(detail_url: Optional[str]) -> Optional[str]:
         return None
 
     try:
-        with httpx.Client(headers=IMAGE_HEADERS, follow_redirects=False, timeout=15) as client:
+        with httpx.Client(transport=SSRFSafeTransport(), headers=IMAGE_HEADERS, follow_redirects=False, timeout=15) as client:
             res = _checked_get(client, detail_url, timeout=15)
             res.raise_for_status()
             if len(res.content) > MAX_DETAIL_HTML_BYTES:
@@ -566,7 +597,7 @@ def _extract_thumbnail_from_detail(detail_url: Optional[str]) -> Optional[str]:
 
 
 def _download_image_bytes(image_url: str) -> tuple[bytes, str]:
-    with httpx.Client(headers=IMAGE_HEADERS, follow_redirects=False, timeout=20) as client:
+    with httpx.Client(transport=SSRFSafeTransport(), headers=IMAGE_HEADERS, follow_redirects=False, timeout=20) as client:
         res = _checked_get(client, image_url, timeout=20)
         res.raise_for_status()
 
@@ -1741,7 +1772,7 @@ def get_seller_profile(listing_id: int, db: Session = Depends(get_db)):
 
     if detail_url:
         try:
-            with httpx.Client(headers=IMAGE_HEADERS, follow_redirects=False, timeout=20) as client:
+            with httpx.Client(transport=SSRFSafeTransport(), headers=IMAGE_HEADERS, follow_redirects=False, timeout=20) as client:
                 response = _checked_get(client, detail_url, timeout=20)
                 response.raise_for_status()
             if len(response.content) > MAX_DETAIL_HTML_BYTES:

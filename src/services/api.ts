@@ -1771,3 +1771,67 @@ export const getImportEraSplit = async (topN?: number): Promise<ImportEraSplitDa
     generated_at: String(data?.generated_at || new Date().toISOString()),
   };
 };
+
+export interface LandedCostInput {
+  cif_usd: number;
+  exchange_rate: number;
+  fuel_type: "petrol" | "diesel" | "hybrid" | "electric";
+  engine_cc?: number;
+  motor_kw?: number;
+  apply_surcharge: boolean;
+  apply_sscl: boolean;
+}
+
+export interface LandedCostResult {
+  cif_lkr: number;
+  cid: number;
+  surcharge: number;
+  excise: number;
+  sscl: number;
+  vat: number;
+  luxury_tax: number;
+  total_tax: number;
+  landed_cost: number;
+  surcharge_applied: boolean;
+  notes: string;
+}
+
+export interface TcoInput {
+  daily_km: number;
+  fuel_type: "petrol" | "diesel" | "hybrid" | "electric";
+  mileage_kmpl: number;
+  lease_installment: number;
+  insurance_annual: number;
+  service_annual: number;
+  tyres_annual: number;
+  resale_loss_annual: number;
+}
+
+export interface TcoResult {
+  fuel_price_lkr: number;
+  fuel_cost_monthly: number;
+  lease_cost_monthly: number;
+  overhead_cost_monthly: number;
+  total_tco_monthly: number;
+  notes: string;
+}
+
+export interface PermitInfo {
+  id: number;
+  permit_name: string;
+  permit_type: string;
+  market_price_lkr: number;
+}
+
+export const calculateLandedCost = async (input: LandedCostInput): Promise<LandedCostResult> => {
+  return await postJSON<LandedCostResult>("/calculators/landed-cost", input as unknown as Record<string, unknown>);
+};
+
+export const calculateTco = async (input: TcoInput): Promise<TcoResult> => {
+  return await postJSON<TcoResult>("/calculators/tco", input as unknown as Record<string, unknown>);
+};
+
+export const getPermits = async (): Promise<PermitInfo[]> => {
+  const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
+  return Array.isArray(data) ? data : [];
+};

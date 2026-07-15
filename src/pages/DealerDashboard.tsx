@@ -281,7 +281,7 @@ export default function DealerDashboard() {
   const [notifIdx, setNotifIdx] = useState(0);
   const hasAuthToken = Boolean(getStoredAuthToken());
 
-  const statsQuery = useQuery({ queryKey: ["dealer-stats"], queryFn: getStats, retry: 1 });
+  const statsQuery = useQuery({ queryKey: ["stats"], queryFn: getStats, retry: 1 });
   const insightsQuery = useQuery({ queryKey: ["dealer-insights"], queryFn: getDashboardInsights, retry: 1 });
   const districtsQuery = useQuery({ queryKey: ["dealer-district-prices"], queryFn: getDistrictPrices, retry: 1 });
   const proSnapshotQuery = useQuery({
