@@ -425,13 +425,9 @@ export default function Dashboard() {
         model: filters.model ?? undefined,
         district: filters.district ?? undefined,
         max_price: filters.price_max ?? targetPrice,
-      }).then(() => {
-        if (serverAlerts.alerts.length > 0) {
-          const created = serverAlerts.alerts[0];
-          if (created?.id) {
-            const patched = patchMarketAlertServerId(newAlert.id, created.id);
-            setMarketAlerts(patched);
-          }
+      }).then((created) => {
+        if (created?.id) {
+          setMarketAlerts(patchMarketAlertServerId(newAlert.id, created.id));
         }
       }).catch(() => {
         // Server unavailable — localStorage copy is the fallback.

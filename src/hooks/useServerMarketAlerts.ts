@@ -15,7 +15,7 @@ export interface UseServerMarketAlertsResult {
   error: string | null;
   token: string;
   refresh: () => Promise<void>;
-  create: (data: AlertCreateInput) => Promise<void>;
+  create: (data: AlertCreateInput) => Promise<ServerMarketAlert>;
   remove: (id: number) => Promise<void>;
 }
 
@@ -45,8 +45,9 @@ export function useServerMarketAlerts(): UseServerMarketAlertsResult {
 
   const create = useCallback(
     async (data: AlertCreateInput) => {
-      await createAlert(token, data);
+      const created = await createAlert(token, data);
       await refresh();
+      return created;
     },
     [token, refresh],
   );

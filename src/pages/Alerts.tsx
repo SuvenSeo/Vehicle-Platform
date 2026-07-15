@@ -164,7 +164,7 @@ function AlertMatchSection({ token }: { token: string }) {
 interface CreateAlertFormProps {
   onCreated: () => void;
   token: string;
-  onCreate: (data: { make?: string; model?: string; district?: string; max_price?: number }) => Promise<void>;
+  onCreate: (data: { make?: string; model?: string; district?: string; max_price?: number }) => Promise<unknown>;
 }
 
 function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
