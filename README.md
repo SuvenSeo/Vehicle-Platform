@@ -131,6 +131,10 @@ Then redeploy frontend in Vercel. Your live stats/map/listings/trends should pop
 
 After one-time setup, every push updates production automatically.
 
+### CI
+
+Every push to `main` and every pull request runs [ci.yml](.github/workflows/ci.yml): frontend typecheck/lint/test/build and backend pytest. Deploys are handled separately by Vercel's Git integration and `deploy-hf-backend.yml` — CI does not deploy anything.
+
 ### Backend auto-deploy (GitHub -> Hugging Face Spaces)
 
 This repo includes [deploy-hf-backend.yml](.github/workflows/deploy-hf-backend.yml). It syncs backend code to the Hugging Face Space when backend files change on `main`.
@@ -211,26 +215,3 @@ Notes:
 - Workflow forces `ALLOW_SQLITE_FALLBACK=false` so it fails fast if DB config is missing.
 - Playwright dependencies and Chromium are installed inside the runner automatically.
 - The workflow uses `SCRAPE_ENABLED_SOURCES` internally so each job runs only one source.
-
-## 10) Run Alternate Sources In Parallel
-
-This repo also includes `.github/workflows/alt-sources-scrape.yml`.
-
-It currently runs this source as an independent job:
-
-- `PatpatScraper` (`patpat.lk`)
-
-Each job sets `SCRAPE_ENABLED_SOURCES` so one source failure/timeout does not block the others.  
-Within each job, `backend/run_alt_sync.py` scrapes enabled source(s) and then refreshes aggregates/deal scores.
-
-### Trigger options
-
-- Manual: GitHub -> Actions -> **Alternate Sources Scraper** -> **Run workflow**
-
-### Optional tuning
-
-Add repository variable in GitHub Actions:
-
-- `SCRAPE_MAX_PAGES_ALT` (default: `500`)
-- `SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT` (default: `1800`)
-- `SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT` (optional source-specific override)
