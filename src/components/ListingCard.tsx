@@ -82,8 +82,9 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={`${listingTitle || "Vehicle"} listing card`}
-      className="group relative isolate h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg"
+      className="group relative isolate h-full overflow-hidden rounded-2xl border border-white/5 bg-white/[0.01] backdrop-blur-md shadow-soft transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-primary/20 hover:bg-white/[0.03] hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]"
     >
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" />
       <Link
         to={`/listing/${listing.id}`}
         aria-label={`Open ${listingTitle || "vehicle listing"}`}
@@ -193,7 +194,7 @@ export const ListingCard = memo(function ListingCard({
           />
 
           {/* Market position bar */}
-          <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Market position</p>
               <p className={`text-[11px] font-semibold num ${
@@ -215,7 +216,7 @@ export const ListingCard = memo(function ListingCard({
           </div>
 
           {/* Footer */}
-          <div className="mt-auto flex items-center justify-between pt-3 border-t border-border">
+          <div className="mt-auto flex items-center justify-between pt-3 border-t border-white/5">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
@@ -226,7 +227,7 @@ export const ListingCard = memo(function ListingCard({
                 {daysOnMarketLabel ? ` · ${daysOnMarketLabel}` : ""}
               </p>
             </div>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/5 transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
               <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
             </div>
           </div>

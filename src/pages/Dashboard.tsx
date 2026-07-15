@@ -1,4 +1,5 @@
 import { startTransition, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { FilterState, CarListing, DashboardInsights } from "@/types/car";
@@ -47,6 +48,53 @@ import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
 import { loadMarketAlerts, patchMarketAlertServerId, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { MobileFilterSheet } from "@/components/MobileFilterSheet";
+
+const heroContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.05
+    }
+  }
+} as const;
+
+const heroItemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 220,
+      damping: 24
+    }
+  }
+} as const;
+
+const cardContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.02
+    }
+  }
+} as const;
+
+const cardItemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 260,
+      damping: 25
+    }
+  }
+} as const;
 
 const DistrictVelocityMap = lazy(() =>
   import("@/components/DistrictVelocityMap").then((m) => ({ default: m.DistrictVelocityMap }))
@@ -416,8 +464,7 @@ export default function Dashboard() {
     ].filter(Boolean) as string[],
     [filters],
   );
-
-  const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroSearch.trim().length > 0;
+    const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroSearch.trim().length > 0;
 
   const marketPulseListings = Number(liveMarketSnapshot?.priced_listings ?? stats?.total_listings ?? total ?? 0);
   const marketPulseDistricts = Number(stats?.district_count || 0);
@@ -433,53 +480,54 @@ export default function Dashboard() {
     <div className="min-h-screen">
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section id="overview" className="relative overflow-hidden border-b border-border">
-        {/* ambient gold wash */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 55% at 50% -12%, rgba(212,164,68,0.12), transparent 60%), radial-gradient(ellipse 70% 50% at 50% 120%, rgba(66,174,208,0.04), transparent 55%)",
-          }}
-        />
-        <div className="mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20">
+      <section id="overview" className="relative overflow-hidden border-b border-white/[0.04] bg-white/[0.01]">
+        {/* Ambient Blur Orbs */}
+        <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
+        
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={heroContainerVariants}
+          className="mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20 relative z-10"
+        >
           {/* ── Centered editorial headline ── */}
           <div className="mx-auto max-w-3xl text-center">
-            <div className="flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3.5 py-1.5">
+            <motion.div variants={heroItemVariants} className="flex justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-1.5 backdrop-blur-md">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
                 </span>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   Vehicle Intelligence · Sri Lanka
                 </p>
               </div>
-            </div>
+            </motion.div>
 
-            <h1 className="mx-auto mt-6 max-w-3xl text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.03em] text-foreground sm:text-[3.5rem] lg:text-[4.5rem]">
+            <motion.h1 variants={heroItemVariants} className="mx-auto mt-6 max-w-3xl text-[2.5rem] font-bold leading-[1.02] tracking-tight text-white sm:text-[3.5rem] lg:text-[4.5rem]">
               Sri Lanka&rsquo;s entire vehicle market,
-              <span className="bg-gradient-to-r from-[var(--gold-bright)] to-[var(--gold)] bg-clip-text text-transparent"> decoded.</span>
-            </h1>
+              <span className="bg-gradient-to-r from-primary via-indigo-400 to-primary bg-clip-text text-transparent"> decoded.</span>
+            </motion.h1>
 
-            <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-[16px]">
-              <span className="font-semibold text-foreground num">{marketPulseListings.toLocaleString()}</span> live listings from{" "}
-              <span className="font-semibold text-foreground num">{marketPulseSources || 10}</span> sources across{" "}
-              <span className="font-semibold text-foreground num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
+            <motion.p variants={heroItemVariants} className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-[16px]">
+              <span className="font-bold text-white num">{marketPulseListings.toLocaleString()}</span> live listings from{" "}
+              <span className="font-bold text-white num">{marketPulseSources || 10}</span> sources across{" "}
+              <span className="font-bold text-white num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
               deal scores, and the market intelligence dealers keep to themselves.
-            </p>
-            <div className="mx-auto mt-4 flex justify-center">
+            </motion.p>
+            
+            <motion.div variants={heroItemVariants} className="mx-auto mt-4 flex justify-center">
               <DataFreshnessIndicator
                 latestListingAt={liveMarketSnapshot?.latest_listing_at}
                 lastUpdated={stats?.last_updated}
               />
-            </div>
+            </motion.div>
 
             {/* Search (centered) */}
-            <div className="mx-auto mt-8 max-w-2xl text-left">
+            <motion.div variants={heroItemVariants} className="mx-auto mt-8 max-w-2xl text-left">
                 <div className="relative">
-                  <div className="flex items-center gap-2 rounded-xl border border-border bg-card shadow-lg transition-all focus-within:border-primary/30 focus-within:shadow-[0_0_0_3px_rgba(212,164,68,0.08),0_8px_32px_rgba(0,0,0,0.5)]">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-md shadow-2xl transition-all focus-within:border-primary/30 focus-within:shadow-[0_0_0_4px_rgba(124,58,237,0.12),0_8px_32px_rgba(0,0,0,0.5)]">
                     <Search className="ml-4 h-5 w-5 shrink-0 text-muted-foreground" />
                     <label htmlFor="hero-search" className="sr-only">{t("common.search", "Search")} vehicles</label>
                     <input
@@ -496,15 +544,15 @@ export default function Dashboard() {
                       role="combobox"
                       aria-expanded={showHeroSuggestions}
                       aria-controls="hero-suggestions"
-                      className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-medium text-foreground placeholder-zinc-600 outline-none"
+                      className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white placeholder-zinc-600 outline-none"
                     />
-                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-[var(--gold)] px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors hover:bg-[var(--gold-bright)]">
+                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[0_4px_12px_rgba(124,58,237,0.15)] transition-all hover:bg-primary/95">
                       {t("common.search", "Search")}
                     </button>
                   </div>
 
                   {showHeroSuggestions && (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-border bg-card p-1 shadow-xl">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 rounded-xl border border-white/5 bg-[#0e0e11]/95 p-1 backdrop-blur-xl shadow-2xl">
                       {heroSuggestionsLoading ? (
                         <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("common.searching", "Searching...")}</p>
                       ) : heroSuggestions.length ? (
@@ -513,10 +561,10 @@ export default function Dashboard() {
                             <button
                               key={`${s.id}-${s.make}-${s.model}`} type="button" role="option" aria-selected="false"
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-foreground/[0.03]"
+                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
                             >
-                              <span className="text-[13px] font-semibold text-foreground">{s.make} {s.model} {s.year}</span>
-                              <span className="text-[12px] font-bold text-primary/80 num">
+                              <span className="text-[13px] font-bold text-white">{s.make} {s.model} {s.year}</span>
+                              <span className="text-[12px] font-bold text-primary num">
                                 {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
                               </span>
                             </button>
@@ -532,15 +580,15 @@ export default function Dashboard() {
                 )}
 
                 {/* Quick scans */}
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Popular</span>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Popular</span>
                   {["Toyota Aqua", "Honda Vezel", "Wagon R", "Nissan Leaf", "Toyota Axio"].map((item) => (
                     <button key={item} type="button" onClick={() => setHeroSearch(item)}
-                      className="rounded-md border border-border bg-white/[0.015] px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/20 hover:text-foreground"
+                      className="rounded-md border border-white/5 bg-white/[0.01] px-2.5 py-1 text-[11px] font-bold text-muted-foreground transition-all hover:border-primary/25 hover:bg-white/[0.03] hover:text-white"
                     >{item}</button>
                   ))}
                 </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* ── Full-width live intelligence console ── */}
@@ -549,7 +597,7 @@ export default function Dashboard() {
             <FuelMixStrip />
             <MarketSignalsStrip />
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ── INVENTORY ───────────────────────────────────────────── */}
@@ -654,37 +702,51 @@ export default function Dashboard() {
                   >Reset filters</button>
                 </div>
               ) : marketView === "grid" ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <motion.div
+                  initial="hidden"
+                  animate="show"
+                  variants={cardContainerVariants}
+                  className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                >
                   {listings.map((listing) => (
-                    <ListingCard key={listing.id} listing={listing} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
+                    <motion.div key={listing.id} variants={cardItemVariants}>
+                      <ListingCard listing={listing} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               ) : (
-                <div className="space-y-2">
+                <motion.div
+                  initial="hidden"
+                  animate="show"
+                  variants={cardContainerVariants}
+                  className="space-y-2"
+                >
                   {listings.map((listing) => {
                     const hasPrice = isReasonableListingPrice(Number(listing.price_lkr));
                     return (
-                      <Link key={listing.id} to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-border hover:bg-card">
-                        <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/30">
-                          <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[14px] font-semibold text-foreground">{listing.make} {listing.model} {listing.variant || ""}</p>
-                          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{listing.year || "N/A"} · {listing.district || "N/A"} · {listing.source}</p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          {hasPrice ? (
-                            <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
-                          ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
-                          <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score || 0) >= 0 ? "text-primary/70" : "text-muted-foreground"}`}>
-                            {Number(listing.deal_score || 0) >= 0 ? "+" : ""}{Number(listing.deal_score || 0).toFixed(0)} deal
-                          </p>
-                        </div>
-                        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
-                      </Link>
+                      <motion.div key={listing.id} variants={cardItemVariants}>
+                        <Link to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.01] p-3 no-underline transition-all hover:border-primary/20 hover:bg-white/[0.03]">
+                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                            <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[14px] font-semibold text-foreground group-hover:text-primary transition-colors">{listing.make} {listing.model} {listing.variant || ""}</p>
+                            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{listing.year || "N/A"} · {listing.district || "N/A"} · {listing.source}</p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            {hasPrice ? (
+                              <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
+                            ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
+                            <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score || 0) >= 0 ? "text-primary" : "text-muted-foreground"}`}>
+                              {Number(listing.deal_score || 0) >= 0 ? "+" : ""}{Number(listing.deal_score || 0).toFixed(0)} deal
+                            </p>
+                          </div>
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                        </Link>
+                      </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               )}
 
               {/* Pagination */}

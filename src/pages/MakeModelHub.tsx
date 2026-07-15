@@ -1,8 +1,33 @@
 import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart2, Car, MapPin, TrendingUp } from "lucide-react";
 import { getMakeModelInsight, getListings, formatPrice } from "@/services/api";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.05
+    }
+  }
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 220,
+      damping: 24
+    }
+  }
+} as const;
 
 const SITE = "AutoLens LK";
 const ORIGIN = "https://vehicle-platform-one.vercel.app";
@@ -24,12 +49,12 @@ function StatCard({
   note?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-5">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+    <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md hover:border-primary/20 hover:bg-white/[0.02] transition-all">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
         {label}
       </p>
-      <p className="num mt-2 text-xl font-bold text-foreground">{value}</p>
-      {note && <p className="mt-1.5 text-[11px] text-muted-foreground">{note}</p>}
+      <p className="num mt-2 text-xl font-bold text-white">{value}</p>
+      {note && <p className="mt-1.5 text-[11px] text-muted-foreground font-medium">{note}</p>}
     </div>
   );
 }
@@ -154,32 +179,41 @@ export default function MakeModelHub() {
   ];
 
   return (
-    <div className="min-h-screen">
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="min-h-screen relative overflow-hidden bg-background"
+    >
+      {/* Decorative Orbs */}
+      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+
       {/* Hero */}
-      <section className="border-b border-border">
+      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
             Market hub
           </p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
             {isPending ? vehicleLabel : `${canonicalMake} ${canonicalModel}`}
           </h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">
             Prices, district breakdown, and live listings for the Sri Lankan market.
           </p>
         </div>
-      </section>
+      </motion.section>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-10">
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-10 relative z-10">
         {isError && (
-          <div className="rounded-xl border border-border bg-surface p-6 text-[13px] text-muted-foreground">
+          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-6 text-[13px] text-muted-foreground font-medium">
             Could not load market data for this vehicle. Try browsing listings directly.
           </div>
         )}
 
         {/* Stats grid */}
-        <div>
-          <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground">
+        <motion.div variants={itemVariants}>
+          <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white">
             Market snapshot
           </h2>
           <div className="grid gap-2 md:grid-cols-3">
@@ -187,13 +221,13 @@ export default function MakeModelHub() {
               <StatCard key={card.label} label={card.label} value={card.value} note={card.note} />
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* District breakdown */}
         {(isPending || (insight && insight.top_districts.length > 0)) && (
-          <div>
-            <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          <motion.div variants={itemVariants}>
+            <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
               District breakdown
             </h2>
             {isPending ? (
@@ -201,7 +235,7 @@ export default function MakeModelHub() {
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-xl border border-border bg-surface animate-pulse"
+                    className="h-20 rounded-xl border border-white/5 bg-white/[0.01] animate-pulse"
                   />
                 ))}
               </div>
@@ -210,15 +244,15 @@ export default function MakeModelHub() {
                 {insight!.top_districts.map((entry) => (
                   <div
                     key={entry.district}
-                    className="rounded-xl border border-border bg-surface p-4"
+                    className="rounded-xl border border-white/5 bg-white/[0.01] p-4 hover:border-primary/20 transition-all"
                   >
                     <div className="flex items-center justify-between">
-                      <p className="text-[13px] font-semibold text-foreground">{entry.district}</p>
+                      <p className="text-[13px] font-bold text-white">{entry.district}</p>
                       <span className="text-[10px] font-bold text-muted-foreground num">
                         {entry.count} listing{entry.count !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    <p className="mt-1.5 text-[12px] text-muted-foreground num">
+                    <p className="mt-1.5 text-[12px] text-muted-foreground num font-medium">
                       {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
                       {entry.avg_price_lkr != null && (
                         <span className="ml-1 text-[10px] text-muted-foreground/60">avg</span>
@@ -228,14 +262,14 @@ export default function MakeModelHub() {
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Recent listings preview */}
         {recentListings.length > 0 && (
-          <div>
-            <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-              <Car className="h-3.5 w-3.5 text-muted-foreground" />
+          <motion.div variants={itemVariants}>
+            <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white flex items-center gap-2">
+              <Car className="h-3.5 w-3.5 text-primary" />
               Recent listings
             </h2>
             <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
@@ -243,80 +277,80 @@ export default function MakeModelHub() {
                 <Link
                   key={listing.id}
                   to={`/listing/${listing.id}`}
-                  className="rounded-xl border border-border bg-surface p-4 no-underline hover:border-primary/30 transition-colors"
+                  className="rounded-xl border border-white/5 bg-white/[0.01] p-4 no-underline hover:border-primary/20 transition-all hover:bg-white/[0.02]"
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground/70">
                     {listing.district ?? "—"}
                   </p>
-                  <p className="mt-1 text-[13px] font-semibold text-foreground truncate">
+                  <p className="mt-1 text-[13px] font-bold text-white truncate">
                     {listing.year} {listing.make} {listing.model}
                   </p>
-                  <p className="mt-1 text-[13px] font-bold text-foreground num">
+                  <p className="mt-1 text-[13px] font-bold text-primary num">
                     {listing.price_lkr != null ? formatPrice(listing.price_lkr) : "Price N/A"}
                   </p>
                 </Link>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* CTA row */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 sm:p-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-foreground/[0.03]">
-              <BarChart2 className="h-4 w-4 text-muted-foreground" />
+        <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-3">
+          <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
+              <BarChart2 className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/85">
               Browse all listings
             </p>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
+            <p className="text-[13px] text-muted-foreground leading-relaxed font-medium">
               See every live {canonicalMake} {canonicalModel} on the market, with price filters, district drill-down, and deal scoring.
             </p>
             <Link
               to={`/?make=${encodeURIComponent(makeParam)}&model=${encodeURIComponent(modelParam)}#market`}
-              className="mt-auto flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--gold)] text-[10px] font-bold uppercase tracking-[0.1em] text-white no-underline transition-colors hover:bg-[var(--gold-bright)]"
+              className="mt-6 flex h-10 items-center justify-center gap-2 rounded-lg bg-primary text-[10px] font-bold uppercase tracking-[0.1em] text-white no-underline transition-all hover:bg-primary/95 shadow-[0_2px_10px_rgba(124,58,237,0.15)]"
             >
               Browse listings <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 sm:p-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-foreground/[0.03]">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
+              <TrendingUp className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/85">
               Price trends
             </p>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
+            <p className="text-[13px] text-muted-foreground leading-relaxed font-medium">
               Track how {canonicalMake} {canonicalModel} prices have moved month-over-month in Sri Lanka.
             </p>
             <Link
               to={`/trends?make=${encodeURIComponent(makeParam)}&model=${encodeURIComponent(modelParam)}`}
-              className="mt-auto flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-foreground/[0.03] text-[10px] font-bold uppercase tracking-[0.1em] text-foreground no-underline transition-colors hover:bg-foreground/[0.06]"
+              className="mt-6 flex h-10 items-center justify-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-[0.1em] text-white no-underline transition-all hover:bg-white/[0.04]"
             >
               View price trends <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 sm:p-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-foreground/[0.03]">
-              <Car className="h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
+              <Car className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/85">
               Estimate value
             </p>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
+            <p className="text-[13px] text-muted-foreground leading-relaxed font-medium">
               Get a market valuation for a specific {canonicalMake} {canonicalModel} using live comparable data.
             </p>
             <Link
               to={`/estimate?make=${encodeURIComponent(makeParam)}&model=${encodeURIComponent(modelParam)}`}
-              className="mt-auto flex h-10 items-center justify-center gap-2 rounded-lg border border-border bg-foreground/[0.03] text-[10px] font-bold uppercase tracking-[0.1em] text-foreground no-underline transition-colors hover:bg-foreground/[0.06]"
+              className="mt-6 flex h-10 items-center justify-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-[0.1em] text-white no-underline transition-all hover:bg-white/[0.04]"
             >
               Estimate price <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

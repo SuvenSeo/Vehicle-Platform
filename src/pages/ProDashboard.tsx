@@ -1,6 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-// PageCanvas removed — using direct div wrapper
+import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.05
+    }
+  }
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 220,
+      damping: 24
+    }
+  }
+} as const;
 import {
   Bar,
   BarChart,
@@ -811,56 +835,65 @@ export default function ProDashboard() {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="min-h-screen relative overflow-hidden bg-background"
+    >
+      {/* Decorative Orbs */}
+      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+
+      <div className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
             <img src="/logo.svg" alt="AutoLens LK" className="h-7 w-7 rounded-md ring-1 ring-white/[0.06]" />
             <div>
-              <p className="text-[13px] font-semibold text-foreground">AutoLens<span className="text-muted-foreground">LK</span></p>
-              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Pro Workspace</p>
+              <p className="text-[13px] font-bold text-white">AutoLens<span className="text-muted-foreground font-medium">LK</span></p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Pro Workspace</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-border text-[10px]">
+            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-white/5 bg-white/[0.02] text-white hover:bg-white/[0.04] text-[10px] font-bold">
               <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary/80">
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
               <Crown className="h-3 w-3" /> {user?.plan || "pro"}
             </span>
-            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[10px] font-semibold text-muted-foreground transition-colors hover:border-rose-400/20 hover:text-rose-400">
+            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-400">
               <LogOut className="h-3 w-3" /> Sign out
             </button>
           </div>
         </div>
       </div>
 
-      <main className="mx-auto max-w-[1320px] space-y-8 px-5 py-8 sm:px-6">
-        <div className="rounded-xl border border-border bg-card p-6 md:p-8">
+      <main className="mx-auto max-w-[1320px] space-y-8 px-5 py-8 sm:px-6 relative z-10">
+        <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-6 md:p-8 backdrop-blur-md">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold text-primary/80">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
                 <Lock className="h-3 w-3" /> Professional intelligence
               </span>
-              <h1 className="mt-4 font-display text-[2rem] font-semibold tracking-tight text-foreground md:text-[2.75rem]">
+              <h1 className="mt-4 font-display text-[2rem] font-bold tracking-tight text-white md:text-[2.75rem]">
                 Pro dashboard.
               </h1>
             </div>
-            <div className="rounded-lg border border-border bg-surface p-4">
-              <p className="tech-label">Data freshness</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">
+            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4">
+              <p className="tech-label text-primary">Data freshness</p>
+              <p className="mt-2 text-2xl font-bold text-white">
                 {snapshot?.last_updated ? formatRelativeTime(snapshot.last_updated) : "Loading"}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Generated {snapshot ? fmtDate(snapshot.generated_at) : "pending"}</p>
+              <p className="mt-1 text-xs text-muted-foreground font-semibold">Generated {snapshot ? fmtDate(snapshot.generated_at) : "pending"}</p>
               <div className="mt-4">
                 <ExportButtons report={activeMarketReport} />
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {error && (
-          <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-300">
             {error}
           </div>
         )}
@@ -876,15 +909,15 @@ export default function ProDashboard() {
                 key={id}
                 value={id}
                 onClick={() => setActiveTab(id)}
-                className="motion-card group flex h-auto flex-col items-stretch whitespace-normal rounded-[10px] border border-border bg-white/[0.025] p-4 text-left data-[state=active]:border-primary/35 data-[state=active]:bg-primary/[0.12] data-[state=active]:text-white data-[state=inactive]:hover:border-primary/25 data-[state=inactive]:hover:bg-white/[0.045]"
+                className="motion-card group flex h-auto flex-col items-stretch whitespace-normal rounded-[10px] border border-white/5 bg-white/[0.01] p-4 text-left data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-white data-[state=inactive]:hover:border-primary/20 data-[state=inactive]:hover:bg-white/[0.02] transition-all"
               >
                 <span className="flex w-full items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border bg-black/25 text-primary transition-colors group-data-[state=active]:border-primary/40 group-data-[state=active]:bg-primary/15">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-white/5 bg-white/[0.02] text-primary transition-colors group-data-[state=active]:border-primary/40 group-data-[state=active]:bg-primary/10">
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-bold text-white">{label}</span>
-                    <span className="mt-0.5 block truncate text-xs font-normal leading-5 text-muted-foreground">{getModeDetail(id)}</span>
+                    <span className="mt-0.5 block truncate text-xs font-semibold leading-5 text-muted-foreground/80">{getModeDetail(id)}</span>
                   </span>
                 </span>
               </TabsTrigger>
@@ -1628,6 +1661,6 @@ export default function ProDashboard() {
 
       <DetailDialog detail={detail} open={detailOpen} onOpenChange={setDetailOpen} />
       <AIChatWidget />
-    </div>
+    </motion.div>
   );
 }

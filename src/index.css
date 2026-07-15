@@ -114,19 +114,19 @@
 
   /* ── Refined dark mode ──────────────────────────────────────────────── */
   .theme-dark {
-    --background: 240 6% 5%;             /* #0c0c0d neutral black */
+    --background: 240 10% 3.9%;          /* #09090b charcoal */
     --foreground: 240 20% 97%;          /* #f5f5f7 */
 
-    --card: 240 5% 9%;                   /* #161617 elevated */
+    --card: 240 10% 6%;                  /* #0f0f12 elevated */
     --card-foreground: 240 20% 97%;
 
-    --popover: 240 5% 8%;
+    --popover: 240 10% 6%;
     --popover-foreground: 240 20% 97%;
 
-    --surface: 240 5% 8%;
+    --surface: 240 10% 5%;               /* #0d0d10 surface */
     --surface-foreground: 240 20% 97%;
 
-    --primary: 211 100% 56%;            /* #0a84ff iOS dark blue */
+    --primary: 250 89% 65%;             /* #7c3aed premium indigo */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 5% 13%;
@@ -141,9 +141,9 @@
     --destructive: 4 72% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 100% / 0.10;
-    --input: 0 0% 100% / 0.14;
-    --ring: 211 100% 60%;
+    --border: 240 6% 15% / 0.40;
+    --input: 240 6% 15% / 0.50;
+    --ring: 250 89% 65%;
 
     --signal-green: 145 60% 50%;
     --signal-cyan: 199 89% 60%;
@@ -153,21 +153,21 @@
     --deal-amber: 38 90% 56%;
     --deal-red: 4 72% 58%;
 
-    --sidebar-background: 240 6% 6%;
+    --sidebar-background: 240 10% 4%;
     --sidebar-foreground: 240 18% 92%;
-    --sidebar-accent: 240 5% 13%;
+    --sidebar-accent: 240 10% 7%;
     --sidebar-accent-foreground: 240 18% 94%;
-    --sidebar-border: 0 0% 100% / 0.10;
+    --sidebar-border: 240 6% 15% / 0.40;
 
-    --gold: #0a84ff;
-    --gold-bright: #409cff;
-    --gold-muted: rgba(10, 132, 255, 0.14);
-    --gold-glow: rgba(10, 132, 255, 0.30);
-    --accent-blue: #0a84ff;
-    --accent-blue-bright: #409cff;
+    --gold: #7c3aed;                     /* mapped to indigo */
+    --gold-bright: #a78bfa;
+    --gold-muted: rgba(124, 58, 237, 0.12);
+    --gold-glow: rgba(124, 58, 237, 0.25);
+    --accent-blue: #7c3aed;
+    --accent-blue-bright: #a78bfa;
 
-    --glass-bg: rgba(22, 22, 24, 0.66);
-    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-bg: rgba(9, 9, 11, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.08);
 
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
     --shadow-md: 0 2px 10px rgba(0,0,0,0.5);

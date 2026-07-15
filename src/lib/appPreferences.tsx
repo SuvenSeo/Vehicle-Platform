@@ -16,7 +16,7 @@ type AppPreferencesContextValue = {
 
 const THEME_STORAGE_KEY = "autolens_theme_mode";
 const LANGUAGE_STORAGE_KEY = "autolens_language";
-const DEFAULT_THEME_MODE: ThemeMode = "light";
+const DEFAULT_THEME_MODE: ThemeMode = "dark";
 
 const DICTIONARIES: Record<Language, Dictionary> = {
   en: {

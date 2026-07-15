@@ -1,8 +1,33 @@
 import { useState, useEffect, lazy, Suspense, useMemo } from "react";
+import { motion } from "framer-motion";
 import { getDistrictPrices, formatPrice } from "@/services/api";
 import { DistrictPrice } from "@/types/car";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import "leaflet/dist/leaflet.css";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.05
+    }
+  }
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 220,
+      damping: 24
+    }
+  }
+} as const;
 
 const MarketMap = lazy(() => import("@/components/MarketMap").then(m => ({ default: m.MarketMap })));
 
@@ -33,12 +58,22 @@ export default function MapPage() {
   const totalListings = useMemo(() => data.reduce((s, r) => s + Number(r.listing_count || 0), 0), [data]);
 
   return (
-    <div className="min-h-screen">
-      <section className="border-b border-border">
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="min-h-screen relative overflow-hidden bg-background"
+    >
+      {/* Decorative Orbs */}
+      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+
+      {/* Header */}
+      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Geo intelligence</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">District price map.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Geo intelligence</p>
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">District price map.</h1>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">
             Compare listing density and average prices across {data.length || 25} Sri Lankan districts.
           </p>
 
@@ -48,52 +83,52 @@ export default function MapPage() {
               { label: "Total listed", value: totalListings ? totalListings.toLocaleString() : "—" },
               { label: "Status", value: loading ? "Syncing" : error ? "Error" : "Live" },
             ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2 rounded-md border border-border bg-white/[0.015] px-3 py-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{s.label}</span>
-                <span className="text-[12px] font-bold text-foreground num">{s.value}</span>
+              <div key={s.label} className="flex items-center gap-2 rounded-md border border-white/5 bg-white/[0.02] px-3 py-2 backdrop-blur-md">
+                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/80">{s.label}</span>
+                <span className="text-[12px] font-bold text-white num">{s.value}</span>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8">
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8 relative z-10">
         {/* Map */}
-        <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+        <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-2 sm:p-3 backdrop-blur-md hover:border-primary/20 transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
           {loading ? (
-            <div className="flex min-h-[450px] items-center justify-center rounded-lg bg-surface">
+            <div className="flex min-h-[450px] items-center justify-center rounded-lg bg-zinc-950/20">
               <div className="flex flex-col items-center gap-3">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-amber-500" />
-                <p className="text-[11px] text-muted-foreground">Loading map data</p>
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+                <p className="text-[11px] text-muted-foreground font-semibold">Loading map data</p>
               </div>
             </div>
           ) : error ? (
-            <div className="flex min-h-[450px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border bg-surface">
-              <AlertTriangle className="h-5 w-5 text-rose-400/60" />
-              <p className="text-[13px] text-muted-foreground">{error}</p>
-              <button type="button" onClick={() => window.location.reload()} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[11px] font-semibold text-foreground hover:bg-foreground/[0.03]">
+            <div className="flex min-h-[450px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-white/10 bg-zinc-950/20">
+              <AlertTriangle className="h-5 w-5 text-rose-450/60" />
+              <p className="text-[13px] text-muted-foreground font-medium">{error}</p>
+              <button type="button" onClick={() => window.location.reload()} className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.04] transition-all">
                 <RefreshCw className="h-3 w-3" /> Retry
               </button>
             </div>
           ) : (
-            <Suspense fallback={<div className="flex min-h-[450px] items-center justify-center rounded-lg bg-surface"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-amber-500" /></div>}>
+            <Suspense fallback={<div className="flex min-h-[450px] items-center justify-center rounded-lg bg-zinc-950/20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary" /></div>}>
               <div className="min-h-[450px] overflow-hidden rounded-lg h-[clamp(450px,58vh,640px)]">
                 <MarketMap isLoading={loading} data={data} />
               </div>
             </Suspense>
           )}
-        </div>
+        </motion.div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "#3f4755" }} /> Lower avg</span>
-          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: "#d89b35" }} /> Higher avg</span>
-          {medianPrice > 0 && <span className="ml-auto">National median: <span className="num font-semibold text-foreground">{formatPrice(medianPrice)}</span></span>}
-        </div>
+        <motion.div variants={itemVariants} className="flex items-center gap-4 text-[11px] text-muted-foreground font-medium">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-zinc-700" /> Lower avg</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-primary" /> Higher avg</span>
+          {medianPrice > 0 && <span className="ml-auto text-muted-foreground">National median: <span className="num font-bold text-white">{formatPrice(medianPrice)}</span></span>}
+        </motion.div>
 
         {/* District roster */}
-        <div>
-          <h2 className="mb-5 font-display text-sm font-semibold tracking-tight text-foreground">Top districts by supply</h2>
+        <motion.div variants={itemVariants}>
+          <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white">Top districts by supply</h2>
           {roster.length ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {roster.map((row) => {
@@ -101,13 +136,13 @@ export default function MapPage() {
                 const above = medianPrice > 0 && avg > medianPrice;
                 const delta = medianPrice > 0 ? ((avg - medianPrice) / medianPrice) * 100 : 0;
                 return (
-                  <div key={row.district} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-border">
+                  <div key={row.district} className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-4 transition-all hover:border-primary/20 hover:bg-white/[0.02]">
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-foreground">{row.district}</p>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground num">{row.listing_count.toLocaleString()} listings · avg {formatPrice(avg)}</p>
+                      <p className="truncate text-[13px] font-bold text-white">{row.district}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground num font-medium">{row.listing_count.toLocaleString()} listings · avg {formatPrice(avg)}</p>
                     </div>
                     {medianPrice > 0 && (
-                      <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold num ${above ? "border-rose-500/15 text-rose-400" : "border-emerald-500/15 text-emerald-400"}`}>
+                      <span className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-bold num ${above ? "border-rose-500/20 bg-rose-500/10 text-rose-400" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"}`}>
                         {above ? "+" : ""}{delta.toFixed(0)}%
                       </span>
                     )}
@@ -115,9 +150,9 @@ export default function MapPage() {
                 );
               })}
             </div>
-          ) : !loading && <p className="text-[11px] text-muted-foreground">No district data mapped yet.</p>}
-        </div>
+          ) : !loading && <p className="text-[11px] text-muted-foreground font-medium">No district data mapped yet.</p>}
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

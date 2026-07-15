@@ -43,7 +43,7 @@ describe("ListingCard render states and interactions", () => {
     const card = screen.getByRole("article", { name: /Toyota Aqua listing card/i });
     const cardLink = screen.getByRole("link", { name: /Open Toyota Aqua/i });
 
-    expect(card.className).toContain("bg-card");
+    expect(card.className).toContain("bg-white/[0.01]");
     expect(card.className).toContain("rounded-2xl");
     expect(cardLink).toHaveAttribute("href", "/listing/11");
     expect(card.querySelector("button")).not.toBeInTheDocument();

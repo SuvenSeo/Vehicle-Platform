@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { ExternalLink, SearchX, Star, TrendingUp } from "lucide-react";
 import { getListings, formatPrice } from "@/services/api";
 import type { CarListing, FilterState } from "@/types/car";
@@ -7,6 +8,30 @@ import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
 import { minCashDownForPrice, sortListingsByAffordability } from "@/lib/cashToOwn";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.05
+    }
+  }
+} as const;
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 220,
+      damping: 24
+    }
+  }
+} as const;
 
 const PICKS_PAGES = 4;
 const MIN_DEAL_SCORE = 8;
@@ -83,12 +108,21 @@ export default function BestPicks() {
       : "ranked by deal strength";
 
   return (
-    <div className="min-h-screen">
-      <section className="border-b border-border">
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="min-h-screen relative overflow-hidden bg-background"
+    >
+      {/* Decorative Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
+
+      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Best picks</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Deal-score picks.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Best picks</p>
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Deal-score picks.</h1>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">
             {loading ? "Scanning inventory..." : `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`}
           </p>
           {!loading && !error && picks.length > 0 && (
@@ -96,10 +130,10 @@ export default function BestPicks() {
               <button
                 type="button"
                 onClick={() => setSortMode("deal_score")}
-                className={`rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                className={`rounded-lg border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
                   sortMode === "deal_score"
-                    ? "border-[var(--gold)]/40 bg-[var(--gold)]/10 text-[var(--gold)]"
-                    : "border-border text-muted-foreground hover:text-foreground"
+                    ? "border-primary/30 bg-primary/10 text-primary shadow-[0_2px_8px_rgba(124,58,237,0.12)]"
+                    : "border-white/5 bg-white/[0.01] text-muted-foreground hover:bg-white/[0.03] hover:text-white"
                 }`}
               >
                 Deal score
@@ -107,10 +141,10 @@ export default function BestPicks() {
               <button
                 type="button"
                 onClick={() => setSortMode("affordability")}
-                className={`rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors ${
+                className={`rounded-lg border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
                   sortMode === "affordability"
-                    ? "border-[var(--gold)]/40 bg-[var(--gold)]/10 text-[var(--gold)]"
-                    : "border-border text-muted-foreground hover:text-foreground"
+                    ? "border-primary/30 bg-primary/10 text-primary shadow-[0_2px_8px_rgba(124,58,237,0.12)]"
+                    : "border-white/5 bg-white/[0.01] text-muted-foreground hover:bg-white/[0.03] hover:text-white"
                 }`}
               >
                 Affordability
@@ -118,28 +152,28 @@ export default function BestPicks() {
             </div>
           )}
         </div>
-      </section>
+      </motion.section>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8">
+      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8 relative z-10">
         {loading ? (
           <div className="space-y-3">
-            <div className="skeleton-shimmer h-56 rounded-xl" />
+            <div className="h-56 rounded-xl border border-white/5 bg-white/[0.01] animate-pulse" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton-shimmer h-64 rounded-xl" />)}
+              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-64 rounded-xl border border-white/5 bg-white/[0.01] animate-pulse" />)}
             </div>
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
+          <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-white/10 py-16 text-center">
             <SearchX className="h-5 w-5 text-muted-foreground" />
-            <p className="text-[13px] text-muted-foreground">{error}</p>
-            <Link to="/#market" className="rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground no-underline hover:bg-foreground/[0.03]">Open inventory</Link>
-          </div>
+            <p className="text-[13px] text-muted-foreground font-medium">{error}</p>
+            <Link to="/#market" className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2 text-[11px] font-bold text-white no-underline transition-all hover:bg-white/[0.04]">Open inventory</Link>
+          </motion.div>
         ) : ranked.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border py-16 text-center">
+          <motion.div variants={itemVariants} className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-white/10 py-16 text-center">
             <TrendingUp className="h-5 w-5 text-muted-foreground" />
-            <p className="text-[13px] text-muted-foreground">No vehicles meet the deal-score gate right now.</p>
-            <Link to="/#market" className="rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground no-underline hover:bg-foreground/[0.03]">Browse inventory</Link>
-          </div>
+            <p className="text-[13px] text-muted-foreground font-medium">No vehicles meet the deal-score gate right now.</p>
+            <Link to="/#market" className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2 text-[11px] font-bold text-white no-underline transition-all hover:bg-white/[0.04]">Browse inventory</Link>
+          </motion.div>
         ) : (
           <>
             {/* Featured */}
@@ -148,55 +182,56 @@ export default function BestPicks() {
               const pct = topScore > 0 ? Math.min(100, Math.round((score / topScore) * 100)) : 0;
               const cashDown = minCashDownForPrice(Number(featured.price_lkr || 0));
               return (
-                <article className="grid overflow-hidden rounded-xl border border-border bg-card lg:grid-cols-[1.1fr_1fr]">
+                <motion.article variants={itemVariants} className="grid overflow-hidden rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-md lg:grid-cols-[1.1fr_1fr] group transition-all duration-300 hover:border-primary/20 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] relative">
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30" />
                   <Link to={`/listing/${featured.id}`} className="block aspect-[16/10] overflow-hidden bg-black/30 no-underline lg:aspect-auto lg:min-h-[300px]">
-                    <VehicleThumbnail src={pickVehicleImageUrl([featured.thumbnail_url, ...(Array.isArray(featured.images) ? featured.images : [])], [featured.url, featured.detail_url, featured.external_url])} listingId={featured.id} alt={`${featured.make} ${featured.model}`} className="h-full w-full object-cover" />
+                    <VehicleThumbnail src={pickVehicleImageUrl([featured.thumbnail_url, ...(Array.isArray(featured.images) ? featured.images : [])], [featured.url, featured.detail_url, featured.external_url])} listingId={featured.id} alt={`${featured.make} ${featured.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
                   </Link>
                   <div className="flex flex-col justify-between gap-5 p-6">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-semibold text-muted-foreground">{featured.source}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/80">{featured.source}</span>
                         <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
-                          <Star className="mr-1 inline h-3 w-3" />{dealBandLabel(score)}
+                          <Star className="mr-1 inline h-3 w-3 text-emerald-400" />{dealBandLabel(score)}
                         </span>
                       </div>
                       <Link to={`/listing/${featured.id}`} className="block no-underline">
-                        <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{featured.make} {featured.model}</h2>
-                        <p className="mt-1 text-[12px] text-muted-foreground">{featured.year || "N/A"} · {featured.district || "LK"}</p>
+                        <h2 className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl group-hover:text-primary transition-colors">{featured.make} {featured.model}</h2>
+                        <p className="mt-1 text-[12px] text-muted-foreground font-medium">{featured.year || "N/A"} · {featured.district || "LK"}</p>
                       </Link>
-                      <div className="flex items-baseline justify-between border-t border-border pt-3">
-                        <p className="num text-2xl font-bold text-foreground">{formatPrice(Number(featured.price_lkr || 0))}</p>
+                      <div className="flex items-baseline justify-between border-t border-white/5 pt-3">
+                        <p className="num text-2xl font-bold text-white">{formatPrice(Number(featured.price_lkr || 0))}</p>
                         {sortMode === "affordability" && cashDown != null ? (
-                          <p className="num text-[12px] font-bold text-[var(--gold)]">{formatPrice(cashDown)} down</p>
+                          <p className="num text-[12px] font-bold text-primary">{formatPrice(cashDown)} down</p>
                         ) : (
                           <p className="num text-[12px] font-bold text-emerald-400">+{score.toFixed(0)} deal</p>
                         )}
                       </div>
-                      <div className="h-1 overflow-hidden rounded-full bg-secondary/50">
+                      <div className="h-1 overflow-hidden rounded-full bg-white/[0.04]">
                         <div className={`h-full rounded-full ${dealMeter(score)}`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Link to={`/listing/${featured.id}`} className="flex h-10 flex-1 items-center justify-center rounded-lg bg-[var(--gold)] text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline hover:bg-[var(--gold-bright)]">Open detail</Link>
+                      <Link to={`/listing/${featured.id}`} className="flex h-10 flex-1 items-center justify-center rounded-lg bg-primary text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline transition-all hover:bg-primary/95 shadow-[0_4px_12px_rgba(124,58,237,0.15)]">Open detail</Link>
                       {featured.external_url && (
-                        <a href={featured.external_url} target="_blank" rel="noopener noreferrer" className="flex h-10 items-center gap-1 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
+                        <a href={featured.external_url} target="_blank" rel="noopener noreferrer" className="flex h-10 items-center gap-1 rounded-lg border border-white/5 bg-white/[0.02] px-3 text-[10px] font-semibold text-muted-foreground no-underline hover:text-white transition-all hover:bg-white/[0.04]">
                           Source <ExternalLink className="h-3 w-3" />
                         </a>
                       )}
                     </div>
                   </div>
-                </article>
+                </motion.article>
               );
             })()}
 
             {/* Grid */}
             {rest.length > 0 && (
-              <div>
+              <div className="space-y-4">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
                     {sortMode === "affordability" ? "Lowest cash down" : "Ranked picks"}
                   </h3>
-                  <span className="text-[10px] text-muted-foreground num">{rest.length} more</span>
+                  <span className="text-[10px] text-muted-foreground font-bold num">{rest.length} more</span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {rest.map((listing, idx) => {
@@ -204,33 +239,34 @@ export default function BestPicks() {
                     const pct = topScore > 0 ? Math.min(100, Math.round((score / topScore) * 100)) : 0;
                     const cashDown = minCashDownForPrice(Number(listing.price_lkr || 0));
                     return (
-                      <article key={listing.id} className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-border">
+                      <motion.article key={listing.id} variants={itemVariants} className="group flex flex-col overflow-hidden rounded-xl border border-white/5 bg-white/[0.01] backdrop-blur-md transition-all duration-300 hover:border-primary/20 hover:bg-white/[0.03] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] relative">
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30" />
                         <Link to={`/listing/${listing.id}`} className="relative block aspect-[16/10] overflow-hidden bg-black/30 no-underline">
-                          <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                          <span className="absolute left-2 top-2 rounded-md border border-border bg-black/50 px-1.5 py-0.5 text-[10px] font-bold text-white num backdrop-blur-sm">{String(idx + 2).padStart(2, "0")}</span>
+                          <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                          <span className="absolute left-2 top-2 rounded-md border border-white/5 bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white num backdrop-blur-sm">{String(idx + 2).padStart(2, "0")}</span>
                         </Link>
                         <div className="flex flex-1 flex-col gap-3 p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-muted-foreground">{listing.source}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground/80">{listing.source}</span>
                             <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score)}</span>
                           </div>
                           <Link to={`/listing/${listing.id}`} className="block no-underline">
-                            <h3 className="text-[14px] font-semibold text-foreground truncate">{listing.make} {listing.model}</h3>
-                            <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.year || "N/A"} · {listing.district || "LK"}</p>
+                            <h3 className="text-[14px] font-semibold text-white group-hover:text-primary transition-colors truncate">{listing.make} {listing.model}</h3>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">{listing.year || "N/A"} · {listing.district || "LK"}</p>
                           </Link>
                           <div className="flex items-baseline justify-between">
-                            <span className="num text-base font-bold text-foreground">{formatPrice(Number(listing.price_lkr || 0))}</span>
+                            <span className="num text-base font-bold text-white">{formatPrice(Number(listing.price_lkr || 0))}</span>
                             {sortMode === "affordability" && cashDown != null ? (
-                              <span className="num text-[10px] font-bold text-[var(--gold)]">{formatPrice(cashDown)} down</span>
+                              <span className="num text-[10px] font-bold text-primary">{formatPrice(cashDown)} down</span>
                             ) : (
                               <span className="num text-[10px] font-bold text-emerald-400">+{score.toFixed(0)}</span>
                             )}
                           </div>
-                          <div className="mt-auto h-1 overflow-hidden rounded-full bg-secondary/50">
+                          <div className="mt-auto h-1 overflow-hidden rounded-full bg-white/[0.04]">
                             <div className={`h-full rounded-full ${dealMeter(score)}`} style={{ width: `${pct}%` }} />
                           </div>
                         </div>
-                      </article>
+                      </motion.article>
                     );
                   })}
                 </div>
@@ -239,6 +275,6 @@ export default function BestPicks() {
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { getMakes, getModels, getPriceTrendSeries, getHybridBands, formatPrice } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
@@ -95,53 +96,86 @@ export default function Trends() {
   const emptyMessage = !selectedMake || !selectedModel ? "Select make and model to load price history." : error || "No trend data for this combination yet.";
   const hasNarrow = district !== "all" || condition !== "all";
 
-  return (
-    <div className="min-h-screen">
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--gold)]/70">Trend studio</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.035em] leading-[1.02] text-foreground sm:text-[2.75rem] lg:text-[3rem]">Price trends.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground">Track median price movement for any vehicle lane across Sri Lanka.</p>
-        </div>
-      </section>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.05
+      }
+    }
+  } as const;
 
-      <div className="mx-auto max-w-[1320px] space-y-5 px-5 py-8 sm:px-6 lg:py-10">
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring" as const,
+        stiffness: 220,
+        damping: 24
+      }
+    }
+  } as const;
+
+  return (
+    <motion.div
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="min-h-screen relative overflow-hidden bg-background"
+    >
+      {/* Decorative Orbs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[30%] left-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
+
+      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
+        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Trend studio</p>
+          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Price trends.</h1>
+          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">Track median price movement for any vehicle lane across Sri Lanka.</p>
+        </div>
+      </motion.section>
+
+      <div className="mx-auto max-w-[1320px] space-y-6 px-5 py-8 sm:px-6 lg:py-10 relative z-10">
         {/* Controls */}
-        <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
+        <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-md">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <label htmlFor="t-make" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Make</label>
+              <label htmlFor="t-make" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Make</label>
               <Select value={selectedMake} onValueChange={setSelectedMake}>
-                <SelectTrigger id="t-make" className={selectClass}><SelectValue placeholder="Select make" /></SelectTrigger>
-                <SelectContent className="border-border bg-surface text-foreground">
+                <SelectTrigger id="t-make" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30"><SelectValue placeholder="Select make" /></SelectTrigger>
+                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
                   {makes.map((m) => <SelectItem key={m.make} value={m.make}>{m.make}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-model" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Model</label>
+              <label htmlFor="t-model" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Model</label>
               <Select value={selectedModel} onValueChange={setSelectedModel} disabled={!selectedMake || !modelsList.length}>
-                <SelectTrigger id="t-model" className={`${selectClass} disabled:opacity-50`}><SelectValue placeholder="Select model" /></SelectTrigger>
-                <SelectContent className="border-border bg-surface text-foreground">
+                <SelectTrigger id="t-model" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30 disabled:opacity-50"><SelectValue placeholder="Select model" /></SelectTrigger>
+                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
                   {modelsList.map((m) => <SelectItem key={m.model} value={m.model}>{m.model}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-cond" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Condition</label>
+              <label htmlFor="t-cond" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Condition</label>
               <Select value={condition} onValueChange={setCondition}>
-                <SelectTrigger id="t-cond" className={selectClass}><SelectValue /></SelectTrigger>
-                <SelectContent className="border-border bg-surface text-foreground">
+                <SelectTrigger id="t-cond" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30"><SelectValue /></SelectTrigger>
+                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
                   <SelectItem value="all">Any</SelectItem><SelectItem value="used">Used</SelectItem>
                   <SelectItem value="reconditioned">Reconditioned</SelectItem><SelectItem value="brand_new">Brand new</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-dist" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">District</label>
+              <label htmlFor="t-dist" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">District</label>
               <Select value={district} onValueChange={setDistrict}>
-                <SelectTrigger id="t-dist" className={selectClass}><SelectValue /></SelectTrigger>
-                <SelectContent className="border-border bg-surface text-foreground">
+                <SelectTrigger id="t-dist" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30"><SelectValue /></SelectTrigger>
+                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
                   <SelectItem value="all">All districts</SelectItem>
                   {SRI_LANKA_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
@@ -149,46 +183,50 @@ export default function Trends() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Lane:</span>
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/5 pt-4">
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Lane:</span>
             {[
               { id: "make", label: selectedMake || "—" },
               { id: "model", label: selectedModel || "—" },
               { id: "condition", label: condition === "all" ? "Any" : condition },
               { id: "district", label: district === "all" ? "All LK" : district },
             ].map((chip) => (
-              <span key={chip.id} className="rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-muted-foreground">{chip.label}</span>
+              <span key={chip.id} className="rounded-md border border-white/5 bg-white/[0.01] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{chip.label}</span>
             ))}
             {hasNarrow && (
               <button type="button" onClick={() => { setDistrict("all"); setCondition("all"); }}
-                className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                className="ml-auto flex items-center gap-1 text-[10px] font-bold text-muted-foreground transition-colors hover:text-foreground"
               ><RotateCcw className="h-3 w-3" /> Reset filters</button>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Chart */}
-        <div className="min-h-[480px]">
+        <motion.div variants={itemVariants} className="min-h-[480px] rounded-xl border border-white/5 bg-white/[0.01] p-4 backdrop-blur-md">
           <PriceHistoryChart title={chartTitle} points={trendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? "Broaden filters" : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
-        </div>
+        </motion.div>
 
-        <div className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3">
-          <p className="text-[11px] text-muted-foreground">
+        <motion.div variants={itemVariants} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
+          <p className="text-[11px] text-muted-foreground font-medium">
             {selectedMake && selectedModel ? "Median advertised prices grouped by month from the public Sri Lanka snapshot." : "Choose a make and model to render the trajectory."}
           </p>
-          <span className="text-[10px] font-semibold text-cyan-400/60 num">Public data</span>
-        </div>
+          <span className="text-[10px] font-semibold text-primary/70 num">Public data</span>
+        </motion.div>
 
         {/* ── HYBRID TAX ARBITRAGE ──────────────────────────────── */}
-        <HybridTaxArbitrageSection
-          data={hybridBands}
-          loading={hybridLoading}
-          error={hybridError}
-        />
+        <motion.div variants={itemVariants}>
+          <HybridTaxArbitrageSection
+            data={hybridBands}
+            loading={hybridLoading}
+            error={hybridError}
+          />
+        </motion.div>
 
-        <ImportEraPublicSection />
+        <motion.div variants={itemVariants}>
+          <ImportEraPublicSection />
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
