@@ -32,7 +32,7 @@ Copy `backend/.env.example` to `backend/.env` and set Supabase:
 ```env
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
 ALLOW_SQLITE_FALLBACK=false
-CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173,https://vehicle-platform-one.vercel.app
 ```
 
 Notes:
