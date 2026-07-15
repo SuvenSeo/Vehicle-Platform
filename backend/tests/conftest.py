@@ -2,15 +2,13 @@ import warnings
 
 import pytest
 
-from starlette.exceptions import StarletteDeprecationWarning
-
 
 @pytest.fixture(scope="session", autouse=True)
 def _filter_known_test_warnings() -> None:
     warnings.filterwarnings(
         "ignore",
         message="Using `httpx` with `starlette.testclient` is deprecated.*",
-        category=StarletteDeprecationWarning,
+        category=DeprecationWarning,
     )
     warnings.filterwarnings(
         "ignore",

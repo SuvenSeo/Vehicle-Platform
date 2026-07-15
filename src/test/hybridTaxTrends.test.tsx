@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
+import Trends from "@/pages/Trends";
+import * as api from "@/services/api";
 import {
   getExciseRatePerCc,
   getHybridExciseCliffInsight,
@@ -116,19 +118,20 @@ vi.mock("@/data/mockListings", () => ({
 }));
 
 async function renderTrends() {
-  const Trends = (await import("@/pages/Trends")).default;
-  return render(
+  const result = render(
     <MemoryRouter future={ROUTER_FLAGS}>
       <Trends />
     </MemoryRouter>,
   );
+  await waitFor(() => {
+    expect(screen.getByRole("combobox", { name: /make/i })).toHaveTextContent("Toyota");
+  });
+  return result;
 }
 
 describe("Trends page — hybrid tax arbitrage section (UI)", () => {
-  beforeEach(async () => {
-    vi.resetModules();
+  beforeEach(() => {
     vi.clearAllMocks();
-    const api = await import("@/services/api");
     vi.mocked(api.getMakes).mockResolvedValue([{ make: "Toyota", count: 10 }]);
     vi.mocked(api.getModels).mockResolvedValue([{ model: "Aqua", count: 5 }]);
     vi.mocked(api.getPriceTrendSeries).mockResolvedValue({
@@ -210,7 +213,6 @@ describe("Trends page — hybrid tax arbitrage section (UI)", () => {
     let resolve!: (v: HybridBandsData) => void;
     const pending = new Promise<HybridBandsData>((res) => { resolve = res; });
 
-    const api = await import("@/services/api");
     vi.mocked(api.getHybridBands).mockReturnValue(pending);
 
     await renderTrends();
@@ -223,7 +225,6 @@ describe("Trends page — hybrid tax arbitrage section (UI)", () => {
   });
 
   it("shows error message when getHybridBands rejects", async () => {
-    const api = await import("@/services/api");
     vi.mocked(api.getHybridBands).mockRejectedValue(new Error("network"));
 
     await renderTrends();

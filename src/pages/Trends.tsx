@@ -151,8 +151,13 @@ export default function Trends() {
 
           <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
             <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Lane:</span>
-            {[selectedMake || "—", selectedModel || "—", condition === "all" ? "Any" : condition, district === "all" ? "All LK" : district].map((chip) => (
-              <span key={chip} className="rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-muted-foreground">{chip}</span>
+            {[
+              { id: "make", label: selectedMake || "—" },
+              { id: "model", label: selectedModel || "—" },
+              { id: "condition", label: condition === "all" ? "Any" : condition },
+              { id: "district", label: district === "all" ? "All LK" : district },
+            ].map((chip) => (
+              <span key={chip.id} className="rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-muted-foreground">{chip.label}</span>
             ))}
             {hasNarrow && (
               <button type="button" onClick={() => { setDistrict("all"); setCondition("all"); }}

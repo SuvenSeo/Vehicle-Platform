@@ -1,4 +1,19 @@
 import "@testing-library/jest-dom";
+import React from "react";
+import { vi } from "vitest";
+
+vi.mock("recharts", async () => {
+  const original = await vi.importActual("recharts");
+  return {
+    ...original,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        "div",
+        { style: { width: "100%", height: "100%", minWidth: "400px", minHeight: "300px" } },
+        children
+      ),
+  };
+});
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -52,3 +67,35 @@ Object.defineProperty(Element.prototype, "getBoundingClientRect", {
   configurable: true,
   value: domRect,
 });
+
+// Global localStorage mock
+const localStorageStore = new Map<string, string>();
+const localStorageMock = {
+  getItem: (key: string) => localStorageStore.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    localStorageStore.set(key, String(value));
+  },
+  removeItem: (key: string) => {
+    localStorageStore.delete(key);
+  },
+  clear: () => {
+    localStorageStore.clear();
+  },
+  key: (index: number) => Array.from(localStorageStore.keys())[index] ?? null,
+  get length() {
+    return localStorageStore.size;
+  },
+};
+
+Object.defineProperty(globalThis, "localStorage", {
+  configurable: true,
+  writable: true,
+  value: localStorageMock,
+});
+
+Object.defineProperty(window, "localStorage", {
+  configurable: true,
+  writable: true,
+  value: localStorageMock,
+});
+
