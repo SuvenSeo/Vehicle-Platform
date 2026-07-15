@@ -1,7 +1,7 @@
 import { memo, startTransition, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { FilterState, Condition, BodyType, Transmission, FuelType, SortOption } from "@/types/car";
 import { getListingSources, getMakes, getModels, formatPrice, type ListingSourceStat } from "@/services/api";
-import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
+import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";

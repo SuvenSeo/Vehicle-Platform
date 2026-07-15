@@ -113,7 +113,7 @@ vi.mock("@/services/api", () => ({
   formatPrice: (v: number | null) => (v == null ? "N/A" : `Rs. ${(v / 1_000_000).toFixed(1)}M`),
 }));
 
-vi.mock("@/data/mockListings", () => ({
+vi.mock("@/data/districts", () => ({
   SRI_LANKA_DISTRICTS: ["Colombo", "Gampaha"],
 }));
 

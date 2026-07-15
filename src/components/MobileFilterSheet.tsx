@@ -2,7 +2,7 @@ import { startTransition, useCallback, useEffect, useMemo, useState } from "reac
 import type { ReactNode } from "react";
 import { FilterState } from "@/types/car";
 import { getMakes, getModels } from "@/services/api";
-import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
+import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import {
   Sheet,
   SheetContent,

@@ -16,7 +16,7 @@ vi.mock("@/services/api", () => ({
   ]),
 }));
 
-vi.mock("@/data/mockListings", () => ({
+vi.mock("@/data/districts", () => ({
   SRI_LANKA_DISTRICTS: ["Colombo", "Gampaha", "Kandy", "Galle"],
 }));
 

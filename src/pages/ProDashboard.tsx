@@ -61,7 +61,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AIChatWidget } from "@/components/AIChatWidget";
 import { SourceQualityScorecard } from "@/components/SourceQualityScorecard";
 import { Checkbox } from "@/components/ui/checkbox";
 // Surface and AmbientBackground removed — using direct styling
@@ -1660,7 +1659,6 @@ export default function ProDashboard() {
       </main>
 
       <DetailDialog detail={detail} open={detailOpen} onOpenChange={setDetailOpen} />
-      <AIChatWidget />
     </motion.div>
   );
 }

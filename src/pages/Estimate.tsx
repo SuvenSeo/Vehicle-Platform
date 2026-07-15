@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { APIError, estimatePrice, formatPrice, getMakes, getModels, getPriceTrends } from "@/services/api";
 import { PriceEstimate, PriceTrendPoint } from "@/types/car";
-import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
+import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { SellerFairAskCard } from "@/components/SellerFairAskCard";

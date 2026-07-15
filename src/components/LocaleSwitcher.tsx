@@ -1,6 +1,7 @@
 import { Globe } from "lucide-react";
 import { useAppPreferences } from "@/lib/appPreferences";
-import type { Locale } from "@/lib/i18n";
+
+type Locale = "en" | "si" | "ta";
 
 type LocaleOption = {
   value: Locale;

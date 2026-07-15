@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { getMakes, getModels, getPriceTrendSeries, getHybridBands, formatPrice } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SRI_LANKA_DISTRICTS } from "@/data/mockListings";
+import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { ImportEraPublicSection } from "@/components/ImportEraPublicSection";
 import { RotateCcw, Zap } from "lucide-react";
