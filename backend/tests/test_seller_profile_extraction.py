@@ -3,7 +3,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from app.api.v1.endpoints.listings import _extract_seller_profile_from_html
+from app.api.v1.endpoints import listings
+from app.api.v1.endpoints.listings import _extract_seller_profile_from_html, _store_seller_profile_cache
 
 
 def test_extract_seller_profile_from_source_html_uses_real_values():
@@ -88,3 +89,40 @@ def test_extract_seller_profile_does_not_invent_mock_metrics():
     assert profile["listing_count"] is None
     assert profile["review_count"] is None
     assert profile["rating"] is None
+
+
+def test_seller_profile_cache_evicts_oldest_when_over_capacity():
+    listings.SELLER_PROFILE_CACHE.clear()
+    try:
+        cap = listings.SELLER_PROFILE_CACHE_MAX_ENTRIES
+        for i in range(cap):
+            _store_seller_profile_cache(i, now=float(i), profile={"n": i})
+        assert len(listings.SELLER_PROFILE_CACHE) == cap
+
+        # One more entry, newer than everything already cached, should evict
+        # the single oldest entry (id 0) rather than grow unbounded.
+        _store_seller_profile_cache(cap, now=float(cap), profile={"n": cap})
+
+        assert len(listings.SELLER_PROFILE_CACHE) == cap
+        assert 0 not in listings.SELLER_PROFILE_CACHE
+        assert cap in listings.SELLER_PROFILE_CACHE
+    finally:
+        listings.SELLER_PROFILE_CACHE.clear()
+
+
+def test_seller_profile_cache_evicts_expired_entries_before_oldest():
+    listings.SELLER_PROFILE_CACHE.clear()
+    try:
+        cap = listings.SELLER_PROFILE_CACHE_MAX_ENTRIES
+        ttl = listings.SELLER_PROFILE_CACHE_TTL_SECONDS
+        # id 0 is expired (cached far in the past); the rest are fresh.
+        _store_seller_profile_cache(0, now=0.0, profile={"n": 0})
+        for i in range(1, cap):
+            _store_seller_profile_cache(i, now=float(ttl + i), profile={"n": i})
+
+        _store_seller_profile_cache(cap, now=float(ttl + cap), profile={"n": cap})
+
+        assert 0 not in listings.SELLER_PROFILE_CACHE, "expired entry should be evicted first"
+        assert len(listings.SELLER_PROFILE_CACHE) <= cap
+    finally:
+        listings.SELLER_PROFILE_CACHE.clear()

@@ -35,7 +35,6 @@ class _DummyScraper:
 class _DummyAggregator:
     init_count = 0
     compute_count = 0
-    update_count = 0
 
     def __init__(self, _db):
         type(self).init_count += 1
@@ -45,10 +44,13 @@ class _DummyAggregator:
         type(self).compute_count += 1
         return None
 
-    def update_deal_scores(self):
-        type(self).update_count += 1
-        return None
 
+_bulk_refresh_calls = []
+
+
+def _dummy_bulk_refresh_deal_scores(_db):
+    _bulk_refresh_calls.append(_db)
+    return {"updated": 0}
 
 
 def _reset_dummy_scraper_counts():
@@ -59,7 +61,7 @@ def _reset_dummy_scraper_counts():
 def _reset_dummy_aggregator_counts():
     _DummyAggregator.init_count = 0
     _DummyAggregator.compute_count = 0
-    _DummyAggregator.update_count = 0
+    _bulk_refresh_calls.clear()
 
 
 def test_run_sync_skips_source_when_max_pages_is_zero(monkeypatch):
@@ -144,6 +146,7 @@ def test_run_sync_can_skip_market_analysis_without_skipping_sources(monkeypatch)
     monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
     monkeypatch.setattr(run_sync, "_try_acquire_market_analysis_lock", lambda _db: True)
     monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
+    monkeypatch.setattr(run_sync, "bulk_refresh_deal_scores", _dummy_bulk_refresh_deal_scores)
     monkeypatch.setenv("SCRAPE_PROFILE", "daily")
     monkeypatch.setenv("RUN_MARKET_ANALYSIS", "false")
 
@@ -159,7 +162,7 @@ def test_run_sync_can_skip_market_analysis_without_skipping_sources(monkeypatch)
     ]
     assert _DummyAggregator.init_count == 0
     assert _DummyAggregator.compute_count == 0
-    assert _DummyAggregator.update_count == 0
+    assert _bulk_refresh_calls == []
 
 
 def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
@@ -176,6 +179,7 @@ def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
     monkeypatch.setattr(run_sync, "_try_acquire_market_analysis_lock", lambda _db: True)
     monkeypatch.setattr(run_sync, "_release_market_analysis_lock", lambda _db: None)
     monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
+    monkeypatch.setattr(run_sync, "bulk_refresh_deal_scores", _dummy_bulk_refresh_deal_scores)
     monkeypatch.setenv("SCRAPE_PROFILE", "daily")
     monkeypatch.setenv("RUN_SCRAPERS", "false")
     monkeypatch.setenv("RUN_MARKET_ANALYSIS", "true")
@@ -186,7 +190,7 @@ def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
     assert calls == []
     assert _DummyAggregator.init_count == 1
     assert _DummyAggregator.compute_count == 1
-    assert _DummyAggregator.update_count == 1
+    assert len(_bulk_refresh_calls) == 1
 
 
 def test_run_alt_sync_main_falls_back_for_non_positive_source_page_values(monkeypatch):

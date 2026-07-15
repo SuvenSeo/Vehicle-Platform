@@ -507,7 +507,7 @@ async def main(profile_override: str | None = None):
     run_scrapers = _resolve_bool_env("RUN_SCRAPERS", True)
     run_market_analysis = _resolve_bool_env("RUN_MARKET_ANALYSIS", True)
     run_market_signals = _resolve_bool_env("RUN_MARKET_SIGNALS", run_market_analysis)
-    run_deal_score_refresh = _resolve_bool_env("RUN_DEAL_SCORE_REFRESH", False)
+    run_deal_score_refresh = _resolve_bool_env("RUN_DEAL_SCORE_REFRESH", True)
     run_dedup = _resolve_bool_env("RUN_DEDUP", False)
     run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", False)
     run_thumbnail_cache = _resolve_bool_env("RUN_THUMBNAIL_CACHE", False)
@@ -577,8 +577,6 @@ async def main(profile_override: str | None = None):
                     if run_deal_score_refresh:
                         bulk_result = bulk_refresh_deal_scores(db)
                         log.info("deal_scores_bulk_refreshed", **bulk_result)
-                    else:
-                        aggregator.update_deal_scores()
             except OperationalError as exc:
                 db.rollback()
                 if _is_statement_timeout_error(exc):

@@ -4,6 +4,7 @@ from db.session import HotSessionLocal as SessionLocal
 from app.scrapers.ikman import IkmanCarScraper
 from app.scrapers.riyasewana import RiyasewanaScraper
 from app.services.aggregator import CarPriceAggregator
+from app.utils.deal_scores import bulk_refresh_deal_scores
 import asyncio
 from datetime import datetime
 
@@ -25,7 +26,7 @@ async def sync_job():
         aggregator = CarPriceAggregator(db)
         now = datetime.now()
         aggregator.compute_aggregates(now.year, now.month)
-        aggregator.update_deal_scores()
+        bulk_refresh_deal_scores(db)
         
         logger.info("Schedule sync completed successfully.")
     except Exception as e:

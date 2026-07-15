@@ -60,6 +60,23 @@ def require_admin_key(x_admin_key: str | None = Header(default=None, alias="X-Ad
         raise HTTPException(status_code=401, detail="Invalid admin key.")
 
 
+REDACTED_ERROR_MESSAGE = "Error details hidden (admin key required)."
+
+
+def has_valid_admin_key(x_admin_key: str | None = Header(default=None, alias="X-Admin-Key")) -> bool:
+    """Non-raising variant of require_admin_key, for endpoints that stay public
+    but gate sensitive fields (like raw scraper error text) behind the key."""
+    configured_key = os.getenv("ADMIN_API_KEY", "").strip()
+    return bool(configured_key) and bool(x_admin_key) and secrets.compare_digest(x_admin_key, configured_key)
+
+
+def _visible_error_message(raw_error: str | None, *, is_admin: bool) -> str | None:
+    message = str(raw_error or "").strip()
+    if not message:
+        return None
+    return message if is_admin else REDACTED_ERROR_MESSAGE
+
+
 def _to_utc(dt):
     if not dt:
         return None
@@ -119,6 +136,7 @@ def _is_running(run: ScrapeRun | None, now: datetime) -> bool:
 def pipeline_runs(
     limit: int = Query(25, ge=1, le=200),
     db: Session = Depends(get_db),
+    is_admin: bool = Depends(has_valid_admin_key),
 ):
     recent_runs = (
         db.query(ScrapeRun)
@@ -136,7 +154,7 @@ def pipeline_runs(
             "finished_at": _to_utc(run.finished_at).isoformat() if run.finished_at else None,
             "listings_found": int(run.listings_found or 0),
             "listings_new": int(run.listings_new or 0),
-            "error_message": str(run.error_message or "").strip() or None,
+            "error_message": _visible_error_message(run.error_message, is_admin=is_admin),
         }
         for run in recent_runs
     ]
@@ -163,7 +181,7 @@ def trigger_pipeline_job(payload: PipelineTriggerRequest, _admin: None = Depends
 
 
 @router.get("/status", response_model=dict)
-def pipeline_status(db: Session = Depends(get_db)):
+def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_valid_admin_key)):
     now = datetime.now(timezone.utc)
     recent_runs = (
         db.query(ScrapeRun)
@@ -203,7 +221,7 @@ def pipeline_status(db: Session = Depends(get_db)):
         finished_at = _to_utc(last_run.finished_at) if last_run else None
         expected_hours = EXPECTED_HOURS.get(source, 12)
         last_status = str(last_run.status or "").upper() if last_run else None
-        last_error = str(last_run.error_message or "").strip() if last_run else ""
+        last_error = _visible_error_message(last_run.error_message if last_run else None, is_admin=is_admin) or ""
 
         if active_run is not None:
             status = "running"

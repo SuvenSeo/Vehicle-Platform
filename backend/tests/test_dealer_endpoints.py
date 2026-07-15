@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+from app.api.v1.endpoints import dealer
 from app.api.v1.endpoints.dealer import _parse_vehicle_from_url, _market_benchmark
 from db.models import Base, CarListing
 from db.session import get_db
@@ -321,3 +322,18 @@ class TestBenchmarkUrlsEndpoint:
         )
         assert resp.status_code == 200
         assert resp.json() == []
+
+    def test_exceeding_rate_limit_returns_429(self):
+        client, _ = self._client()
+        original_max = dealer._dealer_rate_limiter.max_requests
+        dealer._dealer_rate_limiter.max_requests = 2
+        dealer._dealer_rate_limiter._buckets.clear()
+        try:
+            for _ in range(2):
+                resp = client.post("/dealer/benchmark-urls", json={"urls": []})
+                assert resp.status_code == 200
+            resp = client.post("/dealer/benchmark-urls", json={"urls": []})
+            assert resp.status_code == 429
+        finally:
+            dealer._dealer_rate_limiter.max_requests = original_max
+            dealer._dealer_rate_limiter._buckets.clear()

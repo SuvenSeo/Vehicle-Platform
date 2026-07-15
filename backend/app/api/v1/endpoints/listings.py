@@ -76,6 +76,7 @@ SOURCE_SITE_NAME_MARKERS = {
     "dimo": {"dimo", "carsatdimo", "carsatdimolk"},
 }
 SELLER_PROFILE_CACHE: dict[int, tuple[float, dict[str, object]]] = {}
+SELLER_PROFILE_CACHE_MAX_ENTRIES = 512
 MAX_PROXY_IMAGE_BYTES = 5 * 1024 * 1024
 MAX_DETAIL_HTML_BYTES = 1 * 1024 * 1024
 MAX_FETCH_REDIRECTS = 3
@@ -418,6 +419,32 @@ def _empty_seller_profile(source: str, detail_url: str) -> dict[str, object]:
         "whatsapp_numbers": [],
         "verified_badges": [],
     }
+
+
+def _store_seller_profile_cache(listing_id: int, now: float, profile: dict[str, object]) -> None:
+    """Insert into SELLER_PROFILE_CACHE, keeping it bounded to
+    SELLER_PROFILE_CACHE_MAX_ENTRIES by evicting expired entries first, then
+    the oldest remaining ones."""
+    SELLER_PROFILE_CACHE[listing_id] = (now, profile)
+    if len(SELLER_PROFILE_CACHE) <= SELLER_PROFILE_CACHE_MAX_ENTRIES:
+        return
+
+    expired_keys = [
+        key
+        for key, (cached_at, _profile) in SELLER_PROFILE_CACHE.items()
+        if (now - cached_at) >= SELLER_PROFILE_CACHE_TTL_SECONDS
+    ]
+    for key in expired_keys:
+        SELLER_PROFILE_CACHE.pop(key, None)
+
+    if len(SELLER_PROFILE_CACHE) <= SELLER_PROFILE_CACHE_MAX_ENTRIES:
+        return
+
+    oldest_first = sorted(SELLER_PROFILE_CACHE.items(), key=lambda item: item[1][0])
+    overflow = len(SELLER_PROFILE_CACHE) - SELLER_PROFILE_CACHE_MAX_ENTRIES
+    for key, _value in oldest_first[:overflow]:
+        SELLER_PROFILE_CACHE.pop(key, None)
+
 
 MODEL_ALIAS_GROUPS = (
     {"vitz", "yaris"},
@@ -1729,7 +1756,7 @@ def get_seller_profile(listing_id: int, db: Session = Depends(get_db)):
             profile = _empty_seller_profile(source=source, detail_url=detail_url)
 
     profile["fetched_at"] = datetime.now(timezone.utc)
-    SELLER_PROFILE_CACHE[listing_id] = (now, profile)
+    _store_seller_profile_cache(listing_id, now, profile)
     return profile
 
 

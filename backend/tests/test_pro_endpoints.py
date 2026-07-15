@@ -2,7 +2,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -16,6 +16,19 @@ def _session():
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
     return Session()
+
+
+def _session_with_query_counter():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+    counter = {"count": 0}
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def _count(conn, cursor, statement, parameters, context, executemany):
+        counter["count"] += 1
+
+    return Session(), counter
 
 
 def _listing(
@@ -196,3 +209,86 @@ def test_pro_vehicle_lane_detail_respects_vehicle_district_and_condition_filters
     assert detail.summary.startswith("1 priced listings")
     assert len(detail.sample_listings) == 1
     assert detail.sample_listings[0].title == "Toyota Vitz target"
+
+
+# ---------------------------------------------------------------------------
+# Bulk district / vehicle-lane query-count regression tests
+#
+# get_pro_districts and get_pro_vehicle_lanes previously issued 3-4 extra
+# queries per row returned (per-district / per-lane loops calling
+# _top_models / _breakdown / _samples / _top_group_label). They now resolve
+# top-make, source mix, and sample listings with a handful of bulk
+# row_number()-windowed queries, so the query count must stay flat as the
+# number of districts/lanes grows.
+# ---------------------------------------------------------------------------
+
+_SEEDED_DISTRICTS = ["Colombo", "Gampaha", "Kandy", "Galle", "Kurunegala", "Jaffna"]
+
+
+def _seed_multi_district_listings(db):
+    now = datetime(2026, 5, 20, 9, 0, tzinfo=timezone.utc)
+    listings = []
+    i = 0
+    for district in _SEEDED_DISTRICTS:
+        for make, model, price, source, score in [
+            ("Toyota", "Vitz", 7_200_000, "ikman", 8.5),
+            ("Toyota", "Vitz", 7_400_000, "riyasewana", 7.0),
+            ("Honda", "Fit", 8_800_000, "ikman", 6.0),
+        ]:
+            listings.append(
+                _listing(
+                    f"{district}-{i}",
+                    make=make,
+                    model=model,
+                    price_lkr=price,
+                    district=district,
+                    source=source,
+                    deal_score=score,
+                )
+            )
+            i += 1
+    db.add_all(listings)
+    db.commit()
+
+
+def test_pro_districts_matches_manually_computed_values_across_multiple_districts():
+    db = _session()
+    _seed_multi_district_listings(db)
+
+    profiles = pro.get_pro_districts(db=db)
+
+    assert {p.district for p in profiles} == set(_SEEDED_DISTRICTS)
+    for profile in profiles:
+        assert profile.listing_count == 3
+        assert profile.top_make == "Toyota"
+        assert profile.top_model == "Vitz"
+        assert [m.model for m in profile.top_models] == ["Vitz", "Fit"]
+        assert {s.label for s in profile.source_mix} == {"Ikman", "Riyasewana"}
+        assert len(profile.sample_listings) == 3
+        # Median of [7_200_000, 7_400_000, 8_800_000]
+        assert profile.median_price_lkr == 7_400_000
+
+
+def test_pro_districts_query_count_stays_flat_as_district_count_grows():
+    db, counter = _session_with_query_counter()
+    _seed_multi_district_listings(db)
+    counter["count"] = 0
+
+    pro.get_pro_districts(db=db)
+
+    # Bounded regardless of district count: 1 aggregate query + 4 bulk
+    # lookups (top-models, source-mix, samples, median fallback on SQLite).
+    assert counter["count"] <= 6, f"expected a flat, small query count, got {counter['count']}"
+
+
+def test_pro_vehicle_lanes_query_count_stays_flat_as_lane_count_grows():
+    db, counter = _session_with_query_counter()
+    _seed_multi_district_listings(db)
+    counter["count"] = 0
+
+    lanes = pro.get_pro_vehicle_lanes(db=db)
+
+    assert len(lanes) == 2  # Toyota Vitz, Honda Fit
+    # Bounded regardless of lane count: 1 aggregate query + 3 bulk lookups
+    # (top-district, top-source, median fallback on SQLite).
+    assert counter["count"] <= 5, f"expected a flat, small query count, got {counter['count']}"

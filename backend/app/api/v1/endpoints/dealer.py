@@ -1,16 +1,20 @@
 import re
-from statistics import median as stats_median
 from typing import Optional
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_validator
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.services.rate_limit import RateLimiter
+from app.utils.sql_median import median_price_expr, python_median
 from db.models import CarListing
 from db.session import get_db
 
-router = APIRouter()
+_dealer_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_dealer_rate_limiter)])
 
 MIN_REASONABLE_PRICE_LKR = 100_000
 MAX_URLS_PER_REQUEST = 50
@@ -134,20 +138,24 @@ def _market_benchmark(
     if year:
         q = q.filter(CarListing.year.between(year - 2, year + 2))
 
-    prices = [
-        float(row[0])
-        for row in q.with_entities(CarListing.price_lkr).all()
-    ]
+    median_expr = median_price_expr(db, CarListing.price_lkr)
+    if median_expr is not None:
+        comparable_count, median_value = q.with_entities(func.count(CarListing.id), median_expr).one()
+        comparable_count = int(comparable_count or 0)
+        market_median = round(float(median_value), 2) if median_value is not None else None
+    else:
+        prices = [float(row[0]) for row in q.with_entities(CarListing.price_lkr).all()]
+        comparable_count = len(prices)
+        market_median = python_median(prices)
 
-    if not prices:
+    if not comparable_count or market_median is None:
         return None, None, 0
 
-    market_median = round(stats_median(prices), 2)
     price_gap_pct: Optional[float] = None
     if listing_price is not None and market_median > 0:
         price_gap_pct = round((listing_price - market_median) / market_median * 100, 2)
 
-    return market_median, price_gap_pct, len(prices)
+    return market_median, price_gap_pct, comparable_count
 
 
 class BenchmarkUrlsRequest(BaseModel):
