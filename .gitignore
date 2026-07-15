@@ -47,3 +47,10 @@ coverage
 # Build
 *.tsbuildinfo
 .vercel
+
+# Local agent session scratch
+.agents/
+.codex/
+.ruff_cache/
+/PROJECT.md
+/ORIGINAL_REQUEST.md
