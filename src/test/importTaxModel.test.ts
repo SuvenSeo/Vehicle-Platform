@@ -51,9 +51,13 @@ describe("computeImportTaxes", () => {
     const cid = 10_000_000 * 0.2;
     const surcharge = cid * 0.5;
     const excise = 2000 * 6_400;
-    const expectedVat = (10_000_000 + cid + surcharge + excise) * 0.18;
+    const dutyBase = 10_000_000 + cid + surcharge + excise;
+    const sscl = dutyBase * 0.025;
+    // VAT compounds on duty-inclusive + SSCL; luxury stays out of the VAT base.
+    const expectedVat = (dutyBase + sscl) * 0.18;
 
     expect(line(result, "vat").amount).toBeCloseTo(expectedVat);
+    expect(line(result, "luxury").amount).toBeGreaterThan(0);
   });
 
   it("total on-road equals CIF plus every tax line", () => {

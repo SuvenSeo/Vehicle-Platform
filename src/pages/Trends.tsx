@@ -13,8 +13,6 @@ import {
   HYBRID_EXCISE_CLIFF_CC,
 } from "@/lib/importTaxModel";
 
-const selectClass = "h-10 rounded-lg border-border bg-surface text-sm text-foreground";
-
 // Pre-compute per-band excise rates from importTaxModel (pure, no async).
 const HYBRID_BAND_EXCISE = {
   low: getExciseRatePerCc("hybrid", HYBRID_EXCISE_CLIFF_CC),          // ≤1500 cc

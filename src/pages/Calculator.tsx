@@ -2,22 +2,15 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPrice, calculateLandedCost, calculateTco, getPermits, type LandedCostResult, type TcoResult, type PermitInfo } from "@/services/api";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { 
-  Banknote, 
-  Gauge, 
-  ShieldCheck, 
-  WalletCards, 
-  FileText, 
-  Car, 
-  TrendingDown, 
-  Compass, 
+import {
+  Banknote,
+  Gauge,
+  WalletCards,
+  FileText,
+  TrendingDown,
+  Compass,
   AlertTriangle,
-  HelpCircle,
-  TrendingUp,
-  Percent,
   CheckCircle,
-  MapPin
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
@@ -110,7 +103,7 @@ export default function Calculator() {
         })
         .finally(() => setPermitsLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, toast]);
 
   // Run calculations automatically or on submit
   const runLandedCostCalc = async () => {
@@ -126,10 +119,11 @@ export default function Calculator() {
         apply_sscl: applySscl,
       });
       setLcResult(res);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "An error occurred.";
       toast({
         title: "Calculation Failed",
-        description: e.message || "An error occurred.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -151,10 +145,11 @@ export default function Calculator() {
         resale_loss_annual: tcoDepreciation,
       });
       setTcoResult(res);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "An error occurred.";
       toast({
         title: "Calculation Failed",
-        description: e.message || "An error occurred.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -163,11 +158,15 @@ export default function Calculator() {
   };
 
   useEffect(() => {
-    runLandedCostCalc();
+    void runLandedCostCalc();
+    // Recalculate only when landed-cost inputs change (not when helper identity changes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional input-driven recalculation
   }, [cifUsd, exchangeRate, lcFuelType, lcEngineCc, lcMotorKw, applySurcharge, applySscl]);
 
   useEffect(() => {
-    runTcoCalc();
+    void runTcoCalc();
+    // Recalculate only when TCO inputs change (not when helper identity changes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional input-driven recalculation
   }, [tcoDailyKm, tcoFuelType, tcoKmpl, tcoLease, tcoInsurance, tcoService, tcoTyres, tcoDepreciation]);
 
   return (

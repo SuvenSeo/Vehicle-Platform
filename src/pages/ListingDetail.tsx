@@ -317,9 +317,9 @@ export default function ListingDetail() {
 
             {/* Finance Dashboard widgets */}
             {hasPrice && (() => {
-              const isUnregistered = 
-                listing.condition === 'brand_new' || 
-                listing.condition === 'unregistered' || 
+              // brand_new already covers API-normalized "unregistered"/new imports
+              const isUnregistered =
+                listing.condition === 'brand_new' ||
                 (typeof listing.year === 'number' && listing.year >= 2025);
               const maxLtvPercent = isUnregistered ? 40 : 60;
               const minEquityPercent = 100 - maxLtvPercent;
