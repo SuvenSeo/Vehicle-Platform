@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/services/api", () => ({
   getListings: vi.fn(),
+  getPriceDrops: vi.fn().mockResolvedValue([]),
   getListingThumbnailProxyUrl: vi.fn().mockReturnValue("https://example.com/thumb.jpg"),
   formatPrice: (value: number | null) => (value == null ? "N/A" : `Rs. ${(Number(value) / 1_000_000).toFixed(2)}M`),
 }));
