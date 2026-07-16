@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 import structlog
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import Session
@@ -13,6 +15,13 @@ logger = structlog.get_logger()
 _MIN_MEDIAN_LKR = 100_000.0
 _SCORE_MAX = 100.0
 _SCORE_MIN = -100.0
+
+# Suppression guardrails (AutoTrader pattern): rather than showing a
+# low-confidence rating, show none. Suppressed listings get deal_score and
+# market_median_lkr set to NULL so stale badges from earlier runs disappear.
+_MIN_COMPARABLES = 5
+_MAX_VEHICLE_AGE_YEARS = 15
+_MIN_PRICE_FOR_SCORE_LKR = 300_000.0
 
 
 def _clamp_score(raw: float) -> float:
@@ -63,6 +72,7 @@ def _build_listing_median_select():
             PriceAggregate.model,
             PriceAggregate.year,
             func.avg(PriceAggregate.median_price_lkr).label("median"),
+            func.sum(PriceAggregate.listing_count).label("comparables"),
         )
         .join(
             nat_latest_sq,
@@ -134,7 +144,11 @@ def _build_listing_median_select():
         select(
             CarListing.id,
             CarListing.price_lkr,
+            CarListing.year,
             func.coalesce(dist_agg_sq.c.median, nat_agg_sq.c.median).label("best_median"),
+            # Cohort size always comes from the national latest-period sum —
+            # a single district row can look thin while the model is liquid.
+            nat_agg_sq.c.comparables.label("comparables"),
         )
         .select_from(CarListing)
         .outerjoin(
@@ -192,15 +206,33 @@ def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
     stmt = _build_listing_median_select()
     rows = db.execute(stmt).fetchall()
 
+    current_year = datetime.now().year
+    min_year_for_score = current_year - _MAX_VEHICLE_AGE_YEARS
+
     updated = 0
     skipped_no_median = 0
+    suppressed = 0
     batches = 0
     batch: list[dict] = []
+    suppress_ids: list[int] = []
+
+    def _suppression_reason(row) -> str | None:
+        price = float(row.price_lkr)
+        if price < _MIN_PRICE_FOR_SCORE_LKR:
+            return "price_below_floor"
+        if row.year is not None and int(row.year) < min_year_for_score:
+            return "vehicle_too_old"
+        comparables = int(row.comparables or 0)
+        if comparables < _MIN_COMPARABLES:
+            return "thin_cohort"
+        return None
 
     for row in rows:
         best_median = row.best_median
 
         if best_median is None or float(best_median) < _MIN_MEDIAN_LKR:
+            # No usable market context — clear any stale badge too.
+            suppress_ids.append(row.id)
             skipped_no_median += 1
             continue
 
@@ -208,7 +240,13 @@ def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
         median = float(best_median)
 
         if price <= 0 or median <= 0:
+            suppress_ids.append(row.id)
             skipped_no_median += 1
+            continue
+
+        if _suppression_reason(row) is not None:
+            suppress_ids.append(row.id)
+            suppressed += 1
             continue
 
         raw_score = (1.0 - price / median) * 100.0
@@ -238,10 +276,27 @@ def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
         updated += len(batch)
         batches += 1
 
+    # Suppressed/uncontextualized rows lose their badge entirely — a missing
+    # rating is honest; a stale or low-confidence one is misleading.
+    for start in range(0, len(suppress_ids), batch_size):
+        chunk = suppress_ids[start : start + batch_size]
+        db.execute(
+            update(CarListing)
+            .where(CarListing.id.in_(chunk))
+            .values(deal_score=None, market_median_lkr=None)
+        )
+        db.commit()
+
     logger.info(
         "bulk_refresh_deal_scores_done",
         updated=updated,
         skipped_no_median=skipped_no_median,
+        suppressed=suppressed,
         batches=batches,
     )
-    return {"updated": updated, "skipped_no_median": skipped_no_median, "batches": batches}
+    return {
+        "updated": updated,
+        "skipped_no_median": skipped_no_median,
+        "suppressed": suppressed,
+        "batches": batches,
+    }

@@ -66,6 +66,7 @@ def _aggregate(
     median_price_lkr: int,
     period_year: int = 2026,
     period_month: int = 1,
+    listing_count: int = 5,
 ) -> PriceAggregate:
     m = Decimal(str(median_price_lkr))
     return PriceAggregate(
@@ -79,7 +80,7 @@ def _aggregate(
         avg_price_lkr=m,
         p25_price_lkr=m,
         p75_price_lkr=m,
-        listing_count=5,
+        listing_count=listing_count,
     )
 
 
@@ -297,7 +298,7 @@ def test_bulk_refresh_returns_correct_summary_dict():
 
     result = bulk_refresh_deal_scores(db)
 
-    assert result == {"updated": 1, "skipped_no_median": 1, "batches": 1}
+    assert result == {"updated": 1, "skipped_no_median": 1, "suppressed": 0, "batches": 1}
 
 
 def test_bulk_refresh_empty_db_returns_zero_counts():
@@ -305,7 +306,73 @@ def test_bulk_refresh_empty_db_returns_zero_counts():
 
     result = bulk_refresh_deal_scores(db)
 
-    assert result == {"updated": 0, "skipped_no_median": 0, "batches": 0}
+    assert result == {"updated": 0, "skipped_no_median": 0, "suppressed": 0, "batches": 0}
+
+
+# ---------------------------------------------------------------------------
+# Suppression guardrails (AutoTrader pattern)
+# ---------------------------------------------------------------------------
+
+
+def test_thin_cohort_suppresses_badge_and_clears_stale_score():
+    """Fewer than 5 comparables → no rating, and any stale score is cleared."""
+    db = _session()
+    stale = _listing("thin", price_lkr=4_000_000)
+    stale.deal_score = 12.5
+    stale.market_median_lkr = 5_000_000
+    db.add(stale)
+    db.add(_aggregate("Toyota", "Vitz", 2020, median_price_lkr=5_000_000, listing_count=3))
+    db.commit()
+
+    result = bulk_refresh_deal_scores(db)
+
+    assert result["suppressed"] == 1
+    db.expire_all()
+    row = db.query(CarListing).filter_by(source_id="thin").one()
+    assert row.deal_score is None
+    assert row.market_median_lkr is None
+
+
+def test_old_vehicle_suppresses_badge():
+    """Vehicles older than 15 years never get a deal rating."""
+    db = _session()
+    db.add(_listing("vintage", year=2005, price_lkr=4_000_000))
+    db.add(_aggregate("Toyota", "Vitz", 2005, median_price_lkr=5_000_000, listing_count=20))
+    db.commit()
+
+    result = bulk_refresh_deal_scores(db)
+
+    assert result["suppressed"] == 1
+    assert db.query(CarListing).filter_by(source_id="vintage").one().deal_score is None
+
+
+def test_price_below_floor_suppresses_badge():
+    db = _session()
+    db.add(_listing("cheap", price_lkr=250_000))
+    db.add(_aggregate("Toyota", "Vitz", 2020, median_price_lkr=5_000_000, listing_count=20))
+    db.commit()
+
+    result = bulk_refresh_deal_scores(db)
+
+    assert result["suppressed"] == 1
+    assert db.query(CarListing).filter_by(source_id="cheap").one().deal_score is None
+
+
+def test_no_median_clears_stale_badge():
+    """A listing that loses its aggregate context also loses its stale badge."""
+    db = _session()
+    orphan = _listing("orphan", make="Honda", model="Fit", year=2018, price_lkr=3_000_000)
+    orphan.deal_score = 30.0
+    orphan.market_median_lkr = 4_300_000
+    db.add(orphan)
+    db.commit()
+
+    bulk_refresh_deal_scores(db)
+
+    db.expire_all()
+    row = db.query(CarListing).filter_by(source_id="orphan").one()
+    assert row.deal_score is None
+    assert row.market_median_lkr is None
 
 
 def test_bulk_refresh_national_median_is_average_of_district_medians():

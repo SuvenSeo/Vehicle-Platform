@@ -64,6 +64,9 @@ export const ListingCard = memo(function ListingCard({
   onWatchlistToggle,
   isWatchlisted,
 }: ListingCardProps) {
+  // null deal_score = rating suppressed server-side (thin cohort, old vehicle,
+  // extreme price) — show no badge rather than a fake-neutral one.
+  const hasDealScore = listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = Number(listing.deal_score ?? 0);
   const imageUrl = getListingImageUrl(listing);
   const dealLabel = getListingDealLabel(dealScore);
@@ -156,9 +159,11 @@ export const ListingCard = memo(function ListingCard({
                 className="bg-black/50 border-primary/40 text-primary px-2 py-0.5 text-[10px] tracking-[0.1em]"
               />
             )}
-            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
-              {dealScore >= 0 ? "+" : ""}{dealScore.toFixed(0)} deal
-            </span>
+            {hasDealScore && (
+              <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
+                {dealScore >= 0 ? "+" : ""}{dealScore.toFixed(0)} deal
+              </span>
+            )}
           </div>
         </div>
 

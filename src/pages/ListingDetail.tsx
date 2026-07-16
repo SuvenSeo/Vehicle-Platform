@@ -197,6 +197,8 @@ export default function ListingDetail() {
   ];
   const listingPrice = Number(listing.price_lkr || 0);
   const hasPrice = Number.isFinite(listingPrice) && listingPrice >= 100_000 && listingPrice <= 500_000_000;
+  // null = rating suppressed server-side (thin cohort / old vehicle / extreme price)
+  const hasDealScore = listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = listing.deal_score || 0;
   const dealTone = dealScore >= 5 ? 'text-emerald-400' : dealScore <= -6 ? 'text-rose-400' : 'text-primary';
   const dealDelta = dealScore ? `${Math.abs(dealScore)}% ${dealScore > 0 ? 'below' : 'above'} median` : 'at median';
@@ -433,10 +435,16 @@ export default function ListingDetail() {
                 )}
               </div>
               
-              <div className="mt-5 flex items-center gap-3">
-                <FairPriceIndicator score={dealScore} condition={listing.condition} size="lg" className="num font-extrabold" />
-                <span className={`num text-[11px] font-bold ${dealTone}`}>{dealDelta}</span>
-              </div>
+              {hasDealScore ? (
+                <div className="mt-5 flex items-center gap-3">
+                  <FairPriceIndicator score={dealScore} condition={listing.condition} size="lg" className="num font-extrabold" />
+                  <span className={`num text-[11px] font-bold ${dealTone}`}>{dealDelta}</span>
+                </div>
+              ) : (
+                <p className="mt-5 text-[11px] font-semibold text-muted-foreground">
+                  No price rating — not enough comparable listings for a confident call on this vehicle.
+                </p>
+              )}
               
               <div className="mt-4 space-y-2">
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/5 relative">
