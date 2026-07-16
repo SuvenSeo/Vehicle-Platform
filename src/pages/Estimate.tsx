@@ -91,6 +91,7 @@ export default function Estimate() {
     transmission: "automatic", fuel_type: "hybrid", mileage_km: 50_000, district: "Colombo",
   });
   const [result, setResult] = useState<PriceEstimate | null>(null);
+  const [colomboMedian, setColomboMedian] = useState<number | null>(null);
   const [trendPoints, setTrendPoints] = useState<PriceTrendPoint[]>([]);
   const [trendUnavailable, setTrendUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -108,11 +109,17 @@ export default function Estimate() {
     if (!form.make || !form.model) return;
     setLoading(true); setError(null); setTrendUnavailable(false);
     try {
-      const [estimate, trends] = await Promise.all([
+      const [estimate, trends, colombo] = await Promise.all([
         estimatePrice(form),
         getPriceTrends(form.make, form.model, form.condition, form.district).catch(() => null),
+        // Sellers outside Colombo ask "what would this fetch in Colombo?" —
+        // run the same profile against the Colombo market for a delta line.
+        form.district !== "Colombo"
+          ? estimatePrice({ ...form, district: "Colombo" }).catch(() => null)
+          : Promise.resolve(null),
       ]);
       setResult(estimate);
+      setColomboMedian(colombo && colombo.median > 0 ? colombo.median : null);
       setTrendPoints(Array.isArray(trends) ? trends : []);
       setTrendUnavailable(trends === null);
     } catch (err) {
@@ -140,7 +147,7 @@ export default function Estimate() {
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Valuation workbench</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
-            Market valuation.
+            What's your car worth?
           </h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">
             Estimate fair value for any vehicle based on live market data, comparable listings, and district-level pricing.
@@ -292,11 +299,25 @@ export default function Estimate() {
               <div className="space-y-4">
                 {/* Median */}
                 <div className="rounded-lg border border-white/5 bg-white/[0.01] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Estimated median</p>
-                  <p className="num mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">{formatPrice(result.median)}</p>
-                  <p className="mt-2 text-[11px] text-muted-foreground font-medium">
-                    Based on <span className="num font-bold text-primary">{result.comparable_count.toLocaleString()}</span> comparables
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Fair market range</p>
+                  <p className="num mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                    {formatPrice(result.low)} – {formatPrice(result.high)}
                   </p>
+                  <p className="mt-2 text-[11px] text-muted-foreground font-medium">
+                    Median <span className="num font-bold text-white">{formatPrice(result.median)}</span> · based on{" "}
+                    <span className="num font-bold text-primary">{result.comparable_count.toLocaleString()}</span> comparable asking prices
+                    — a range, not a promise; actual sale prices in SL typically settle 5–15% under ask
+                  </p>
+                  {colomboMedian !== null && result.median > 0 && form.district !== "Colombo" && (
+                    <p className="mt-2 border-t border-white/5 pt-2 text-[11px] text-muted-foreground font-medium">
+                      Same profile in <span className="font-bold text-white">Colombo</span>:{" "}
+                      <span className="num font-bold text-white">{formatPrice(colomboMedian)}</span>{" "}
+                      <span className={`num font-bold ${colomboMedian >= result.median ? "text-emerald-400" : "text-rose-400"}`}>
+                        ({colomboMedian >= result.median ? "+" : ""}
+                        {(((colomboMedian - result.median) / result.median) * 100).toFixed(1)}% vs {form.district})
+                      </span>
+                    </p>
+                  )}
                 </div>
 
                 {/* Range */}
