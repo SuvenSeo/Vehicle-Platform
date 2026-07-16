@@ -97,6 +97,10 @@ This project now includes an app-level error boundary so runtime crashes show a 
 
 ## 5) Verification
 
+The frontend targets WCAG 2.2 AA — axe-core reports zero violations on the
+key pages as of 2026-07-16; keep it that way when adding UI.
+
+
 ```bash
 npm run test
 npm run build
