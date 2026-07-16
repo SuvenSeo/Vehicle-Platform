@@ -17,7 +17,7 @@ const FUEL_OPTIONS: { value: ImportFuelType; label: string }[] = [
   { value: "electric", label: "Electric" },
 ];
 
-function HybridTaxAdvantageCallout({ engineCapacity }: { engineCapacity: number }) {
+function HybridTaxAdvantageCallout({ engineCapacity, fuelType }: { engineCapacity: number; fuelType: ImportFuelType }) {
   const location = useLocation();
   const insight = getHybridExciseCliffInsight();
   const onCalculator = location.pathname.startsWith("/calculator");
@@ -48,7 +48,7 @@ function HybridTaxAdvantageCallout({ engineCapacity }: { engineCapacity: number 
         </p>
         {!onCalculator && (
           <Link
-            to="/calculator"
+            to={`/calculator?tab=landed-cost&fuel=${fuelType}&cc=${engineCapacity}`}
             className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-300 no-underline transition-colors hover:text-emerald-200"
           >
             Model import duty in calculator
@@ -60,8 +60,17 @@ function HybridTaxAdvantageCallout({ engineCapacity }: { engineCapacity: number 
   );
 }
 
-export function TaxBreakdown({ price, engineCapacity = 1500 }: { price: number; engineCapacity?: number }) {
-  const [fuelType, setFuelType] = useState<ImportFuelType>("petrol");
+export function TaxBreakdown({
+  price,
+  engineCapacity = 1500,
+  initialFuelType,
+}: {
+  price: number;
+  engineCapacity?: number;
+  /** Seed from the listing's known fuel type so a hybrid doesn't open on petrol excise. */
+  initialFuelType?: ImportFuelType;
+}) {
+  const [fuelType, setFuelType] = useState<ImportFuelType>(initialFuelType ?? "petrol");
   const [motorKw, setMotorKw] = useState(110);
 
   const result = computeImportTaxes({
@@ -133,7 +142,7 @@ export function TaxBreakdown({ price, engineCapacity = 1500 }: { price: number; 
         ))}
       </div>
 
-      {showHybridAdvantage && <HybridTaxAdvantageCallout engineCapacity={engineCapacity} />}
+      {showHybridAdvantage && <HybridTaxAdvantageCallout engineCapacity={engineCapacity} fuelType={fuelType} />}
 
       <div className="space-y-2 border-t border-border pt-4">
         <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-3">

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
-  Share2, Fuel, Gauge, Settings2, Info, MessageCircle,
+  Share2, Fuel, Gauge, Settings2, MessageCircle,
   Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
 } from 'lucide-react';
 import { getListing, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
@@ -20,6 +20,7 @@ import { MileageTrustChip } from '@/components/MileageTrustChip';
 import { SellSpeedChip } from '@/components/SellSpeedChip';
 import { AdvertHealthChip } from '@/components/AdvertHealthChip';
 import { inferFinanceClass } from '@/lib/cashToOwn';
+import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
 
 function formatToken(value: string | null | undefined): string {
@@ -95,6 +96,7 @@ export default function ListingDetail() {
 
   useEffect(() => {
     if (!id) return;
+    window.scrollTo(0, 0); // peer links navigate mid-scroll; open each listing at the top
     setLoading(true); setSellerProfile(null); setPriceHistory(null);
     Promise.all([
       getListing(id).catch(() => null),
@@ -197,6 +199,14 @@ export default function ListingDetail() {
   ];
   const listingPrice = Number(listing.price_lkr || 0);
   const hasPrice = Number.isFinite(listingPrice) && listingPrice >= 100_000 && listingPrice <= 500_000_000;
+  // Map the listing's fuel label onto the import-tax model's fuel classes.
+  const fuelRaw = String(listing.fuel_type || '').toLowerCase();
+  const importFuelType: ImportFuelType =
+    fuelRaw.includes('hybrid') || fuelRaw.includes('phev') ? 'hybrid'
+    : fuelRaw.includes('electric') || fuelRaw === 'ev' ? 'electric'
+    : fuelRaw.includes('diesel') ? 'diesel'
+    : 'petrol';
+
   // null = rating suppressed server-side (thin cohort / old vehicle / extreme price)
   const hasDealScore = listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = listing.deal_score || 0;
@@ -260,10 +270,18 @@ export default function ListingDetail() {
             {listing.make} {listing.model}{listing.year ? ` · ${listing.year}` : ''}
           </h1>
 
-          {/* Mobile: the sticky price sidebar stacks ~4 screens down — surface the ask here */}
-          <p className="num mt-3 text-2xl font-extrabold tracking-tight text-white lg:hidden">
-            {hasPrice ? formatPrice(listingPrice) : 'Unlisted'}
-          </p>
+          {/* Mobile: the sticky price sidebar stacks ~4 screens down — surface ask + verdict here */}
+          <div className="mt-3 flex flex-wrap items-center gap-3 lg:hidden">
+            <p className="num text-2xl font-extrabold tracking-tight text-white">
+              {hasPrice ? formatPrice(listingPrice) : 'Unlisted'}
+            </p>
+            {hasDealScore && (
+              <span className="flex items-center gap-2">
+                <FairPriceIndicator score={dealScore} condition={listing.condition} size="sm" />
+                <span className={`num text-[11px] font-bold ${dealTone}`}>{dealDelta}</span>
+              </span>
+            )}
+          </div>
           
           {listing.title && listing.title !== `${listing.make} ${listing.model}` && (
             <p className="mt-2.5 max-w-2xl text-[14px] text-muted-foreground leading-relaxed font-medium">{listing.title}</p>
@@ -276,7 +294,7 @@ export default function ListingDetail() {
               </a>
             )}
             <button type="button" onClick={handleWhatsAppShare} className="flex h-9 items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-400 transition-all hover:bg-emerald-500/15 hover:translate-y-[-1px]">
-              <MessageCircle className="h-3 w-3" /> WhatsApp
+              <MessageCircle className="h-3 w-3" /> Share on WhatsApp
             </button>
             <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground hover:text-foreground transition-all hover:bg-white/[0.04]">
               <Share2 className="h-3 w-3" /> Share
@@ -348,60 +366,52 @@ export default function ListingDetail() {
               const isUnregistered =
                 listing.condition === 'brand_new' ||
                 (typeof listing.year === 'number' && listing.year >= 2025);
-              const maxLtvPercent = isUnregistered ? 40 : 60;
-              const minEquityPercent = 100 - maxLtvPercent;
-              const minEquityLkr = listingPrice * (minEquityPercent / 100);
-              const maxLoanLkr = listingPrice * (maxLtvPercent / 100);
 
               return (
                 <motion.div variants={itemVariants} className="space-y-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership planning</p>
                   
-                  {/* CBSL LTV COMPLIANCE ALERT */}
-                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.02] p-4 flex gap-3.5 items-start backdrop-blur-md">
-                    <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-                    <div className="space-y-1 w-full">
-                      <h4 className="text-xs font-bold text-white">CBSL Loan-to-Value (LTV) Compliance</h4>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed font-semibold">
-                        Under CBSL regulations, {isUnregistered ? 'unregistered / brand new imports' : 'registered used vehicles'} are capped at <span className="text-white font-bold">{maxLtvPercent}% LTV</span>.
-                      </p>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/90">
-                        <div className="rounded-lg bg-white/[0.01] border border-white/5 p-2.5">
-                          <span className="text-amber-400">Min Down Payment ({minEquityPercent}%)</span>
-                          <p className="text-sm font-bold text-white mt-1 num">Rs. {minEquityLkr.toLocaleString()}</p>
-                        </div>
-                        <div className="rounded-lg bg-white/[0.01] border border-white/5 p-2.5">
-                          <span>Max Allowable Loan ({maxLtvPercent}%)</span>
-                          <p className="text-sm font-bold text-white mt-1 num">Rs. {maxLoanLkr.toLocaleString()}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-md">
-                    <CashToOwnStrip
-                      priceLkr={listingPrice}
+                  <CashToOwnStrip
+                    priceLkr={listingPrice}
                     financeClass={inferFinanceClass({
                       condition: listing.condition,
                       fuelType: listing.fuel_type,
                       year: listing.year,
                     })}
                   />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-md hover:bg-white/[0.03] transition-colors">
-                    <LeaseCalculator
+                <div className="grid gap-4 md:grid-cols-2 items-start">
+                  <LeaseCalculator
+                    price={listingPrice}
+                    financeClass={inferFinanceClass({
+                      condition: listing.condition,
+                      fuelType: listing.fuel_type,
+                      year: listing.year,
+                    })}
+                  />
+                  {isUnregistered ? (
+                    <TaxBreakdown
                       price={listingPrice}
-                      financeClass={inferFinanceClass({
-                        condition: listing.condition,
-                        fuelType: listing.fuel_type,
-                        year: listing.year,
-                      })}
+                      engineCapacity={typeof listing.engine_cc === 'number' ? listing.engine_cc : undefined}
+                      initialFuelType={importFuelType}
                     />
-                  </div>
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-md hover:bg-white/[0.03] transition-colors">
-                    <TaxBreakdown price={listingPrice} engineCapacity={typeof listing.engine_cc === 'number' ? listing.engine_cc : undefined} />
-                  </div>
+                  ) : (
+                    <div className="page-panel flex flex-col justify-between gap-3 rounded-xl p-6">
+                      <div>
+                        <h3 className="field-label text-foreground">Import duty and tax</h3>
+                        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                          This vehicle is already registered in Sri Lanka, so import duty doesn't
+                          apply to buying it. Curious what importing the same spec fresh would cost
+                          under today's gazette?
+                        </p>
+                      </div>
+                      <Link
+                        to={`/calculator?tab=landed-cost&fuel=${importFuelType}${typeof listing.engine_cc === 'number' ? `&cc=${listing.engine_cc}` : ''}`}
+                        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary no-underline transition-all hover:bg-primary/15"
+                      >
+                        Model a fresh import <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )
@@ -451,17 +461,6 @@ export default function ListingDetail() {
                 </p>
               )}
               
-              <div className="mt-4 space-y-2">
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/5 relative">
-                  <div className="h-full w-full origin-left bg-gradient-to-r from-rose-500 via-primary to-emerald-500" style={{ transform: `scaleX(${Math.max(0.12, Math.min(0.95, (50 + dealScore) / 100))})` }} />
-                </div>
-                <div className="flex justify-between text-[9px] font-semibold text-muted-foreground uppercase tracking-[0.05em]"><span>Overpriced</span><span>Median</span><span>Below</span></div>
-              </div>
-              
-              <div className="mt-5 flex items-start gap-2 border-t border-white/5 pt-4 text-[12px] font-medium text-muted-foreground">
-                <Info className="mt-0.5 h-3.5 w-3.5 text-primary shrink-0" />
-                <span>Median: <span className="num font-bold text-white">{formatPrice(listing.market_median_lkr || (hasPrice ? listingPrice : null))}</span></span>
-              </div>
               {hasPrice &&
                 Number.isFinite(Number(listing.market_median_lkr)) &&
                 Number(listing.market_median_lkr) > 0 && (
@@ -503,8 +502,18 @@ export default function ListingDetail() {
               
               {(phonePreview.length > 0 || whatsappPreview.length > 0) && (
                 <div className="mt-4 flex flex-wrap gap-1.5 pt-1">
-                  {phonePreview.map((p) => <span key={p} className="num rounded-md border border-white/5 bg-white/[0.01] px-2 py-1 text-[10px] font-bold text-white">{p}</span>)}
-                  {whatsappPreview.map((p) => <span key={`wa-${p}`} className="num rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1 text-[10px] font-bold text-emerald-400">WA {p}</span>)}
+                  {phonePreview.map((p) => (
+                    <a key={p} href={`tel:${p.replace(/[^\d+]/g, "")}`}
+                      className="num rounded-md border border-white/5 bg-white/[0.01] px-2 py-1 text-[10px] font-bold text-white no-underline transition-colors hover:border-primary/25 hover:bg-white/[0.03]">
+                      {p}
+                    </a>
+                  ))}
+                  {whatsappPreview.map((p) => (
+                    <a key={`wa-${p}`} href={`https://wa.me/${p.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                      className="num rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1 text-[10px] font-bold text-emerald-400 no-underline transition-colors hover:bg-emerald-500/10">
+                      WA {p}
+                    </a>
+                  ))}
                 </div>
               )}
             </motion.div>
