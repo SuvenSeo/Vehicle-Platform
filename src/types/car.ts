@@ -45,6 +45,14 @@ export interface CarListing {
   is_active?: boolean;
 }
 
+export interface PriceDropItem {
+  listing: CarListing;
+  previous_price_lkr: number;
+  new_price_lkr: number;
+  drop_pct: number;
+  dropped_at: string;
+}
+
 export interface PriceHistoryPoint {
   price_lkr: number;
   scraped_at: string;

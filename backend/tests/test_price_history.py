@@ -131,6 +131,45 @@ def test_different_sources_do_not_collide():
     assert db.query(VehiclePriceHistory).count() == 2
 
 
+def test_price_drops_feed_endpoint():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from db.session import get_db
+
+    db = _session()
+    # Vehicle A: two cuts (12M -> 10.8M -> 9.6M); Vehicle B: a price RISE; C: no change.
+    upsert_listing(db, "ikman", _payload(source_id="a", price_lkr=12_000_000))
+    db.commit()
+    upsert_listing(db, "ikman", _payload(source_id="a", price_lkr=10_800_000))
+    db.commit()
+    upsert_listing(db, "ikman", _payload(source_id="a", price_lkr=9_600_000))
+    db.commit()
+    upsert_listing(db, "ikman", _payload(source_id="b", price_lkr=8_000_000))
+    db.commit()
+    upsert_listing(db, "ikman", _payload(source_id="b", price_lkr=8_500_000))
+    db.commit()
+    upsert_listing(db, "ikman", _payload(source_id="c", price_lkr=5_000_000))
+    db.commit()
+
+    app.dependency_overrides[get_db] = lambda: db
+    try:
+        client = TestClient(app)
+        resp = client.get("/api/v1/listings/price-drops?days=7&limit=10")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["window_days"] == 7
+        # Only vehicle A dropped; one row per vehicle — its BIGGEST single cut
+        # (10.8M -> 9.6M = 11.1%, larger than the 12M -> 10.8M = 10.0% cut).
+        assert len(body["items"]) == 1
+        item = body["items"][0]
+        assert item["listing"]["source_id"] == "a"
+        assert item["previous_price_lkr"] == 10_800_000
+        assert item["new_price_lkr"] == 9_600_000
+        assert item["drop_pct"] == 11.1
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
 def test_price_history_endpoint():
     from fastapi.testclient import TestClient
     from app.main import app

@@ -253,6 +253,19 @@ class SellerProfileResponse(BaseModel):
     fetched_at: datetime
 
 
+class PriceDropItem(BaseModel):
+    listing: "CarListingRead"
+    previous_price_lkr: float
+    new_price_lkr: float
+    drop_pct: float
+    dropped_at: datetime
+
+
+class PriceDropsResponse(BaseModel):
+    items: List[PriceDropItem]
+    window_days: int
+
+
 class PriceHistoryPoint(BaseModel):
     price_lkr: float
     scraped_at: datetime

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, load_only
 from sqlalchemy import String, cast, func, desc, and_, or_
 from typing import Optional, List, Dict, Any, Annotated
 from statistics import median
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from app.utils.time import utc_now
 import ipaddress
 import json
@@ -24,6 +24,7 @@ from app.models.schemas import (
     CustomVehicleEstimateRequest,
     CustomVehicleEstimateResponse,
     ComparableVehicle,
+    PriceDropsResponse,
     PriceHistoryResponse,
     SellerProfileResponse,
 )
@@ -1271,6 +1272,86 @@ def search_listings(
         size=size,
         pages=math.ceil(total / size) if total > 0 else 0,
     )
+
+
+@router.get("/price-drops", response_model=PriceDropsResponse)
+def get_price_drops(
+    days: int = Query(7, ge=1, le=30),
+    limit: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """Biggest recorded price cuts in the window, live listings only.
+
+    A cut is a history point lower than the immediately-preceding tracked
+    price for the same vehicle (LAG window over vehicle_price_history).
+    """
+    cutoff = utc_now() - timedelta(days=days)
+
+    prev_price = (
+        func.lag(VehiclePriceHistory.price_lkr)
+        .over(
+            partition_by=VehiclePriceHistory.vehicle_id,
+            order_by=(VehiclePriceHistory.scraped_at, VehiclePriceHistory.id),
+        )
+        .label("prev_price")
+    )
+    ordered = (
+        db.query(
+            VehiclePriceHistory.vehicle_id.label("vehicle_id"),
+            VehiclePriceHistory.price_lkr.label("new_price"),
+            VehiclePriceHistory.scraped_at.label("dropped_at"),
+            prev_price,
+        )
+    ).subquery("ordered_history")
+
+    drops = (
+        db.query(
+            ordered.c.vehicle_id,
+            ordered.c.new_price,
+            ordered.c.prev_price,
+            ordered.c.dropped_at,
+        )
+        .filter(
+            ordered.c.prev_price.isnot(None),
+            ordered.c.new_price < ordered.c.prev_price,
+            ordered.c.dropped_at >= cutoff,
+        )
+        .subquery("drops")
+    )
+
+    rows = (
+        db.query(
+            CarListing,
+            drops.c.new_price,
+            drops.c.prev_price,
+            drops.c.dropped_at,
+        )
+        .join(drops, drops.c.vehicle_id == CarListing.id)
+        .filter(live_listing_filter(), CarListing.is_duplicate == False)  # noqa: E712
+        .order_by(desc((drops.c.prev_price - drops.c.new_price) / drops.c.prev_price))
+        .limit(limit)
+        .all()
+    )
+
+    items = []
+    seen_ids: set[int] = set()
+    for listing, new_price, prev, dropped_at in rows:
+        if listing.id in seen_ids:
+            continue  # keep only each vehicle's largest cut in the window
+        seen_ids.add(listing.id)
+        prev_f = float(prev)
+        new_f = float(new_price)
+        items.append(
+            {
+                "listing": listing,
+                "previous_price_lkr": prev_f,
+                "new_price_lkr": new_f,
+                "drop_pct": round((prev_f - new_f) / prev_f * 100, 1),
+                "dropped_at": dropped_at,
+            }
+        )
+
+    return {"items": items, "window_days": days}
 
 
 @router.get("/sources")

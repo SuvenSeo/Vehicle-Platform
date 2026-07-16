@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ExternalLink, SearchX, Star, TrendingUp } from "lucide-react";
-import { getListings, formatPrice } from "@/services/api";
-import type { CarListing, FilterState } from "@/types/car";
+import { ExternalLink, SearchX, Star, TrendingDown, TrendingUp } from "lucide-react";
+import { getListings, getPriceDrops, formatPrice } from "@/services/api";
+import type { CarListing, FilterState, PriceDropItem } from "@/types/car";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
@@ -77,7 +77,18 @@ export default function BestPicks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [picks, setPicks] = useState<CarListing[]>([]);
+  const [drops, setDrops] = useState<PriceDropItem[]>([]);
+  const [dropsLoaded, setDropsLoaded] = useState(false);
   const [sortMode, setSortMode] = useState<BestPicksSortMode>("deal_score");
+
+  useEffect(() => {
+    let cancelled = false;
+    getPriceDrops(7, 8)
+      .then((items) => { if (!cancelled) setDrops(items); })
+      .catch(() => { /* feed is additive — page works without it */ })
+      .finally(() => { if (!cancelled) setDropsLoaded(true); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -155,6 +166,52 @@ export default function BestPicks() {
       </motion.section>
 
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8 relative z-10">
+        {/* Biggest cuts this week — powered by per-listing price history */}
+        {dropsLoaded && (
+          <motion.section variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+            <div className="flex items-center gap-2.5 border-b border-white/5 pb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/20 bg-emerald-400/10">
+                <TrendingDown className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="text-[14px] font-bold text-white">Biggest cuts this week</h2>
+                <p className="text-[10px] text-muted-foreground font-semibold">Sellers who moved their asking price down — tracked scan-over-scan</p>
+              </div>
+            </div>
+            {drops.length === 0 ? (
+              <p className="pt-4 text-[12px] text-muted-foreground font-medium">
+                No cuts recorded in the last 7 days yet — price tracking is scan-over-scan, so drops appear here as our daily scans catch sellers moving their asking prices.
+              </p>
+            ) : (
+              <div className="grid gap-2.5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+                {drops.map((drop) => (
+                  <Link
+                    key={drop.listing.id}
+                    to={`/listing/${drop.listing.id}`}
+                    className="group rounded-lg border border-white/5 bg-white/[0.01] p-3.5 no-underline transition-all hover:border-emerald-400/20 hover:bg-white/[0.03]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[12px] font-bold text-white group-hover:text-emerald-300 transition-colors">
+                        {drop.listing.make} {drop.listing.model}{drop.listing.year ? ` ${drop.listing.year}` : ""}
+                      </span>
+                      <span className="shrink-0 rounded-md border border-emerald-400/20 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300 num">
+                        −{drop.drop_pct}%
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-[11px] font-semibold text-muted-foreground line-through num">{formatPrice(drop.previous_price_lkr)}</span>
+                      <span className="text-[13px] font-bold text-white num">{formatPrice(drop.new_price_lkr)}</span>
+                    </div>
+                    <p className="mt-1 text-[10px] font-semibold text-muted-foreground">
+                      {drop.listing.district || drop.listing.source}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </motion.section>
+        )}
+
         {loading ? (
           <div className="space-y-3">
             <div className="h-56 rounded-xl border border-white/5 bg-white/[0.01] animate-pulse" />

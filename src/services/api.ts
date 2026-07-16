@@ -17,6 +17,7 @@ import {
   MarketSignal,
   MakeModelInsight,
   SellerTrustProfile,
+  PriceDropItem,
   PriceHistoryInfo,
   FuelMixData,
   HybridBandsData,
@@ -884,6 +885,23 @@ export const getListing = async (id: string | number) => {
 
   const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
+};
+
+export const getPriceDrops = async (days = 7, limit = 12): Promise<PriceDropItem[]> => {
+  const data = await fetchJSON<JsonRecord>(`/listings/price-drops?days=${days}&limit=${limit}`);
+  if (!Array.isArray(data?.items)) return [];
+  return data.items
+    .map((row: unknown) => {
+      const record = asJsonRecord(row);
+      return {
+        listing: normalizeListing(asJsonRecord(record?.listing)),
+        previous_price_lkr: toNumberOrNull(record?.previous_price_lkr) ?? 0,
+        new_price_lkr: toNumberOrNull(record?.new_price_lkr) ?? 0,
+        drop_pct: toNumberOrNull(record?.drop_pct) ?? 0,
+        dropped_at: String(record?.dropped_at || ""),
+      };
+    })
+    .filter((item) => item.listing.id && item.drop_pct > 0);
 };
 
 export const getListingPriceHistory = async (id: string | number): Promise<PriceHistoryInfo> => {
