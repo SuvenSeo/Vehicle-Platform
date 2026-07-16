@@ -81,7 +81,7 @@ const itemVariants = {
 } as const;
 
 const selectClass = "h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30";
-const inputClass = "h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white num focus:ring-1 focus:ring-primary/30";
+const inputClass = "h-10 rounded-lg border-white/5 bg-white/[0.02] text-base md:text-sm text-white num focus:ring-1 focus:ring-primary/30";
 
 export default function Estimate() {
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
@@ -366,7 +366,7 @@ export default function Estimate() {
                         </div>
                       </div>
                       <p className="text-[11px] text-muted-foreground font-medium">
-                        Annual rate: <span className={`num font-bold ${projection.annualizedRate >= 0 ? "text-emerald-400" : "text-rose-450"}`}>
+                        Annual rate: <span className={`num font-bold ${projection.annualizedRate >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                           {projection.annualizedRate >= 0 ? "+" : ""}{(projection.annualizedRate * 100).toFixed(1)}%
                         </span>
                       </p>
