@@ -5,8 +5,8 @@ import {
   Share2, Fuel, Gauge, Settings2, Info, MessageCircle,
   Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
 } from 'lucide-react';
-import { getListing, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
-import type { CarListing, SellerTrustProfile } from '@/types/car';
+import { getListing, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
+import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
 import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { toast } from 'sonner';
@@ -57,6 +57,7 @@ export default function ListingDetail() {
   const [listing, setListing] = useState<CarListing | null>(null);
   const [similar, setSimilar] = useState<CarListing[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerTrustProfile | null>(null);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
@@ -94,10 +95,15 @@ export default function ListingDetail() {
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true); setSellerProfile(null);
-    Promise.all([getListing(id).catch(() => null), getSimilarListings(id).catch(() => []), getSellerTrustProfile(id).catch(() => null)])
-      .then(([detail, sim, profile]) => {
-        setListing(detail); setSimilar(sim); setSellerProfile(profile); setLoading(false);
+    setLoading(true); setSellerProfile(null); setPriceHistory(null);
+    Promise.all([
+      getListing(id).catch(() => null),
+      getSimilarListings(id).catch(() => []),
+      getSellerTrustProfile(id).catch(() => null),
+      getListingPriceHistory(id).catch(() => null),
+    ])
+      .then(([detail, sim, profile, history]) => {
+        setListing(detail); setSimilar(sim); setSellerProfile(profile); setPriceHistory(history); setLoading(false);
         if (detail) document.title = `${detail.title} — AutoLens LK`;
       });
   }, [id]);
@@ -233,6 +239,20 @@ export default function ListingDetail() {
             <span className="text-white/20 text-xs">•</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{listing.source}</span>
           </div>
+
+          {listing.is_active === false && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.05] p-3.5 max-w-2xl">
+              <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-amber-300">Possibly sold or delisted</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground font-medium">
+                  This ad has not been seen at {listing.source}
+                  {listing.last_seen_at ? ` since ${new Date(listing.last_seen_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ' recently'}.
+                  Pricing below is kept for market reference and may be historical.
+                </p>
+              </div>
+            </div>
+          )}
 
           <h1 className="font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem] max-w-4xl">
             {listing.make} {listing.model}{listing.year ? ` · ${listing.year}` : ''}
@@ -399,6 +419,18 @@ export default function ListingDetail() {
                 <MileageTrustChip mileageKm={listing.mileage_km} year={listing.year} />
                 <SellSpeedChip listing={listing} />
                 <AdvertHealthChip listing={listing} />
+                {priceHistory && priceHistory.cut_count > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-300"
+                    title={`Tracked since first sighting: ${priceHistory.cut_count} downward price ${priceHistory.cut_count === 1 ? 'move' : 'moves'}${priceHistory.change_pct !== null ? `, ${priceHistory.change_pct}% overall` : ''}`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    Price cut {priceHistory.cut_count}×
+                    {priceHistory.change_pct !== null && priceHistory.change_pct < 0 && (
+                      <span className="num">({priceHistory.change_pct}%)</span>
+                    )}
+                  </span>
+                )}
               </div>
               
               <div className="mt-5 flex items-center gap-3">

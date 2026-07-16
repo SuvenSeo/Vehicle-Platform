@@ -40,6 +40,24 @@ export interface CarListing {
   images?: string[];
   scraped_at: string;
   first_seen_at: string;
+  last_seen_at?: string;
+  /** False once the lifecycle pass stops seeing the ad at its source (likely sold/delisted). */
+  is_active?: boolean;
+}
+
+export interface PriceHistoryPoint {
+  price_lkr: number;
+  scraped_at: string;
+}
+
+export interface PriceHistoryInfo {
+  listing_id: number;
+  points: PriceHistoryPoint[];
+  first_price_lkr: number | null;
+  current_price_lkr: number | null;
+  change_pct: number | null;
+  /** Number of downward price moves between successive points. */
+  cut_count: number;
 }
 
 export interface SellerTrustProfile {

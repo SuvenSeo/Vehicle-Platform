@@ -17,6 +17,7 @@ import {
   MarketSignal,
   MakeModelInsight,
   SellerTrustProfile,
+  PriceHistoryInfo,
   FuelMixData,
   HybridBandsData,
   SourceQualityResponse,
@@ -339,6 +340,10 @@ function normalizeListing(raw: JsonRecord): CarListing {
     body_type: bodyType,
     thumbnail_url: thumbnailUrl,
     images,
+    // Snapshot payloads predate the lifecycle flag — default to active so
+    // only an explicit backend false renders the possibly-sold state.
+    is_active: raw?.is_active === undefined ? true : Boolean(raw.is_active),
+    last_seen_at: raw?.last_seen_at ? String(raw.last_seen_at) : undefined,
   } as CarListing;
 }
 
@@ -879,6 +884,35 @@ export const getListing = async (id: string | number) => {
 
   const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
+};
+
+export const getListingPriceHistory = async (id: string | number): Promise<PriceHistoryInfo> => {
+  const data = await fetchJSON<JsonRecord>(`/listings/${id}/price-history`);
+  const points = Array.isArray(data?.points)
+    ? data.points
+        .map((row: unknown) => {
+          const record = asJsonRecord(row);
+          return {
+            price_lkr: toNumberOrNull(record?.price_lkr) ?? 0,
+            scraped_at: String(record?.scraped_at || ""),
+          };
+        })
+        .filter((point) => point.price_lkr > 0)
+    : [];
+
+  let cutCount = 0;
+  for (let i = 1; i < points.length; i++) {
+    if (points[i].price_lkr < points[i - 1].price_lkr) cutCount++;
+  }
+
+  return {
+    listing_id: Number(data?.listing_id || id),
+    points,
+    first_price_lkr: toNumberOrNull(data?.first_price_lkr),
+    current_price_lkr: toNumberOrNull(data?.current_price_lkr),
+    change_pct: toNumberOrNull(data?.change_pct),
+    cut_count: cutCount,
+  };
 };
 
 export const getSellerTrustProfile = async (id: string | number): Promise<SellerTrustProfile> => {
