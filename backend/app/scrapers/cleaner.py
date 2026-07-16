@@ -161,6 +161,22 @@ class CarCleaner:
                     if self._is_reasonable_price(value):
                         return value
 
+            # Parse SL "lakh"/"crore" notation (Rs 55 lakhs → 5,500,000; 1.2 crore → 12,000,000).
+            for pattern, multiplier in (
+                (r"(?:(?:rs\.?|lkr)\s*[:\-]?\s*)?([0-9]+(?:\.[0-9]+)?)\s*(?:lakhs?|lacs?)\b", 100_000),
+                (r"(?:(?:rs\.?|lkr)\s*[:\-]?\s*)?([0-9]+(?:\.[0-9]+)?)\s*(?:crores?|cr)\b", 10_000_000),
+            ):
+                for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+                    if self._is_installment_candidate(text, match.start(1), match.end(1)):
+                        continue
+                    token = match.group(1)
+                    try:
+                        value = int(float(token) * multiplier)
+                    except Exception:
+                        continue
+                    if self._is_reasonable_price(value):
+                        return value
+
             # Prefer explicit currency markers first.
             for match in re.finditer(
                 r"(?:rs\.?|lkr)\s*[:\-]?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{5,12}(?:\.[0-9]+)?)",

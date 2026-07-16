@@ -26,8 +26,9 @@ DEFAULT_EXPORT_ROOT = BASE_DIR / "rescue_exports"
 
 TABLES = [
     "locations",
-    "raw_listings",
     "car_listings",
+    # After car_listings: vehicle_price_history has an FK on car_listings.id
+    "vehicle_price_history",
     "price_aggregates",
     "market_signals",
     "import_price_snapshots",

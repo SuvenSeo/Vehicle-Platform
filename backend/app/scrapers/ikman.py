@@ -10,8 +10,8 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 import structlog
 from sqlalchemy.orm import Session
-from db.models import CarListing
 from app.scrapers.cleaner import CarCleaner
+from app.utils.listing_upsert import upsert_listing
 
 log = structlog.get_logger()
 
@@ -29,23 +29,7 @@ class IkmanCarScraper:
         self.cleaner = CarCleaner()
 
     def _upsert_listing(self, payload: dict):
-        existing = (
-            self.db.query(CarListing)
-            .filter(
-                CarListing.source == self.SOURCE,
-                CarListing.source_id == payload["source_id"],
-            )
-            .first()
-        )
-
-        if existing:
-            for key, value in payload.items():
-                setattr(existing, key, value)
-            existing.last_seen_at = utc_now()
-            return False
-
-        self.db.add(CarListing(**payload))
-        return True
+        return upsert_listing(self.db, self.SOURCE, payload)
 
     @staticmethod
     def _normalize_thumbnail_url(candidate: str) -> str:

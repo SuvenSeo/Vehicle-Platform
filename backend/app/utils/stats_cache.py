@@ -29,7 +29,7 @@ from app.utils.districts import (
 )
 from app.utils.pricing import build_district_median_map, median_from_values
 from app.utils.time import utc_now
-from db.models import CarListing, MarketStatsCache, PriceAggregate
+from db.models import CarListing, MarketStatsCache, PriceAggregate, live_listing_filter
 
 log = structlog.get_logger()
 
@@ -135,18 +135,18 @@ def _compute_summary(db: Session) -> dict:
 
     total = (
         db.query(func.count(CarListing.id))
-        .filter(CarListing.is_outlier == False)
+        .filter(live_listing_filter())
         .scalar()
         or 0
     )
     avg_price = (
         db.query(func.avg(CarListing.price_lkr))
-        .filter(CarListing.is_outlier == False, CarListing.price_lkr.isnot(None))
+        .filter(live_listing_filter(), CarListing.price_lkr.isnot(None))
         .scalar()
     )
     good_deals = (
         db.query(func.count(CarListing.id))
-        .filter(CarListing.deal_score >= 20, CarListing.is_outlier == False)
+        .filter(CarListing.deal_score >= 20, live_listing_filter())
         .scalar()
         or 0
     )
@@ -161,7 +161,7 @@ def _compute_summary(db: Session) -> dict:
     )
     source_count = (
         db.query(func.count(func.distinct(CarListing.source)))
-        .filter(CarListing.is_outlier == False, CarListing.source.isnot(None))
+        .filter(live_listing_filter(), CarListing.source.isnot(None))
         .scalar()
         or 0
     )
@@ -175,7 +175,7 @@ def _compute_summary(db: Session) -> dict:
                 )
             )
         )
-        .filter(CarListing.is_outlier == False)
+        .filter(live_listing_filter())
         .scalar()
     )
 
@@ -230,7 +230,7 @@ def _compute_district_prices(db: Session) -> dict:
         .filter(
             CarListing.district.isnot(None),
             CarListing.price_lkr.isnot(None),
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.district)
         .order_by(desc("count"))
@@ -253,7 +253,7 @@ def _compute_district_prices(db: Session) -> dict:
                 CarListing.make,
                 CarListing.model,
             )
-            .filter(CarListing.price_lkr.isnot(None), CarListing.is_outlier == False)
+            .filter(CarListing.price_lkr.isnot(None), live_listing_filter())
             .all()
         )
 
@@ -322,7 +322,7 @@ def _compute_district_prices(db: Session) -> dict:
             CarListing.district.isnot(None),
             CarListing.make.isnot(None),
             CarListing.model.isnot(None),
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.district, CarListing.make, CarListing.model)
         .all()

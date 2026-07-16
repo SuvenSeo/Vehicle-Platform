@@ -17,14 +17,14 @@ from datetime import datetime, timezone
 import structlog
 from sqlalchemy.orm import Session
 
-from db.models import CarListing, MarketAlert, MarketAlertMatch
+from db.models import CarListing, MarketAlert, MarketAlertMatch, live_listing_filter
 
 log = structlog.get_logger()
 
 
 def _count_matching(db: Session, alert: MarketAlert) -> int:
     """Return the number of live listings that satisfy *alert*'s filters."""
-    q = db.query(CarListing).filter(CarListing.is_outlier.is_(False))
+    q = db.query(CarListing).filter(live_listing_filter())
     if alert.make:
         q = q.filter(CarListing.make.ilike(alert.make))
     if alert.model:

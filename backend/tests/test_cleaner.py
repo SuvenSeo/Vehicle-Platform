@@ -27,6 +27,18 @@ def test_clean_price_parses_million_notation():
     assert cleaner.clean_price("LKR 4.35 mn") == 4_350_000
 
 
+def test_clean_price_parses_lakh_and_crore_notation():
+    cleaner = CarCleaner()
+
+    assert cleaner.clean_price("Rs 55 Lakhs") == 5_500_000
+    assert cleaner.clean_price("55 lakh") == 5_500_000
+    assert cleaner.clean_price("Rs 12.5 lacs") == 1_250_000
+    assert cleaner.clean_price("Rs 1.2 Crore") == 12_000_000
+    assert cleaner.clean_price("2 crores") == 20_000_000
+    # Unreasonably small/large lakh values still rejected by the sanity band.
+    assert cleaner.clean_price("Rs 0.5 lakh") is None
+
+
 def test_clean_price_ignores_installment_when_indicative_price_exists():
     cleaner = CarCleaner()
     raw = (

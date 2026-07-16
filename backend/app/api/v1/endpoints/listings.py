@@ -16,7 +16,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bs4 import BeautifulSoup
 from db.session import get_db
-from db.models import CarListing
+from db.models import CarListing, VehiclePriceHistory, live_listing_filter
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -24,6 +24,7 @@ from app.models.schemas import (
     CustomVehicleEstimateRequest,
     CustomVehicleEstimateResponse,
     ComparableVehicle,
+    PriceHistoryResponse,
     SellerProfileResponse,
 )
 from app.services.rate_limit import RateLimiter
@@ -927,7 +928,7 @@ def _peer_rows_for_listing(
         db.query(CarListing)
         .filter(
             CarListing.id != listing.id,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
             func.lower(CarListing.make) == make_key,
             func.lower(CarListing.model) == model_key,
         )
@@ -1173,7 +1174,7 @@ def search_listings(
                 CarListing.is_outlier,
             )
         )
-        .filter(CarListing.is_outlier == False)
+        .filter(live_listing_filter())
     )
 
     if price_availability == "unavailable":
@@ -1277,7 +1278,7 @@ def get_sources(db: Session = Depends(get_db)):
     source_expr = _compact_expr(CarListing.source)
     rows = (
         db.query(source_expr.label("source_key"), func.count(CarListing.id).label("count"))
-        .filter(CarListing.is_outlier == False, CarListing.source.isnot(None))
+        .filter(live_listing_filter(), CarListing.source.isnot(None))
         .group_by(source_expr)
         .order_by(desc("count"))
         .all()
@@ -1308,7 +1309,7 @@ def get_sitemap_listing_ids(
     """Recent listing IDs + last-seen timestamps for sitemap generation."""
     rows = (
         db.query(CarListing.id, CarListing.last_seen_at)
-        .filter(CarListing.is_outlier == False, CarListing.is_duplicate == False)
+        .filter(live_listing_filter(), CarListing.is_duplicate == False)
         .order_by(desc(CarListing.last_seen_at))
         .offset(offset)
         .limit(limit)
@@ -1328,7 +1329,7 @@ def get_sitemap_listing_count(db: Session = Depends(get_db)):
     """Total clean listings available for chunked sitemap generation."""
     total = (
         db.query(func.count(CarListing.id))
-        .filter(CarListing.is_outlier == False, CarListing.is_duplicate == False)
+        .filter(live_listing_filter(), CarListing.is_duplicate == False)
         .scalar()
     )
     return {"total": int(total or 0), "page_size": 5000}
@@ -1337,7 +1338,7 @@ def get_sitemap_listing_count(db: Session = Depends(get_db)):
 def get_makes(db: Session = Depends(get_db)):
     results = (
         db.query(CarListing.make, func.count(CarListing.id).label("count"))
-        .filter(CarListing.is_outlier == False, CarListing.make.isnot(None))
+        .filter(live_listing_filter(), CarListing.make.isnot(None))
         .group_by(CarListing.make)
         .order_by(desc("count"))
         .all()
@@ -1348,7 +1349,7 @@ def get_makes(db: Session = Depends(get_db)):
 def get_models(make: str, db: Session = Depends(get_db)):
     results = (
         db.query(CarListing.model, func.count(CarListing.id).label("count"))
-        .filter(CarListing.make == make, CarListing.is_outlier == False)
+        .filter(CarListing.make == make, live_listing_filter())
         .group_by(CarListing.model)
         .order_by(desc("count"))
         .all()
@@ -1404,7 +1405,7 @@ def search_listing_suggestions(q: str, limit: int, db: Session) -> List[dict]:
     rows = (
         db.query(CarListing)
         .filter(
-            CarListing.is_outlier == False,
+            live_listing_filter(),
             or_(
                 CarListing.make.ilike(like_pattern),
                 CarListing.model.ilike(like_pattern),
@@ -1486,7 +1487,7 @@ def estimate_price(
         CarListing.make.ilike(make),
         CarListing.model.ilike(model),
         CarListing.year == year,
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
     )
     if condition:
@@ -1605,7 +1606,7 @@ def _vehicle_filter_query(
     ignore_district: bool = False,
 ):
     q = db.query(CarListing).filter(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
     )
 
@@ -1830,6 +1831,37 @@ def get_listing_thumbnail_proxy(listing_id: int, db: Session = Depends(get_db)):
         headers={"Cache-Control": "public, max-age=1800"},
     )
 
+@router.get("/{listing_id}/price-history", response_model=PriceHistoryResponse)
+def get_listing_price_history(listing_id: int, db: Session = Depends(get_db)):
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+
+    rows = (
+        db.query(VehiclePriceHistory)
+        .filter(VehiclePriceHistory.vehicle_id == listing_id)
+        .order_by(VehiclePriceHistory.scraped_at.asc())
+        .all()
+    )
+
+    points = [
+        {"price_lkr": float(row.price_lkr), "scraped_at": row.scraped_at}
+        for row in rows
+    ]
+    first_price = points[0]["price_lkr"] if points else None
+    current_price = points[-1]["price_lkr"] if points else None
+    change_pct = None
+    if first_price and current_price is not None and first_price > 0:
+        change_pct = round((current_price - first_price) / first_price * 100, 1)
+
+    return {
+        "listing_id": listing_id,
+        "points": points,
+        "first_price_lkr": first_price,
+        "current_price_lkr": current_price,
+        "change_pct": change_pct,
+    }
+
 @router.get("/{listing_id}", response_model=CarListingRead)
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
@@ -1849,7 +1881,7 @@ def get_similar_listings(listing_id: int, db: Session = Depends(get_db)):
     filters = [
         CarListing.id != listing_id,
         CarListing.make == listing.make,
-        CarListing.is_outlier == False,
+        live_listing_filter(),
     ]
 
     base_price = float(listing.price_lkr) if listing.price_lkr is not None else 0.0

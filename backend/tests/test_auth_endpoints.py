@@ -1,4 +1,3 @@
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -9,6 +8,9 @@ from fastapi import HTTPException
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import auth
+
+# Hashed once at module load — bcrypt at rounds=12 is deliberately slow.
+_BCRYPT_HASH = auth._hash_password("correct-horse")
 
 
 class DummyRequest:
@@ -24,7 +26,7 @@ def _configure(monkeypatch, *, plan: str = "enterprise"):
             [
                 {
                     "email": "owner@example.com",
-                    "password_sha256": hashlib.sha256(b"correct-horse").hexdigest(),
+                    "password_hash": _BCRYPT_HASH,
                     "name": "Owner Person",
                     "plan": plan,
                     "subscription_status": "active",
@@ -80,11 +82,49 @@ def test_verify_token_rejects_tampered_and_expired_tokens(monkeypatch):
     assert auth.verify_token(token, now=1_000_000 + auth._token_ttl_seconds() + 1) is None
 
 
-def test_pro_gate_open_by_default(monkeypatch):
+def test_pro_gate_enforced_by_default(monkeypatch):
     monkeypatch.delenv("PRO_ACCESS_ENFORCED", raising=False)
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
 
-    # No token, gate not enforced: must be a no-op.
+    # Secure by default: unset flag means the gate rejects missing tokens.
+    with pytest.raises(HTTPException) as excinfo:
+        auth.require_pro_access(authorization=None)
+    assert excinfo.value.status_code == 401
+
+
+def test_pro_gate_can_be_disabled_for_local_dev(monkeypatch):
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "false")
+
+    # Explicit opt-out: no token required.
     assert auth.require_pro_access(authorization=None) is None
+
+
+def test_sha256_credentials_are_rejected(monkeypatch):
+    """Legacy unsalted SHA-256 entries must no longer authenticate."""
+    import hashlib
+
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "legacy@example.com",
+                    "password_sha256": hashlib.sha256(b"correct-horse").hexdigest(),
+                    "plan": "pro",
+                }
+            ]
+        ),
+    )
+
+    with pytest.raises(HTTPException) as excinfo:
+        auth.login(
+            auth.LoginRequest(email="legacy@example.com", password="correct-horse"),
+            DummyRequest(),
+        )
+    # The legacy entry has no usable hash, so auth reports not-configured (503)
+    # rather than accepting the weak credential.
+    assert excinfo.value.status_code in (401, 503)
 
 
 def test_pro_gate_enforced_requires_pro_plan(monkeypatch):

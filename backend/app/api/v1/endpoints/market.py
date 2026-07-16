@@ -3,10 +3,13 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.models.schemas import ImportPriceSnapshotRead, MarketSignalRead
+from app.services.rate_limit import RateLimiter
 from db.models import ImportPriceSnapshot, MarketSignal
 from db.session import get_db
 
-router = APIRouter()
+_market_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_market_rate_limiter)])
 
 
 @router.get("/signals", response_model=list[MarketSignalRead])

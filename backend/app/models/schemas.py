@@ -31,6 +31,7 @@ class CarListingRead(CarListingBase):
     deal_score: Optional[Decimal] = None
     market_median_lkr: Optional[Decimal] = None
     is_outlier: bool
+    is_active: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -250,6 +251,19 @@ class SellerProfileResponse(BaseModel):
     whatsapp_numbers: List[str] = Field(default_factory=list)
     verified_badges: List[str] = Field(default_factory=list)
     fetched_at: datetime
+
+
+class PriceHistoryPoint(BaseModel):
+    price_lkr: float
+    scraped_at: datetime
+
+
+class PriceHistoryResponse(BaseModel):
+    listing_id: int
+    points: List[PriceHistoryPoint]
+    first_price_lkr: Optional[float] = None
+    current_price_lkr: Optional[float] = None
+    change_pct: Optional[float] = None
 
 
 class ComparableVehicle(BaseModel):

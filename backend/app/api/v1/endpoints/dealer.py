@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.services.rate_limit import RateLimiter
 from app.utils.sql_median import median_price_expr, python_median
-from db.models import CarListing
+from db.models import CarListing, live_listing_filter
 from db.session import get_db
 
 _dealer_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
@@ -128,7 +128,7 @@ def _market_benchmark(
         return None, None, 0
 
     q = db.query(CarListing).filter(
-        CarListing.is_outlier == False,  # noqa: E712
+        live_listing_filter(),  # noqa: E712
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
         CarListing.make.ilike(f"%{make.strip()}%"),

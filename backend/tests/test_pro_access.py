@@ -1,8 +1,9 @@
 """Tests for PRO_ACCESS_ENFORCED env-var gating on /api/v1/pro/* endpoints.
 
 Covers:
-- pro_access_enforced() reflects the env var (default off, enabled with truthy values)
-- require_pro_access() is a no-op when enforcement is disabled
+- pro_access_enforced() is ON by default (secure by default); only explicit
+  falsey values disable it
+- require_pro_access() is a no-op when enforcement is explicitly disabled
 - require_pro_access() raises 401 when enforcement is on and no token is supplied
 - require_pro_access() raises 403 when enforcement is on and the token belongs to a free plan
 - require_pro_access() passes silently when enforcement is on and the token is a valid Pro token
@@ -41,10 +42,10 @@ def _make_token(plan: str, *, secret: str = "test-secret") -> str:
 # ---------------------------------------------------------------------------
 
 
-def test_pro_access_not_enforced_by_default(monkeypatch):
-    """PRO_ACCESS_ENFORCED defaults to off; unset or empty string → False."""
+def test_pro_access_enforced_by_default(monkeypatch):
+    """PRO_ACCESS_ENFORCED defaults to ON; unset → True (secure by default)."""
     monkeypatch.delenv("PRO_ACCESS_ENFORCED", raising=False)
-    assert pro_access_enforced() is False
+    assert pro_access_enforced() is True
 
 
 def test_pro_access_enforced_when_env_is_true(monkeypatch):
@@ -54,9 +55,16 @@ def test_pro_access_enforced_when_env_is_true(monkeypatch):
         assert pro_access_enforced() is True, f"Expected True for {value!r}"
 
 
-def test_require_pro_access_is_noop_when_not_enforced(monkeypatch):
-    """When enforcement is off, require_pro_access() returns None with any (or no) token."""
-    monkeypatch.delenv("PRO_ACCESS_ENFORCED", raising=False)
+def test_pro_access_disabled_only_with_explicit_falsey_values(monkeypatch):
+    """Only explicit falsey strings turn enforcement off (local dev opt-out)."""
+    for value in ("false", "0", "no", "off", "FALSE", "Off"):
+        monkeypatch.setenv("PRO_ACCESS_ENFORCED", value)
+        assert pro_access_enforced() is False, f"Expected False for {value!r}"
+
+
+def test_require_pro_access_is_noop_when_explicitly_disabled(monkeypatch):
+    """When enforcement is explicitly off, require_pro_access() returns None."""
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "false")
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
     # No authorization header supplied — should not raise.
     result = require_pro_access(authorization=None)

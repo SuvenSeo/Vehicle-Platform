@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 from sqlalchemy.orm import Session
 
 from app.utils.districts import find_district_from_url, normalize_district_name
-from db.models import CarListing
+from db.models import CarListing, live_listing_filter
 
 MIN_REASONABLE_PRICE_LKR = 100_000
 
@@ -22,7 +22,7 @@ def build_district_median_map(db: Session) -> dict[str, float]:
     rows = (
         db.query(CarListing.district, CarListing.url, CarListing.price_lkr)
         .filter(
-            CarListing.is_outlier == False,
+            live_listing_filter(),
             CarListing.price_lkr.isnot(None),
             CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
         )

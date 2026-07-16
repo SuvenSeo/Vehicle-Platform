@@ -4,7 +4,7 @@ from sqlalchemy import func, and_, or_
 from typing import List, Optional
 from datetime import datetime, timedelta
 from collections import defaultdict
-from db.models import CarListing, PriceAggregate
+from db.models import CarListing, PriceAggregate, live_listing_filter
 from decimal import Decimal
 
 logger = structlog.get_logger()
@@ -47,7 +47,7 @@ class CarPriceAggregator:
             )
             .filter(
                 CarListing.price_lkr.isnot(None),
-                CarListing.is_outlier == False
+                live_listing_filter()
             )
             .all()
         )

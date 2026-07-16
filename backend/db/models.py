@@ -6,31 +6,13 @@ from sqlalchemy.sql import func
 class Base(DeclarativeBase):
     pass
 
-class RawListing(Base):
-    __tablename__ = 'raw_listings'
-
-    id = Column(Integer, primary_key=True)
-    source = Column(String(20), nullable=False)
-    source_id = Column(String(100), nullable=False)
-    scraped_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    url = Column(Text, nullable=False)
-    title = Column(Text)
-    raw_price = Column(Text)
-    raw_location = Column(Text)
-    raw_meta = Column(JSON)  # Store fuel, mileage, etc as found on page
-    description = Column(Text)
-    is_processed = Column(Boolean, default=False)
-
-    __table_args__ = (
-        Index('idx_raw_listings_source_source_id', 'source', 'source_id', unique=True),
-        Index('idx_raw_listings_is_processed', 'is_processed'),
-    )
-
 class CarListing(Base):
     __tablename__ = 'car_listings'
 
     id = Column(Integer, primary_key=True)
-    raw_id = Column(BigInteger, nullable=True)  # Soft reference to raw_listings on cold DB (NeonDB); no FK constraint across databases
+    # Legacy column: pointed at the removed raw_listings staging table. Kept in
+    # the DB (drops need a real migration) but no longer written or read.
+    raw_id = Column(BigInteger, nullable=True)
     source = Column(String(20), nullable=False)
     source_id = Column(String(100), nullable=False)
     scraped_at = Column(DateTime(timezone=True), nullable=False)
@@ -70,6 +52,9 @@ class CarListing(Base):
     outlier_reason = Column(Text)
     is_duplicate = Column(Boolean, default=False)
     duplicate_of = Column(BigInteger, ForeignKey('car_listings.id'))
+    # Soft-delete: flipped False by the post-scrape lifecycle pass when the
+    # listing stops appearing at its source; flipped back True on re-sight.
+    is_active = Column(Boolean, nullable=False, default=True, server_default='true')
 
     __table_args__ = (
         Index('idx_car_listings_source_source_id', 'source', 'source_id', unique=True),
@@ -80,9 +65,21 @@ class CarListing(Base):
         Index('idx_car_listings_active_price', 'is_outlier', 'price_lkr'),
         Index('idx_car_listings_scraped_at', 'scraped_at'),
         Index('idx_car_listings_first_seen_at', 'first_seen_at'),
+        Index('idx_car_listings_last_seen_at', 'last_seen_at'),
         Index('idx_car_listings_deal_score', 'deal_score'),
         Index('idx_car_listings_source', 'source'),
     )
+
+
+def live_listing_filter():
+    """Single boolean expression for "count this listing in market views":
+    not a statistical outlier AND still live at its source.
+
+    Composes safely inside filter()/and_()/or_() because it is one expression.
+    """
+    from sqlalchemy import and_
+
+    return and_(CarListing.is_outlier == False, CarListing.is_active == True)  # noqa: E712
 
 class PriceAggregate(Base):
     __tablename__ = 'price_aggregates'

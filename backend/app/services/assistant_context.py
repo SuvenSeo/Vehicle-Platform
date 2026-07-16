@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
-from db.models import CarListing, MarketSignal, PriceAggregate, ScrapeRun
+from db.models import CarListing, MarketSignal, PriceAggregate, ScrapeRun, live_listing_filter
 
 KNOWN_DISTRICTS = [
     "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", "Galle", "Matara", "Hambantota",
@@ -283,7 +283,7 @@ def build_assistant_context(
         model_filter = _find_token(msg_l, model_choices)
 
     base = db.query(CarListing).filter(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
     )
     if make_filter:
@@ -303,10 +303,10 @@ def build_assistant_context(
     if price_cap:
         base = base.filter(CarListing.price_lkr <= price_cap)
 
-    total_active = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
+    total_active = db.query(func.count(CarListing.id)).filter(live_listing_filter()).scalar() or 0
     priced_active = (
         db.query(func.count(CarListing.id))
-        .filter(CarListing.is_outlier == False, CarListing.price_lkr.isnot(None))
+        .filter(live_listing_filter(), CarListing.price_lkr.isnot(None))
         .scalar()
         or 0
     )
@@ -347,7 +347,7 @@ def build_assistant_context(
 
     top_makes = (
         db.query(CarListing.make, func.count(CarListing.id).label("count"))
-        .filter(CarListing.is_outlier == False, CarListing.make.isnot(None), CarListing.price_lkr.isnot(None))
+        .filter(live_listing_filter(), CarListing.make.isnot(None), CarListing.price_lkr.isnot(None))
         .group_by(CarListing.make)
         .order_by(desc("count"))
         .limit(6)
@@ -429,7 +429,7 @@ def build_assistant_context(
                 db.query(CarListing)
                 .filter(
                     CarListing.id != listing_id,
-                    CarListing.is_outlier == False,
+                    live_listing_filter(),
                     CarListing.make == row.make,
                     CarListing.price_lkr.isnot(None),
                 )

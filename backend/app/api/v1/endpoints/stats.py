@@ -24,7 +24,7 @@ from app.utils.stats_cache import (
 )
 from app.utils.time import utc_now
 from db.session import SessionLocal, get_db
-from db.models import CarListing, PriceAggregate, ScrapeRun
+from db.models import CarListing, PriceAggregate, ScrapeRun, live_listing_filter
 from app.models.schemas import StatsSummary, DistrictPrice
 from app.models.schemas import DashboardInsightsResponse, DistrictQuickInsightResponse
 from app.models.schemas import DistrictVelocityResponse, DistrictVelocityPoint
@@ -70,7 +70,7 @@ def _is_recent_success(run: ScrapeRun, now: datetime) -> bool:
 def build_live_market_snapshot(db: Session) -> dict:
     now = datetime.now(timezone.utc)
     priced_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
@@ -82,7 +82,7 @@ def build_live_market_snapshot(db: Session) -> dict:
             case(
                 (
                     and_(
-                        CarListing.is_outlier == False,
+                        live_listing_filter(),
                         or_(CarListing.price_lkr.is_(None), CarListing.price_lkr < MIN_REASONABLE_PRICE_LKR),
                     ),
                     1,
@@ -91,7 +91,7 @@ def build_live_market_snapshot(db: Session) -> dict:
             )
         ).label("unavailable_listings"),
         func.avg(case((priced_clause, CarListing.price_lkr), else_=None)).label("avg_price"),
-    ).filter(CarListing.is_outlier == False).one()
+    ).filter(live_listing_filter()).one()
 
     latest_listing_at = listing_metrics.latest_listing_at
     total_listings = int(listing_metrics.total_listings or 0)
@@ -158,12 +158,12 @@ def get_stats_summary(db: Session = Depends(get_db)):
 
     seven_days_ago = utc_now() - timedelta(days=7)
 
-    total = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
+    total = db.query(func.count(CarListing.id)).filter(live_listing_filter()).scalar() or 0
     avg_price = db.query(func.avg(CarListing.price_lkr)).filter(
-        CarListing.is_outlier == False, CarListing.price_lkr.isnot(None)
+        live_listing_filter(), CarListing.price_lkr.isnot(None)
     ).scalar()
     good_deals = db.query(func.count(CarListing.id)).filter(
-        CarListing.deal_score >= 20, CarListing.is_outlier == False
+        CarListing.deal_score >= 20, live_listing_filter()
     ).scalar() or 0
     this_week = db.query(func.count(CarListing.id)).filter(
         CarListing.first_seen_at >= seven_days_ago
@@ -172,13 +172,13 @@ def get_stats_summary(db: Session = Depends(get_db)):
         db.query(CarListing).filter(CarListing.district.isnot(None))
     )
     source_count = db.query(func.count(func.distinct(CarListing.source))).filter(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.source.isnot(None),
     ).scalar() or 0
     last_updated = db.query(
         func.max(func.coalesce(CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at))
     ).filter(
-        CarListing.is_outlier == False
+        live_listing_filter()
     ).scalar()
 
     # MoM price change from aggregates
@@ -274,7 +274,7 @@ def get_district_prices(db: Session = Depends(get_db)):
         .filter(
             CarListing.district.isnot(None),
             CarListing.price_lkr.isnot(None),
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.district)
         .order_by(desc("count"))
@@ -293,7 +293,7 @@ def get_district_prices(db: Session = Depends(get_db)):
             db.query(CarListing.district, CarListing.url, CarListing.price_lkr, CarListing.make, CarListing.model)
             .filter(
                 CarListing.price_lkr.isnot(None),
-                CarListing.is_outlier == False,
+                live_listing_filter(),
             )
             .all()
         )
@@ -363,7 +363,7 @@ def get_district_prices(db: Session = Depends(get_db)):
             CarListing.district.isnot(None),
             CarListing.make.isnot(None),
             CarListing.model.isnot(None),
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.district, CarListing.make, CarListing.model)
         .all()
@@ -480,7 +480,7 @@ def _listing_trend_points(
         func.avg(CarListing.price_lkr).label("median"),
         func.count(CarListing.id).label("count"),
     ).filter(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
         event_ts.isnot(None),
@@ -532,7 +532,7 @@ def _current_snapshot_point(
         func.avg(CarListing.price_lkr).label("avg"),
         func.count(CarListing.id).label("count"),
     ).filter(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
@@ -712,7 +712,7 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
         db.query(func.count(CarListing.id))
         .filter(
             CarListing.first_seen_at >= day_ago,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .scalar()
         or 0
@@ -728,7 +728,7 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
             CarListing.body_type.isnot(None),
             CarListing.price_lkr.isnot(None),
             CarListing.scraped_at >= current_30d,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.body_type)
         .all()
@@ -744,7 +744,7 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
             CarListing.price_lkr.isnot(None),
             CarListing.scraped_at >= previous_30d,
             CarListing.scraped_at < current_30d,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.body_type)
         .all()
@@ -792,7 +792,7 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
             CarListing.model.isnot(None),
             CarListing.price_lkr.isnot(None),
             CarListing.scraped_at >= current_30d,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.make, CarListing.model)
         .order_by(desc("count"))
@@ -812,7 +812,7 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
             CarListing.price_lkr.isnot(None),
             CarListing.scraped_at >= previous_30d,
             CarListing.scraped_at < current_30d,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.make, CarListing.model)
         .all()
@@ -852,7 +852,7 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
             CarListing.deal_score >= 8,
             CarListing.price_lkr.isnot(None),
             CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .order_by(desc(CarListing.deal_score), desc(CarListing.scraped_at))
         .limit(10)
@@ -892,7 +892,7 @@ def get_make_model_insight(
     model_lower = model.strip().lower()
 
     base_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         func.lower(CarListing.make) == make_lower,
         func.lower(CarListing.model) == model_lower,
     )
@@ -962,7 +962,7 @@ def get_fuel_mix(db: Session = Depends(get_db)):
             CarListing.fuel_type,
             func.count(CarListing.id).label("count"),
         )
-        .filter(CarListing.is_outlier == False)
+        .filter(live_listing_filter())
         .group_by(CarListing.fuel_type)
         .all()
     )
@@ -1017,7 +1017,7 @@ def get_hybrid_bands(db: Session = Depends(get_db)):
             CarListing.price_lkr,
         )
         .filter(
-            CarListing.is_outlier == False,
+            live_listing_filter(),
             func.lower(CarListing.fuel_type).in_(list(_HYBRID_FUEL_TYPES)),
             CarListing.engine_capacity.isnot(None),
         )
@@ -1137,7 +1137,7 @@ def get_district_quick_insight(
     normalized = normalize_district_name(district) or " ".join(district.strip().split()).title()
     district_slug = normalized.lower().replace(" ", "-")
     district_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         or_(
             func.lower(CarListing.district) == normalized.lower(),
             func.lower(CarListing.url).ilike(f"%-for-sale-{district_slug}%"),
@@ -1235,13 +1235,13 @@ def get_ev_insight(
     now = utc_now()
 
     priced_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
 
     ev_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         func.lower(CarListing.fuel_type).in_(list(_EV_FUEL_TYPES)),
     )
     ev_priced_clause = and_(
@@ -1250,7 +1250,7 @@ def get_ev_insight(
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
 
-    total_count = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
+    total_count = db.query(func.count(CarListing.id)).filter(live_listing_filter()).scalar() or 0
     ev_count = db.query(func.count(CarListing.id)).filter(ev_clause).scalar() or 0
     ev_pct = round(ev_count / total_count * 100, 2) if total_count > 0 else 0.0
 
@@ -1311,7 +1311,7 @@ def get_ev_insight(
         )
 
     aqua_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         func.lower(CarListing.make) == "toyota",
         func.lower(CarListing.model) == "aqua",
         CarListing.price_lkr.isnot(None),
@@ -1356,7 +1356,7 @@ def get_district_velocity(db: Session = Depends(get_db)):
         )
         .filter(
             CarListing.district.isnot(None),
-            CarListing.is_outlier == False,
+            live_listing_filter(),
         )
         .group_by(CarListing.district)
         .all()
@@ -1369,7 +1369,7 @@ def get_district_velocity(db: Session = Depends(get_db)):
         )
         .filter(
             CarListing.district.isnot(None),
-            CarListing.is_outlier == False,
+            live_listing_filter(),
             first_seen_ts >= seven_days_ago,
         )
         .group_by(CarListing.district)
@@ -1440,7 +1440,7 @@ def get_import_era_split(db: Session, top_n: int = _ERA_TOP_MAKES_LIMIT) -> dict
     ``top_n`` controls how many makes (by total listing count) are returned.
     """
     eligible = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
         CarListing.year.isnot(None),

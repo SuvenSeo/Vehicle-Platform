@@ -17,6 +17,19 @@ structlog.configure(
 )
 logger = structlog.get_logger()
 
+# Error tracking — no-op unless SENTRY_DSN is configured.
+_sentry_dsn = os.getenv("SENTRY_DSN", "").strip()
+if _sentry_dsn:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0") or 0),
+        send_default_pii=False,
+    )
+    logger.info("sentry_initialized")
+
 DB_INIT_TIMEOUT_SECONDS = 20
 
 

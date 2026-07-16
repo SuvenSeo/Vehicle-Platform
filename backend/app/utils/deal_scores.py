@@ -4,7 +4,7 @@ import structlog
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.orm import Session
 
-from db.models import CarListing, PriceAggregate
+from db.models import CarListing, PriceAggregate, live_listing_filter
 
 logger = structlog.get_logger()
 
@@ -156,7 +156,7 @@ def _build_listing_median_select():
         )
         .where(
             CarListing.price_lkr.isnot(None),
-            CarListing.is_outlier == False,  # noqa: E712 – SQLAlchemy requires == not is
+            live_listing_filter(),  # noqa: E712 – SQLAlchemy requires == not is
             CarListing.is_duplicate == False,  # noqa: E712
         )
     )

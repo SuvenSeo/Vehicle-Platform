@@ -8,8 +8,14 @@ from sqlalchemy.engine import Engine
 
 log = structlog.get_logger()
 
+# (column, postgres type/default, sqlite type/default)
 _CAR_LISTING_COLUMN_PATCHES = (
-    ("thumbnail_url_cached", "TEXT"),
+    ("thumbnail_url_cached", "TEXT", "TEXT"),
+    ("is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
+)
+
+_CAR_LISTING_INDEX_PATCHES = (
+    ("idx_car_listings_last_seen_at", "car_listings", "last_seen_at"),
 )
 
 
@@ -28,28 +34,44 @@ def apply_schema_patches(engine: Engine) -> None:
 
     dialect = engine.dialect.name
 
-    with engine.begin() as conn:
-        for column_name, column_type in _CAR_LISTING_COLUMN_PATCHES:
-            if _column_exists(engine, "car_listings", column_name):
-                continue
-            if dialect == "postgresql":
-                sql = (
-                    f"ALTER TABLE car_listings "
-                    f"ADD COLUMN IF NOT EXISTS {column_name} {column_type}"
-                )
-            else:
-                sql = f"ALTER TABLE car_listings ADD COLUMN {column_name} {column_type}"
-            try:
+    # Each statement gets its own transaction: on Postgres a failed statement
+    # aborts the surrounding transaction, which would otherwise roll back
+    # patches already logged as applied.
+    for column_name, pg_type, sqlite_type in _CAR_LISTING_COLUMN_PATCHES:
+        if _column_exists(engine, "car_listings", column_name):
+            continue
+        if dialect == "postgresql":
+            sql = (
+                f"ALTER TABLE car_listings "
+                f"ADD COLUMN IF NOT EXISTS {column_name} {pg_type}"
+            )
+        else:
+            sql = f"ALTER TABLE car_listings ADD COLUMN {column_name} {sqlite_type}"
+        try:
+            with engine.begin() as conn:
                 conn.execute(text(sql))
-                log.info("schema_patch_applied", table="car_listings", column=column_name)
-            except Exception as exc:
-                if "duplicate column" in str(exc).lower():
-                    continue
-                log.warning(
-                    "schema_patch_failed",
-                    table="car_listings",
-                    column=column_name,
-                    error=str(exc),
+            log.info("schema_patch_applied", table="car_listings", column=column_name)
+        except Exception as exc:
+            if "duplicate column" in str(exc).lower():
+                continue
+            log.warning(
+                "schema_patch_failed",
+                table="car_listings",
+                column=column_name,
+                error=str(exc),
+            )
+
+    for index_name, table_name, column_name in _CAR_LISTING_INDEX_PATCHES:
+        try:
+            with engine.begin() as conn:
+                conn.execute(
+                    text(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})")
                 )
+        except Exception as exc:
+            log.warning(
+                "schema_index_patch_failed",
+                index=index_name,
+                error=str(exc),
+            )
 
     Base.metadata.create_all(bind=engine)

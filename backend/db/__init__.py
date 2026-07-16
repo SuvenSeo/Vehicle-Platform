@@ -13,7 +13,7 @@ from .session import (
     get_hot_db,
     get_cold_db,
 )
-from .models import Base, RawListing, CarListing, PriceAggregate, Location, ScrapeRun
+from .models import Base, CarListing, PriceAggregate, Location, ScrapeRun
 
 __all__ = [
     "engine",
@@ -28,7 +28,6 @@ __all__ = [
     "get_hot_db",
     "get_cold_db",
     "Base",
-    "RawListing",
     "CarListing",
     "PriceAggregate",
     "Location",

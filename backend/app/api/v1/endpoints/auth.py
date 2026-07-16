@@ -1,8 +1,8 @@
 """Environment-configured authentication with signed bearer tokens.
 
 Accounts live in the AUTH_USERS env var (JSON list), tokens are HMAC-SHA256
-signed with AUTH_TOKEN_SECRET. Nothing is enabled unless both are set, so
-existing deployments keep working untouched.
+signed with AUTH_TOKEN_SECRET. Passwords are bcrypt hashes only — legacy
+unsalted SHA-256 entries are no longer accepted.
 
 AUTH_USERS example:
     [{"email": "owner@example.com", "password_hash": "$2b$12$...",
@@ -11,8 +11,8 @@ AUTH_USERS example:
 Generate a password hash with:
     python -c "import bcrypt; print(bcrypt.hashpw(b'your-password', bcrypt.gensalt()).decode())"
 
-Set PRO_ACCESS_ENFORCED=true to require a valid pro/enterprise token on all
-/api/v1/pro/* endpoints (default: off / public, matching prior behaviour).
+/api/v1/pro/* endpoints require a valid pro/enterprise token by default;
+set PRO_ACCESS_ENFORCED=false only for local development.
 """
 
 import base64
@@ -69,17 +69,11 @@ def _hash_password(password: str) -> str:
 
 
 def _verify_password(plain_password: str, hashed_password: str) -> bool:
+    if not (hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$")):
+        return False
     try:
-        # Check if the hash looks like a bcrypt hash
-        if hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
-            return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
-    except Exception:
-        pass
-    # Fallback to unsalted SHA-256 for backward-compatibility transition
-    try:
-        supplied_hash = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
-        return hmac.compare_digest(supplied_hash, hashed_password)
-    except Exception:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError):
         return False
 
 
@@ -99,7 +93,7 @@ def _configured_users() -> dict[str, dict]:
         if not isinstance(item, dict):
             continue
         email = str(item.get("email") or "").strip().lower()
-        password_hash = str(item.get("password_hash") or item.get("password_sha256") or "").strip()
+        password_hash = str(item.get("password_hash") or "").strip()
         plain_password = str(item.get("password") or "")
         if not email or (not password_hash and not plain_password):
             continue
@@ -211,15 +205,17 @@ def me(authorization: Optional[str] = Header(default=None)):
 
 
 def pro_access_enforced() -> bool:
-    return os.getenv("PRO_ACCESS_ENFORCED", "").strip().lower() in {"1", "true", "yes", "on"}
+    """Server-side Pro gating is ON unless explicitly disabled.
+
+    Secure by default: an unset or unrecognised PRO_ACCESS_ENFORCED value
+    enforces the gate; set it to false/0/no/off only for local development.
+    """
+    return os.getenv("PRO_ACCESS_ENFORCED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def require_pro_access(authorization: Optional[str] = Header(default=None)) -> None:
-    """Optional gate for /pro/* — enforced only when PRO_ACCESS_ENFORCED=true.
-
-    Defaults to open so existing deployments without auth config keep
-    functioning; flipping the flag turns Pro into a real server-side boundary.
-    """
+    """Gate for /pro/* — requires a valid pro/enterprise token unless
+    PRO_ACCESS_ENFORCED=false explicitly opts out (local dev only)."""
     if not pro_access_enforced():
         return
 

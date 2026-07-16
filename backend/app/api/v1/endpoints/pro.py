@@ -22,10 +22,13 @@ from app.models.schemas import (
     ProTrendPoint,
     ProVehicleLane,
 )
-from db.models import CarListing, PriceAggregate
+from app.services.rate_limit import RateLimiter
+from db.models import CarListing, PriceAggregate, live_listing_filter
 from db.session import get_db
 
-router = APIRouter()
+_pro_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_pro_rate_limiter)])
 
 MIN_REASONABLE_PRICE_LKR = 100_000
 SOURCE_LABELS = {
@@ -93,7 +96,7 @@ def _scope_metrics(db: Session, query, *, include_deal_score: bool = False) -> d
 
 def _price_query(db: Session):
     return db.query(CarListing).filter(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
@@ -435,7 +438,7 @@ def _bulk_district_samples(db: Session, districts: list[str], *, limit: int = 5)
         )
         .label("rn"),
     ).where(
-        CarListing.is_outlier == False,  # noqa: E712
+        live_listing_filter(),  # noqa: E712
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
         CarListing.district.in_(districts),

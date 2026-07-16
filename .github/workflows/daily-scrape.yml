@@ -91,6 +91,10 @@ jobs:
           RUN_SCRAPERS: "true"
           RUN_MARKET_ANALYSIS: "false"
           RUN_MARKET_SIGNALS: "false"
+          # Lifecycle + outlier passes run once in the market-analysis job,
+          # not in each of the 11 parallel scrape jobs.
+          RUN_LISTING_LIFECYCLE: "false"
+          RUN_OUTLIER_DETECTION: "false"
           # Rescue-safe manual default. Use a separate full-refresh workflow if
           # a deeper scan is needed after the Supabase migration.
           SCRAPE_MAX_PAGES: "20"
@@ -168,6 +172,8 @@ jobs:
           RUN_DEAL_SCORE_REFRESH: "true"
           RUN_STATS_CACHE_REFRESH: "true"
           RUN_DEDUP: "true"
+          RUN_LISTING_LIFECYCLE: "true"
+          RUN_OUTLIER_DETECTION: "true"
           RUN_PRICE_RECOVERY: "true"
           RUN_ALERT_MATCH: "true"
           RUN_THUMBNAIL_CACHE: "true"

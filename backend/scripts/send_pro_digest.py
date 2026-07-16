@@ -43,7 +43,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from sqlalchemy import create_engine, desc, func
 from sqlalchemy.orm import Session, sessionmaker
 
-from db.models import CarListing, MarketAlert, MarketAlertMatch
+from db.models import CarListing, MarketAlert, MarketAlertMatch, live_listing_filter
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -76,7 +76,9 @@ def _db_session() -> Session:
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://"):]
     if not url:
-        allow_sqlite = os.getenv("ALLOW_SQLITE_FALLBACK", "true").lower() == "true"
+        # Secure default matches db/session.py: never silently fall back to a
+        # local SQLite file unless explicitly opted in (tests / local dev).
+        allow_sqlite = os.getenv("ALLOW_SQLITE_FALLBACK", "false").lower() == "true"
         if not allow_sqlite:
             raise RuntimeError("No database URL configured (set HOT_DATABASE_URL).")
         url = "sqlite:///./autolens.db"
@@ -102,7 +104,7 @@ def query_top_lanes(db: Session, limit: int = TOP_LANES_LIMIT) -> list[dict]:
             func.avg(CarListing.deal_score).label("avg_deal_score"),
         )
         .filter(
-            CarListing.is_outlier.is_(False),
+            live_listing_filter(),
             CarListing.price_lkr.isnot(None),
             CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
             CarListing.make.isnot(None),
@@ -132,7 +134,7 @@ def query_hot_deals(db: Session, limit: int = HOT_DEALS_LIMIT) -> list[dict]:
     rows = (
         db.query(CarListing)
         .filter(
-            CarListing.is_outlier.is_(False),
+            live_listing_filter(),
             CarListing.deal_score.isnot(None),
             CarListing.price_lkr.isnot(None),
             CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,

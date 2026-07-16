@@ -5,12 +5,17 @@ import logging
 from typing import Literal, Optional, List
 from decimal import Decimal
 from sqlalchemy.orm import Session
+from app.services.rate_limit import RateLimiter
 from db.session import get_db
 from db.models import VehiclePermit
 import secrets
 import os
 
-router = APIRouter()
+# 120/min: the calculator UI recalculates as users adjust inputs (debounced
+# client-side), so an active session legitimately produces bursts.
+_calculators_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_calculators_rate_limiter)])
 logger = logging.getLogger("autolens.calculators")
 
 # Fallback fuel prices in LKR

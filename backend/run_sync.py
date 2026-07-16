@@ -23,6 +23,8 @@ from app.services.source_aliases import canonical_source_key, source_alias_token
 from app.utils.alert_matcher import run_alert_match_pass
 from app.utils.deal_scores import bulk_refresh_deal_scores
 from app.utils.deduplication import mark_duplicates_batch
+from app.utils.listing_lifecycle import mark_inactive_listings
+from app.utils.outliers import mark_price_outliers
 from app.utils.stats_cache import refresh_stats_cache
 from app.utils.thumbnail_cache import backfill_thumbnail_cache
 from db.models import CarListing, ScrapeRun
@@ -509,6 +511,8 @@ async def main(profile_override: str | None = None):
     run_market_signals = _resolve_bool_env("RUN_MARKET_SIGNALS", run_market_analysis)
     run_deal_score_refresh = _resolve_bool_env("RUN_DEAL_SCORE_REFRESH", True)
     run_dedup = _resolve_bool_env("RUN_DEDUP", False)
+    run_listing_lifecycle = _resolve_bool_env("RUN_LISTING_LIFECYCLE", True)
+    run_outlier_detection = _resolve_bool_env("RUN_OUTLIER_DETECTION", True)
     run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", False)
     run_thumbnail_cache = _resolve_bool_env("RUN_THUMBNAIL_CACHE", False)
     run_alert_match = _resolve_bool_env("RUN_ALERT_MATCH", False)
@@ -524,6 +528,8 @@ async def main(profile_override: str | None = None):
         run_market_signals=run_market_signals,
         run_deal_score_refresh=run_deal_score_refresh,
         run_dedup=run_dedup,
+        run_listing_lifecycle=run_listing_lifecycle,
+        run_outlier_detection=run_outlier_detection,
         run_stats_cache_refresh=run_stats_cache_refresh,
         run_thumbnail_cache=run_thumbnail_cache,
         run_price_recovery=run_price_recovery,
@@ -558,6 +564,32 @@ async def main(profile_override: str | None = None):
                 _close_db_session(db, context="deduplication")
         else:
             log.info("deduplication_skipped", reason="run_dedup_disabled")
+
+        if run_listing_lifecycle:
+            db = SessionLocal()
+            try:
+                log.info("running_listing_lifecycle")
+                mark_inactive_listings(db)
+            except Exception as exc:
+                db.rollback()
+                log.error("listing_lifecycle_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="listing_lifecycle")
+        else:
+            log.info("listing_lifecycle_skipped", reason="run_listing_lifecycle_disabled")
+
+        if run_outlier_detection:
+            db = SessionLocal()
+            try:
+                log.info("running_outlier_detection")
+                mark_price_outliers(db)
+            except Exception as exc:
+                db.rollback()
+                log.error("outlier_detection_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="outlier_detection")
+        else:
+            log.info("outlier_detection_skipped", reason="run_outlier_detection_disabled")
 
         if run_market_analysis:
             db = SessionLocal()

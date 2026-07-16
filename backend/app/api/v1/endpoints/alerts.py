@@ -11,13 +11,16 @@ from app.models.schemas import (
     MarketAlertCreate,
     MarketAlertRead,
 )
-from db.models import CarListing, MarketAlert
+from app.services.rate_limit import RateLimiter
+from db.models import CarListing, MarketAlert, live_listing_filter
 from db.session import get_db
 
 MAX_ALERTS_PER_TOKEN = 20
 MATCH_LIMIT_PER_ALERT = 5
 
-router = APIRouter()
+_alerts_rate_limiter = RateLimiter(max_requests=60, window_seconds=60)
+
+router = APIRouter(dependencies=[Depends(_alerts_rate_limiter)])
 
 
 def _validate_token(token: str) -> str:
@@ -104,7 +107,7 @@ def match_alerts(
 
     results: List[AlertMatchResult] = []
     for alert in alerts:
-        q = db.query(CarListing).filter(CarListing.is_outlier.is_(False))
+        q = db.query(CarListing).filter(live_listing_filter())
 
         if alert.make:
             q = q.filter(CarListing.make.ilike(alert.make))

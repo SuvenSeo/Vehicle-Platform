@@ -25,7 +25,7 @@ from sqlalchemy.orm import load_only  # noqa: E402
 from app.api.v1.endpoints import listings as listings_endpoint  # noqa: E402
 from app.api.v1.endpoints import stats as stats_endpoint  # noqa: E402
 from app.utils.districts import count_canonical_districts  # noqa: E402
-from db.models import CarListing, ScrapeRun  # noqa: E402
+from db.models import CarListing, ScrapeRun, live_listing_filter  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
 
 MIN_REASONABLE_PRICE_LKR = 100_000
@@ -115,43 +115,43 @@ def build_stats_summary(db) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     seven_days_ago = now - timedelta(days=7)
     priced_clause = and_(
-        CarListing.is_outlier == False,
+        live_listing_filter(),
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
 
-    total = db.query(func.count(CarListing.id)).filter(CarListing.is_outlier == False).scalar() or 0
+    total = db.query(func.count(CarListing.id)).filter(live_listing_filter()).scalar() or 0
     avg_price = db.query(func.avg(CarListing.price_lkr)).filter(priced_clause).scalar()
     good_deals = (
         db.query(func.count(CarListing.id))
-        .filter(CarListing.deal_score >= 20, CarListing.is_outlier == False)
+        .filter(CarListing.deal_score >= 20, live_listing_filter())
         .scalar()
         or 0
     )
     this_week = (
         db.query(func.count(CarListing.id))
-        .filter(CarListing.first_seen_at >= seven_days_ago, CarListing.is_outlier == False)
+        .filter(CarListing.first_seen_at >= seven_days_ago, live_listing_filter())
         .scalar()
         or 0
     )
     districts = count_canonical_districts(
-        db.query(CarListing).filter(CarListing.district.isnot(None), CarListing.is_outlier == False)
+        db.query(CarListing).filter(CarListing.district.isnot(None), live_listing_filter())
     )
     source_count = (
         db.query(func.count(func.distinct(CarListing.source)))
-        .filter(CarListing.source.isnot(None), CarListing.is_outlier == False)
+        .filter(CarListing.source.isnot(None), live_listing_filter())
         .scalar()
         or 0
     )
     last_updated = (
         db.query(func.max(func.coalesce(CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at)))
-        .filter(CarListing.is_outlier == False)
+        .filter(live_listing_filter())
         .scalar()
     )
 
     top_makes = (
         db.query(CarListing.make, func.count(CarListing.id).label("count"))
-        .filter(CarListing.make.isnot(None), CarListing.is_outlier == False)
+        .filter(CarListing.make.isnot(None), live_listing_filter())
         .group_by(CarListing.make)
         .order_by(desc("count"))
         .limit(8)
@@ -246,7 +246,7 @@ def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
                 CarListing.is_outlier,
             )
         )
-        .filter(CarListing.is_outlier == False)
+        .filter(live_listing_filter())
         .order_by(desc(CarListing.first_seen_at), desc(CarListing.id))
     )
     if limit is not None and limit > 0:
