@@ -17,6 +17,7 @@ import {
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
 import { useToast } from "@/hooks/use-toast";
+import { getSurchargeCountdown } from "@/lib/importTaxModel";
 
 type TabType = "landed-cost" | "lease" | "tco" | "permits" | "depreciation";
 type FuelType = "petrol" | "diesel" | "hybrid" | "electric";
@@ -94,7 +95,10 @@ export default function Calculator() {
   const [applySurcharge, setApplySurcharge] = useState(() => boolParam(searchParams, "surcharge", true));
   const [applySscl, setApplySscl] = useState(() => boolParam(searchParams, "sscl", true));
   const [lcResult, setLcResult] = useState<LandedCostResult | null>(null);
+  // What this exact import saves if the 50% surcharge lapses on schedule.
+  const [lcLapseSavings, setLcLapseSavings] = useState<number | null>(null);
   const [lcLoading, setLcLoading] = useState(false);
+  const surchargeCountdown = getSurchargeCountdown();
 
   // Lease / Cash-to-own state (original logic wrapper)
   const [leasePrice, setLeasePrice] = useState(() => numParam(searchParams, "price", 15000000));
@@ -148,16 +152,25 @@ export default function Calculator() {
   const runLandedCostCalc = async () => {
     setLcLoading(true);
     try {
-      const res = await calculateLandedCost({
+      const payload = {
         cif_usd: cifUsd,
         exchange_rate: exchangeRate,
         fuel_type: lcFuelType,
         engine_cc: lcFuelType !== "electric" ? lcEngineCc : undefined,
         motor_kw: lcFuelType === "electric" ? lcMotorKw : undefined,
-        apply_surcharge: applySurcharge,
         apply_sscl: applySscl,
-      });
+      };
+      const [res, resWithoutSurcharge] = await Promise.all([
+        calculateLandedCost({ ...payload, apply_surcharge: applySurcharge }),
+        // Second variant powers the "if the surcharge lapses" delta.
+        applySurcharge && !surchargeCountdown.expired
+          ? calculateLandedCost({ ...payload, apply_surcharge: false })
+          : Promise.resolve(null),
+      ]);
       setLcResult(res);
+      setLcLapseSavings(
+        resWithoutSurcharge ? Math.max(0, res.landed_cost - resWithoutSurcharge.landed_cost) : null,
+      );
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "An error occurred.";
       toast({
@@ -339,6 +352,30 @@ export default function Calculator() {
               transition={{ duration: 0.2 }}
               className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
             >
+              {/* Surcharge countdown — time-boxed gazette moment */}
+              <div className="lg:col-span-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.04] p-4 backdrop-blur-md">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                    <span className="text-xs font-bold text-amber-300">
+                      {surchargeCountdown.expired
+                        ? "The 50% CID surcharge's gazetted 3-month period has ended"
+                        : `50% CID surcharge in force — set to lapse in ${surchargeCountdown.daysLeft} day${surchargeCountdown.daysLeft === 1 ? "" : "s"}`}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    {surchargeCountdown.expired
+                      ? "No extension has been gazetted as of our last review — verify current customs rates before committing an import."
+                      : `Gazetted expiry ${surchargeCountdown.expiryLabel} · no extension decision announced · LCs opened on or before 15 May 2026 are exempt`}
+                  </span>
+                  {!surchargeCountdown.expired && applySurcharge && lcLapseSavings !== null && lcLapseSavings > 0 && (
+                    <span className="ml-auto rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300 num">
+                      This import lands {formatPrice(lcLapseSavings)} cheaper if it lapses
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Inputs */}
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md h-fit space-y-5">
                 <div className="flex items-center gap-3 border-b border-white/5 pb-4">

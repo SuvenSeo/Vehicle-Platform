@@ -13,6 +13,27 @@ import taxRates from "@/data/importTaxRates.json";
 
 export const TAX_MODEL_REVIEWED = taxRates.reviewed;
 
+/** Gazette expiry of the temporary 50% CID surcharge (3 months from 2026-05-16). */
+export const SURCHARGE_EXPIRY_ISO = taxRates.surcharge_expiry;
+
+export interface SurchargeCountdown {
+  daysLeft: number;
+  expired: boolean;
+  expiryLabel: string;
+}
+
+/** Days until the 50% surcharge's gazetted expiry; negative days clamp to 0 with expired=true. */
+export function getSurchargeCountdown(now: Date = new Date()): SurchargeCountdown {
+  const expiry = new Date(`${SURCHARGE_EXPIRY_ISO}T00:00:00+05:30`); // Sri Lanka time
+  const msLeft = expiry.getTime() - now.getTime();
+  const daysLeft = Math.max(0, Math.ceil(msLeft / 86_400_000));
+  return {
+    daysLeft,
+    expired: msLeft <= 0,
+    expiryLabel: expiry.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+  };
+}
+
 export type ImportFuelType = "petrol" | "diesel" | "hybrid" | "electric";
 
 export interface ImportTaxInput {

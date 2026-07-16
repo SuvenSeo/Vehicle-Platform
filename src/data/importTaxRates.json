@@ -3,6 +3,8 @@
   "reviewed": "2026-07",
   "cid_rate": 0.2,
   "cid_surcharge_rate": 0.5,
+  "surcharge_effective_from": "2026-05-16",
+  "surcharge_expiry": "2026-08-16",
   "sscl_rate": 0.025,
   "vat_rate": 0.18,
   "excise_bands_per_cc": {
