@@ -231,3 +231,6 @@ commit."* Options:
 - Relax the check in Vercel project settings, or
 - Land a commit via the GitHub web UI/API (GitHub signs those automatically),
   which deploys the full tree at that commit.
+
+Note: only web-UI and PR-merge commits are auto-signed by GitHub — token/API
+commits are NOT, so the PR-merge route is the scriptable one.
