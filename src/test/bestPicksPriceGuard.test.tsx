@@ -75,9 +75,13 @@ describe("BestPicks price guard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Affordability/i }));
 
     expect(await screen.findByText(/ranked by min cash down/i)).toBeInTheDocument();
-    // Lowest ask among gate survivors (Honda Fit) should feature under affordability.
-    const headings = screen.getAllByRole("heading", { level: 2 });
-    expect(headings[0]).toHaveTextContent(/Honda Fit/i);
+    // Lowest ask among gate survivors (Honda Fit) should feature under
+    // affordability. The page-level "Biggest cuts this week" heading is not a
+    // pick — assert on pick headings only.
+    const pickHeadings = screen
+      .getAllByRole("heading", { level: 2 })
+      .filter((h) => !/biggest cuts/i.test(h.textContent || ""));
+    expect(pickHeadings[0]).toHaveTextContent(/Honda Fit/i);
     expect(screen.getByText(/Lowest cash down/i)).toBeInTheDocument();
   });
 });
