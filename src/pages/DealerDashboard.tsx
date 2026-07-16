@@ -230,7 +230,7 @@ function InventoryBenchmark() {
                       {row.url.replace(/^https?:\/\//, "").slice(0, 45)}{row.url.length > 50 ? "…" : ""}
                     </a>
                     {row.error && (
-                      <span className="mt-0.5 block text-[9px] text-rose-450">{row.error}</span>
+                      <span className="mt-0.5 block text-[9px] text-rose-400">{row.error}</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-white font-medium">
@@ -389,7 +389,7 @@ export default function DealerDashboard() {
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 relative z-10">
         {dashboardError ? (
           <div className="mb-5 flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-450" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
             <div className="min-w-0">
               <p className="text-[12px] font-bold text-white">Dealer data unavailable</p>
               <p className="mt-1 text-[11px] text-muted-foreground font-medium">{dashboardError}</p>

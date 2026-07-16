@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { FilterState, CarListing, DashboardInsights } from "@/types/car";
-import {
+import { getPriceDrops,
   getStats, getListings, getMakes,
   formatPrice, getDashboardInsights, LISTINGS_PAGE_SIZE, getDistrictVelocity,
 } from "@/services/api";
@@ -18,7 +18,7 @@ import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { RevealSection } from "@/components/RevealSection";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
+import { TrendingDown,
   ArrowRight,
   ArrowUpRight,
   ChevronLeft,
@@ -202,6 +202,11 @@ export default function Dashboard() {
     queryFn: getDashboardInsights,
     refetchInterval: 120_000,
   });
+  const dropsQuery = useQuery({
+    queryKey: ["price-drops"],
+    queryFn: () => getPriceDrops(7, 4),
+    staleTime: 300_000,
+  });
   const velocityQuery = useQuery({
     queryKey: ["district-velocity"],
     queryFn: getDistrictVelocity,
@@ -376,7 +381,13 @@ export default function Dashboard() {
   }, []);
 
   const scrollToMarket = useCallback(() => {
-    document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Defer past the filter-change re-render: a smooth scroll started in the
+    // same tick gets cancelled when the grid re-lays out.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
   }, []);
 
   const applyHeroSuggestion = useCallback((s: ListingSearchSuggestion) => {
@@ -507,7 +518,7 @@ export default function Dashboard() {
             </motion.h1>
 
             <motion.p variants={heroItemVariants} className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-[16px]">
-              <span className="font-bold text-white num">{marketPulseListings.toLocaleString()}</span> live listings from{" "}
+              <span className="font-bold text-white num">{marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}</span> live listings from{" "}
               <span className="font-bold text-white num">{marketPulseSources || 10}</span> sources across{" "}
               <span className="font-bold text-white num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
               deal scores, and the market intelligence dealers keep to themselves.
@@ -580,25 +591,146 @@ export default function Dashboard() {
                 {/* Quick scans */}
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Popular</span>
-                  {["Toyota Aqua", "Honda Vezel", "Wagon R", "Nissan Leaf", "Toyota Axio"].map((item) => (
-                    <button key={item} type="button" onClick={() => setHeroSearch(item)}
+                  {([
+                    { label: "Toyota Aqua", make: "Toyota", model: "Aqua" },
+                    { label: "Honda Vezel", make: "Honda", model: "Vezel" },
+                    { label: "Wagon R", make: "Suzuki", model: "Wagon R" },
+                    { label: "Nissan Leaf", make: "Nissan", model: "Leaf" },
+                    { label: "Toyota Axio", make: "Toyota", model: "Axio" },
+                  ] as const).map((item) => (
+                    <button key={item.label} type="button"
+                      onClick={() => { setHeroSearch(item.label); focusModel(item.make, item.model); }}
                       className="rounded-md border border-white/5 bg-white/[0.01] px-2.5 py-1 text-[11px] font-bold text-muted-foreground transition-all hover:border-primary/25 hover:bg-white/[0.03] hover:text-white"
-                    >{item}</button>
+                    >{item.label}</button>
                   ))}
                 </div>
             </motion.div>
           </div>
 
           {/* ── Full-width live intelligence console ── */}
-          <div className="mt-12 space-y-6 lg:mt-16">
+          <div className="mt-12 lg:mt-16">
             <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
-            <FuelMixStrip />
-            <MarketSignalsStrip />
           </div>
         </motion.div>
       </section>
 
       {/* ── INVENTORY ───────────────────────────────────────────── */}
+      {/* Market pulse showcase: curated proof-of-inventory above the grid */}
+      <RevealSection className="border-t border-border">
+        <div className="mx-auto max-w-[1560px] px-5 py-12 sm:px-6 lg:py-16">
+          <div className="mb-8 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Market pulse</p>
+              <h2 className="mt-2 font-display text-[1.5rem] font-bold tracking-tight text-foreground sm:text-[1.875rem]">
+                What&rsquo;s moving right now
+              </h2>
+            </div>
+          </div>
+          <div className="grid gap-10 lg:grid-cols-3">
+
+            {/* Trending models */}
+            <div>
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="font-display text-base font-semibold tracking-tight text-foreground">Trending models</h3>
+                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
+                  All trends <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </div>
+              {trendingModels.length ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {trendingModels.slice(0, 4).map((row) => (
+                    <button key={`${row.make}-${row.model}`} type="button" onClick={() => focusModel(row.make, row.model)}
+                      className="group/trend flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-all hover:border-border hover:bg-card"
+                    >
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                        <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover/trend:translate-x-0.5 group-hover/trend:text-primary" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Awaiting data</p>
+              )}
+            </div>
+
+            {/* Hot deals */}
+            <div>
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
+                  <Flame className="h-4 w-4 text-primary/70" /> Best deals
+                </h3>
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
+                  All picks <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </div>
+              {hotDeals.length ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {hotDeals.slice(0, 4).map((row) => (
+                    <Link key={row.id} to={`/listing/${row.id}`}
+                      className="group/deal flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-border hover:bg-card"
+                    >
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                        <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
+                      </div>
+                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-300 num">
+                        +{Number(row.deal_score || 0).toFixed(0)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">No deals found in current slice</p>
+              )}
+            </div>
+            {/* Price cuts (7d) */}
+            <div>
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-emerald-400/80" /> Price cuts &middot; 7d
+                </h3>
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
+                  All cuts <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </div>
+              {(dropsQuery.data || []).length ? (
+                <div className="grid gap-2">
+                  {(dropsQuery.data || []).slice(0, 4).map((drop) => (
+                    <Link key={drop.listing.id} to={`/listing/${drop.listing.id}`}
+                      className="group/drop flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-border hover:bg-card"
+                    >
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                        <VehicleThumbnail src={drop.listing.thumbnail_url} listingId={drop.listing.id} alt={`${drop.listing.make} ${drop.listing.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14px] font-semibold text-foreground">{drop.listing.make} {drop.listing.model}{drop.listing.year ? ` ${drop.listing.year}` : ""}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground num">
+                          <span className="line-through">{formatPrice(drop.previous_price_lkr)}</span>{" "}
+                          <span className="font-semibold text-foreground">{formatPrice(drop.new_price_lkr)}</span>
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-300 num">
+                        &minus;{drop.drop_pct}%
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">No cuts caught in the last 7 days &mdash; tracking is scan-over-scan.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </RevealSection>
+
       <section id="market" className="scroll-mt-20">
         <div className="mx-auto max-w-[1560px] px-5 py-8 sm:px-6 lg:py-10">
 
@@ -735,9 +867,11 @@ export default function Dashboard() {
                             {hasPrice ? (
                               <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
                             ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
-                            <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score || 0) >= 0 ? "text-primary" : "text-muted-foreground"}`}>
-                              {Number(listing.deal_score || 0) >= 0 ? "+" : ""}{Number(listing.deal_score || 0).toFixed(0)} deal
-                            </p>
+                            {listing.deal_score != null && (
+                              <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score) >= 0 ? "text-primary" : "text-muted-foreground"}`}>
+                                {Number(listing.deal_score) >= 0 ? "+" : ""}{Number(listing.deal_score).toFixed(0)} deal
+                              </p>
+                            )}
                           </div>
                           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                         </Link>
@@ -774,84 +908,22 @@ export default function Dashboard() {
         <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
           <div className="mb-9 flex items-end justify-between gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold)]/70">Market pulse</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Deeper intelligence</p>
               <h2 className="mt-2 font-display text-[1.5rem] font-bold tracking-tight text-foreground sm:text-[1.875rem]">
-                What&rsquo;s moving right now
+                Fuel mix, market signals &amp; regional momentum
               </h2>
             </div>
           </div>
-          <div className="grid gap-10 lg:grid-cols-2">
-
-            {/* Trending models */}
-            <div>
-              <div className="mb-5 flex items-center justify-between">
-                <h3 className="font-display text-base font-semibold tracking-tight text-foreground">Trending models</h3>
-                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
-                  All trends <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              </div>
-              {trendingModels.length ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {trendingModels.slice(0, 4).map((row) => (
-                    <button key={`${row.make}-${row.model}`} type="button" onClick={() => focusModel(row.make, row.model)}
-                      className="group/trend flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-all hover:border-border hover:bg-card"
-                    >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
-                        <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model}</p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground num">{row.listing_count.toLocaleString()} listed · avg {formatPrice(row.avg_price_lkr)}</p>
-                      </div>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover/trend:translate-x-0.5 group-hover/trend:text-primary" />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground">Awaiting data</p>
-              )}
-            </div>
-
-            {/* Hot deals */}
-            <div>
-              <div className="mb-5 flex items-center justify-between">
-                <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-primary/70" /> Best deals
-                </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
-                  All picks <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              </div>
-              {hotDeals.length ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {hotDeals.slice(0, 4).map((row) => (
-                    <Link key={row.id} to={`/listing/${row.id}`}
-                      className="group/deal flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-border hover:bg-card"
-                    >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
-                        <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
-                      </div>
-                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-300 num">
-                        +{Number(row.deal_score || 0).toFixed(0)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground">No deals found in current slice</p>
-              )}
-            </div>
+          <div className="space-y-6">
+            <FuelMixStrip />
+            <MarketSignalsStrip />
           </div>
 
           {/* District demand velocity */}
           <div className="mt-12 border-t border-border pt-8">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500/70">Demand velocity</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Demand velocity</p>
                 <h3 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
                   Regional listing momentum — last 7 days
                 </h3>
@@ -936,7 +1008,7 @@ export default function Dashboard() {
                 className="flex h-8 items-center gap-1 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
               ><X className="h-3 w-3" /> Clear</button>
               <button type="button" disabled={compareIds.length < 2} onClick={() => setShowCompare(true)}
-                className="h-8 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[var(--gold-bright)] disabled:opacity-40"
+                className="h-8 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-primary/95 disabled:opacity-40"
               >Compare</button>
             </div>
           </div>
@@ -954,7 +1026,7 @@ export default function Dashboard() {
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
               <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-base md:text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-[var(--gold-bright)]">Save</button>
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (

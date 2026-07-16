@@ -111,7 +111,7 @@ function Metric({
       <p
         className={cn(
           "num mt-1 text-[13px] font-bold",
-          emphasize ? "text-[var(--gold)]" : "text-foreground",
+          emphasize ? "text-primary" : "text-foreground",
         )}
       >
         {value}

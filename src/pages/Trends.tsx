@@ -249,7 +249,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
     >
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold)]/70">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">
             Import tax intelligence
           </p>
           <h2
@@ -314,7 +314,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
                       {band.label}
                     </span>
                     {isCliffBand && (
-                      <span className="rounded-md border border-emerald-500/20 bg-emerald-500/8 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-400">
+                      <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-400">
                         Tax cliff ↓
                       </span>
                     )}

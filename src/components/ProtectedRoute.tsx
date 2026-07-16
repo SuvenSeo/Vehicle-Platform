@@ -30,7 +30,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
               <Link to="/pro-preview" className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-[10px] font-semibold text-foreground no-underline hover:bg-foreground/[0.03]">
                 <Sparkles className="h-3 w-3" /> Preview Pro
               </Link>
-              <Link to="/sign-in" onClick={logout} className="flex h-9 items-center gap-1.5 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline hover:bg-[var(--gold-bright)]">
+              <Link to="/sign-in" onClick={logout} className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline hover:bg-primary/95">
                 <Crown className="h-3 w-3" /> Use paid login
               </Link>
               <button type="button" onClick={logout} className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground hover:text-foreground">

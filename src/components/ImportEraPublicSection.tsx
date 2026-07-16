@@ -31,7 +31,7 @@ export function ImportEraPublicSection() {
     <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-labelledby="import-era-heading">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--gold)]/70">Post-freeze market</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary/70">Post-freeze market</p>
           <h2 id="import-era-heading" className="mt-1 text-sm font-semibold text-foreground">
             Pre-freeze vs post-freeze price cohorts
           </h2>
@@ -93,9 +93,9 @@ export function ImportEraPublicSection() {
         </div>
       )}
 
-      <div className="mt-5 flex flex-col gap-3 rounded-lg border border-[var(--gold)]/20 bg-[var(--gold)]/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-5 flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <Crown className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gold)]" />
+          <Crown className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>
             <p className="text-sm font-semibold text-foreground">Pro district arbitrage</p>
             <p className="mt-0.5 text-[12px] text-muted-foreground">

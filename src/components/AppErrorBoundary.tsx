@@ -50,7 +50,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           {this.state.errorMessage && (
             <p className="mt-3 break-all rounded-lg border border-border bg-surface px-3 py-2 font-mono text-[10px] text-muted-foreground">{this.state.errorMessage}</p>
           )}
-          <button type="button" onClick={this.handleReload} className="mt-5 h-9 rounded-lg bg-[var(--gold)] px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-[var(--gold-bright)]">Reload App</button>
+          <button type="button" onClick={this.handleReload} className="mt-5 h-9 rounded-lg bg-primary px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Reload App</button>
         </div>
       </div>
     );

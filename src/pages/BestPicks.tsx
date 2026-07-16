@@ -51,7 +51,7 @@ function dealBandLabel(score: number): string {
 
 function dealBandChip(score: number): string {
   const b = dealBand(score);
-  if (b === "elite") return "border-emerald-500/20 bg-emerald-500/8 text-emerald-300";
+  if (b === "elite") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
   if (b === "strong") return "border-emerald-500/15 bg-emerald-500/5 text-emerald-300/80";
   return "border-primary/15 bg-primary/5 text-primary/80";
 }

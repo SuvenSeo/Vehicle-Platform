@@ -10,7 +10,6 @@ import {
   getListingDaysOnMarketLabel,
   getListingDealLabel,
   getListingImageUrl,
-  getListingRecencyLabel,
 } from "@/lib/listing-card-meta";
 import { HybridCliffBadge } from "@/components/HybridCliffBadge";
 import { MileageTrustChip } from "@/components/MileageTrustChip";
@@ -71,7 +70,6 @@ export const ListingCard = memo(function ListingCard({
   const imageUrl = getListingImageUrl(listing);
   const dealLabel = getListingDealLabel(dealScore);
   const daysOnMarketLabel = getListingDaysOnMarketLabel(listing.first_seen_at || listing.scraped_at);
-  const recency = getListingRecencyLabel(listing.first_seen_at || listing.scraped_at);
   const priceValue = Number(listing.price_lkr || 0);
   const hasKnownPrice = isReasonableListingPrice(priceValue);
   const marketDeltaPct =
@@ -109,9 +107,6 @@ export const ListingCard = memo(function ListingCard({
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
             <span className="rounded-full border border-white/20 bg-black/45 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
               {formatToken(listing.condition)}
-            </span>
-            <span className="rounded-full border border-white/20 bg-black/45 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-white/85 backdrop-blur-md">
-              {recency}
             </span>
           </div>
 
