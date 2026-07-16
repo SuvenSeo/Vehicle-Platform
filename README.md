@@ -218,3 +218,16 @@ Notes:
 - Workflow forces `ALLOW_SQLITE_FALLBACK=false` so it fails fast if DB config is missing.
 - Playwright dependencies and Chromium are installed inside the runner automatically.
 - The workflow uses `SCRAPE_ENABLED_SOURCES` internally so each job runs only one source.
+
+### Vercel requires verified commits
+
+Vercel cancels production builds created from unsigned ("unverified") commits
+with: *"The Deployment was canceled because it was created with an unverified
+commit."* Options:
+
+- Sign local commits (SSH signing: `git config gpg.format ssh`,
+  `git config user.signingkey <key>`, `git config commit.gpgsign true`,
+  and add the key as a *signing key* on GitHub), or
+- Relax the check in Vercel project settings, or
+- Land a commit via the GitHub web UI/API (GitHub signs those automatically),
+  which deploys the full tree at that commit.
