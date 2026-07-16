@@ -23,9 +23,11 @@ interface ListingCardProps {
 }
 
 function getDealBadgeClasses(label: ReturnType<typeof getListingDealLabel>): string {
-  if (label === "Good Deal") return "bg-emerald-500/15 border-emerald-500/25 text-emerald-700 dark:text-emerald-300";
-  if (label === "Overpriced") return "bg-rose-500/15 border-rose-500/25 text-rose-700 dark:text-rose-300";
-  return "bg-foreground/[0.04] border-border text-muted-foreground";
+  // Near-opaque fills: these render over arbitrary photos, so translucent
+  // tints cannot guarantee the 4.5:1 the 10px text needs (WCAG 1.4.3).
+  if (label === "Good Deal") return "bg-zinc-950/85 border-emerald-500/40 text-emerald-300";
+  if (label === "Overpriced") return "bg-zinc-950/85 border-rose-500/40 text-rose-300";
+  return "bg-zinc-950/85 border-white/20 text-zinc-200";
 }
 
 function formatToken(value: string | undefined): string {
@@ -105,7 +107,7 @@ export const ListingCard = memo(function ListingCard({
 
           {/* Overlay badges */}
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
-            <span className="rounded-full border border-white/20 bg-black/45 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
+            <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
               {formatToken(listing.condition)}
             </span>
           </div>
@@ -119,7 +121,7 @@ export const ListingCard = memo(function ListingCard({
                 className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isWatchlisted
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-black/40 text-white/85 border-white/20 hover:text-white hover:bg-black/55"
+                    : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
                 }`}
                 aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
               >
@@ -133,7 +135,7 @@ export const ListingCard = memo(function ListingCard({
                 className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isComparing
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-black/40 text-white/85 border-white/20 hover:text-white hover:bg-black/55"
+                    : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
                 }`}
                 aria-label={isComparing ? "Remove from comparison" : "Add to comparison"}
               >
@@ -151,7 +153,7 @@ export const ListingCard = memo(function ListingCard({
             ) : (
               <PriceUnavailableBadge
                 label="Price unavailable"
-                className="bg-black/50 border-primary/40 text-primary px-2 py-0.5 text-[10px] tracking-[0.1em]"
+                className="bg-black/75 border-primary/40 text-primary-bright px-2 py-0.5 text-[10px] tracking-[0.1em]"
               />
             )}
             {hasDealScore && (

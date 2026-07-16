@@ -199,7 +199,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
           <DialogHeader className="border-b border-border bg-[#080909] px-5 py-5 text-left md:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 tech-label text-primary">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 tech-label text-primary-bright">
                   <Scale className="h-3.5 w-3.5" />
                   Decision comparison
                 </div>
@@ -304,7 +304,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
 
                       <Link
                         to={`/listing/${listing.id}`}
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 tech-label text-primary no-underline transition-colors hover:bg-primary/15"
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 tech-label text-primary-bright no-underline transition-colors hover:bg-primary/15"
                       >
                         Open listing
                         <ArrowUpRight className="h-3.5 w-3.5" />
@@ -358,14 +358,14 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                             key={`${row.key}-${listing.id}`}
                             className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold ${
                               isBest
-                                ? "border-primary/35 bg-primary/10 text-primary"
+                                ? "border-primary/35 bg-primary/10 text-primary-bright"
                                 : "border-border bg-white/[0.025] text-foreground"
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <span className="min-w-0">{row.render(listing)}</span>
                               {isBest ? (
-                                <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 tech-label text-primary">
+                                <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 tech-label text-primary-bright">
                                   Leader
                                 </span>
                               ) : null}

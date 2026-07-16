@@ -89,7 +89,7 @@ export default function SignIn() {
             </Link>
             <div className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 mb-4">
               <Lock className="w-3 h-3 text-primary" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">Pro Access</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright">Pro Access</span>
             </div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-white">Sign in</h1>
             <p className="text-[12px] text-muted-foreground mt-1 font-medium">Access the vehicle intelligence dashboard.</p>
@@ -97,7 +97,7 @@ export default function SignIn() {
 
           {previewAccessEnabled && (
             <div className="rounded-lg border border-primary/20 bg-primary/10 p-3.5">
-              <p className="text-[10px] font-bold text-primary mb-1">Preview available</p>
+              <p className="text-[10px] font-bold text-primary-bright mb-1">Preview available</p>
               <p className="text-[11px] text-muted-foreground font-semibold">Preview the Pro workspace without signing in.</p>
               <button type="button" onClick={() => navigate("/pro-preview")} className="mt-2.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[10px] font-bold text-white hover:bg-white/[0.04] transition-all">
                 Preview Pro <ArrowRight className="h-3 w-3" />
@@ -107,13 +107,13 @@ export default function SignIn() {
 
           {DEMO_AUTH_ENABLED && (
             <div className="rounded-lg border border-primary/20 bg-primary/10 p-3.5 space-y-2">
-              <p className="text-[10px] font-bold text-primary">Review accounts</p>
+              <p className="text-[10px] font-bold text-primary-bright">Review accounts</p>
               {DEMO_ACCOUNT_SUMMARY.map((acc) => (
                 <button key={acc.email} type="button" onClick={() => { setValue("email", acc.email); setServerError(""); }}
                   className="flex w-full items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-left hover:border-primary/20 transition-all"
                 >
                   <div><p className="text-[11px] font-bold text-white">{acc.name}</p><p className="text-[10px] text-muted-foreground font-medium">{acc.email}</p></div>
-                  <span className={`text-[9px] font-bold uppercase tracking-[0.08em] rounded-md border px-2 py-0.5 ${acc.subscriptionStatus === "active" ? "border-primary/25 bg-primary/10 text-primary" : "border-white/10 text-muted-foreground"}`}>{acc.plan}</span>
+                  <span className={`text-[9px] font-bold uppercase tracking-[0.08em] rounded-md border px-2 py-0.5 ${acc.subscriptionStatus === "active" ? "border-primary/25 bg-primary/10 text-primary-bright" : "border-white/10 text-muted-foreground"}`}>{acc.plan}</span>
                 </button>
               ))}
               <p className="text-[10px] text-muted-foreground font-medium">Selecting an account fills the email — enter its password to sign in.</p>
@@ -123,13 +123,13 @@ export default function SignIn() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Email</Label>
-              <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" {...register("email")} className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-muted-foreground/60 focus:ring-1 focus:ring-primary/30" />
+              <Input id="email" type="email" placeholder="you@example.com" autoComplete="email" {...register("email")} className="h-10 rounded-lg border-white/15 bg-white/[0.02] text-sm text-white placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30" />
               {errors.email && <p className="text-[10px] text-rose-400 font-semibold">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Password</Label>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" autoComplete="current-password" {...register("password")} className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white placeholder:text-muted-foreground/60 focus:ring-1 focus:ring-primary/30 pr-10" />
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" autoComplete="current-password" {...register("password")} className="h-10 rounded-lg border-white/15 bg-white/[0.02] text-sm text-white placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30 pr-10" />
                 <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-all">
                   {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>

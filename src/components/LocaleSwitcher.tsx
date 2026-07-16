@@ -38,7 +38,7 @@ export function LocaleSwitcher({ compact = false }: Props) {
             title={opt.label}
             className={`rounded-md px-2 py-1 text-[11px] font-semibold tracking-tight transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
               active
-                ? "bg-primary/10 text-primary"
+                ? "bg-primary/15 text-primary-bright"
                 : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
             }`}
           >

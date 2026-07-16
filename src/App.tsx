@@ -1,3 +1,5 @@
+import { scrollBehavior } from "@/lib/motion";
+import { MotionConfig } from "framer-motion";
 import { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -56,7 +58,7 @@ function ScrollToHash() {
     const frame = window.requestAnimationFrame(() => {
       const element = document.getElementById(targetId);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        element.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
       }
     });
 
@@ -115,6 +117,7 @@ const App = () => {
       <AuthProvider>
       <AppPreferencesProvider>
         <TooltipProvider>
+      <MotionConfig reducedMotion="user">
           <ScrollProgressBar />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
@@ -143,7 +146,8 @@ const App = () => {
               </Routes>
             </Suspense>
           </BrowserRouter>
-        </TooltipProvider>
+              </MotionConfig>
+    </TooltipProvider>
       </AppPreferencesProvider>
       </AuthProvider>
     </QueryClientProvider>

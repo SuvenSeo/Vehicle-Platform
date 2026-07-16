@@ -131,7 +131,7 @@ export default function BestPicks() {
 
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Best picks</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Best picks</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Deal-score picks.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">
             {loading ? "Scanning inventory..." : `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`}
@@ -141,9 +141,10 @@ export default function BestPicks() {
               <button
                 type="button"
                 onClick={() => setSortMode("deal_score")}
+                aria-pressed={sortMode === "deal_score"}
                 className={`rounded-lg border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
                   sortMode === "deal_score"
-                    ? "border-primary/30 bg-primary/10 text-primary shadow-[0_2px_8px_rgba(124,58,237,0.12)]"
+                    ? "border-primary/30 bg-primary/10 text-primary-bright shadow-[0_2px_8px_rgba(124,58,237,0.12)]"
                     : "border-white/5 bg-white/[0.01] text-muted-foreground hover:bg-white/[0.03] hover:text-white"
                 }`}
               >
@@ -152,9 +153,10 @@ export default function BestPicks() {
               <button
                 type="button"
                 onClick={() => setSortMode("affordability")}
+                aria-pressed={sortMode === "affordability"}
                 className={`rounded-lg border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
                   sortMode === "affordability"
-                    ? "border-primary/30 bg-primary/10 text-primary shadow-[0_2px_8px_rgba(124,58,237,0.12)]"
+                    ? "border-primary/30 bg-primary/10 text-primary-bright shadow-[0_2px_8px_rgba(124,58,237,0.12)]"
                     : "border-white/5 bg-white/[0.01] text-muted-foreground hover:bg-white/[0.03] hover:text-white"
                 }`}
               >
@@ -318,7 +320,7 @@ export default function BestPicks() {
                           <div className="flex items-baseline justify-between">
                             <span className="num text-base font-bold text-white">{formatPrice(Number(listing.price_lkr || 0))}</span>
                             {sortMode === "affordability" && cashDown != null ? (
-                              <span className="num text-[10px] font-bold text-primary">{formatPrice(cashDown)} down</span>
+                              <span className="num text-[10px] font-bold text-primary-bright">{formatPrice(cashDown)} down</span>
                             ) : (
                               <span className="num text-[10px] font-bold text-emerald-400">+{score.toFixed(0)}</span>
                             )}

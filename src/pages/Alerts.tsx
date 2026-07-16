@@ -106,7 +106,7 @@ function AlertMatchSection({ token }: { token: string }) {
                     </p>
                   ) : null}
                 </div>
-                <Badge variant="secondary" className="shrink-0 text-[11px] font-bold num border-white/5 bg-white/[0.02] text-primary">
+                <Badge variant="secondary" className="shrink-0 text-[11px] font-bold num border-white/5 bg-white/[0.02] text-primary-bright">
                   {result.matching_count.toLocaleString()} found
                 </Badge>
               </div>
@@ -228,15 +228,15 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label htmlFor="alert-make" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">Make</label>
-          <Input id="alert-make" value={make} onChange={(e) => setMake(e.target.value)} placeholder="Toyota" className="h-9 text-sm border-white/5 bg-white/[0.02] text-white placeholder-zinc-600 focus-visible:ring-primary/30" />
+          <Input id="alert-make" value={make} onChange={(e) => setMake(e.target.value)} placeholder="Toyota" className="h-9 text-sm border-white/15 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30" />
         </div>
         <div>
           <label htmlFor="alert-model" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">Model</label>
-          <Input id="alert-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Aqua" className="h-9 text-sm border-white/5 bg-white/[0.02] text-white placeholder-zinc-600 focus-visible:ring-primary/30" />
+          <Input id="alert-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Aqua" className="h-9 text-sm border-white/15 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30" />
         </div>
         <div>
           <label htmlFor="alert-district" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">District</label>
-          <Input id="alert-district" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Colombo" className="h-9 text-sm border-white/5 bg-white/[0.02] text-white placeholder-zinc-600 focus-visible:ring-primary/30" />
+          <Input id="alert-district" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Colombo" className="h-9 text-sm border-white/15 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30" />
         </div>
         <div>
           <label htmlFor="alert-price" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">Max price (LKR)</label>
@@ -246,7 +246,7 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
             onChange={(e) => setMaxPrice(e.target.value.replace(/[^\d]/g, ""))}
             inputMode="numeric"
             placeholder="5000000"
-            className="h-9 text-sm border-white/5 bg-white/[0.02] text-white placeholder-zinc-600 focus-visible:ring-primary/30"
+            className="h-9 text-sm border-white/5 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30"
           />
         </div>
       </div>
@@ -295,7 +295,7 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
       <div className="flex shrink-0 items-center gap-1.5">
         <Link
           to={`/?make=${encodeURIComponent(alert.make || "")}&model=${encodeURIComponent(alert.model || "")}${alert.district ? `&district=${encodeURIComponent(alert.district)}` : ""}${alert.max_price ? `&price_max=${alert.max_price}` : ""}#market`}
-          className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary no-underline transition-all hover:bg-primary/20"
+          className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
         >
           Browse
         </Link>
@@ -353,7 +353,7 @@ export default function Alerts() {
             Active alerts
           </h2>
           {!loading && (
-            <span className="text-[11px] font-bold text-primary num">
+            <span className="text-[11px] font-bold text-primary-bright num">
               {alerts.length}
             </span>
           )}
@@ -406,7 +406,7 @@ export default function Alerts() {
                   </div>
                   <Link
                     to={`/?${new URLSearchParams(Object.fromEntries(Object.entries(a.filters).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))).toString()}#market`}
-                    className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary no-underline transition-all hover:bg-primary/20"
+                    className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
                   >
                     Browse
                   </Link>

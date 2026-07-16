@@ -278,7 +278,7 @@ export default function Calculator() {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">AutoLens Intelligence Hub</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">AutoLens Intelligence Hub</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Mobility & Tax Calculators.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.</p>
         </div>
@@ -299,6 +299,7 @@ export default function Calculator() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
+                aria-pressed={activeTab === tab.id}
                 className={`relative flex min-h-[40px] shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold tracking-wide transition-colors z-10 ${
                   activeTab === tab.id
                     ? "text-black font-bold"
@@ -386,12 +387,12 @@ export default function Calculator() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">CIF Price (USD)</label>
-                      <Input type="number" value={cifUsd} onChange={(e) => setCifUsd(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <label htmlFor="lc-cif" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">CIF Price (USD)</label>
+                      <Input id="lc-cif" type="number" value={cifUsd} onChange={(e) => setCifUsd(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Exchange Rate (LKR)</label>
-                      <Input type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <label htmlFor="lc-fx" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Exchange Rate (LKR)</label>
+                      <Input id="lc-fx" type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                     </div>
                   </div>
 
@@ -402,9 +403,10 @@ export default function Calculator() {
                         <button
                           key={fuel}
                           onClick={() => setLcFuelType(fuel)}
+                          aria-pressed={lcFuelType === fuel}
                           className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all ${
                             lcFuelType === fuel
-                              ? "border-primary/30 bg-primary/10 text-primary"
+                              ? "border-primary/30 bg-primary/10 text-primary-bright"
                               : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
                           }`}
                         >
@@ -416,8 +418,8 @@ export default function Calculator() {
 
                   {lcFuelType !== "electric" ? (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
-                      <Input type="number" value={lcEngineCc} onChange={(e) => setLcEngineCc(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <label htmlFor="lc-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
+                      <Input id="lc-cc" type="number" value={lcEngineCc} onChange={(e) => setLcEngineCc(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                       {lcFuelType === "hybrid" && lcEngineCc > 1500 && (
                         <p className="flex items-center gap-1.5 text-[10px] text-amber-400 font-semibold mt-1">
                           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -427,8 +429,8 @@ export default function Calculator() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Motor Power (kW)</label>
-                      <Input type="number" value={lcMotorKw} onChange={(e) => setLcMotorKw(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <label htmlFor="lc-kw" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Motor Power (kW)</label>
+                      <Input id="lc-kw" type="number" value={lcMotorKw} onChange={(e) => setLcMotorKw(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                     </div>
                   )}
 
@@ -454,7 +456,7 @@ export default function Calculator() {
 
                 {lcLoading && !lcResult ? (
                   <div className="h-64 flex items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
+                    <div role="status" aria-label="Calculating" className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
                   </div>
                 ) : lcResult ? (
                   <div className={`space-y-5 transition-opacity duration-200 ${lcLoading ? "opacity-60" : "opacity-100"}`}>
@@ -496,8 +498,8 @@ export default function Calculator() {
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Taxes & Duties</span>
                         <p className="text-xl font-bold text-primary mt-1 num">+{formatPrice(lcResult.total_tax)}</p>
                       </div>
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Est. Landed Cost</span>
+                      <div aria-live="polite" className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary-bright">Est. Landed Cost</span>
                         <p className="text-xl font-bold text-white mt-1 num">{formatPrice(lcResult.landed_cost)}</p>
                       </div>
                     </div>
@@ -535,13 +537,13 @@ export default function Calculator() {
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Vehicle Valuation (LKR)</label>
-                    <Input type="number" value={leasePrice} onChange={(e) => setLeasePrice(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30 font-semibold text-white text-base" />
-                    <p className="text-[10px] text-muted-foreground/75 font-semibold num">{formatPrice(leasePrice)}</p>
+                    <label htmlFor="lease-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Vehicle Valuation (LKR)</label>
+                    <Input id="lease-price" type="number" value={leasePrice} onChange={(e) => setLeasePrice(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30 font-semibold text-white text-base" />
+                    <p className="text-[10px] text-muted-foreground font-semibold num">{formatPrice(leasePrice)}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
-                    <Input type="number" value={leaseCc} onChange={(e) => setLeaseCc(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="lease-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
+                    <Input id="lease-cc" type="number" value={leaseCc} onChange={(e) => setLeaseCc(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                 </div>
               </div>
@@ -576,7 +578,7 @@ export default function Calculator() {
                             <span className="num font-bold text-rose-400">{formatPrice(newDown)}</span> — the same cash that would stretch to a{" "}
                             <span className="num font-bold text-white">{formatPrice(usedBudgetFromNewDown)}</span> registered used car.
                           </p>
-                          <p className="text-[10px] font-semibold text-muted-foreground/70">
+                          <p className="text-[10px] font-semibold text-muted-foreground">
                             CBSL Act Directions No. 01 of 2026 (from 25 May 2026) · banks may apply stricter internal caps
                           </p>
                         </div>
@@ -621,12 +623,12 @@ export default function Calculator() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Daily Commute (KM)</label>
-                    <Input type="number" value={tcoDailyKm} onChange={(e) => setTcoDailyKm(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="tco-km" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Daily Commute (KM)</label>
+                    <Input id="tco-km" type="number" value={tcoDailyKm} onChange={(e) => setTcoDailyKm(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Fuel Efficiency (KMPL)</label>
-                    <Input type="number" value={tcoKmpl} onChange={(e) => setTcoKmpl(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="tco-kmpl" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Fuel Efficiency (KMPL)</label>
+                    <Input id="tco-kmpl" type="number" value={tcoKmpl} onChange={(e) => setTcoKmpl(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                 </div>
 
@@ -637,9 +639,10 @@ export default function Calculator() {
                       <button
                         key={fuel}
                         onClick={() => setTcoFuelType(fuel)}
+                        aria-pressed={tcoFuelType === fuel}
                         className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all ${
                           tcoFuelType === fuel
-                            ? "border-primary/30 bg-primary/10 text-primary"
+                            ? "border-primary/30 bg-primary/10 text-primary-bright"
                             : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
                         }`}
                       >
@@ -650,29 +653,29 @@ export default function Calculator() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Monthly Lease (LKR)</label>
-                  <Input type="number" value={tcoLease} onChange={(e) => setTcoLease(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                  <label htmlFor="tco-lease" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Monthly Lease (LKR)</label>
+                  <Input id="tco-lease" type="number" value={tcoLease} onChange={(e) => setTcoLease(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Insurance</label>
-                    <Input type="number" value={tcoInsurance} onChange={(e) => setTcoInsurance(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="tco-ins" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Insurance</label>
+                    <Input id="tco-ins" type="number" value={tcoInsurance} onChange={(e) => setTcoInsurance(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Service</label>
-                    <Input type="number" value={tcoService} onChange={(e) => setTcoService(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="tco-svc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Service</label>
+                    <Input id="tco-svc" type="number" value={tcoService} onChange={(e) => setTcoService(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Tyres</label>
-                    <Input type="number" value={tcoTyres} onChange={(e) => setTcoTyres(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="tco-tyres" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Tyres</label>
+                    <Input id="tco-tyres" type="number" value={tcoTyres} onChange={(e) => setTcoTyres(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Resale Loss</label>
-                    <Input type="number" value={tcoDepreciation} onChange={(e) => setTcoDepreciation(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <label htmlFor="tco-dep" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Resale Loss</label>
+                    <Input id="tco-dep" type="number" value={tcoDepreciation} onChange={(e) => setTcoDepreciation(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
                   </div>
                 </div>
               </div>
@@ -686,7 +689,7 @@ export default function Calculator() {
 
                 {tcoLoading && !tcoResult ? (
                   <div className="h-64 flex items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
+                    <div role="status" aria-label="Calculating" className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
                   </div>
                 ) : tcoResult ? (
                   <div className={`space-y-5 transition-opacity duration-200 ${tcoLoading ? "opacity-60" : "opacity-100"}`}>
@@ -709,8 +712,8 @@ export default function Calculator() {
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Total ownership cost / month</span>
+                    <div aria-live="polite" className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary-bright">Total ownership cost / month</span>
                       <p className="text-3xl font-bold text-white mt-1.5 num">{formatPrice(tcoResult.total_tco_monthly)}</p>
                     </div>
 
@@ -741,7 +744,7 @@ export default function Calculator() {
 
                 {permitsLoading ? (
                   <div className="h-32 flex items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
+                    <div role="status" aria-label="Calculating" className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
                   </div>
                 ) : (
                   <div className="overflow-x-auto">

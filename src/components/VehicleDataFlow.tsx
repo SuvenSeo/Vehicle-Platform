@@ -54,7 +54,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "Source collectors",
       detail: `${ingestedCount} listing signals from ${topSourceNames}`,
       icon: Database,
-      tone: "border-primary/30 bg-primary/10 text-primary",
+      tone: "border-primary/30 bg-primary/10 text-primary-bright",
     },
     {
       key: "normalize",
@@ -70,7 +70,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "Deal intelligence",
       detail: `${scoredCount} rows benchmarked against market medians`,
       icon: Gauge,
-      tone: "border-primary/35 bg-primary/10 text-primary",
+      tone: "border-primary/35 bg-primary/10 text-primary-bright",
     },
     {
       key: "publish",
@@ -97,9 +97,9 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
         </div>
 
         <div className="grid grid-cols-3 gap-2 tech-label">
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary num">{healthyJobs} healthy</span>
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary num">{runningJobs} running</span>
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary num">{delayedJobs} delayed</span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary-bright num">{healthyJobs} healthy</span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary-bright num">{runningJobs} running</span>
+          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-primary-bright num">{delayedJobs} delayed</span>
         </div>
       </div>
 

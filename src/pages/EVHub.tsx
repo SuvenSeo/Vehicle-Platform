@@ -111,7 +111,7 @@ export default function EVHub() {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">EV intelligence</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">EV intelligence</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">EV buying signals.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">Battery health, charging fit, and duty signals for the Sri Lankan EV market.</p>
         </div>
@@ -169,7 +169,7 @@ export default function EVHub() {
               <TrendingDown className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">TCO comparison</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">TCO comparison</p>
               <h3 className="mt-1 text-[14px] font-bold text-white">EV vs. Toyota Aqua hybrid — real running cost</h3>
               <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground font-medium">
                 Fuel saving estimated at <span className="font-bold text-white">Rs.{annualFuelSavingLkr.toLocaleString()}/yr</span> (LKR {TCO_FUEL_COST_PER_KM_EV_LKR} vs LKR {TCO_FUEL_COST_PER_KM_PETROL_LKR} per km, {(TCO_KM_PER_YEAR / 1000).toFixed(0)}k km/yr).
@@ -202,7 +202,7 @@ export default function EVHub() {
                   <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">to recover EV price premium</p>
                 </div>
               </div>
-              <p className="mt-3 text-[10px] text-muted-foreground/60 font-medium">
+              <p className="mt-3 text-[10px] text-muted-foreground font-medium">
                 Indicative only. Actual savings vary by charging cost, mileage, and model.
               </p>
             </div>
@@ -221,7 +221,7 @@ export default function EVHub() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
                       <Icon className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-[10px] font-bold text-primary num">{m.step}</span>
+                    <span className="text-[10px] font-bold text-primary-bright num">{m.step}</span>
                   </div>
                   <h3 className="mt-4 text-[14px] font-bold text-white">{m.title}</h3>
                   <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed font-medium">{m.desc}</p>
@@ -239,7 +239,7 @@ export default function EVHub() {
             <div className="mt-6 grid gap-2 sm:grid-cols-3">
               {ownershipChecks.map((c) => (
                 <div key={c.label} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/70">{c.label}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{c.label}</p>
                   <p className="mt-2 text-xl font-bold text-white num">{c.value}</p>
                   <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground font-medium">{c.note}</p>
                 </div>

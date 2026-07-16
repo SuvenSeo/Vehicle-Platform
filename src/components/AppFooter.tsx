@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/motion";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -101,7 +102,7 @@ export function AppFooter() {
           <p>&copy; {year} Ardeno Studio</p>
           <button
             type="button"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={() => window.scrollTo({ top: 0, behavior: scrollBehavior() })}
             className="w-fit text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             Back to top

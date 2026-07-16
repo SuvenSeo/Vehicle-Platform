@@ -57,7 +57,7 @@ export function LeaseCalculator({
             step="5"
             value={downPaymentPct}
             onChange={e => setDownPaymentPct(Number(e.target.value))}
-            className="mt-2 h-1.5 w-full appearance-none rounded-full bg-foreground/10 accent-primary outline-none"
+            className="mt-2 h-1.5 w-full appearance-none rounded-full bg-foreground/10 accent-primary outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           />
         </div>
 

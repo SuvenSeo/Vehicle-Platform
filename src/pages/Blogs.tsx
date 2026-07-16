@@ -111,20 +111,21 @@ export default function Blogs() {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Journal</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Journal</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Market briefings.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">{filtered.length} editorial guides · For live market numbers, see the dashboard and Trends</p>
 
           {/* Search + categories */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex flex-1 items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 focus-within:border-primary/30">
+            <div className="flex flex-1 items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/40">
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search topics or tags" className="h-10 w-full bg-transparent text-sm text-white placeholder-zinc-600 outline-none" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search topics or tags" className="h-10 w-full bg-transparent text-sm text-white placeholder:text-zinc-400 outline-none" />
             </div>
             <div className="flex flex-wrap gap-1">
               {CATEGORIES.map((c) => (
                 <button key={c} type="button" onClick={() => setCategory(c)}
-                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${c === category ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-white border border-transparent"}`}
+                aria-pressed={c === category}
+                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${c === category ? "bg-primary/10 text-primary-bright border border-primary/20" : "text-muted-foreground hover:text-white border border-transparent"}`}
                 >{c}</button>
               ))}
             </div>
@@ -138,7 +139,7 @@ export default function Blogs() {
           <motion.article variants={itemVariants} className="grid gap-6 rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 lg:grid-cols-[1.3fr_0.7fr] backdrop-blur-md shadow-lg">
             <div>
               <div className="flex items-center gap-2">
-                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{active.category}</span>
+                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary-bright">{active.category}</span>
                 <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium"><Clock3 className="h-3 w-3" /> {active.readTime}</span>
                 <span className="text-[10px] text-muted-foreground font-medium">{formatDate(active.publishedAt)}</span>
               </div>
@@ -150,7 +151,7 @@ export default function Blogs() {
                   <button key={t} type="button" onClick={() => setQuery(t)} className="rounded-md border border-white/5 bg-white/[0.01] px-2 py-0.5 text-[10px] font-bold text-muted-foreground hover:border-primary/25 hover:text-white transition-all">{t}</button>
                 ))}
               </div>
-              <p className="mt-5 text-[11px] text-muted-foreground/60 font-medium">AutoLens Journal · editorial guide</p>
+              <p className="mt-5 text-[11px] text-muted-foreground font-medium">AutoLens Journal · editorial guide</p>
             </div>
             <div className="space-y-3">
               <div className="rounded-lg border border-white/5 bg-white/[0.01] p-4">
@@ -176,7 +177,7 @@ export default function Blogs() {
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-display text-sm font-bold tracking-tight text-white">Decision lab</h3>
-                <span className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                <span className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary-bright">
                   <Target className="h-3 w-3" /> {decisionBrief.timeline}
                 </span>
               </div>
@@ -185,7 +186,7 @@ export default function Blogs() {
                   <div className="flex gap-1.5">
                     {(["value", "balanced", "premium"] as const).map((m) => (
                       <button key={m} type="button" onClick={() => setDecisionMode(m)}
-                        className={`rounded-md border px-2.5 py-1 text-[10px] font-bold capitalize transition-all ${m === decisionMode ? "border-primary/20 bg-primary/10 text-primary" : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"}`}
+                        className={`rounded-md border px-2.5 py-1 text-[10px] font-bold capitalize transition-all ${m === decisionMode ? "border-primary/20 bg-primary/10 text-primary-bright" : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"}`}
                       >{m}</button>
                     ))}
                   </div>
@@ -209,7 +210,7 @@ export default function Blogs() {
                     <button key={p.id} type="button" onClick={() => setActivePostId(p.id)}
                       className="block w-full rounded-lg border border-white/5 bg-white/[0.01] p-3 text-left transition-all hover:border-primary/20 hover:bg-white/[0.03]"
                     >
-                      <p className="text-[10px] font-bold text-muted-foreground/70">{p.category}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground">{p.category}</p>
                       <p className="mt-1 text-[12px] font-bold text-white truncate">{p.title}</p>
                     </button>
                   ))}
@@ -238,7 +239,7 @@ export default function Blogs() {
               ) : (
                 <div className="rounded-xl border border-dashed border-white/10 py-12 text-center">
                   <p className="text-[12px] text-muted-foreground font-medium">No signals match this filter.</p>
-                  <button type="button" onClick={() => { setQuery(""); setCategory("All"); }} className="mt-2 text-[11px] font-bold text-primary hover:underline">Clear filters</button>
+                  <button type="button" onClick={() => { setQuery(""); setCategory("All"); }} className="mt-2 text-[11px] font-bold text-primary-bright hover:underline">Clear filters</button>
                 </div>
               )}
             </motion.div>

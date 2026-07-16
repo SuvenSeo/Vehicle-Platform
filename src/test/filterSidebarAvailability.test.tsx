@@ -29,8 +29,8 @@ describe("FilterSidebar price availability controls", () => {
   it("shows direct min and max price inputs", async () => {
     render(<FilterSidebar filters={createFilters()} onFiltersChange={vi.fn()} />);
 
-    expect(await screen.findByLabelText(/Minimum price/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Maximum price/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^minimum price$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^maximum price$/i)).toBeInTheDocument();
   });
 
   it("switches to the unavailable-price inventory mode", async () => {

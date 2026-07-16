@@ -318,7 +318,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 key={chip.key}
                 type="button"
                 onClick={chip.onRemove}
-                className="inline-flex max-w-full items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-caption text-primary"
+                className="inline-flex max-w-full items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-caption text-primary-bright"
               >
                 <span className="truncate">{chip.label}</span>
                 <X className="h-3 w-3 shrink-0 opacity-70" />
@@ -332,7 +332,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
             type="button"
             onClick={() => setInventoryMode("priced")}
             className={`flex-1 rounded-md px-2 py-1.5 text-caption font-medium transition-colors ${
-              priceAvailability === "priced" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+              priceAvailability === "priced" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             With price
@@ -341,7 +341,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
             type="button"
             onClick={() => setInventoryMode("unavailable")}
             className={`flex-1 rounded-md px-2 py-1.5 text-caption font-medium transition-colors ${
-              priceAvailability === "unavailable" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+              priceAvailability === "unavailable" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             No price
@@ -378,7 +378,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           value={filters.make || ALL_OPTION}
           onValueChange={(value) => update({ make: value === ALL_OPTION ? undefined : value, model: undefined })}
         >
-          <SelectTrigger className={selectTriggerClass()}>
+          <SelectTrigger aria-label="Filter by make" className={selectTriggerClass()}>
             <SelectValue placeholder="All makes" />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
@@ -405,7 +405,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
-              <SelectTrigger className={selectTriggerClass()}>
+              <SelectTrigger aria-label="Filter by model" className={selectTriggerClass()}>
                 <SelectValue placeholder="All models" />
               </SelectTrigger>
               <SelectContent className={selectContentClass()}>
@@ -484,6 +484,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               />
             </div>
             <Slider
+              thumbLabels={["Minimum price slider", "Maximum price slider"]}
               min={MIN_PRICE}
               max={MAX_PRICE}
               step={PRICE_STEP}
@@ -511,6 +512,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           {yearRange[0]} – {yearRange[1]}
         </p>
         <Slider
+          thumbLabels={["From year slider", "To year slider"]}
           min={MIN_YEAR}
           max={MAX_YEAR}
           step={1}
@@ -616,6 +618,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
             <span className="shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue)}</span>
           </div>
           <Slider
+            thumbLabel="Maximum mileage slider"
             min={0}
             max={MAX_MILEAGE}
             step={MILEAGE_STEP}
@@ -633,7 +636,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
       <FilterGroup label="District">
         <Select value={filters.district || ALL_OPTION} onValueChange={(value) => update({ district: value === ALL_OPTION ? undefined : value })}>
-          <SelectTrigger className={selectTriggerClass()}>
+          <SelectTrigger aria-label="Filter by district" className={selectTriggerClass()}>
             <SelectValue placeholder="All districts" />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
@@ -649,7 +652,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
       <FilterGroup label="Source">
         <Select value={filters.source || ALL_OPTION} onValueChange={(value) => update({ source: value === ALL_OPTION ? undefined : value })}>
-          <SelectTrigger className={selectTriggerClass()}>
+          <SelectTrigger aria-label="Filter by source" className={selectTriggerClass()}>
             <SelectValue placeholder="All sources" />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
@@ -665,7 +668,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
       <FilterGroup label="Sort">
         <Select value={filters.sort} onValueChange={(value) => update({ sort: value as SortOption })}>
-          <SelectTrigger className={selectTriggerClass()}>
+          <SelectTrigger aria-label="Sort listings" className={selectTriggerClass()}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
@@ -691,7 +694,7 @@ export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersCha
       <div className="sticky bottom-4 z-40 mt-3 flex justify-end lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-foreground hover:bg-foreground/[0.05]">
+            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-white hover:bg-foreground/[0.05]">
               <SlidersHorizontal className="h-4 w-4" />
               Filters
             </Button>

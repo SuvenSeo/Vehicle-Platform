@@ -192,7 +192,7 @@ export default function MakeModelHub() {
       {/* Hero */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">
             Market hub
           </p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
@@ -255,7 +255,7 @@ export default function MakeModelHub() {
                     <p className="mt-1.5 text-[12px] text-muted-foreground num font-medium">
                       {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
                       {entry.avg_price_lkr != null && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/60">avg</span>
+                        <span className="ml-1 text-[10px] text-muted-foreground">avg</span>
                       )}
                     </p>
                   </div>
@@ -279,7 +279,7 @@ export default function MakeModelHub() {
                   to={`/listing/${listing.id}`}
                   className="rounded-xl border border-white/5 bg-white/[0.01] p-4 no-underline hover:border-primary/20 transition-all hover:bg-white/[0.02]"
                 >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground/70">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
                     {listing.district ?? "—"}
                   </p>
                   <p className="mt-1 text-[13px] font-bold text-white truncate">

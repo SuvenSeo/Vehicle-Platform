@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -269,6 +270,7 @@ export function AIChatWidget() {
   );
 
   const [open, setOpen] = useState(false);
+  const fabRef = useRef<HTMLButtonElement | null>(null);
   const [animOut, setAnimOut] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [input, setInput] = useState("");
@@ -341,8 +343,22 @@ export function AIChatWidget() {
   }, [messages, mounted]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: scrollBehavior() });
   }, [messages, loading]);
+
+  // The open panel blocks the page behind a backdrop — behave like a dialog:
+  // Escape closes and focus returns to the launcher button.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closePanel();
+        fabRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, closePanel]);
 
   useEffect(() => {
     if (!open) return;
@@ -427,6 +443,7 @@ export function AIChatWidget() {
       )}
 
       <button
+        ref={fabRef}
         type="button"
         aria-label={open ? t("chat.close", "Close AutoLens Copilot") : t("chat.open", "Open AutoLens Copilot")}
         aria-expanded={open}
@@ -442,6 +459,8 @@ export function AIChatWidget() {
 
       {open && (
         <section
+          role="dialog"
+          aria-modal="false"
           className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-xl border border-border bg-[#090b0b] text-white shadow-[0_24px_80px_rgba(0,0,0,0.58)]`}
           aria-label="AutoLens Copilot"
         >
@@ -566,7 +585,7 @@ export function AIChatWidget() {
               })}
 
               {loading && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+                <div className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary-bright">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   {t("chat.thinking", "Reading live market context...")}
                 </div>

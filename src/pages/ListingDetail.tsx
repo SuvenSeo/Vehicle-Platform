@@ -247,7 +247,7 @@ export default function ListingDetail() {
           </button>
           
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Inspection</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-bright">Inspection</span>
             <span className="text-white/20 text-xs">•</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{listing.source}</span>
           </div>
@@ -322,19 +322,19 @@ export default function ListingDetail() {
                 
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
                   <span className="rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">{listing.make} {listing.model} · {listing.year || 'N/A'}</span>
-                  <span className="flex items-center gap-1 rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-md"><Database className="h-3 w-3" /> {listing.source}</span>
+                  <span className="flex items-center gap-1 rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-primary-bright backdrop-blur-md"><Database className="h-3 w-3" /> {listing.source}</span>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-4 border-t border-white/5 px-4 py-3 bg-white/[0.01]">
-                <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5 text-primary" /> {listing.district || 'Unknown'}, Sri Lanka</span>
+                <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground"><MapPin className="h-3.5 w-3.5 text-primary-bright" /> {listing.district || 'Unknown'}, Sri Lanka</span>
                 <span className="text-white/10 text-xs">•</span>
-                <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5 text-primary" /> Tracked {trackedLabel}</span>
+                <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5 text-primary-bright" /> Tracked {trackedLabel}</span>
               </div>
             </motion.div>
 
             {/* Specs Bento Grid */}
             <motion.div variants={itemVariants} className="space-y-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Specifications</p>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Specifications</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {specs.map((s) => (
                   <motion.div
@@ -354,7 +354,7 @@ export default function ListingDetail() {
 
             {/* Description */}
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-md">
-              <p className="mb-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Description</p>
+              <h2 className="mb-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Description</h2>
               <p className="whitespace-pre-wrap text-[13px] leading-[1.8] text-white/80 font-medium">
                 {listing.description || 'No description provided. Market intelligence indicates this vehicle is priced within the range of comparable models.'}
               </p>
@@ -369,7 +369,7 @@ export default function ListingDetail() {
 
               return (
                 <motion.div variants={itemVariants} className="space-y-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership planning</p>
+                  <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership planning</h2>
                   
                   <CashToOwnStrip
                     priceLkr={listingPrice}
@@ -397,7 +397,7 @@ export default function ListingDetail() {
                   ) : (
                     <div className="page-panel flex flex-col justify-between gap-3 rounded-xl p-6">
                       <div>
-                        <h3 className="field-label text-foreground">Import duty and tax</h3>
+                        <h2 className="field-label text-foreground">Import duty and tax</h2>
                         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
                           This vehicle is already registered in Sri Lanka, so import duty doesn't
                           apply to buying it. Curious what importing the same spec fresh would cost
@@ -406,7 +406,7 @@ export default function ListingDetail() {
                       </div>
                       <Link
                         to={`/calculator?tab=landed-cost&fuel=${importFuelType}${typeof listing.engine_cc === 'number' ? `&cc=${listing.engine_cc}` : ''}`}
-                        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary no-underline transition-all hover:bg-primary/15"
+                        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright no-underline transition-all hover:bg-primary/15"
                       >
                         Model a fresh import <ArrowRight className="h-3 w-3" />
                       </Link>
@@ -428,7 +428,7 @@ export default function ListingDetail() {
               style={{ backgroundImage: 'radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.05) 0%, transparent 60%)' }}
             >
               <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary to-transparent" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Asking price</p>
+              <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Asking price</h2>
               <p className="num mt-2.5 text-3xl font-extrabold tracking-tight text-white">{hasPrice ? formatPrice(listingPrice) : 'Unlisted'}</p>
               
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
@@ -474,7 +474,7 @@ export default function ListingDetail() {
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-md shadow-lg">
               <div className="mb-3.5 flex items-center gap-2 border-b border-white/5 pb-2.5">
                 <ShieldCheck className="h-4 w-4 text-primary" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Seller information</p>
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Seller information</h2>
               </div>
               
               <div className="flex items-start justify-between gap-3">
@@ -482,7 +482,7 @@ export default function ListingDetail() {
                   <p className="text-[14px] font-bold text-white leading-tight">{sellerHeadline}</p>
                   <p className="mt-1 truncate text-[12px] text-muted-foreground font-medium">{sellerName}</p>
                 </div>
-                <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-primary">{trustBadges[0] || 'Source'}</span>
+                <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-primary-bright">{trustBadges[0] || 'Source'}</span>
               </div>
               
               <p className="mt-3 text-[11px] text-muted-foreground/90 font-medium">{trustMeta}</p>
@@ -521,7 +521,7 @@ export default function ListingDetail() {
             {/* Peers */}
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.02] p-5 backdrop-blur-md shadow-lg">
               <div className="mb-3.5 flex items-center justify-between border-b border-white/5 pb-2.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Market peers</p>
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Market peers</h2>
                 <ArrowRight className="h-3.5 w-3.5 text-primary" />
               </div>
               
@@ -553,7 +553,7 @@ export default function ListingDetail() {
               <div className="absolute top-0 left-0 h-full w-[2px] bg-primary" />
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="h-4 w-4 text-primary" />
-                <p className="text-[12px] font-bold text-white">AutoLens Insight</p>
+                <h2 className="text-[12px] font-bold text-white">AutoLens Insight</h2>
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
                 Tracked for <span className="font-bold text-white">{trackedLabel}</span>.

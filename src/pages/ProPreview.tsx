@@ -49,7 +49,7 @@ function LockedOverlay() {
     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-background/70 backdrop-blur-[3px]">
       <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-center">
         <Lock className="mx-auto mb-1.5 h-4 w-4 text-primary" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary">Unlock with Pro</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright">Unlock with Pro</p>
       </div>
     </div>
   );
@@ -72,7 +72,7 @@ export default function ProPreview() {
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
           <div className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 mb-4">
             <Crown className="h-3 w-3 text-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary">Pro Preview</span>
+            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright">Pro Preview</span>
           </div>
           <h1 className="font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Pro workspace preview.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">See the depth of lane drill-downs, district profiles, and export packs before you sign in.</p>

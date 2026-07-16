@@ -87,9 +87,9 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
         </div>
 
         <div className="flex items-center gap-2 tech-label">
-          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary num">{healthyJobs} healthy</span>
-          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary num">{runningJobs} running</span>
-          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary num">{delayedJobs} delayed</span>
+          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{healthyJobs} healthy</span>
+          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{runningJobs} running</span>
+          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{delayedJobs} delayed</span>
         </div>
       </div>
 

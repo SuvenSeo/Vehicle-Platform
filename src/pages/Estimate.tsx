@@ -145,7 +145,7 @@ export default function Estimate() {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Valuation workbench</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Valuation workbench</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
             What's your car worth?
           </h1>
@@ -272,7 +272,7 @@ export default function Estimate() {
                 </div>
               </div>
               {result && (
-                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-primary">
+                <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright">
                   {result.confidence}
                 </span>
               )}
@@ -298,7 +298,7 @@ export default function Estimate() {
             {result && !loading && (
               <div className="space-y-4">
                 {/* Median */}
-                <div className="rounded-lg border border-white/5 bg-white/[0.01] p-4">
+                <div aria-live="polite" className="rounded-lg border border-white/5 bg-white/[0.01] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Fair market range</p>
                   <p className="num mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                     {formatPrice(result.low)} – {formatPrice(result.high)}
@@ -336,7 +336,7 @@ export default function Estimate() {
 
                 {/* Signals */}
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                  <span className="flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
                     <ShieldCheck className="h-3 w-3" /> {result.confidence}
                   </span>
                   <span className="flex items-center gap-1.5 rounded-md border border-white/5 bg-white/[0.01] px-2.5 py-1 text-[10px] font-bold text-muted-foreground hover:text-white transition-all">

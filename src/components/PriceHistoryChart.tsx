@@ -109,8 +109,8 @@ export function PriceHistoryChart({
                 !hasChangeSignal
                   ? "bg-foreground/[0.03] text-muted-foreground"
                   : changePositive
-                    ? "bg-primary/10 text-primary"
-                    : "bg-primary/10 text-primary"
+                    ? "bg-primary/10 text-primary-bright"
+                    : "bg-primary/10 text-primary-bright"
               }`}>
                 {!hasChangeSignal ? (
                   <span className="h-1.5 w-1.5 rounded-full bg-muted" />
@@ -164,13 +164,18 @@ export function PriceHistoryChart({
                   <button
                     type="button"
                     onClick={onEmptyAction}
-                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary transition-colors hover:bg-primary/20"
+                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-colors hover:bg-primary/20"
                   >
                     {emptyActionLabel}
                   </button>
                 ) : null}
               </div>
             ) : (
+              <div
+                role="img"
+                aria-label={`${title || "Price trend"}: ${chartData.length} months of median asking prices${chartData.length ? `, latest ${formatMonthLabel(chartData[chartData.length - 1]?.month || "")}` : ""}`}
+                className="h-full w-full"
+              >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 18, right: 12, left: -18, bottom: 8 }}>
                   <defs>
@@ -223,6 +228,7 @@ export function PriceHistoryChart({
                   />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
             )}
           </div>
 

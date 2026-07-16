@@ -379,7 +379,7 @@ export default function DealerDashboard() {
 
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Dealer workspace</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Dealer workspace</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Dealer command center.</h1>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground font-medium">Arbitrage, demand mapping, and lead flow intelligence.</p>
           <Link to="/#market" className="mt-4 inline-flex h-9 items-center rounded-lg border border-white/5 bg-white/[0.01] px-4 text-[10px] font-bold text-muted-foreground no-underline hover:text-white hover:bg-white/[0.03] transition-all">Open public inventory</Link>
@@ -403,7 +403,7 @@ export default function DealerDashboard() {
         <div className="grid gap-6 lg:grid-cols-[268px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-20">
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">AutoLens LK</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">AutoLens LK</p>
               <h2 className="mt-2 font-display text-lg font-bold tracking-tight text-white">Command stack</h2>
               <nav className="mt-4 space-y-1" aria-label="Dealer command stack">
                 {[
@@ -421,7 +421,7 @@ export default function DealerDashboard() {
               </nav>
             </motion.div>
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-4 backdrop-blur-md">
-              <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary" /><p className="text-[10px] font-bold text-primary">Trust tier</p></div>
+              <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary-bright" /><p className="text-[10px] font-bold text-primary-bright">Trust tier</p></div>
               {dashboardLoading ? (
                 <div className="mt-3 h-8 animate-pulse rounded-md bg-white/[0.02]" />
               ) : (
@@ -456,9 +456,9 @@ export default function DealerDashboard() {
             </div>
 
             <motion.div variants={itemVariants} key={activeNotif} className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-4 backdrop-blur-md">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary"><Bell className="h-3.5 w-3.5" /></div>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary-bright"><Bell className="h-3.5 w-3.5" /></div>
               <div className="min-w-0">
-                <p className="text-[10px] font-bold text-primary">Lead notification</p>
+                <p className="text-[10px] font-bold text-primary-bright">Lead notification</p>
                 <p className="mt-1 text-[12px] text-white font-medium leading-relaxed">{activeNotif}</p>
               </div>
             </motion.div>
@@ -525,7 +525,7 @@ export default function DealerDashboard() {
                   <div key={d.district} className="rounded-lg border border-white/5 bg-white/[0.01] p-4 transition-all hover:border-primary/20 hover:bg-white/[0.03]">
                     <div className="flex items-center justify-between">
                       <p className="text-[12px] font-bold text-white">{d.district}</p>
-                      <span className="text-[10px] font-bold text-primary num">Demand {d.demandScore}</span>
+                      <span className="text-[10px] font-bold text-primary-bright num">Demand {d.demandScore}</span>
                     </div>
                     <div className="mt-2 space-y-1">
                       <div className="flex justify-between text-[10px] font-medium"><span className="text-muted-foreground">Top model</span><span className="text-white">{d.topModel}</span></div>

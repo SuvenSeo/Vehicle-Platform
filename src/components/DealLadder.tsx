@@ -14,7 +14,7 @@ const RUNG_TONE = {
     idle: "border-border/60 text-muted-foreground",
   },
   fair: {
-    active: "border-primary/35 bg-primary/10 text-primary",
+    active: "border-primary/35 bg-primary/10 text-primary-bright",
     idle: "border-border/60 text-muted-foreground",
   },
   overpriced: {

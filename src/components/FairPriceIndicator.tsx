@@ -31,7 +31,7 @@ function getDealBadgeClasses(label: string, size: "sm" | "lg"): string {
   }
   // Fair Price classes — in-band, neutral amber
   return isSm
-    ? "bg-primary/10 border-primary/20 text-primary p-1 px-2.5 text-label font-mono border"
+    ? "bg-primary/10 border-primary/20 text-primary-bright p-1 px-2.5 text-label font-mono border"
     : "text-primary text-4xl tracking-tight p-0 border-0";
 }
 
@@ -56,7 +56,7 @@ export function FairPriceIndicator({ score, condition, size = "sm", className }:
           className="max-w-[280px] bg-[#111] border border-white/10 p-4 shadow-2xl rounded-xl z-50"
         >
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-widest text-primary font-bold border-b border-white/10 pb-2 mb-2">Dynamic Value Methodology</h4>
+            <h4 className="text-xs uppercase tracking-widest text-primary-bright font-bold border-b border-white/10 pb-2 mb-2">Dynamic Value Methodology</h4>
             <p className="text-sm text-foreground leading-relaxed font-medium">
               We calculate <span className="text-white">Fair Price</span> using a proprietary multi-factor algorithm against thousands of active Sri Lankan listings.
             </p>

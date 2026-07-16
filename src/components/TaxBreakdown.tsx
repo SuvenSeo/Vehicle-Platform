@@ -86,7 +86,7 @@ export function TaxBreakdown({
     <div className="page-panel space-y-4 rounded-xl p-6">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="field-label text-foreground">Import duty and tax</h3>
-        <span className="rounded-lg border border-primary/20 bg-primary/10 px-2 py-0.5 text-label font-mono font-bold text-primary">
+        <span className="rounded-lg border border-primary/20 bg-primary/10 px-2 py-0.5 text-label font-mono font-bold text-primary-bright">
           Indicative
         </span>
       </div>
@@ -101,7 +101,7 @@ export function TaxBreakdown({
               onClick={() => setFuelType(option.value)}
               className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                 fuelType === option.value
-                  ? "border-primary/25 bg-primary/10 text-primary"
+                  ? "border-primary/25 bg-primary/10 text-primary-bright"
                   : "border-border text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -135,7 +135,7 @@ export function TaxBreakdown({
           <div key={line.key} className="flex justify-between gap-3 text-xs text-muted-foreground">
             <span>
               {line.label}
-              {line.note && <span className="mt-0.5 block text-[10px] text-muted-foreground/70 num">{line.note}</span>}
+              {line.note && <span className="mt-0.5 block text-[10px] text-muted-foreground num">{line.note}</span>}
             </span>
             <span className="shrink-0 font-medium text-foreground num">{formatPrice(line.amount)}</span>
           </div>
@@ -151,7 +151,7 @@ export function TaxBreakdown({
         </div>
 
         <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 p-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary">Estimated landed cost</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-primary-bright">Estimated landed cost</span>
           <span className="text-lg font-bold tracking-tight text-foreground num">{formatPrice(result.totalOnRoad)}</span>
         </div>
       </div>

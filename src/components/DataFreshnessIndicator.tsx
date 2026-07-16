@@ -14,7 +14,7 @@ function toneClasses(tone: ListingDataFreshness["tone"]) {
   if (tone === "stale") {
     return {
       dot: "bg-primary",
-      text: "text-primary/90",
+      text: "text-primary-bright",
       border: "border-primary/25 bg-primary/10",
     };
   }
@@ -52,9 +52,9 @@ export function DataFreshnessIndicator({
         role="status"
         aria-live="polite"
       >
-        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden="true" />
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary-bright" aria-hidden="true" />
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-primary/90">{freshness.staleNotice}</p>
+          <p className="text-[12px] font-semibold text-primary-bright">{freshness.staleNotice}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {freshness.dataAsOfLabel}
             {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
@@ -80,7 +80,7 @@ export function DataFreshnessIndicator({
         {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
           <span> · stats {formatStatsNote(freshness, now)}</span>
         ) : null}
-        {freshness.isStale ? <span className="text-primary/80"> · stale</span> : null}
+        {freshness.isStale ? <span className="text-primary-bright"> · stale</span> : null}
       </p>
     );
   }
@@ -98,7 +98,7 @@ export function DataFreshnessIndicator({
       aria-live="polite"
     >
       {freshness.isStale ? (
-        <Clock3 className="h-3 w-3 shrink-0 text-primary/80" aria-hidden="true" />
+        <Clock3 className="h-3 w-3 shrink-0 text-primary-bright" aria-hidden="true" />
       ) : (
         <span className="relative flex h-2 w-2 shrink-0">
           {freshness.tone === "live" ? (

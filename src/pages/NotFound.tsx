@@ -47,7 +47,7 @@ const NotFound = () => {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">404</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">404</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Page not found.</h1>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground font-medium">This route doesn't exist. Try one of the links below.</p>
           <Link to="/" className="mt-6 inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2 text-[11px] font-bold text-white no-underline transition-all hover:bg-white/[0.04]">

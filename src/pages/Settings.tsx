@@ -51,7 +51,7 @@ export default function Settings() {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Preferences</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Preferences</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
             {t("settings.title", "Personalize AutoLens")}
           </h1>
@@ -85,7 +85,7 @@ export default function Settings() {
                       <span className="block text-[13px] font-bold">{t(o.key, o.fallback)}</span>
                       <span className="block text-[10px] text-muted-foreground font-medium">{o.hint}</span>
                     </span>
-                    <span className={cn("flex h-6 w-6 items-center justify-center rounded-full border transition-all", active ? "border-primary bg-primary/10 text-primary" : "border-white/10 text-transparent")}>
+                    <span className={cn("flex h-6 w-6 items-center justify-center rounded-full border transition-all", active ? "border-primary bg-primary/10 text-primary-bright" : "border-white/10 text-transparent")}>
                       <Check className="h-3 w-3" />
                     </span>
                   </button>
@@ -116,7 +116,7 @@ export default function Settings() {
                   </span>
                 </span>
               </span>
-              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-primary bg-primary/10 text-primary">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-primary bg-primary/10 text-primary-bright">
                 <Check className="h-3 w-3" />
               </span>
             </div>

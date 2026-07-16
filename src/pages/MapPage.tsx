@@ -35,6 +35,9 @@ export default function MapPage() {
   const [data, setData] = useState<DistrictPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Keyboard-accessible alternative to the Leaflet markers: the roster can
+  // expand to every district the map shows (WCAG 2.1.1).
+  const [showAllDistricts, setShowAllDistricts] = useState(false);
 
   useEffect(() => {
     getDistrictPrices()
@@ -51,8 +54,8 @@ export default function MapPage() {
   }, [data]);
 
   const roster = useMemo(
-    () => [...data].sort((a, b) => Number(b.listing_count || 0) - Number(a.listing_count || 0)).slice(0, 9),
-    [data],
+    () => [...data].sort((a, b) => Number(b.listing_count || 0) - Number(a.listing_count || 0)).slice(0, showAllDistricts ? data.length : 9),
+    [data, showAllDistricts],
   );
 
   const totalListings = useMemo(() => data.reduce((s, r) => s + Number(r.listing_count || 0), 0), [data]);
@@ -71,7 +74,7 @@ export default function MapPage() {
       {/* Header */}
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Geo intelligence</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Geo intelligence</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">District price map.</h1>
           <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">
             Compare listing density and average prices across {data.length || 25} Sri Lankan districts.
@@ -128,7 +131,21 @@ export default function MapPage() {
 
         {/* District roster */}
         <motion.div variants={itemVariants}>
-          <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white">Top districts by supply</h2>
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="font-display text-sm font-bold tracking-tight text-white">
+              {showAllDistricts ? "All districts" : "Top districts by supply"}
+            </h2>
+            {data.length > 9 && (
+              <button
+                type="button"
+                onClick={() => setShowAllDistricts((v) => !v)}
+                aria-expanded={showAllDistricts}
+                className="rounded-lg border border-white/5 bg-white/[0.01] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-white"
+              >
+                {showAllDistricts ? "Show top 9" : `Show all ${data.length}`}
+              </button>
+            )}
+          </div>
           {roster.length ? (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {roster.map((row) => {

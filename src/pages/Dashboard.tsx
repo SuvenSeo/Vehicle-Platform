@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/motion";
 import { startTransition, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -179,6 +180,7 @@ export default function Dashboard() {
   const [watchlistIds, setWatchlistIds] = useState<number[]>([]);
   const [heroSearch, setHeroSearch] = useState("");
   const [heroSearchMessage, setHeroSearchMessage] = useState<string | null>(null);
+  const [heroActiveIdx, setHeroActiveIdx] = useState(-1);
   const [heroSuggestions, setHeroSuggestions] = useState<ListingSearchSuggestion[]>([]);
   const [heroSuggestionsOpen, setHeroSuggestionsOpen] = useState(false);
   const [heroSuggestionsLoading, setHeroSuggestionsLoading] = useState(false);
@@ -385,7 +387,7 @@ export default function Dashboard() {
     // same tick gets cancelled when the grid re-lays out.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.getElementById("market")?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
       });
     });
   }, []);
@@ -393,6 +395,7 @@ export default function Dashboard() {
   const applyHeroSuggestion = useCallback((s: ListingSearchSuggestion) => {
     setHeroSearch(`${s.make} ${s.model}`);
     setHeroSuggestionsOpen(false);
+    setHeroActiveIdx(-1);
     startTransition(() => { setFilters((prev) => ({ ...prev, q: undefined, make: s.make, model: s.model, page: 1 })); });
     setHeroSearchMessage(null);
     scrollToMarket();
@@ -540,10 +543,26 @@ export default function Dashboard() {
                     <input
                       id="hero-search"
                       value={heroSearch}
-                      onChange={(e) => { setHeroSearch(e.target.value); setHeroSearchMessage(null); }}
+                      onChange={(e) => { setHeroSearch(e.target.value); setHeroSearchMessage(null); setHeroActiveIdx(-1); }}
                       onFocus={() => { if (heroSuggestions.length) setHeroSuggestionsOpen(true); }}
-                      onBlur={() => { window.setTimeout(() => setHeroSuggestionsOpen(false), 120); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); runHeroSearch(); } }}
+                      onBlur={() => { window.setTimeout(() => { setHeroSuggestionsOpen(false); setHeroActiveIdx(-1); }, 120); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown" && heroSuggestions.length) {
+                          e.preventDefault();
+                          setHeroSuggestionsOpen(true);
+                          setHeroActiveIdx((i) => (i + 1) % heroSuggestions.length);
+                        } else if (e.key === "ArrowUp" && heroSuggestions.length) {
+                          e.preventDefault();
+                          setHeroActiveIdx((i) => (i <= 0 ? heroSuggestions.length - 1 : i - 1));
+                        } else if (e.key === "Escape") {
+                          setHeroSuggestionsOpen(false);
+                          setHeroActiveIdx(-1);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (heroActiveIdx >= 0 && heroSuggestions[heroActiveIdx]) applyHeroSuggestion(heroSuggestions[heroActiveIdx]);
+                          else runHeroSearch();
+                        }
+                      }}
                       placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
                       spellCheck={false}
                       autoCorrect="off"
@@ -551,9 +570,11 @@ export default function Dashboard() {
                       role="combobox"
                       aria-expanded={showHeroSuggestions}
                       aria-controls="hero-suggestions"
+                      aria-autocomplete="list"
+                      aria-activedescendant={heroActiveIdx >= 0 ? `hero-suggestion-${heroActiveIdx}` : undefined}
                       type="search"
                       enterKeyHint="search"
-                      className="h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder-zinc-600 outline-none [&::-webkit-search-cancel-button]:hidden"
+                      className="h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder:text-zinc-400 outline-none [&::-webkit-search-cancel-button]:hidden"
                     />
                     <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[0_4px_12px_rgba(124,58,237,0.15)] transition-all hover:bg-primary/95">
                       {t("common.search", "Search")}
@@ -566,11 +587,13 @@ export default function Dashboard() {
                         <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("common.searching", "Searching...")}</p>
                       ) : heroSuggestions.length ? (
                         <div className="max-h-[240px] overflow-y-auto">
-                          {heroSuggestions.map((s) => (
+                          {heroSuggestions.map((s, idx) => (
                             <button
-                              key={`${s.id}-${s.make}-${s.model}`} type="button" role="option" aria-selected="false"
+                              key={`${s.id}-${s.make}-${s.model}`} type="button" role="option"
+                              id={`hero-suggestion-${idx}`}
+                              aria-selected={idx === heroActiveIdx}
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
+                              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03] ${idx === heroActiveIdx ? "bg-white/[0.05]" : ""}`}
                             >
                               <span className="text-[13px] font-bold text-white">{s.make} {s.model} {s.year}</span>
                               <span className="text-[12px] font-bold text-primary num">
@@ -632,7 +655,7 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground">Trending models</h3>
-                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
+                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
                   All trends <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -664,7 +687,7 @@ export default function Dashboard() {
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
                   <Flame className="h-4 w-4 text-primary/70" /> Best deals
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
                   All picks <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -697,7 +720,7 @@ export default function Dashboard() {
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
                   <TrendingDown className="h-4 w-4 text-emerald-400/80" /> Price cuts &middot; 7d
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary">
+                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
                   All cuts <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
@@ -766,7 +789,7 @@ export default function Dashboard() {
                 className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
               >{watchlistIds.length} {t("common.saved", "saved")}</button>
               <button type="button" onClick={saveCurrentMarketAlert}
-                className="rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary/80 transition-colors hover:bg-primary/10"
+                className="rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright transition-colors hover:bg-primary/10"
               >{t("common.saveAlert", "Save alert")}</button>
               <button type="button" onClick={() => setShowMarketAlerts(true)}
                 className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
@@ -796,9 +819,9 @@ export default function Dashboard() {
 
           {newLiveListingsAvailable && (
             <div className="mb-5 flex items-center justify-between rounded-lg border border-primary/15 bg-primary/5 px-4 py-2.5">
-              <span className="text-[12px] font-semibold text-primary/80">New listings available</span>
+              <span className="text-[12px] font-semibold text-primary-bright">New listings available</span>
               <button type="button" onClick={() => { setFilters((p) => ({ ...p, sort: "newest", page: 1 })); setNewLiveListingsAvailable(false); }}
-                className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary transition-colors hover:text-primary"
+                className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright transition-colors hover:text-primary-bright"
               >Refresh</button>
             </div>
           )}
@@ -868,7 +891,7 @@ export default function Dashboard() {
                               <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
                             ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
                             {listing.deal_score != null && (
-                              <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score) >= 0 ? "text-primary" : "text-muted-foreground"}`}>
+                              <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score) >= 0 ? "text-primary-bright" : "text-muted-foreground"}`}>
                                 {Number(listing.deal_score) >= 0 ? "+" : ""}{Number(listing.deal_score).toFixed(0)} deal
                               </p>
                             )}
@@ -888,11 +911,11 @@ export default function Dashboard() {
                     <span className="num text-foreground">{(filters.page - 1) * LISTINGS_PAGE_SIZE + 1}–{Math.min(filters.page * LISTINGS_PAGE_SIZE, total)}</span> of {total.toLocaleString()}
                   </p>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" disabled={filters.page <= 1} onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                    <button type="button" aria-label="Previous page" disabled={filters.page <= 1} onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
                       className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronLeft className="h-3.5 w-3.5" /></button>
                     <span className="px-2 text-[11px] font-semibold text-muted-foreground num">{filters.page} / {totalPages}</span>
-                    <button type="button" disabled={filters.page >= totalPages} onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
+                    <button type="button" aria-label="Next page" disabled={filters.page >= totalPages} onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
                       className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronRight className="h-3.5 w-3.5" /></button>
                   </div>
@@ -930,7 +953,7 @@ export default function Dashboard() {
               </div>
               <Link
                 to="/map"
-                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary"
+                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright"
               >
                 Full map <ArrowUpRight className="h-3 w-3" />
               </Link>
@@ -1039,7 +1062,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
-                      className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary/80 hover:bg-primary/10">Open</button>
+                      className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Open</button>
                     <button type="button" onClick={() => deleteMarketAlert(alert.id)}
                       className="h-7 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
                   </div>
@@ -1066,7 +1089,7 @@ export default function Dashboard() {
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary/80 hover:bg-primary/10">Remove</button>
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Remove</button>
                     <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
                       Open <ExternalLink className="h-2.5 w-2.5" />
                     </Link>

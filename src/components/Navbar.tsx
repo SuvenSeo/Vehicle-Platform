@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/motion";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, UserCircle2, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -164,7 +165,7 @@ export function Navbar() {
     const scrollToTarget = () => {
       const element = document.getElementById(targetId);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        element.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
         setActiveSection(targetId);
       }
       setMobileOpen(false);
@@ -308,7 +309,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={() => navigate("/pro")}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Crown className="h-3 w-3" />
                     <span className="text-[12px] font-medium tracking-tight">Pro</span>
@@ -351,9 +352,11 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setMobileOpen((open) => !open)}
+                onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
+                aria-controls="mobile-menu"
               >
                 {mobileOpen ? <X className="h-3.5 w-3.5" /> : <Menu className="h-3.5 w-3.5" />}
               </button>
@@ -365,10 +368,10 @@ export function Navbar() {
       {/* ── Mobile menu ──────────────────────────────────── */}
       {mobileOpen && (
         <div
+          id="mobile-menu"
           className="mx-auto mt-2 w-[min(92vw,500px)] pointer-events-auto px-3"
-          role="dialog"
-          aria-modal="true"
           aria-label="Navigation menu"
+          onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
         >
           <div className="rounded-2xl border border-border bg-popover/95 p-3 shadow-soft-lg backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
@@ -394,7 +397,7 @@ export function Navbar() {
                     data-active={active}
                     className={`rounded-xl border px-3 py-2.5 text-center text-[11px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       active
-                        ? "border-primary/20 bg-primary/10 text-primary"
+                        ? "border-primary/20 bg-primary/10 text-primary-bright"
                         : "border-border text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
                     }`}
                   >
@@ -410,7 +413,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={() => { navigate("/pro"); setMobileOpen(false); }}
-                    className="col-span-2 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-primary outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className="col-span-2 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                       <Crown className="h-3 w-3" />

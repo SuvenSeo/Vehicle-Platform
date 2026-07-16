@@ -61,7 +61,7 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
                 momChange == null
                   ? "bg-muted/30 text-muted-foreground border border-border"
                   : momChange < 0
-                    ? "bg-primary/10 text-primary border border-primary/20"
+                    ? "bg-primary/10 text-primary-bright border border-primary/20"
                     : "bg-red-500/10 text-red-400 border border-red-500/20"
               }`}>
                 {momChange == null ? (
