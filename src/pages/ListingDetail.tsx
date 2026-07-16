@@ -259,6 +259,11 @@ export default function ListingDetail() {
           <h1 className="font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem] max-w-4xl">
             {listing.make} {listing.model}{listing.year ? ` · ${listing.year}` : ''}
           </h1>
+
+          {/* Mobile: the sticky price sidebar stacks ~4 screens down — surface the ask here */}
+          <p className="num mt-3 text-2xl font-extrabold tracking-tight text-white lg:hidden">
+            {hasPrice ? formatPrice(listingPrice) : 'Unlisted'}
+          </p>
           
           {listing.title && listing.title !== `${listing.make} ${listing.model}` && (
             <p className="mt-2.5 max-w-2xl text-[14px] text-muted-foreground leading-relaxed font-medium">{listing.title}</p>

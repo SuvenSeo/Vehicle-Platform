@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
 
 type TabType = "landed-cost" | "lease" | "tco" | "permits" | "depreciation";
@@ -79,7 +79,6 @@ const itemVariants = {
 } as const;
 
 export default function Calculator() {
-  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const raw = searchParams.get("tab") as TabType | null;
@@ -138,15 +137,13 @@ export default function Calculator() {
           }
         })
         .catch(() => {
-          toast({
-            title: "Network Error",
+          toast.error("Network error", {
             description: "Failed to load permit prices. Showing benchmark rates.",
-            variant: "destructive",
           });
         })
         .finally(() => setPermitsLoading(false));
     }
-  }, [activeTab, toast]);
+  }, [activeTab]);
 
   // Run calculations automatically or on submit
   const runLandedCostCalc = async () => {
@@ -173,11 +170,7 @@ export default function Calculator() {
       );
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "An error occurred.";
-      toast({
-        title: "Calculation Failed",
-        description: message,
-        variant: "destructive",
-      });
+      toast.error("Calculation failed", { description: message });
     } finally {
       setLcLoading(false);
     }
@@ -199,11 +192,7 @@ export default function Calculator() {
       setTcoResult(res);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "An error occurred.";
-      toast({
-        title: "Calculation Failed",
-        description: message,
-        variant: "destructive",
-      });
+      toast.error("Calculation failed", { description: message });
     } finally {
       setTcoLoading(false);
     }
@@ -267,12 +256,10 @@ export default function Calculator() {
   const copyShareLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast({ title: "Link copied", description: "This calculation is now shareable." });
+      toast.success("Link copied", { description: "This calculation is now shareable." });
     } catch {
-      toast({
-        title: "Copy failed",
+      toast.error("Copy failed", {
         description: "Copy the address bar URL to share this calculation.",
-        variant: "destructive",
       });
     }
   };
@@ -298,8 +285,8 @@ export default function Calculator() {
       </motion.section>
 
       {/* Tabs Selector */}
-      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-3 px-5 py-6 sm:px-6">
-        <div className="flex flex-wrap gap-1 rounded-xl border border-white/5 bg-white/[0.01] p-1.5 backdrop-blur-md">
+      <div className="mx-auto flex max-w-[1320px] flex-nowrap items-center gap-3 px-5 py-6 sm:px-6">
+        <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-xl border border-white/5 bg-white/[0.01] p-1.5 backdrop-blur-md snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
           {[
             { id: "landed-cost", label: "Landed Cost", icon: Banknote },
             { id: "lease", label: "Lease Scenario", icon: WalletCards },
@@ -312,7 +299,7 @@ export default function Calculator() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`relative flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold tracking-wide transition-colors z-10 ${
+                className={`relative flex min-h-[40px] shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold tracking-wide transition-colors z-10 ${
                   activeTab === tab.id
                     ? "text-black font-bold"
                     : "text-muted-foreground hover:text-white"
@@ -333,7 +320,7 @@ export default function Calculator() {
         </div>
         <button
           onClick={() => void copyShareLink()}
-          className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.01] px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground backdrop-blur-md transition-colors hover:text-white"
+          className="flex shrink-0 items-center gap-2 rounded-xl border border-white/5 bg-white/[0.01] px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground backdrop-blur-md transition-colors hover:text-white"
           title="Copy a shareable link to this calculation"
         >
           <Link2 className="h-3.5 w-3.5" />
@@ -368,11 +355,19 @@ export default function Calculator() {
                       ? "No extension has been gazetted as of our last review — verify current customs rates before committing an import."
                       : `Gazetted expiry ${surchargeCountdown.expiryLabel} · no extension decision announced · LCs opened on or before 15 May 2026 are exempt`}
                   </span>
-                  {!surchargeCountdown.expired && applySurcharge && lcLapseSavings !== null && lcLapseSavings > 0 && (
-                    <span className="ml-auto rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300 num">
-                      This import lands {formatPrice(lcLapseSavings)} cheaper if it lapses
-                    </span>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {!surchargeCountdown.expired && applySurcharge && lcLapseSavings !== null && lcLapseSavings > 0 && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.92 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.92 }}
+                        transition={{ duration: 0.18 }}
+                        className="w-full text-center sm:w-auto sm:text-left sm:ml-auto rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300 num"
+                      >
+                        This import lands {formatPrice(lcLapseSavings)} cheaper if it lapses
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -407,7 +402,7 @@ export default function Calculator() {
                         <button
                           key={fuel}
                           onClick={() => setLcFuelType(fuel)}
-                          className={`rounded-lg border py-2 text-[10px] font-bold capitalize transition-all ${
+                          className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all ${
                             lcFuelType === fuel
                               ? "border-primary/30 bg-primary/10 text-primary"
                               : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
@@ -457,12 +452,12 @@ export default function Calculator() {
                   <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Indicative tax components based on 2026 gazette calculations</p>
                 </div>
 
-                {lcLoading ? (
+                {lcLoading && !lcResult ? (
                   <div className="h-64 flex items-center justify-center">
                     <div className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
                   </div>
                 ) : lcResult ? (
-                  <div className="space-y-5">
+                  <div className={`space-y-5 transition-opacity duration-200 ${lcLoading ? "opacity-60" : "opacity-100"}`}>
                     <div className="space-y-3 border-b border-white/5 pb-4">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Base CIF LKR Equivalent</span>
@@ -554,12 +549,21 @@ export default function Calculator() {
               {/* RENDER DUAL PANELS */}
               <div className="space-y-6">
                 {/* CBSL 40/60 LTV arbitrage — regulation-made, nobody else surfaces it */}
+                <AnimatePresence initial={false}>
                 {leasePrice >= 1_000_000 && (() => {
                   const usedDown = leasePrice * 0.4;   // 60% LTV on registered used
                   const newDown = leasePrice * 0.6;    // 40% LTV on new/unregistered
                   const usedBudgetFromNewDown = newDown / 0.4; // same cash, used market
                   return (
-                    <div className="rounded-xl border border-primary/15 bg-primary/[0.04] p-4">
+                    <motion.div
+                      key="ltv-arbitrage"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden rounded-xl border border-primary/15 bg-primary/[0.04]"
+                    >
+                      <div className="p-4">
                       <div className="flex items-start gap-2.5">
                         <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="space-y-1.5">
@@ -577,9 +581,11 @@ export default function Calculator() {
                           </p>
                         </div>
                       </div>
-                    </div>
+                      </div>
+                    </motion.div>
                   );
                 })()}
+                </AnimatePresence>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cash requirements</span>
                   <CashToOwnStrip priceLkr={leasePrice} financeClass="registered_used" />
@@ -631,7 +637,7 @@ export default function Calculator() {
                       <button
                         key={fuel}
                         onClick={() => setTcoFuelType(fuel)}
-                        className={`rounded-lg border py-2 text-[10px] font-bold capitalize transition-all ${
+                        className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all ${
                           tcoFuelType === fuel
                             ? "border-primary/30 bg-primary/10 text-primary"
                             : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
@@ -678,12 +684,12 @@ export default function Calculator() {
                   <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Calculated using live Octane API price metrics</p>
                 </div>
 
-                {tcoLoading ? (
+                {tcoLoading && !tcoResult ? (
                   <div className="h-64 flex items-center justify-center">
                     <div className="h-6 w-6 animate-spin rounded-full border border-t-transparent border-primary" />
                   </div>
                 ) : tcoResult ? (
-                  <div className="space-y-5">
+                  <div className={`space-y-5 transition-opacity duration-200 ${tcoLoading ? "opacity-60" : "opacity-100"}`}>
                     <div className="space-y-3 border-b border-white/5 pb-4">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Live fuel/energy price benchmark</span>

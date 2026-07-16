@@ -2,7 +2,6 @@ import { useState, useEffect, Suspense, lazy } from "react";
 import { BrowserRouter, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -117,7 +116,6 @@ const App = () => {
       <AppPreferencesProvider>
         <TooltipProvider>
           <ScrollProgressBar />
-          <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <RouteMeta />

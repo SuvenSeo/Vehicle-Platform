@@ -540,7 +540,9 @@ export default function Dashboard() {
                       role="combobox"
                       aria-expanded={showHeroSuggestions}
                       aria-controls="hero-suggestions"
-                      className="h-14 min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white placeholder-zinc-600 outline-none"
+                      type="search"
+                      enterKeyHint="search"
+                      className="h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder-zinc-600 outline-none [&::-webkit-search-cancel-button]:hidden"
                     />
                     <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-[0_4px_12px_rgba(124,58,237,0.15)] transition-all hover:bg-primary/95">
                       {t("common.search", "Search")}
@@ -951,7 +953,7 @@ export default function Dashboard() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current lane</p>
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
-              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-sm" />
+              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-base md:text-sm" />
               <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-[var(--gold-bright)]">Save</button>
             </div>
           </div>

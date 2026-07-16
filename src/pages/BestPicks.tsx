@@ -167,8 +167,7 @@ export default function BestPicks() {
 
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-8 relative z-10">
         {/* Biggest cuts this week — powered by per-listing price history */}
-        {dropsLoaded && (
-          <motion.section variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+        <motion.section initial="hidden" animate="show" variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
             <div className="flex items-center gap-2.5 border-b border-white/5 pb-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/20 bg-emerald-400/10">
                 <TrendingDown className="h-4 w-4 text-emerald-400" />
@@ -178,17 +177,23 @@ export default function BestPicks() {
                 <p className="text-[10px] text-muted-foreground font-semibold">Sellers who moved their asking price down — tracked scan-over-scan</p>
               </div>
             </div>
-            {drops.length === 0 ? (
+            {!dropsLoaded ? (
+              <div className="grid gap-2.5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-24 rounded-lg border border-white/5 bg-white/[0.01] animate-pulse" />
+                ))}
+              </div>
+            ) : drops.length === 0 ? (
               <p className="pt-4 text-[12px] text-muted-foreground font-medium">
                 No cuts recorded in the last 7 days yet — price tracking is scan-over-scan, so drops appear here as our daily scans catch sellers moving their asking prices.
               </p>
             ) : (
-              <div className="grid gap-2.5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-flow-col auto-cols-[78%] gap-2.5 pt-4 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid-flow-row sm:auto-cols-auto sm:overflow-visible sm:grid-cols-2 lg:grid-cols-4">
                 {drops.map((drop) => (
                   <Link
                     key={drop.listing.id}
                     to={`/listing/${drop.listing.id}`}
-                    className="group rounded-lg border border-white/5 bg-white/[0.01] p-3.5 no-underline transition-all hover:border-emerald-400/20 hover:bg-white/[0.03]"
+                    className="group snap-start rounded-lg border border-white/5 bg-white/[0.01] p-3.5 no-underline transition-all hover:border-emerald-400/20 hover:bg-white/[0.03]"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[12px] font-bold text-white group-hover:text-emerald-300 transition-colors">
@@ -210,7 +215,6 @@ export default function BestPicks() {
               </div>
             )}
           </motion.section>
-        )}
 
         {loading ? (
           <div className="space-y-3">
