@@ -37,6 +37,18 @@ def apply_schema_patches(engine: Engine) -> None:
     # Each statement gets its own transaction: on Postgres a failed statement
     # aborts the surrounding transaction, which would otherwise roll back
     # patches already logged as applied.
+    #
+    # DDL here runs inside API startup, which has a hard timeout — every
+    # statement gets bounded lock/statement timeouts on Postgres so a busy
+    # table degrades to a logged warning instead of hanging startup (a
+    # blocking CREATE INDEX took the HF Space down on 2026-07-16).
+    def _bounded_ddl(sql: str) -> None:
+        with engine.begin() as conn:
+            if dialect == "postgresql":
+                conn.execute(text("SET LOCAL lock_timeout = '5s'"))
+                conn.execute(text("SET LOCAL statement_timeout = '15s'"))
+            conn.execute(text(sql))
+
     for column_name, pg_type, sqlite_type in _CAR_LISTING_COLUMN_PATCHES:
         if _column_exists(engine, "car_listings", column_name):
             continue
@@ -48,8 +60,7 @@ def apply_schema_patches(engine: Engine) -> None:
         else:
             sql = f"ALTER TABLE car_listings ADD COLUMN {column_name} {sqlite_type}"
         try:
-            with engine.begin() as conn:
-                conn.execute(text(sql))
+            _bounded_ddl(sql)
             log.info("schema_patch_applied", table="car_listings", column=column_name)
         except Exception as exc:
             if "duplicate column" in str(exc).lower():
@@ -63,11 +74,12 @@ def apply_schema_patches(engine: Engine) -> None:
 
     for index_name, table_name, column_name in _CAR_LISTING_INDEX_PATCHES:
         try:
-            with engine.begin() as conn:
-                conn.execute(
-                    text(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})")
-                )
+            _bounded_ddl(
+                f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
+            )
         except Exception as exc:
+            # Best-effort optimization: the nightly scrape run retries it in a
+            # quieter window; never block API startup on an index build.
             log.warning(
                 "schema_index_patch_failed",
                 index=index_name,

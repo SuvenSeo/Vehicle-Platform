@@ -30,7 +30,10 @@ if _sentry_dsn:
     )
     logger.info("sentry_initialized")
 
-DB_INIT_TIMEOUT_SECONDS = 20
+# Env-tunable: schema patches run bounded DDL (lock/statement timeouts), so
+# worst-case init is patches + create_all across both engines. 20s proved too
+# tight on HF Spaces cpu-basic against remote Postgres.
+DB_INIT_TIMEOUT_SECONDS = int(os.getenv("DB_INIT_TIMEOUT_SECONDS", "60"))
 
 
 @asynccontextmanager
