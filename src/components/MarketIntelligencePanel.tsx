@@ -151,7 +151,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
       >
         {/* Hero cell — moat number (spans 2 cols, 2 rows on lg) */}
         <div className="relative col-span-2 overflow-hidden bg-card p-6 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)] sm:p-8 lg:row-span-2">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--gold)] to-[var(--gold-bright)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-primary/40" />
           <div
             className="pointer-events-none absolute inset-0"
             style={{ background: "radial-gradient(ellipse 60% 55% at 18% 0%, hsl(var(--primary) / 0.10) 0%, transparent 68%)" }}
@@ -214,14 +214,14 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
       <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-surface">
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-            <Activity className="h-3.5 w-3.5 text-[var(--gold)]/70" />
+            <Activity className="h-3.5 w-3.5 text-primary/70" />
             Live incoming feed
           </p>
           <span
             className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground"
             title={feedSyncAt ? freshness.absoluteLabel : undefined}
           >
-            <Radio className="h-3 w-3 text-[var(--gold)]/70" />
+            <Radio className="h-3 w-3 text-primary/70" />
             {feedSyncLabel === "—" ? "Awaiting sync" : `Synced ${feedSyncLabel}`}
           </span>
         </div>
@@ -230,14 +230,14 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             feed.map((row) => (
               <div key={row.key} className="flex items-center justify-between px-5 py-2.5 transition-colors hover:bg-white/[0.015]">
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <Flame className="h-3.5 w-3.5 shrink-0 text-[var(--gold)]/50" />
+                  <Flame className="h-3.5 w-3.5 shrink-0 text-primary/50" />
                   <span className="truncate text-[13px] font-semibold text-foreground">{row.source}</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {row.found > 0 ? (
                     <span className="text-[12px] font-bold text-emerald-400/90 num">+{row.fresh.toLocaleString()} new</span>
                   ) : (
-                    <span className="text-[12px] font-bold text-[var(--gold)]/80 num">+{row.fresh.toFixed(0)} deal</span>
+                    <span className="text-[12px] font-bold text-primary/80 num">+{row.fresh.toFixed(0)} deal</span>
                   )}
                   <span className="w-8 text-right text-[11px] text-muted-foreground num">{row.time}</span>
                 </div>

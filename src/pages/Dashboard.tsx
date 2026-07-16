@@ -774,7 +774,7 @@ export default function Dashboard() {
         <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
           <div className="mb-9 flex items-end justify-between gap-4">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold)]/70">Market pulse</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Market pulse</p>
               <h2 className="mt-2 font-display text-[1.5rem] font-bold tracking-tight text-foreground sm:text-[1.875rem]">
                 What&rsquo;s moving right now
               </h2>
@@ -851,7 +851,7 @@ export default function Dashboard() {
           <div className="mt-12 border-t border-border pt-8">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-500/70">Demand velocity</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">Demand velocity</p>
                 <h3 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
                   Regional listing momentum — last 7 days
                 </h3>
@@ -936,7 +936,7 @@ export default function Dashboard() {
                 className="flex h-8 items-center gap-1 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
               ><X className="h-3 w-3" /> Clear</button>
               <button type="button" disabled={compareIds.length < 2} onClick={() => setShowCompare(true)}
-                className="h-8 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[var(--gold-bright)] disabled:opacity-40"
+                className="h-8 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-primary/95 disabled:opacity-40"
               >Compare</button>
             </div>
           </div>
@@ -954,7 +954,7 @@ export default function Dashboard() {
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
               <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-base md:text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-[var(--gold)] px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-[var(--gold-bright)]">Save</button>
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (

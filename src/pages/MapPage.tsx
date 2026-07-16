@@ -104,7 +104,7 @@ export default function MapPage() {
             </div>
           ) : error ? (
             <div className="flex min-h-[450px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-white/10 bg-zinc-950/20">
-              <AlertTriangle className="h-5 w-5 text-rose-450/60" />
+              <AlertTriangle className="h-5 w-5 text-rose-400/60" />
               <p className="text-[13px] text-muted-foreground font-medium">{error}</p>
               <button type="button" onClick={() => window.location.reload()} className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.04] transition-all">
                 <RefreshCw className="h-3 w-3" /> Retry

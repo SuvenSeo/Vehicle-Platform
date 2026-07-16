@@ -64,7 +64,7 @@ function Metric({
   return (
     <div>
       <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className={`mt-1 num text-sm font-semibold ${emphasize ? "text-[var(--gold)]" : "text-foreground"}`}>
+      <p className={`mt-1 num text-sm font-semibold ${emphasize ? "text-primary" : "text-foreground"}`}>
         {value}
       </p>
     </div>

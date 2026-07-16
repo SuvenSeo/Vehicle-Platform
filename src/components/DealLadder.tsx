@@ -38,7 +38,7 @@ export function DealLadder({ askingPrice, marketMedianLkr, className }: DealLadd
         ) : ladder.cutToGoodDeal > 0 ? (
           <>
             Cut{" "}
-            <span className="num text-[var(--gold)]">{formatPrice(ladder.cutToGoodDeal)}</span> to
+            <span className="num text-primary">{formatPrice(ladder.cutToGoodDeal)}</span> to
             hit Good Deal
           </>
         ) : (

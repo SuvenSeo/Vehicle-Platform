@@ -20,7 +20,7 @@ function toneClasses(tone: ListingDataFreshness["tone"]) {
   }
   if (tone === "live") {
     return {
-      dot: "bg-[var(--gold)]",
+      dot: "bg-primary",
       text: "text-muted-foreground",
       border: "border-border bg-foreground/[0.03]",
     };
@@ -102,7 +102,7 @@ export function DataFreshnessIndicator({
       ) : (
         <span className="relative flex h-2 w-2 shrink-0">
           {freshness.tone === "live" ? (
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--gold)] opacity-60" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
           ) : null}
           <span className={cn("relative inline-flex h-2 w-2 rounded-full", tone.dot)} />
         </span>

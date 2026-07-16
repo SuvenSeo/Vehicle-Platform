@@ -1,8 +1,7 @@
-import { Check, Globe, Monitor, MoonStar, Sun } from "lucide-react";
+import { Check, Globe, Monitor, MoonStar } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { cn } from "@/lib/utils";
-import { LiquidToggle } from "@/components/ui/liquid-toggle";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,22 +28,14 @@ const itemVariants = {
 } as const;
 
 type LangOpt = { value: "en" | "si" | "ta"; key: string; fallback: string; hint: string };
-type ThemeOpt = { value: "system" | "dark" | "light"; key: string; fallback: string; hint: string; Icon: typeof Monitor };
-
 const LANGS: LangOpt[] = [
   { value: "en", key: "language.en", fallback: "English", hint: "Default product language" },
   { value: "si", key: "language.si", fallback: "Sinhala", hint: "Localized Sinhala labels" },
   { value: "ta", key: "language.ta", fallback: "Tamil", hint: "Localized Tamil labels" },
 ];
 
-const THEMES: ThemeOpt[] = [
-  { value: "light", key: "theme.light", fallback: "Light", hint: "Default bright workspace", Icon: Sun },
-  { value: "dark", key: "theme.dark", fallback: "Dark", hint: "High-contrast workspace", Icon: MoonStar },
-  { value: "system", key: "theme.system", fallback: "System", hint: "Match your device preference", Icon: Monitor },
-];
-
 export default function Settings() {
-  const { language, setLanguage, themeMode, setThemeMode, resolvedTheme, t } = useAppPreferences();
+  const { language, setLanguage, t } = useAppPreferences();
 
   return (
     <motion.div
@@ -115,42 +106,20 @@ export default function Settings() {
               </div>
             </div>
 
-            <LiquidToggle
-              checked={resolvedTheme === "dark"}
-              onCheckedChange={(on) => setThemeMode(on ? "dark" : "light")}
-              label={resolvedTheme === "dark" ? "Dark mode" : "Light mode"}
-              description="Light is the default for new sessions."
-              className="mb-3"
-            />
-
-            <div className="space-y-1.5">
-              {THEMES.map((o) => {
-                const active = themeMode === o.value;
-                const Icon = o.Icon;
-                return (
-                  <button key={o.value} type="button" onClick={() => setThemeMode(o.value)} aria-pressed={active}
-                    className={cn("flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition-all",
-                      active ? "border-primary/20 bg-primary/10 text-white" : "border-white/5 text-muted-foreground hover:border-primary/20 hover:text-white hover:bg-white/[0.02]"
-                    )}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>
-                        <span className="block text-[13px] font-bold">{t(o.key, o.fallback)}</span>
-                        <span className="block text-[10px] text-muted-foreground font-medium">{o.hint}</span>
-                      </span>
-                    </span>
-                    <span className={cn("flex h-6 w-6 items-center justify-center rounded-full border transition-all", active ? "border-primary bg-primary/10 text-primary" : "border-white/10 text-transparent")}>
-                      <Check className="h-3 w-3" />
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/10 px-3 py-2.5">
+              <span className="flex items-center gap-2.5">
+                <MoonStar className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  <span className="block text-[13px] font-bold text-white">{t("theme.dark", "Dark")}</span>
+                  <span className="block text-[10px] text-muted-foreground font-medium">
+                    AutoLens is dark-only for now — a light theme is in development.
+                  </span>
+                </span>
+              </span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-full border border-primary bg-primary/10 text-primary">
+                <Check className="h-3 w-3" />
+              </span>
             </div>
-
-            <p className="mt-4 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-[10px] text-muted-foreground font-medium">
-              Active: <span className="font-bold text-white">{resolvedTheme}</span>
-            </p>
           </motion.div>
         </div>
       </div>

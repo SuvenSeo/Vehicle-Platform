@@ -367,7 +367,7 @@ export function MobileFilterSheet({
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 rounded-xl bg-[var(--gold)] py-3 text-[13px] font-bold text-white transition-colors hover:bg-[var(--gold-bright)]"
+            className="flex-1 rounded-xl bg-primary py-3 text-[13px] font-bold text-white transition-colors hover:bg-primary/95"
           >
             Apply filters
           </button>

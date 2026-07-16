@@ -178,7 +178,7 @@ export default function ListingDetail() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Unavailable</p>
           <h1 className="mt-2 font-display text-xl font-semibold text-foreground">Listing not found</h1>
           <p className="mt-2 max-w-sm text-[12px] text-muted-foreground">The source may have removed it or the ID is no longer in the live index.</p>
-          <button type="button" onClick={() => navigate('/')} className="mt-5 rounded-lg bg-[var(--gold)] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white hover:bg-[var(--gold-bright)]">Return to inventory</button>
+          <button type="button" onClick={() => navigate('/')} className="mt-5 rounded-lg bg-primary px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-white hover:bg-primary/95">Return to inventory</button>
         </div>
       </div>
     );

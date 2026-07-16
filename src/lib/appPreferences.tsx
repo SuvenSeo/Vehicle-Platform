@@ -405,14 +405,12 @@ const DICTIONARIES: Record<Language, Dictionary> = {
 
 const AppPreferencesContext = createContext<AppPreferencesContextValue | null>(null);
 
-function resolveTheme(mode: ThemeMode): "dark" | "light" {
-  if (mode === "system") {
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
-    }
-    return "light";
-  }
-  return mode;
+function resolveTheme(): "dark" | "light" {
+  // Dark-only for now: index.css carries a light palette, but the component
+  // library hardcodes dark glass styles (text-white, border-white/5), so the
+  // light theme renders white-on-white. Re-enable once components are
+  // migrated to semantic tokens.
+  return "dark";
 }
 
 function readStorage(key: string): string | null {
@@ -452,7 +450,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     const root = document.documentElement;
     const applyTheme = () => {
-      const next = resolveTheme(themeMode);
+      const next = resolveTheme();
       setResolvedTheme(next);
       root.classList.toggle("theme-light", next === "light");
       root.classList.toggle("theme-dark", next === "dark");

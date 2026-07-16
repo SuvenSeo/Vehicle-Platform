@@ -159,10 +159,12 @@
     --sidebar-accent-foreground: 240 18% 94%;
     --sidebar-border: 240 6% 15% / 0.40;
 
-    --gold: #7c3aed;                     /* mapped to indigo */
-    --gold-bright: #a78bfa;
-    --gold-muted: rgba(124, 58, 237, 0.12);
-    --gold-glow: rgba(124, 58, 237, 0.25);
+    /* Legacy aliases — kept in lockstep with --primary (hsl 250 89% 65%) so
+       any remaining var(--gold*) reference renders identical to text-primary. */
+    --gold: hsl(250 89% 65%);
+    --gold-bright: hsl(250 89% 78%);
+    --gold-muted: hsla(250, 89%, 65%, 0.12);
+    --gold-glow: hsla(250, 89%, 65%, 0.25);
     --accent-blue: #7c3aed;
     --accent-blue-bright: #a78bfa;
 
