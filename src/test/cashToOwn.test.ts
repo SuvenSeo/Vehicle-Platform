@@ -29,12 +29,12 @@ describe("cashToOwn", () => {
     expect(result!.monthlyPaymentLkr).toBeGreaterThan(100_000);
   });
 
-  it("uses stricter LTV for unregistered / brand new", () => {
+  it("uses stricter LTV for unregistered / brand new (CBSL Directions 01/2026)", () => {
     const unreg = computeCashToOwn({ priceLkr: 10_000_000, financeClass: "unregistered" });
     const neu = computeCashToOwn({ priceLkr: 10_000_000, financeClass: "brand_new" });
-    expect(unreg!.ltvCap).toBe(0.5);
-    expect(neu!.ltvCap).toBe(0.5);
-    expect(unreg!.minCashDownLkr).toBe(5_000_000);
+    expect(unreg!.ltvCap).toBe(0.4);
+    expect(neu!.ltvCap).toBe(0.4);
+    expect(unreg!.minCashDownLkr).toBe(6_000_000);
   });
 
   it("returns null for unrealistic prices", () => {
@@ -43,7 +43,9 @@ describe("cashToOwn", () => {
   });
 
   it("infers finance class from listing metadata", () => {
-    expect(inferFinanceClass({ fuelType: "electric" })).toBe("electric_commercial");
+    // EV concession eliminated (Jul 2025): private EVs follow registration class.
+    expect(inferFinanceClass({ fuelType: "electric", year: 2018, nowYear: 2026 })).toBe("registered_used");
+    expect(inferFinanceClass({ fuelType: "electric", condition: "brand_new" })).toBe("unregistered");
     expect(inferFinanceClass({ condition: "brand_new" })).toBe("unregistered");
     expect(inferFinanceClass({ year: 2026, nowYear: 2026 })).toBe("brand_new");
     expect(inferFinanceClass({ year: 2018, nowYear: 2026 })).toBe("registered_used");

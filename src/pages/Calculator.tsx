@@ -553,6 +553,33 @@ export default function Calculator() {
 
               {/* RENDER DUAL PANELS */}
               <div className="space-y-6">
+                {/* CBSL 40/60 LTV arbitrage — regulation-made, nobody else surfaces it */}
+                {leasePrice >= 1_000_000 && (() => {
+                  const usedDown = leasePrice * 0.4;   // 60% LTV on registered used
+                  const newDown = leasePrice * 0.6;    // 40% LTV on new/unregistered
+                  const usedBudgetFromNewDown = newDown / 0.4; // same cash, used market
+                  return (
+                    <div className="rounded-xl border border-primary/15 bg-primary/[0.04] p-4">
+                      <div className="flex items-start gap-2.5">
+                        <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <div className="space-y-1.5">
+                          <p className="text-xs font-bold text-white">The 40/60 rule is working in your favour on used cars</p>
+                          <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
+                            CBSL caps financing at <span className="font-bold text-white">40%</span> for brand-new or unregistered vehicles but{" "}
+                            <span className="font-bold text-white">60%</span> for registered used (&gt;1yr). For this{" "}
+                            <span className="num font-bold text-white">{formatPrice(leasePrice)}</span> vehicle: registered used needs{" "}
+                            <span className="num font-bold text-emerald-400">{formatPrice(usedDown)}</span> down; new or unregistered needs{" "}
+                            <span className="num font-bold text-rose-400">{formatPrice(newDown)}</span> — the same cash that would stretch to a{" "}
+                            <span className="num font-bold text-white">{formatPrice(usedBudgetFromNewDown)}</span> registered used car.
+                          </p>
+                          <p className="text-[10px] font-semibold text-muted-foreground/70">
+                            CBSL Act Directions No. 01 of 2026 (from 25 May 2026) · banks may apply stricter internal caps
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cash requirements</span>
                   <CashToOwnStrip priceLkr={leasePrice} financeClass="registered_used" />

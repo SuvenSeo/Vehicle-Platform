@@ -1,9 +1,12 @@
 /**
  * Cash-to-own / CBSL LTV helpers for Sri Lanka vehicle finance planning.
  *
- * LTV caps reflect the July 2025 CBSL framework orientation for motor cars
- * (~50–60% depending on vehicle class). Rates are planning defaults and
- * should be treated as indicative — banks set final margins.
+ * LTV caps reflect CBSL Act Directions No. 01 of 2026 (effective 25 May
+ * 2026): commercial vehicles 60%, registered used (>1yr since first
+ * registration) 60%, all other private vehicles (unregistered / brand-new /
+ * under-1yr) 40%. The 2018-era EV LTV concession was eliminated in July
+ * 2025 — private EVs follow their registration class like any other car.
+ * Rates are planning defaults; banks set final margins.
  */
 
 export type VehicleFinanceClass =
@@ -41,12 +44,12 @@ export interface CashToOwnResult {
   affordableNote: string;
 }
 
-/** CBSL-oriented max loan-to-value by vehicle class (planning defaults). */
+/** CBSL max loan-to-value by vehicle class (Directions No. 01 of 2026). */
 export const CBSL_LTV_CAPS: Record<VehicleFinanceClass, number> = {
   registered_used: 0.6,
-  unregistered: 0.5,
-  brand_new: 0.5,
-  electric_commercial: 0.7,
+  unregistered: 0.4,
+  brand_new: 0.4,
+  electric_commercial: 0.6, // commercial-vehicle tier; EV concession removed Jul 2025
 };
 
 /** Stable order for finance-class selectors. */
@@ -65,7 +68,7 @@ const FINANCE_CLASS_LABELS: Record<VehicleFinanceClass, string> = {
   registered_used: "Registered used (>1yr)",
   unregistered: "Unregistered / reconditioned",
   brand_new: "Brand new / <1yr",
-  electric_commercial: "EV / commercial (higher LTV)",
+  electric_commercial: "Commercial (60% LTV)",
 };
 
 export function getFinanceClassLabel(financeClass: VehicleFinanceClass): string {
@@ -79,13 +82,11 @@ export function inferFinanceClass(input: {
   nowYear?: number;
 }): VehicleFinanceClass {
   const condition = String(input.condition || "").toLowerCase();
-  const fuel = String(input.fuelType || "").toLowerCase();
   const nowYear = input.nowYear ?? new Date().getFullYear();
   const year = Number(input.year);
 
-  if (fuel.includes("electric") || fuel === "ev") {
-    return "electric_commercial";
-  }
+  // Note: EVs no longer get a higher-LTV class (concession removed Jul 2025)
+  // — private EVs follow their registration class like any other car.
   if (condition.includes("new") || condition.includes("unreg") || condition.includes("recon")) {
     return "unregistered";
   }
