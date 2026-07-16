@@ -22,8 +22,10 @@ Copy `.env.example` to `.env` and keep:
 
 ```env
 VITE_API_URL=/api/v1
-VITE_BACKEND_URL=http://127.0.0.1:8000
 ```
+
+The Vite dev proxy target (`http://127.0.0.1:8000`) is configured in
+`vite.config.ts` — no env var needed.
 
 ### Backend (`backend/.env`)
 
@@ -161,27 +163,28 @@ Now pushes to `main` will:
 
 Normally not required because frontend calls the same backend URL, but if needed you can manually click "Redeploy" in Vercel Deployments.
 
-### Real Pro authentication (optional)
+### Real Pro authentication (enforced by default)
 
-The backend ships an env-configured auth layer. Set on the backend:
+The backend ships an env-configured auth layer, and `/api/v1/pro/*` routes
+require a valid pro/enterprise bearer token **by default**. Set on the backend:
 
 ```env
 AUTH_TOKEN_SECRET=<long-random-string>
-AUTH_USERS=[{"email":"owner@example.com","password_sha256":"<hex>","name":"Owner","plan":"enterprise","subscription_status":"active"}]
-PRO_ACCESS_ENFORCED=true
+AUTH_USERS=[{"email":"owner@example.com","password_hash":"$2b$12$...","name":"Owner","plan":"enterprise","subscription_status":"active"}]
 ```
 
-Generate a password hash with:
+Generate a bcrypt password hash with:
 
 ```bash
-python -c "import hashlib; print(hashlib.sha256(b'your-password').hexdigest())"
+python -c "import bcrypt; print(bcrypt.hashpw(b'your-password', bcrypt.gensalt()).decode())"
 ```
 
+Legacy unsalted SHA-256 entries (`password_sha256`) are no longer accepted.
+
 Then set `VITE_ENABLE_BACKEND_AUTH=true` on the frontend build. Sign-in
-goes through `POST /api/v1/auth/login`, the issued bearer token is sent
-on every `/api/v1/pro/*` call, and with `PRO_ACCESS_ENFORCED=true` those
-endpoints reject requests without a valid pro/enterprise token. With the
-flag unset, Pro endpoints stay public (previous behaviour).
+goes through `POST /api/v1/auth/login` and the issued bearer token is sent
+on every `/api/v1/pro/*` call. For local development only, you can opt out
+of server-side gating with `PRO_ACCESS_ENFORCED=false`.
 
 ### In-Space scheduler is off by default
 
