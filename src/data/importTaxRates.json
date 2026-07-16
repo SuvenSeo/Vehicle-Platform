@@ -1,0 +1,47 @@
+{
+  "_comment": "CANONICAL Sri Lanka import tax rates — single source of truth. Frontend (src/lib/importTaxModel.ts) derives its constants from this file; the backend keeps mirrored constants in backend/app/api/v1/endpoints/calculators.py guarded by backend/tests/test_tax_config_parity.py, which fails CI if the two drift. Band upper bounds use null for unbounded. Update 'reviewed' whenever rates are re-verified against the latest gazette.",
+  "reviewed": "2026-07",
+  "cid_rate": 0.2,
+  "cid_surcharge_rate": 0.5,
+  "sscl_rate": 0.025,
+  "vat_rate": 0.18,
+  "excise_bands_per_cc": {
+    "petrol": [
+      [1000, 2450],
+      [1300, 3850],
+      [1500, 4450],
+      [1800, 5150],
+      [2000, 6400],
+      [2500, 7700],
+      [null, 8900]
+    ],
+    "diesel": [
+      [1500, 5150],
+      [1800, 6150],
+      [2000, 7100],
+      [2500, 8400],
+      [null, 9650]
+    ],
+    "hybrid": [
+      [1000, 2100],
+      [1300, 3300],
+      [1500, 3850],
+      [1800, 4700],
+      [2000, 5600],
+      [2500, 7100],
+      [null, 8400]
+    ]
+  },
+  "excise_bands_per_kw": [
+    [50, 12500],
+    [100, 25000],
+    [200, 43000],
+    [null, 55000]
+  ],
+  "luxury_tax": {
+    "petrol": { "threshold_lkr": 5000000, "rate_on_excess": 1.0 },
+    "diesel": { "threshold_lkr": 5000000, "rate_on_excess": 1.2 },
+    "hybrid": { "threshold_lkr": 5500000, "rate_on_excess": 0.8 },
+    "electric": { "threshold_lkr": 6000000, "rate_on_excess": 0.6 }
+  }
+}

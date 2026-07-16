@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPrice, calculateLandedCost, calculateTco, getPermits, type LandedCostResult, type TcoResult, type PermitInfo } from "@/services/api";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,46 @@ import {
   Compass,
   AlertTriangle,
   CheckCircle,
+  Link2,
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
 import { useToast } from "@/hooks/use-toast";
 
 type TabType = "landed-cost" | "lease" | "tco" | "permits" | "depreciation";
+type FuelType = "petrol" | "diesel" | "hybrid" | "electric";
+
+const TAB_IDS: TabType[] = ["landed-cost", "lease", "tco", "permits", "depreciation"];
+const FUEL_TYPES: FuelType[] = ["petrol", "diesel", "hybrid", "electric"];
+
+// Cap URL-seeded numbers well above any real-world value; a crafted
+// ?cif=1e300 must not reach the backend or overflow the math.
+const MAX_URL_NUMBER = 1e12;
+
+function numParam(
+  params: URLSearchParams,
+  key: string,
+  fallback: number,
+  { positive = false }: { positive?: boolean } = {},
+): number {
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > MAX_URL_NUMBER) return fallback;
+  if (positive && value <= 0) return fallback;
+  return value;
+}
+
+function fuelParam(params: URLSearchParams, key: string, fallback: FuelType): FuelType {
+  const raw = params.get(key) as FuelType | null;
+  return raw && FUEL_TYPES.includes(raw) ? raw : fallback;
+}
+
+function boolParam(params: URLSearchParams, key: string, fallback: boolean): boolean {
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  return raw !== "0" && raw !== "false";
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,32 +79,36 @@ const itemVariants = {
 
 export default function Calculator() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<TabType>("landed-cost");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const raw = searchParams.get("tab") as TabType | null;
+    return raw && TAB_IDS.includes(raw) ? raw : "landed-cost";
+  });
 
-  // Landed Cost State
-  const [cifUsd, setCifUsd] = useState(12000);
-  const [exchangeRate, setExchangeRate] = useState(300.0);
-  const [lcFuelType, setLcFuelType] = useState<"petrol" | "diesel" | "hybrid" | "electric">("hybrid");
-  const [lcEngineCc, setLcEngineCc] = useState(1500);
-  const [lcMotorKw, setLcMotorKw] = useState(110);
-  const [applySurcharge, setApplySurcharge] = useState(true);
-  const [applySscl, setApplySscl] = useState(true);
+  // Landed Cost State (seeded from the shareable URL when present)
+  const [cifUsd, setCifUsd] = useState(() => numParam(searchParams, "cif", 12000, { positive: true }));
+  const [exchangeRate, setExchangeRate] = useState(() => numParam(searchParams, "fx", 300.0, { positive: true }));
+  const [lcFuelType, setLcFuelType] = useState<FuelType>(() => fuelParam(searchParams, "fuel", "hybrid"));
+  const [lcEngineCc, setLcEngineCc] = useState(() => numParam(searchParams, "cc", 1500));
+  const [lcMotorKw, setLcMotorKw] = useState(() => numParam(searchParams, "kw", 110));
+  const [applySurcharge, setApplySurcharge] = useState(() => boolParam(searchParams, "surcharge", true));
+  const [applySscl, setApplySscl] = useState(() => boolParam(searchParams, "sscl", true));
   const [lcResult, setLcResult] = useState<LandedCostResult | null>(null);
   const [lcLoading, setLcLoading] = useState(false);
 
   // Lease / Cash-to-own state (original logic wrapper)
-  const [leasePrice, setLeasePrice] = useState(15000000);
-  const [leaseCc, setLeaseCc] = useState(1500);
+  const [leasePrice, setLeasePrice] = useState(() => numParam(searchParams, "price", 15000000));
+  const [leaseCc, setLeaseCc] = useState(() => numParam(searchParams, "leasecc", 1500));
 
-  // TCO Calculator State
-  const [tcoDailyKm, setTcoDailyKm] = useState(40);
-  const [tcoFuelType, setTcoFuelType] = useState<"petrol" | "diesel" | "hybrid" | "electric">("hybrid");
-  const [tcoKmpl, setTcoKmpl] = useState(18);
-  const [tcoLease, setTcoLease] = useState(85000);
-  const [tcoInsurance, setTcoInsurance] = useState(120000);
-  const [tcoService, setTcoService] = useState(60000);
-  const [tcoTyres, setTcoTyres] = useState(30000);
-  const [tcoDepreciation, setTcoDepreciation] = useState(100000);
+  // TCO Calculator State (seeded from the shareable URL when present)
+  const [tcoDailyKm, setTcoDailyKm] = useState(() => numParam(searchParams, "km", 40));
+  const [tcoFuelType, setTcoFuelType] = useState<FuelType>(() => fuelParam(searchParams, "tfuel", "hybrid"));
+  const [tcoKmpl, setTcoKmpl] = useState(() => numParam(searchParams, "kmpl", 18, { positive: true }));
+  const [tcoLease, setTcoLease] = useState(() => numParam(searchParams, "lease", 85000));
+  const [tcoInsurance, setTcoInsurance] = useState(() => numParam(searchParams, "ins", 120000));
+  const [tcoService, setTcoService] = useState(() => numParam(searchParams, "svc", 60000));
+  const [tcoTyres, setTcoTyres] = useState(() => numParam(searchParams, "tyres", 30000));
+  const [tcoDepreciation, setTcoDepreciation] = useState(() => numParam(searchParams, "dep", 100000));
   const [tcoResult, setTcoResult] = useState<TcoResult | null>(null);
   const [tcoLoading, setTcoLoading] = useState(false);
 
@@ -157,17 +196,73 @@ export default function Calculator() {
     }
   };
 
+  // Debounced recalcs: typing fires one request per pause, not per keystroke
+  // (the backend rate-limits /calculators, so per-keystroke POSTs would 429).
   useEffect(() => {
-    void runLandedCostCalc();
+    const timer = setTimeout(() => void runLandedCostCalc(), 350);
+    return () => clearTimeout(timer);
     // Recalculate only when landed-cost inputs change (not when helper identity changes).
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional input-driven recalculation
   }, [cifUsd, exchangeRate, lcFuelType, lcEngineCc, lcMotorKw, applySurcharge, applySscl]);
 
   useEffect(() => {
-    void runTcoCalc();
+    const timer = setTimeout(() => void runTcoCalc(), 350);
+    return () => clearTimeout(timer);
     // Recalculate only when TCO inputs change (not when helper identity changes).
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional input-driven recalculation
   }, [tcoDailyKm, tcoFuelType, tcoKmpl, tcoLease, tcoInsurance, tcoService, tcoTyres, tcoDepreciation]);
+
+  // Keep the URL shareable: tab + active tab's inputs, replace-state so
+  // typing doesn't spam browser history.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("tab", activeTab);
+    if (activeTab === "landed-cost") {
+      params.set("cif", String(cifUsd));
+      params.set("fx", String(exchangeRate));
+      params.set("fuel", lcFuelType);
+      if (lcFuelType === "electric") {
+        params.set("kw", String(lcMotorKw));
+      } else {
+        params.set("cc", String(lcEngineCc));
+      }
+      if (!applySurcharge) params.set("surcharge", "0");
+      if (!applySscl) params.set("sscl", "0");
+    } else if (activeTab === "lease") {
+      params.set("price", String(leasePrice));
+      params.set("leasecc", String(leaseCc));
+    } else if (activeTab === "tco") {
+      params.set("km", String(tcoDailyKm));
+      params.set("tfuel", tcoFuelType);
+      params.set("kmpl", String(tcoKmpl));
+      params.set("lease", String(tcoLease));
+      params.set("ins", String(tcoInsurance));
+      params.set("svc", String(tcoService));
+      params.set("tyres", String(tcoTyres));
+      params.set("dep", String(tcoDepreciation));
+    }
+    if (`?${params.toString()}` !== window.location.search) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [
+    activeTab, cifUsd, exchangeRate, lcFuelType, lcEngineCc, lcMotorKw,
+    applySurcharge, applySscl, leasePrice, leaseCc, tcoDailyKm, tcoFuelType,
+    tcoKmpl, tcoLease, tcoInsurance, tcoService, tcoTyres, tcoDepreciation,
+    setSearchParams,
+  ]);
+
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: "Link copied", description: "This calculation is now shareable." });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Copy the address bar URL to share this calculation.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <motion.div
@@ -190,7 +285,7 @@ export default function Calculator() {
       </motion.section>
 
       {/* Tabs Selector */}
-      <div className="mx-auto max-w-[1320px] px-5 py-6 sm:px-6">
+      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-3 px-5 py-6 sm:px-6">
         <div className="flex flex-wrap gap-1 rounded-xl border border-white/5 bg-white/[0.01] p-1.5 backdrop-blur-md">
           {[
             { id: "landed-cost", label: "Landed Cost", icon: Banknote },
@@ -223,6 +318,14 @@ export default function Calculator() {
             );
           })}
         </div>
+        <button
+          onClick={() => void copyShareLink()}
+          className="flex items-center gap-2 rounded-xl border border-white/5 bg-white/[0.01] px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground backdrop-blur-md transition-colors hover:text-white"
+          title="Copy a shareable link to this calculation"
+        >
+          <Link2 className="h-3.5 w-3.5" />
+          Share
+        </button>
       </div>
 
       <div className="mx-auto max-w-[1320px] px-5 pb-16 sm:px-6 relative z-10">

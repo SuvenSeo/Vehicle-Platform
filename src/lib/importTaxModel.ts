@@ -5,11 +5,13 @@
 //   PER cm³ (per kW for EVs) in capacity bands → Luxury Tax on the CIF
 //   portion above a fuel-specific threshold → VAT on the duty-inclusive base.
 //
-// The band rates below are indicative approximations of the 2025 excise
-// schedule and MUST be re-verified against the latest gazette before being
-// treated as exact. Update TAX_MODEL_REVIEWED whenever rates are checked.
+// ALL RATES COME FROM src/data/importTaxRates.json — the canonical source
+// shared (via a CI parity test) with the backend calculator. Edit the JSON,
+// not this file, when a gazette changes rates.
 
-export const TAX_MODEL_REVIEWED = "2026-07";
+import taxRates from "@/data/importTaxRates.json";
+
+export const TAX_MODEL_REVIEWED = taxRates.reviewed;
 
 export type ImportFuelType = "petrol" | "diesel" | "hybrid" | "electric";
 
@@ -35,55 +37,38 @@ export interface ImportTaxResult {
   totalOnRoad: number;
 }
 
-const CID_RATE = 0.2;
-const CID_SURCHARGE_RATE = 0.5; // surcharge applied on the CID amount
-const VAT_RATE = 0.18;
+const CID_RATE = taxRates.cid_rate;
+const CID_SURCHARGE_RATE = taxRates.cid_surcharge_rate; // surcharge applied on the CID amount
+const SSCL_RATE = taxRates.sscl_rate;
+const VAT_RATE = taxRates.vat_rate;
 
 interface Band {
   upTo: number; // inclusive upper bound of the band (cc or kW)
   ratePerUnit: number; // LKR per cm³ or per kW, applied to the full capacity
 }
 
+type RawBand = (number | null)[];
+
+function toBands(raw: RawBand[]): Band[] {
+  return raw.map(([upTo, ratePerUnit]) => ({
+    upTo: upTo ?? Infinity,
+    ratePerUnit: ratePerUnit ?? 0,
+  }));
+}
+
 const EXCISE_BANDS_PER_CC: Record<Exclude<ImportFuelType, "electric">, Band[]> = {
-  petrol: [
-    { upTo: 1000, ratePerUnit: 2_450 },
-    { upTo: 1300, ratePerUnit: 3_850 },
-    { upTo: 1500, ratePerUnit: 4_450 },
-    { upTo: 1800, ratePerUnit: 5_150 },
-    { upTo: 2000, ratePerUnit: 6_400 },
-    { upTo: 2500, ratePerUnit: 7_700 },
-    { upTo: Infinity, ratePerUnit: 8_900 },
-  ],
-  diesel: [
-    { upTo: 1500, ratePerUnit: 5_150 },
-    { upTo: 1800, ratePerUnit: 6_150 },
-    { upTo: 2000, ratePerUnit: 7_100 },
-    { upTo: 2500, ratePerUnit: 8_400 },
-    { upTo: Infinity, ratePerUnit: 9_650 },
-  ],
-  hybrid: [
-    { upTo: 1000, ratePerUnit: 2_100 },
-    { upTo: 1300, ratePerUnit: 3_300 },
-    { upTo: 1500, ratePerUnit: 3_850 },
-    { upTo: 1800, ratePerUnit: 4_700 },
-    { upTo: 2000, ratePerUnit: 5_600 },
-    { upTo: 2500, ratePerUnit: 7_100 },
-    { upTo: Infinity, ratePerUnit: 8_400 },
-  ],
+  petrol: toBands(taxRates.excise_bands_per_cc.petrol),
+  diesel: toBands(taxRates.excise_bands_per_cc.diesel),
+  hybrid: toBands(taxRates.excise_bands_per_cc.hybrid),
 };
 
-const EXCISE_BANDS_PER_KW: Band[] = [
-  { upTo: 50, ratePerUnit: 12_500 },
-  { upTo: 100, ratePerUnit: 25_000 },
-  { upTo: 200, ratePerUnit: 43_000 },
-  { upTo: Infinity, ratePerUnit: 55_000 },
-];
+const EXCISE_BANDS_PER_KW: Band[] = toBands(taxRates.excise_bands_per_kw);
 
 const LUXURY_TAX: Record<ImportFuelType, { thresholdLkr: number; rateOnExcess: number }> = {
-  petrol: { thresholdLkr: 5_000_000, rateOnExcess: 1.0 },
-  diesel: { thresholdLkr: 5_000_000, rateOnExcess: 1.2 },
-  hybrid: { thresholdLkr: 5_500_000, rateOnExcess: 0.8 },
-  electric: { thresholdLkr: 6_000_000, rateOnExcess: 0.6 },
+  petrol: { thresholdLkr: taxRates.luxury_tax.petrol.threshold_lkr, rateOnExcess: taxRates.luxury_tax.petrol.rate_on_excess },
+  diesel: { thresholdLkr: taxRates.luxury_tax.diesel.threshold_lkr, rateOnExcess: taxRates.luxury_tax.diesel.rate_on_excess },
+  hybrid: { thresholdLkr: taxRates.luxury_tax.hybrid.threshold_lkr, rateOnExcess: taxRates.luxury_tax.hybrid.rate_on_excess },
+  electric: { thresholdLkr: taxRates.luxury_tax.electric.threshold_lkr, rateOnExcess: taxRates.luxury_tax.electric.rate_on_excess },
 };
 
 function bandRate(bands: Band[], units: number): number {
@@ -208,8 +193,8 @@ export function computeImportTaxes(input: ImportTaxInput): ImportTaxResult {
   const luxuryExcess = Math.max(0, cif - luxury.thresholdLkr);
   const luxuryTax = luxuryExcess * luxury.rateOnExcess;
 
-  // SSCL (2.5%) on (CIF + CID + Surcharge + Excise)
-  const sscl = (cif + cid + surcharge + excise) * 0.025;
+  // SSCL on (CIF + CID + Surcharge + Excise)
+  const sscl = (cif + cid + surcharge + excise) * SSCL_RATE;
 
   // VAT (18%) on top of duty-inclusive + SSCL base
   const vat = (cif + cid + surcharge + excise + sscl) * VAT_RATE;
@@ -223,7 +208,7 @@ export function computeImportTaxes(input: ImportTaxInput): ImportTaxResult {
       amount: excise,
       note: exciseNote,
     },
-    { key: "sscl", label: "SSCL Levy (2.5%)", amount: sscl },
+    { key: "sscl", label: `SSCL Levy (${(SSCL_RATE * 100).toFixed(1)}%)`, amount: sscl },
     { key: "vat", label: `VAT (${Math.round(VAT_RATE * 100)}% on duty-inclusive + SSCL base)`, amount: vat },
   ];
 
