@@ -2,30 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { BarChart3, Crown, Download, FileText, Lock, MapPin, ShieldCheck, Sparkles } from "lucide-react";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-      delayChildren: 0.05
-    }
-  }
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 220,
-      damping: 24
-    }
-  }
-} as const;
+import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 
 const LANES = [
   { name: "Toyota Aqua", listings: 824, median: "Rs. 7.8M", district: "Colombo" },
@@ -47,8 +24,8 @@ const REPORTS = ["Executive PDF", "Editable Word brief", "CSV data pack", "JSON 
 function LockedOverlay() {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-background/70 backdrop-blur-[3px]">
-      <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-center">
-        <Lock className="mx-auto mb-1.5 h-4 w-4 text-primary" />
+      <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-center shadow-soft">
+        <Lock aria-hidden className="mx-auto mb-1.5 h-4 w-4 text-primary" />
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright">Unlock with Pro</p>
       </div>
     </div>
@@ -60,50 +37,64 @@ export default function ProPreview() {
     <motion.div
       initial="hidden"
       animate="show"
-      variants={containerVariants}
-      className="min-h-screen relative overflow-hidden bg-background"
+      variants={revealContainer}
+      className="page-canvas relative min-h-screen overflow-hidden"
     >
-      {/* Decorative Orbs */}
-      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+      {/* Ambient wash — token-driven, adapts to both themes */}
+      <div aria-hidden className="pointer-events-none absolute right-[-10%] top-[8%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
+      <div aria-hidden className="pointer-events-none absolute bottom-[18%] left-[-15%] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px]" />
 
-      {/* Hero Header */}
-      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
-        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <div className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 mb-4">
-            <Crown className="h-3 w-3 text-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright">Pro Preview</span>
+      {/* Hero — one confident, towering headline */}
+      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
+        <div className="mx-auto max-w-[1320px] px-5 pb-14 pt-16 sm:px-6 lg:pb-20 lg:pt-24">
+          <div className="section-eyebrow mb-5 inline-flex items-center gap-2">
+            <Crown aria-hidden className="h-3.5 w-3.5" />
+            Pro Preview
           </div>
-          <h1 className="font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Pro workspace preview.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">See the depth of lane drill-downs, district profiles, and export packs before you sign in.</p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Link to="/sign-in" className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline transition-all hover:bg-primary/95 shadow-[0_2px_10px_rgba(124,58,237,0.15)]">
-              <ShieldCheck className="h-3 w-3" /> Sign in to unlock
+          <h1 className="display-hero max-w-3xl text-foreground">Pro workspace preview.</h1>
+          <p className="text-body-lg mt-6 max-w-xl">
+            See the depth of lane drill-downs, district profiles, and export packs before you sign in.
+          </p>
+          <div className="mt-9 flex flex-wrap gap-3">
+            <Link
+              to="/sign-in"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <ShieldCheck aria-hidden className="h-4 w-4" /> Sign in to unlock
             </Link>
-            <Link to="/" className="flex h-9 items-center rounded-lg border border-white/5 bg-white/[0.02] px-4 text-[10px] font-bold text-white no-underline hover:bg-white/[0.04] transition-all">Browse public data</Link>
+            <Link
+              to="/"
+              className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Browse public data
+            </Link>
           </div>
         </div>
       </motion.section>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 relative z-10">
-        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-5">
-            {/* Lane table */}
-            <motion.div variants={itemVariants} className="relative rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+      <div className="relative z-10 mx-auto max-w-[1320px] px-5 py-14 sm:px-6 lg:py-20">
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
+            {/* Featured card — lane table, the primary item */}
+            <motion.div variants={revealItem} className="premium-surface relative p-6 sm:p-7">
               <LockedOverlay />
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80 mb-4">Lane drill-downs</p>
-              <div className="overflow-hidden rounded-lg border border-white/5">
+              <p className="section-eyebrow mb-5">Lane drill-downs</p>
+              <div className="overflow-hidden rounded-xl border border-border">
                 <table className="w-full text-[12px]">
-                  <thead><tr className="bg-white/[0.02] text-white">
-                    {["Vehicle", "Listings", "Median", "Top area"].map((h) => <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">{h}</th>)}
-                  </tr></thead>
+                  <thead>
+                    <tr className="bg-surface">
+                      {["Vehicle", "Listings", "Median", "Top area"].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
                   <tbody>
                     {LANES.map((l) => (
-                      <tr key={l.name} className="border-t border-white/5">
-                        <td className="px-4 py-2.5 font-bold text-white">{l.name}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground num font-medium">{l.listings}</td>
-                        <td className="px-4 py-2.5 text-primary num font-bold">{l.median}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground font-medium">{l.district}</td>
+                      <tr key={l.name} className="border-t border-border">
+                        <td className="px-4 py-3 font-bold text-foreground">{l.name}</td>
+                        <td className="num px-4 py-3 font-medium text-muted-foreground">{l.listings}</td>
+                        <td className="num px-4 py-3 font-bold text-primary">{l.median}</td>
+                        <td className="px-4 py-3 font-medium text-muted-foreground">{l.district}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -111,20 +102,30 @@ export default function ProPreview() {
               </div>
             </motion.div>
 
-            {/* Chart */}
-            <motion.div variants={itemVariants} className="relative rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+            {/* Chart — theme-aware via tokens */}
+            <motion.div variants={revealItem} className="data-card relative p-6">
               <LockedOverlay />
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Source coverage</p>
-                <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <div className="mb-5 flex items-center justify-between">
+                <p className="section-eyebrow">Source coverage</p>
+                <BarChart3 aria-hidden className="h-3.5 w-3.5 text-primary" />
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={CHART_DATA}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ background: "#09090b", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--surface))" }}
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: 10,
+                        fontSize: 11,
+                        color: "hsl(var(--foreground))",
+                        boxShadow: "0 8px 28px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)",
+                      }}
+                    />
                     <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -132,37 +133,51 @@ export default function ProPreview() {
             </motion.div>
           </div>
 
-          <aside className="space-y-5">
-            <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
-              <Sparkles className="mb-3 h-4 w-4 text-primary" />
-              <h2 className="font-display text-sm font-bold text-white">What Pro adds</h2>
-              <div className="mt-4 space-y-1.5">
+          <aside className="space-y-6">
+            <motion.div
+              variants={revealItem}
+              whileHover={{ y: -2 }}
+              transition={springSoft}
+              className="data-card p-6"
+            >
+              <Sparkles aria-hidden className="mb-3 h-5 w-5 text-primary" />
+              <h2 className="font-display text-[15px] font-bold text-foreground">What Pro adds</h2>
+              <div className="mt-4 space-y-2">
                 {["Lane drill-downs with live samples", "District opportunity profiles", "Trend studio with exportable history", "Data quality coverage", "PDF, Word, CSV, JSON exports"].map((i) => (
-                  <div key={i} className="flex items-start gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    <p className="text-[11px] text-muted-foreground font-semibold">{i}</p>
+                  <div key={i} className="flex items-start gap-2.5 rounded-xl border border-border bg-surface p-3">
+                    <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    <p className="text-[11px] font-semibold text-muted-foreground">{i}</p>
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-3.5 w-3.5 text-primary" />
-                <h2 className="text-[13px] font-bold text-white">Report formats</h2>
+            <motion.div
+              variants={revealItem}
+              whileHover={{ y: -2 }}
+              transition={springSoft}
+              className="data-card p-6"
+            >
+              <div className="mb-3 flex items-center gap-2">
+                <FileText aria-hidden className="h-4 w-4 text-primary" />
+                <h2 className="text-[15px] font-bold text-foreground">Report formats</h2>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {REPORTS.map((r) => (
-                  <div key={r} className="flex h-9 items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 text-[11px] text-muted-foreground font-semibold hover:text-white transition-all">
-                    <span>{r}</span><Download className="h-3 w-3 text-primary" />
+                  <div key={r} className="flex h-9 items-center justify-between rounded-xl border border-border bg-surface px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground">
+                    <span>{r}</span>
+                    <Download aria-hidden className="h-3 w-3 text-primary" />
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            <motion.div variants={itemVariants}>
-              <Link to="/sign-in" className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-primary text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline transition-all hover:bg-primary/95 shadow-[0_2px_10px_rgba(124,58,237,0.15)]">
-                <MapPin className="h-3 w-3" /> Unlock Pro workspace
+            <motion.div variants={revealItem}>
+              <Link
+                to="/sign-in"
+                className="flex h-11 items-center justify-center gap-2 rounded-full bg-primary text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <MapPin aria-hidden className="h-4 w-4" /> Unlock Pro workspace
               </Link>
             </motion.div>
           </aside>

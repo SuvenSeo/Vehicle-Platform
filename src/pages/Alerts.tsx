@@ -8,30 +8,10 @@ import { matchAlerts, formatPrice, type AlertMatchResponse, type ServerMarketAle
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-      delayChildren: 0.05
-    }
-  }
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 220,
-      damping: 24
-    }
-  }
-} as const;
+const containerVariants = revealContainer;
+const itemVariants = revealItem;
 
 function AlertMatchSection({ token }: { token: string }) {
   const [matchData, setMatchData] = useState<AlertMatchResponse | null>(null);
@@ -60,17 +40,23 @@ function AlertMatchSection({ token }: { token: string }) {
 
   return (
     <section aria-labelledby="match-results-heading">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 id="match-results-heading" className="text-base font-semibold tracking-tight text-foreground">
-          Current matches
-        </h2>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+            <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+            Live results
+          </p>
+          <h2 id="match-results-heading" className="display-2 text-foreground">
+            Current matches
+          </h2>
+        </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={runMatch}
           disabled={loading}
           aria-label="Refresh matches"
-          className="h-8 gap-1.5 px-2.5 text-[11px] font-semibold text-muted-foreground"
+          className="h-8 shrink-0 gap-1.5 px-2.5 text-[11px] font-semibold text-muted-foreground"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -91,29 +77,29 @@ function AlertMatchSection({ token }: { token: string }) {
       )}
 
       {matchData && matchData.results.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {matchData.results.map((result) => (
-            <div key={result.alert_id} className="rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
-              <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
+            <div key={result.alert_id} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5">
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-bold text-white">
+                  <p className="truncate text-sm font-semibold tracking-tight text-foreground">
                     {[result.make, result.model].filter(Boolean).join(" ") || "All vehicles"}
                     {result.district ? ` · ${result.district}` : ""}
                   </p>
                   {result.max_price ? (
-                    <p className="mt-0.5 text-[11px] text-muted-foreground/80 font-medium">
+                    <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
                       Under {formatPrice(result.max_price)}
                     </p>
                   ) : null}
                 </div>
-                <Badge variant="secondary" className="shrink-0 text-[11px] font-bold num border-white/5 bg-white/[0.02] text-primary-bright">
+                <Badge variant="secondary" className="num shrink-0 border-border bg-surface text-[11px] font-semibold text-primary-bright">
                   {result.matching_count.toLocaleString()} found
                 </Badge>
               </div>
               {result.listings.length > 0 && (
-                <div className="divide-y divide-white/5">
+                <div className="divide-y divide-border">
                   {result.listings.slice(0, 5).map((listing) => (
-                    <div key={listing.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div key={listing.id} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface">
                       <div className="min-w-0">
                         <p className="truncate text-[13px] font-semibold text-foreground">
                           {listing.title || `${listing.make} ${listing.model}`}
@@ -126,14 +112,14 @@ function AlertMatchSection({ token }: { token: string }) {
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {listing.price_lkr !== null && (
-                          <span className="text-[13px] font-bold text-white num">
+                          <span className="num text-[13px] font-bold text-foreground">
                             {formatPrice(listing.price_lkr)}
                           </span>
                         )}
                         <Link
                           to={`/listing/${listing.id}`}
                           aria-label={`View listing ${listing.title || listing.id}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-white/5 text-muted-foreground no-underline transition-all hover:border-primary/20 hover:text-white"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-foreground"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
@@ -144,7 +130,7 @@ function AlertMatchSection({ token }: { token: string }) {
               )}
             </div>
           ))}
-          <p className="text-right text-[10px] text-muted-foreground">
+          <p className="num text-right text-[10px] text-muted-foreground">
             Checked {new Date(matchData.checked_at).toLocaleTimeString()}
           </p>
         </div>
@@ -222,42 +208,42 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
     <form
       onSubmit={handleSubmit}
       aria-label="Create alert form"
-      className="rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-md p-4 space-y-3"
+      className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
     >
-      <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">New alert</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">New alert</p>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label htmlFor="alert-make" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">Make</label>
-          <Input id="alert-make" value={make} onChange={(e) => setMake(e.target.value)} placeholder="Toyota" className="h-9 text-sm border-white/15 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30" />
+          <label htmlFor="alert-make" className="mb-1 block text-[11px] font-semibold text-muted-foreground">Make</label>
+          <Input id="alert-make" value={make} onChange={(e) => setMake(e.target.value)} placeholder="Toyota" className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30" />
         </div>
         <div>
-          <label htmlFor="alert-model" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">Model</label>
-          <Input id="alert-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Aqua" className="h-9 text-sm border-white/15 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30" />
+          <label htmlFor="alert-model" className="mb-1 block text-[11px] font-semibold text-muted-foreground">Model</label>
+          <Input id="alert-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="Aqua" className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30" />
         </div>
         <div>
-          <label htmlFor="alert-district" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">District</label>
-          <Input id="alert-district" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Colombo" className="h-9 text-sm border-white/15 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30" />
+          <label htmlFor="alert-district" className="mb-1 block text-[11px] font-semibold text-muted-foreground">District</label>
+          <Input id="alert-district" value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Colombo" className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30" />
         </div>
         <div>
-          <label htmlFor="alert-price" className="mb-1 block text-[11px] font-bold text-muted-foreground/80">Max price (LKR)</label>
+          <label htmlFor="alert-price" className="mb-1 block text-[11px] font-semibold text-muted-foreground">Max price (LKR)</label>
           <Input
             id="alert-price"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value.replace(/[^\d]/g, ""))}
             inputMode="numeric"
             placeholder="5000000"
-            className="h-9 text-sm border-white/5 bg-white/[0.02] text-white placeholder:text-zinc-400 focus-visible:ring-primary/30"
+            className="num h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
           />
         </div>
       </div>
       {formError && (
-        <p role="alert" className="text-[11px] text-destructive/80 font-medium">{formError}</p>
+        <p role="alert" className="text-[11px] font-medium text-destructive/80">{formError}</p>
       )}
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={saving} className="h-9 flex-1 text-[12px] font-bold bg-primary hover:bg-primary/95 text-white">
+        <Button type="submit" size="sm" disabled={saving} className="h-9 flex-1 text-[12px] font-bold">
           {saving ? "Saving…" : "Save alert"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => { setOpen(false); setFormError(null); }} className="h-9 px-3 text-[12px] border-white/5 hover:bg-white/[0.02] text-muted-foreground">
+        <Button type="button" variant="ghost" size="sm" onClick={() => { setOpen(false); setFormError(null); }} className="h-9 px-3 text-[12px] text-muted-foreground hover:bg-surface">
           Cancel
         </Button>
       </div>
@@ -280,15 +266,17 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
   const label = [alert.make, alert.model].filter(Boolean).join(" ") || "All vehicles";
 
   return (
-    <div
-      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.01] p-3 hover:border-primary/20 hover:bg-white/[0.03] transition-all duration-300"
+    <motion.div
+      whileHover={{ y: -1 }}
+      transition={springSoft}
+      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors duration-300 hover:border-primary/40 hover:bg-surface hover:shadow-soft"
       data-testid="alert-row"
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-bold text-white">{label}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground font-medium">
+        <p className="truncate text-sm font-semibold tracking-tight text-foreground">{label}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-muted-foreground">
           {alert.district && <span>{alert.district}</span>}
-          {alert.max_price && <span>Under {formatPrice(alert.max_price)}</span>}
+          {alert.max_price && <span className="num">Under {formatPrice(alert.max_price)}</span>}
           {!alert.district && !alert.max_price && <span>Any price · All districts</span>}
         </div>
       </div>
@@ -304,12 +292,12 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
           onClick={handleDelete}
           disabled={deleting}
           aria-label={`Delete alert for ${label}`}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-white/5 text-muted-foreground transition-colors hover:border-destructive/30 hover:text-rose-400 disabled:opacity-40"
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-rose-600 disabled:opacity-40 dark:hover:text-rose-400"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -324,36 +312,43 @@ export default function Alerts() {
       initial="hidden"
       animate="show"
       variants={containerVariants}
-      className="mx-auto max-w-2xl px-5 py-10 sm:px-6 relative overflow-hidden bg-background"
+      className="relative mx-auto max-w-2xl overflow-hidden bg-background px-5 py-12 sm:px-6 sm:py-16"
     >
       {/* Decorative Orbs */}
-      <div className="absolute top-[10%] right-[-10%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-20%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="pointer-events-none absolute right-[-10%] top-[10%] h-[300px] w-[300px] rounded-full bg-primary/5 blur-[80px]" />
+      <div className="pointer-events-none absolute bottom-[20%] left-[-20%] h-[300px] w-[300px] rounded-full bg-primary/5 blur-[80px]" />
 
-      {/* Header */}
-      <motion.div variants={itemVariants} className="mb-8 relative z-10">
-        <div className="flex items-center gap-3 mb-2">
-          <Bell className="h-5 w-5 text-primary" aria-hidden />
-          <h1 className="text-2xl font-bold tracking-tight text-white">Market Alerts</h1>
-        </div>
-        <p className="text-[14px] text-muted-foreground font-medium">
+      {/* Hero */}
+      <motion.div variants={itemVariants} className="relative z-10 mb-12">
+        <p className="mb-4 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+          <Bell className="h-3.5 w-3.5" aria-hidden />
+          Market watch
+        </p>
+        <h1 className="display-hero text-foreground">Market Alerts</h1>
+        <p className="mt-5 max-w-xl text-body-lg">
           Get notified when vehicles matching your criteria appear on the market.
         </p>
       </motion.div>
 
       {/* Create form */}
-      <motion.div variants={itemVariants} className="mb-8 relative z-10">
+      <motion.div variants={itemVariants} className="relative z-10 mb-14">
         <CreateAlertForm token={token} onCreated={refresh} onCreate={create} />
       </motion.div>
 
       {/* Active alerts */}
-      <motion.section variants={itemVariants} aria-labelledby="active-alerts-heading" className="mb-10 relative z-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 id="active-alerts-heading" className="text-base font-bold tracking-tight text-white">
-            Active alerts
-          </h2>
+      <motion.section variants={itemVariants} aria-labelledby="active-alerts-heading" className="relative z-10 mb-16">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="mb-2 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+              <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+              Your watchlist
+            </p>
+            <h2 id="active-alerts-heading" className="display-2 text-foreground">
+              Active alerts
+            </h2>
+          </div>
           {!loading && (
-            <span className="text-[11px] font-bold text-primary-bright num">
+            <span className="num shrink-0 text-sm font-bold text-primary-bright">
               {alerts.length}
             </span>
           )}
@@ -362,21 +357,21 @@ export default function Alerts() {
         {loading && (
           <div className="space-y-2" aria-label="Loading alerts">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
+              <div key={i} className="h-16 animate-pulse rounded-xl border border-border bg-card" />
             ))}
           </div>
         )}
 
         {!loading && error && alerts.length === 0 && (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] text-destructive/80 font-medium" role="alert">
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] font-medium text-destructive/80" role="alert">
             {error}
           </div>
         )}
 
         {!loading && !error && alerts.length === 0 && (
-          <div className="rounded-xl border border-dashed border-white/10 py-10 text-center">
-            <BellOff className="mx-auto mb-3 h-6 w-6 text-muted-foreground/30" aria-hidden />
-            <p className="text-[12px] text-muted-foreground font-medium">No active alerts. Create one above to get started.</p>
+          <div className="rounded-2xl border border-dashed border-border bg-card/40 py-14 text-center">
+            <BellOff className="mx-auto mb-3 h-7 w-7 text-muted-foreground/40" aria-hidden />
+            <p className="text-[13px] font-medium text-muted-foreground">No active alerts. Create one above to get started.</p>
           </div>
         )}
 
@@ -391,17 +386,17 @@ export default function Alerts() {
         )}
 
         {showFallback && (
-          <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-md p-4">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
+          <div className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-soft">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Locally saved (offline)
             </p>
             <div className="space-y-1.5">
               {localAlerts.map((a) => (
-                <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-white/[0.01] p-3">
+                <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-bold text-white">{a.label}</p>
+                    <p className="truncate text-[13px] font-semibold text-foreground">{a.label}</p>
                     {a.target_price_lkr ? (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground font-medium">Under {formatPrice(a.target_price_lkr)}</p>
+                      <p className="num mt-0.5 text-[11px] font-medium text-muted-foreground">Under {formatPrice(a.target_price_lkr)}</p>
                     ) : null}
                   </div>
                   <Link

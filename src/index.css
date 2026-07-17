@@ -82,6 +82,7 @@
     /* ── Glass tints ──────────────────────────────────────────────────── */
     --glass-bg: rgba(255, 255, 255, 0.72);
     --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-top: rgba(255, 255, 255, 0.9);   /* bright top edge — light catching the material */
     --glass-blur: 22px;
 
     /* ── Elevation — soft, diffuse Apple shadows ──────────────────────── */
@@ -127,24 +128,24 @@
     --surface: 240 10% 5%;               /* #0d0d10 surface */
     --surface-foreground: 240 20% 97%;
 
-    --primary: 250 89% 65%;             /* #7c3aed premium indigo */
+    --primary: 211 100% 60%;            /* #1f8fff — Apple system blue, brightened for dark */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 13%;
+    --secondary: 240 6% 12%;
     --secondary-foreground: 240 18% 92%;
 
-    --muted: 240 5% 13%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 240 6% 12%;
+    --muted-foreground: 240 5% 66%;
 
-    --accent: 240 5% 14%;
+    --accent: 240 6% 14%;
     --accent-foreground: 240 18% 94%;
 
-    --destructive: 4 72% 56%;
+    --destructive: 4 76% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 15% / 0.40;
-    --input: 240 6% 15% / 0.50;
-    --ring: 250 89% 65%;
+    --border: 240 8% 24% / 0.42;
+    --input: 240 8% 26% / 0.55;
+    --ring: 211 100% 60%;
 
     --signal-green: 145 60% 50%;
     --signal-cyan: 199 89% 60%;
@@ -161,26 +162,28 @@
     --sidebar-border: 240 6% 15% / 0.40;
 
     /* Brighter primary for SMALL text on dark surfaces — plain --primary
-       (65% lightness) lands just under WCAG 4.5:1 on charcoal at 10-12px. */
-    --primary-bright: 250 89% 78%;
+       (60% lightness) lands just under WCAG 4.5:1 on charcoal at 10-12px. */
+    --primary-bright: 211 100% 72%;
 
-    /* Legacy aliases — kept in lockstep with --primary (hsl 250 89% 65%) so
+    /* Legacy aliases — kept in lockstep with --primary (hsl 211 100% 60%) so
        any remaining var(--gold*) reference renders identical to text-primary. */
-    --gold: hsl(250 89% 65%);
-    --gold-bright: hsl(250 89% 78%);
-    --gold-muted: hsla(250, 89%, 65%, 0.12);
-    --gold-glow: hsla(250, 89%, 65%, 0.25);
-    --accent-blue: #7c3aed;
-    --accent-blue-bright: #a78bfa;
+    --gold: hsl(211 100% 60%);
+    --gold-bright: hsl(211 100% 72%);
+    --gold-muted: hsla(211, 100%, 60%, 0.12);
+    --gold-glow: hsla(211, 100%, 60%, 0.26);
+    --accent-blue: #1f8fff;
+    --accent-blue-bright: #6cb8ff;
 
-    --glass-bg: rgba(9, 9, 11, 0.72);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    /* Glass — a real material: a touch brighter top edge catches light (§12). */
+    --glass-bg: rgba(14, 14, 18, 0.66);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --glass-top: rgba(255, 255, 255, 0.08);
 
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-    --shadow-md: 0 2px 10px rgba(0,0,0,0.5);
-    --shadow-lg: 0 10px 34px rgba(0,0,0,0.55);
-    --shadow-xl: 0 22px 60px rgba(0,0,0,0.6);
-    --console-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 10px 28px rgba(0,0,0,0.5);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
+    --shadow-md: 0 3px 14px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-lg: 0 14px 44px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.45);
+    --shadow-xl: 0 28px 72px rgba(0,0,0,0.66), 0 10px 24px rgba(0,0,0,0.5);
+    --console-shadow: 0 1px 0 rgba(255,255,255,0.05), 0 12px 34px rgba(0,0,0,0.52);
 
     color-scheme: dark;
   }
@@ -372,7 +375,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-top);
   }
 
   .surface--interactive:hover {
@@ -499,6 +502,63 @@
     font-weight: 700;
     letter-spacing: -0.02em;
     color: hsl(var(--foreground) / 0.03);
+  }
+}
+
+/* ============================================================================
+   Display typography — big, confident, size-specific tracking & leading (§15).
+   The single biggest lever for hierarchy: heroes should tower over labels.
+   ========================================================================== */
+
+@layer components {
+  .display-hero {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2.5rem, 6vw + 0.25rem, 5.25rem);   /* ~40 → 84px */
+    line-height: 0.98;
+    letter-spacing: -0.035em;                            /* tighten as it grows */
+    text-wrap: balance;
+  }
+
+  .display-1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(2rem, 3.4vw + 0.5rem, 3.25rem);     /* ~32 → 52px */
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+
+  .display-2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.6rem, 2.1vw + 0.5rem, 2.25rem);   /* ~26 → 36px */
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  .text-body-lg {
+    font-size: clamp(1.0625rem, 0.35vw + 1rem, 1.25rem); /* 17 → 20px */
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Ink → accent text sheen for signature words in a headline. */
+  .text-sheen {
+    background-image: linear-gradient(120deg, hsl(var(--foreground)) 0%, hsl(var(--foreground)) 40%, hsl(var(--primary)) 130%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* A hairline that fades at both ends — magazine-grade section rule. */
+  .rule-fade {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+    border: 0;
   }
 }
 
@@ -658,7 +718,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-top);
   }
 
   .nav-command-panel,

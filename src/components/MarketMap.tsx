@@ -1,7 +1,9 @@
 import { memo, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
 import { DistrictPrice } from "@/types/car";
 import { formatPrice } from "@/services/api";
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { revealItem } from "@/lib/motion";
 
 interface MarketMapProps {
   data: DistrictPrice[];
@@ -70,9 +72,9 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
 
   if (isLoading) {
     return (
-      <div className="h-[420px] rounded-xl border border-border bg-[#111] overflow-hidden relative flex flex-col items-center justify-center space-y-4">
+      <div className="h-[420px] rounded-xl border border-border bg-surface overflow-hidden relative flex flex-col items-center justify-center space-y-4">
         <div className="relative flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-amber-500 animate-spin mb-4" />
+          <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-4" />
           <p className="text-sm font-bold uppercase tracking-widest text-primary/80">Syncing Geo Intelligence</p>
           <p className="text-xs text-muted-foreground mt-2 font-medium">Aggregating market density data across districts...</p>
         </div>
@@ -82,20 +84,25 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
 
   if (!points.length) {
     return (
-      <div className="h-[420px] rounded-xl border border-border bg-black/30 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="h-[420px] rounded-xl border border-border bg-surface flex items-center justify-center text-muted-foreground text-sm">
         Market intelligence map is waiting for district geo data.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      className="space-y-4"
+      variants={revealItem}
+      initial="hidden"
+      animate="show"
+    >
       <div className="flex flex-wrap items-center gap-3 tech-label font-bold">
-        <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-foreground">Price concentration: lower to higher</div>
-        <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-foreground">Click any district for detail</div>
+        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">Price concentration: lower to higher</div>
+        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">Click any district for detail</div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border" style={{ height: 420 }}>
+      <div className="overflow-hidden rounded-xl border border-border transition-colors" style={{ height: 420 }}>
         <MapContainer
           center={SL_CENTER}
           zoom={7.5}
@@ -149,12 +156,12 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
                 >
                   <div className="min-w-[220px] text-sm space-y-1.5">
                     <p className="font-bold text-base">{point.district}</p>
-                    <p>Total Listings: {point.listing_count.toLocaleString()}</p>
+                    <p>Total Listings: <span className="num">{point.listing_count.toLocaleString()}</span></p>
                     <p>
                       Top Model: {topModelLabel}
-                      {topModelMeta ? <span className="text-xs text-muted-foreground"> ({topModelMeta})</span> : null}
+                      {topModelMeta ? <span className="text-xs text-muted-foreground num"> ({topModelMeta})</span> : null}
                     </p>
-                    <p>Avg. Price: {formatPrice(point.avg_price)}</p>
+                    <p>Avg. Price: <span className="num">{formatPrice(point.avg_price)}</span></p>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -162,7 +169,7 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
           })}
         </MapContainer>
       </div>
-    </div>
+    </motion.div>
   );
 });
 

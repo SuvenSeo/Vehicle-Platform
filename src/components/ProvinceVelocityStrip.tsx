@@ -52,7 +52,7 @@ function ProvinceCell({
 
   return (
     <article
-      className="relative min-w-0 overflow-hidden rounded-xl border border-white/10 px-3 py-3 transition-transform hover:scale-[1.02]"
+      className="relative min-w-0 overflow-hidden rounded-xl border border-border px-3 py-3 transition-all duration-300 ease-apple hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft"
       style={{
         background: `linear-gradient(160deg, ${color.replace("rgb", "rgba").replace(")", `, ${0.22 + intensity * 0.35})`)} 0%, rgba(17,17,17,0.85) 100%)`,
         boxShadow: `inset 0 0 0 1px ${color.replace("rgb", "rgba").replace(")", ", 0.25)")}`,
@@ -67,6 +67,7 @@ function ProvinceCell({
       <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-foreground/90">
         {point.province}
       </p>
+      {/* Cell background is an always-dark data-viz gradient (not a theme surface), so text stays fixed-light regardless of theme */}
       <p className="mt-2 num text-lg font-semibold tracking-tight text-emerald-300">
         {formatVelocityPct(point.velocity_score)}
       </p>
@@ -106,7 +107,7 @@ export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
     return (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-9">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="h-[88px] animate-pulse rounded-xl border border-border bg-black/30" />
+          <div key={i} className="h-[88px] animate-pulse rounded-xl border border-border bg-surface" />
         ))}
       </div>
     );
@@ -114,7 +115,7 @@ export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
 
   if (!provinces.length) {
     return (
-      <div className="rounded-xl border border-border bg-black/30 px-4 py-6 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-border bg-surface px-4 py-6 text-center text-sm text-muted-foreground">
         Province velocity unavailable — district points not yet indexed.
       </div>
     );
@@ -124,17 +125,17 @@ export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-1 text-foreground">
+          <span className="rounded-lg border border-border bg-surface px-2.5 py-1 text-foreground">
             Province rollup
           </span>
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2.5 py-1">
+          <span className="rounded-lg border border-border bg-surface px-2.5 py-1">
             Sum volume · weighted velocity
           </span>
         </div>
         {hottest ? (
           <p className="text-[11px] text-muted-foreground">
             Hottest:{" "}
-            <span className="font-semibold text-emerald-400">{hottest.province}</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{hottest.province}</span>
             <span className="num"> · {formatVelocityPct(hottest.velocity_score)}</span>
           </p>
         ) : null}

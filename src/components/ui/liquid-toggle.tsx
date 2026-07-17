@@ -17,15 +17,18 @@ export function LiquidToggle({
   return (
     <div className={cn("liquid-toggle-card", className)}>
       <div className="min-w-0">
-        <p className="text-sm font-bold text-zinc-100">{label}</p>
-        {description ? <p className="mt-1 text-xs leading-5 text-zinc-500">{description}</p> : null}
+        <p className="text-sm font-bold text-foreground">{label}</p>
+        {description ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p> : null}
       </div>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onCheckedChange(!checked)}
-        className={cn("liquid-toggle", checked && "is-on")}
+        className={cn(
+          "liquid-toggle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          checked && "is-on"
+        )}
       >
         <span className="liquid-toggle__track" aria-hidden="true">
           <span className="liquid-toggle__thumb">

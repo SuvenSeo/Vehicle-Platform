@@ -16,15 +16,15 @@ function pct(value: number): string {
 }
 
 function metricColor(good: boolean, ok: boolean): string {
-  if (good) return "text-emerald-400";
-  if (ok) return "text-amber-400";
-  return "text-rose-400";
+  if (good) return "text-emerald-600 dark:text-emerald-400";
+  if (ok) return "text-amber-600 dark:text-amber-400";
+  return "text-rose-600 dark:text-rose-400";
 }
 
 function barColor(good: boolean, ok: boolean): string {
-  if (good) return "bg-emerald-400";
-  if (ok) return "bg-amber-400";
-  return "bg-rose-400";
+  if (good) return "bg-emerald-500 dark:bg-emerald-400";
+  if (ok) return "bg-amber-500 dark:bg-amber-400";
+  return "bg-rose-500 dark:bg-rose-400";
 }
 
 function buildMetrics(row: SourceQualityRow): MetricConfig[] {
@@ -68,10 +68,10 @@ function buildMetrics(row: SourceQualityRow): MetricConfig[] {
 function SourceCard({ row }: { row: SourceQualityRow }) {
   const metrics = buildMetrics(row);
   return (
-    <div className="asset-surface rounded-xl p-5">
+    <div className="asset-surface rounded-xl p-5 transition-all duration-300 ease-apple hover:border-primary/30 hover:shadow-soft-lg">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-lg font-bold text-white">{row.source}</p>
+          <p className="text-lg font-bold text-foreground">{row.source}</p>
           <p className="mt-1 tech-label text-muted-foreground">
             {row.listing_count.toLocaleString()} listings
           </p>
@@ -81,8 +81,8 @@ function SourceCard({ row }: { row: SourceQualityRow }) {
 
       <div className="mt-4 space-y-3">
         {metrics.map((metric) => {
-          const good = metric.colorClass === "text-emerald-400";
-          const ok = metric.colorClass === "text-amber-400";
+          const good = metric.colorClass.includes("emerald");
+          const ok = metric.colorClass.includes("amber");
           return (
             <div key={metric.label}>
               <div className="flex items-center justify-between gap-3">
@@ -91,7 +91,7 @@ function SourceCard({ row }: { row: SourceQualityRow }) {
               </div>
               <div className="mt-1 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
                 <div
-                  className={`h-full rounded-full ${barColor(good, ok)}`}
+                  className={`h-full rounded-full transition-all duration-500 ease-apple ${barColor(good, ok)}`}
                   style={{ width: `${metric.barWidth}%` }}
                 />
               </div>

@@ -271,22 +271,25 @@ export default function Calculator() {
       variants={containerVariants}
       className="min-h-screen relative overflow-hidden bg-background"
     >
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
+      {/* Background Orbs — token-based, adapt to both themes */}
+      <div aria-hidden className="pointer-events-none absolute top-[-12%] left-[-10%] h-[560px] w-[560px] rounded-full bg-primary/5 blur-[130px]" />
+      <div aria-hidden className="pointer-events-none absolute bottom-[18%] right-[-12%] h-[480px] w-[480px] rounded-full bg-primary/5 blur-[120px]" />
 
-      {/* Header */}
-      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
-        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">AutoLens Intelligence Hub</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Mobility & Tax Calculators.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.</p>
+      {/* Hero — one confident headline that towers over everything */}
+      <motion.section variants={itemVariants} className="relative z-10 border-b border-border">
+        <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
+          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
+            AutoLens Intelligence Hub
+          </p>
+          <h1 className="display-hero mt-5 text-foreground">Mobility &amp; Tax Calculators.</h1>
+          <p className="text-body-lg mt-5 max-w-xl">Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.</p>
         </div>
       </motion.section>
 
       {/* Tabs Selector */}
-      <div className="mx-auto flex max-w-[1320px] flex-nowrap items-center gap-3 px-5 py-6 sm:px-6">
-        <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-xl border border-white/5 bg-white/[0.01] p-1.5 backdrop-blur-md snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
+      <motion.div variants={itemVariants} className="mx-auto flex max-w-[1320px] flex-nowrap items-center gap-3 px-5 py-6 sm:px-6">
+        <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-full border border-border bg-card p-1.5 shadow-soft snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
           {[
             { id: "landed-cost", label: "Landed Cost", icon: Banknote },
             { id: "lease", label: "Lease Scenario", icon: WalletCards },
@@ -300,16 +303,16 @@ export default function Calculator() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
                 aria-pressed={activeTab === tab.id}
-                className={`relative flex min-h-[40px] shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-xs font-semibold tracking-wide transition-colors z-10 ${
+                className={`relative flex min-h-[40px] shrink-0 snap-start items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-colors z-10 active:scale-[0.97] ${
                   activeTab === tab.id
                     ? "text-black font-bold"
-                    : "text-muted-foreground hover:text-white"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="active-tab-indicator"
-                    className="absolute inset-0 bg-primary rounded-lg -z-10 shadow-md shadow-primary/20"
+                    className="absolute inset-0 bg-primary rounded-full -z-10 shadow-soft"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -321,13 +324,13 @@ export default function Calculator() {
         </div>
         <button
           onClick={() => void copyShareLink()}
-          className="flex shrink-0 items-center gap-2 rounded-xl border border-white/5 bg-white/[0.01] px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground backdrop-blur-md transition-colors hover:text-white"
+          className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground shadow-soft transition-colors hover:text-foreground active:scale-[0.97]"
           title="Copy a shareable link to this calculation"
         >
           <Link2 className="h-3.5 w-3.5" />
           Share
         </button>
-      </div>
+      </motion.div>
 
       <div className="mx-auto max-w-[1320px] px-5 pb-16 sm:px-6 relative z-10">
         <AnimatePresence mode="wait">
@@ -341,11 +344,11 @@ export default function Calculator() {
               className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
             >
               {/* Surcharge countdown — time-boxed gazette moment */}
-              <div className="lg:col-span-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.04] p-4 backdrop-blur-md">
+              <div className="lg:col-span-2 rounded-2xl border border-amber-500/25 bg-amber-400/[0.06] p-4">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-                    <span className="text-xs font-bold text-amber-300">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
                       {surchargeCountdown.expired
                         ? "The 50% CID surcharge's gazetted 3-month period has ended"
                         : `50% CID surcharge in force — set to lapse in ${surchargeCountdown.daysLeft} day${surchargeCountdown.daysLeft === 1 ? "" : "s"}`}
@@ -363,7 +366,7 @@ export default function Calculator() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.92 }}
                         transition={{ duration: 0.18 }}
-                        className="w-full text-center sm:w-auto sm:text-left sm:ml-auto rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300 num"
+                        className="w-full text-center sm:w-auto sm:text-left sm:ml-auto rounded-full border border-emerald-500/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num"
                       >
                         This import lands {formatPrice(lcLapseSavings)} cheaper if it lapses
                       </motion.span>
@@ -373,13 +376,13 @@ export default function Calculator() {
               </div>
 
               {/* Inputs */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md h-fit space-y-5">
-                <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft h-fit space-y-5">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
                     <Banknote className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-[14px] font-bold text-white">Import Configuration</h2>
+                    <h2 className="text-[14px] font-bold text-foreground">Import Configuration</h2>
                     <p className="text-[10px] text-muted-foreground font-semibold">Taxes compounding on CIF valuation</p>
                   </div>
                 </div>
@@ -388,11 +391,11 @@ export default function Calculator() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label htmlFor="lc-cif" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">CIF Price (USD)</label>
-                      <Input id="lc-cif" type="number" value={cifUsd} onChange={(e) => setCifUsd(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <Input id="lc-cif" type="number" value={cifUsd} onChange={(e) => setCifUsd(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                     <div className="space-y-1.5">
                       <label htmlFor="lc-fx" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Exchange Rate (LKR)</label>
-                      <Input id="lc-fx" type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <Input id="lc-fx" type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                   </div>
 
@@ -404,10 +407,10 @@ export default function Calculator() {
                           key={fuel}
                           onClick={() => setLcFuelType(fuel)}
                           aria-pressed={lcFuelType === fuel}
-                          className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all ${
+                          className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                             lcFuelType === fuel
-                              ? "border-primary/30 bg-primary/10 text-primary-bright"
-                              : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
+                              ? "border-primary/40 bg-primary/10 text-primary-bright"
+                              : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40"
                           }`}
                         >
                           {fuel}
@@ -419,9 +422,9 @@ export default function Calculator() {
                   {lcFuelType !== "electric" ? (
                     <div className="space-y-1.5">
                       <label htmlFor="lc-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
-                      <Input id="lc-cc" type="number" value={lcEngineCc} onChange={(e) => setLcEngineCc(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <Input id="lc-cc" type="number" value={lcEngineCc} onChange={(e) => setLcEngineCc(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                       {lcFuelType === "hybrid" && lcEngineCc > 1500 && (
-                        <p className="flex items-center gap-1.5 text-[10px] text-amber-400 font-semibold mt-1">
+                        <p className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">
                           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                           Capacity is above the 1500cc cliff. Excise rate steps up significantly.
                         </p>
@@ -430,16 +433,16 @@ export default function Calculator() {
                   ) : (
                     <div className="space-y-1.5">
                       <label htmlFor="lc-kw" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Motor Power (kW)</label>
-                      <Input id="lc-kw" type="number" value={lcMotorKw} onChange={(e) => setLcMotorKw(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                      <Input id="lc-kw" type="number" value={lcMotorKw} onChange={(e) => setLcMotorKw(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                   )}
 
-                  <div className="space-y-3 pt-3 border-t border-white/5">
-                    <label className="flex items-center gap-3 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-white">
+                  <div className="space-y-3 pt-3 border-t border-border">
+                    <label className="flex items-center gap-3 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">
                       <input type="checkbox" checked={applySurcharge} onChange={(e) => setApplySurcharge(e.target.checked)} className="accent-primary h-4 w-4 rounded" />
                       Apply 50% CID Gazette Surcharge (Compounding)
                     </label>
-                    <label className="flex items-center gap-3 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-white">
+                    <label className="flex items-center gap-3 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">
                       <input type="checkbox" checked={applySscl} onChange={(e) => setApplySscl(e.target.checked)} className="accent-primary h-4 w-4 rounded" />
                       Apply 2.5% SSCL Levy
                     </label>
@@ -447,10 +450,10 @@ export default function Calculator() {
                 </div>
               </div>
 
-              {/* Landed Cost Results */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md space-y-6">
+              {/* Landed Cost Results — the number is the hero */}
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft-lg space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Landed Cost breakdown</h3>
+                  <h3 className="text-sm font-bold text-foreground">Landed Cost breakdown</h3>
                   <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Indicative tax components based on 2026 gazette calculations</p>
                 </div>
 
@@ -460,52 +463,51 @@ export default function Calculator() {
                   </div>
                 ) : lcResult ? (
                   <div className={`space-y-5 transition-opacity duration-200 ${lcLoading ? "opacity-60" : "opacity-100"}`}>
-                    <div className="space-y-3 border-b border-white/5 pb-4">
+                    <div className="space-y-3 border-b border-border pb-4">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Base CIF LKR Equivalent</span>
-                        <span className="font-semibold text-white num">{formatPrice(lcResult.cif_lkr)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(lcResult.cif_lkr)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Customs Import Duty (20%)</span>
-                        <span className="font-semibold text-white num">{formatPrice(lcResult.cid)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(lcResult.cid)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Surcharge on CID (50% Surcharge)</span>
-                        <span className="font-semibold text-white num">{formatPrice(lcResult.surcharge)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(lcResult.surcharge)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Excise Duty (Capacity Banded)</span>
-                        <span className="font-semibold text-white num">{formatPrice(lcResult.excise)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(lcResult.excise)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>SSCL (2.5%)</span>
-                        <span className="font-semibold text-white num">{formatPrice(lcResult.sscl)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(lcResult.sscl)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>VAT (18% Compounded)</span>
-                        <span className="font-semibold text-white num">{formatPrice(lcResult.vat)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(lcResult.vat)}</span>
                       </div>
                       {lcResult.luxury_tax > 0 && (
-                        <div className="flex justify-between text-xs text-rose-400 font-semibold">
+                        <div className="flex justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold">
                           <span>Luxury Tax (Excess Portion)</span>
                           <span className="num">{formatPrice(lcResult.luxury_tax)}</span>
                         </div>
                       )}
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="rounded-xl border border-white/5 bg-white/[0.01] p-4 text-center">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Taxes & Duties</span>
-                        <p className="text-xl font-bold text-primary mt-1 num">+{formatPrice(lcResult.total_tax)}</p>
-                      </div>
-                      <div aria-live="polite" className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-center">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary-bright">Est. Landed Cost</span>
-                        <p className="text-xl font-bold text-white mt-1 num">{formatPrice(lcResult.landed_cost)}</p>
+                    {/* Featured readout — landed cost towers, total taxes demoted below it */}
+                    <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-5 sm:p-6 shadow-soft">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Est. Landed Cost</span>
+                      <p className="display-1 text-foreground num mt-2">{formatPrice(lcResult.landed_cost)}</p>
+                      <div className="mt-4 flex items-center gap-3 border-t border-primary/15 pt-3">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Taxes &amp; Duties</span>
+                        <span className="ml-auto text-sm font-bold text-primary num">+{formatPrice(lcResult.total_tax)}</span>
                       </div>
                     </div>
 
-                    <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3 flex gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="rounded-lg bg-surface border border-border p-3 flex gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <p className="text-[10px] leading-relaxed text-muted-foreground font-semibold">{lcResult.notes}</p>
                     </div>
                   </div>
@@ -524,13 +526,13 @@ export default function Calculator() {
               className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
             >
               {/* ORIGINAL CONFIG INPUTS */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md h-fit space-y-5">
-                <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft h-fit space-y-5">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
                     <WalletCards className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-[14px] font-bold text-white">Lease Assumptions</h2>
+                    <h2 className="text-[14px] font-bold text-foreground">Lease Assumptions</h2>
                     <p className="text-[10px] text-muted-foreground font-semibold">Bases for loan to value margins</p>
                   </div>
                 </div>
@@ -538,12 +540,12 @@ export default function Calculator() {
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label htmlFor="lease-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Vehicle Valuation (LKR)</label>
-                    <Input id="lease-price" type="number" value={leasePrice} onChange={(e) => setLeasePrice(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30 font-semibold text-white text-base" />
+                    <Input id="lease-price" type="number" value={leasePrice} onChange={(e) => setLeasePrice(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40 font-semibold text-foreground text-base" />
                     <p className="text-[10px] text-muted-foreground font-semibold num">{formatPrice(leasePrice)}</p>
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="lease-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
-                    <Input id="lease-cc" type="number" value={leaseCc} onChange={(e) => setLeaseCc(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="lease-cc" type="number" value={leaseCc} onChange={(e) => setLeaseCc(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
               </div>
@@ -563,20 +565,20 @@ export default function Calculator() {
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="overflow-hidden rounded-xl border border-primary/15 bg-primary/[0.04]"
+                      className="overflow-hidden rounded-2xl border border-primary/20 bg-primary/[0.05] shadow-soft"
                     >
                       <div className="p-4">
                       <div className="flex items-start gap-2.5">
                         <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="space-y-1.5">
-                          <p className="text-xs font-bold text-white">The 40/60 rule is working in your favour on used cars</p>
+                          <p className="text-xs font-bold text-foreground">The 40/60 rule is working in your favour on used cars</p>
                           <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
-                            CBSL caps financing at <span className="font-bold text-white">40%</span> for brand-new or unregistered vehicles but{" "}
-                            <span className="font-bold text-white">60%</span> for registered used (&gt;1yr). For this{" "}
-                            <span className="num font-bold text-white">{formatPrice(leasePrice)}</span> vehicle: registered used needs{" "}
-                            <span className="num font-bold text-emerald-400">{formatPrice(usedDown)}</span> down; new or unregistered needs{" "}
-                            <span className="num font-bold text-rose-400">{formatPrice(newDown)}</span> — the same cash that would stretch to a{" "}
-                            <span className="num font-bold text-white">{formatPrice(usedBudgetFromNewDown)}</span> registered used car.
+                            CBSL caps financing at <span className="font-bold text-foreground">40%</span> for brand-new or unregistered vehicles but{" "}
+                            <span className="font-bold text-foreground">60%</span> for registered used (&gt;1yr). For this{" "}
+                            <span className="num font-bold text-foreground">{formatPrice(leasePrice)}</span> vehicle: registered used needs{" "}
+                            <span className="num font-bold text-emerald-600 dark:text-emerald-400">{formatPrice(usedDown)}</span> down; new or unregistered needs{" "}
+                            <span className="num font-bold text-rose-600 dark:text-rose-400">{formatPrice(newDown)}</span> — the same cash that would stretch to a{" "}
+                            <span className="num font-bold text-foreground">{formatPrice(usedBudgetFromNewDown)}</span> registered used car.
                           </p>
                           <p className="text-[10px] font-semibold text-muted-foreground">
                             CBSL Act Directions No. 01 of 2026 (from 25 May 2026) · banks may apply stricter internal caps
@@ -610,13 +612,13 @@ export default function Calculator() {
               className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
             >
               {/* Inputs */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md space-y-4 h-fit">
-                <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft space-y-4 h-fit">
+                <div className="flex items-center gap-3 border-b border-border pb-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
                     <Gauge className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-[14px] font-bold text-white">TCO Assumptions</h2>
+                    <h2 className="text-[14px] font-bold text-foreground">TCO Assumptions</h2>
                     <p className="text-[10px] text-muted-foreground font-semibold">Commute, service, and amortization</p>
                   </div>
                 </div>
@@ -624,11 +626,11 @@ export default function Calculator() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label htmlFor="tco-km" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Daily Commute (KM)</label>
-                    <Input id="tco-km" type="number" value={tcoDailyKm} onChange={(e) => setTcoDailyKm(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="tco-km" type="number" value={tcoDailyKm} onChange={(e) => setTcoDailyKm(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="tco-kmpl" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Fuel Efficiency (KMPL)</label>
-                    <Input id="tco-kmpl" type="number" value={tcoKmpl} onChange={(e) => setTcoKmpl(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="tco-kmpl" type="number" value={tcoKmpl} onChange={(e) => setTcoKmpl(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
 
@@ -640,10 +642,10 @@ export default function Calculator() {
                         key={fuel}
                         onClick={() => setTcoFuelType(fuel)}
                         aria-pressed={tcoFuelType === fuel}
-                        className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all ${
+                        className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                           tcoFuelType === fuel
-                            ? "border-primary/30 bg-primary/10 text-primary-bright"
-                            : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
+                            ? "border-primary/40 bg-primary/10 text-primary-bright"
+                            : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40"
                         }`}
                       >
                         {fuel}
@@ -654,36 +656,36 @@ export default function Calculator() {
 
                 <div className="space-y-1.5">
                   <label htmlFor="tco-lease" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Monthly Lease (LKR)</label>
-                  <Input id="tco-lease" type="number" value={tcoLease} onChange={(e) => setTcoLease(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                  <Input id="tco-lease" type="number" value={tcoLease} onChange={(e) => setTcoLease(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
                   <div className="space-y-1.5">
                     <label htmlFor="tco-ins" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Insurance</label>
-                    <Input id="tco-ins" type="number" value={tcoInsurance} onChange={(e) => setTcoInsurance(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="tco-ins" type="number" value={tcoInsurance} onChange={(e) => setTcoInsurance(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="tco-svc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Service</label>
-                    <Input id="tco-svc" type="number" value={tcoService} onChange={(e) => setTcoService(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="tco-svc" type="number" value={tcoService} onChange={(e) => setTcoService(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label htmlFor="tco-tyres" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Tyres</label>
-                    <Input id="tco-tyres" type="number" value={tcoTyres} onChange={(e) => setTcoTyres(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="tco-tyres" type="number" value={tcoTyres} onChange={(e) => setTcoTyres(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="tco-dep" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Resale Loss</label>
-                    <Input id="tco-dep" type="number" value={tcoDepreciation} onChange={(e) => setTcoDepreciation(Number(e.target.value))} className="bg-white/[0.02] border-white/5 focus-visible:ring-primary/30" />
+                    <Input id="tco-dep" type="number" value={tcoDepreciation} onChange={(e) => setTcoDepreciation(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
               </div>
 
-              {/* TCO Results */}
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md space-y-6">
+              {/* TCO Results — monthly cost is the hero number */}
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft-lg space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Monthly Cost of Ownership breakdown</h3>
+                  <h3 className="text-sm font-bold text-foreground">Monthly Cost of Ownership breakdown</h3>
                   <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Calculated using live Octane API price metrics</p>
                 </div>
 
@@ -693,31 +695,31 @@ export default function Calculator() {
                   </div>
                 ) : tcoResult ? (
                   <div className={`space-y-5 transition-opacity duration-200 ${tcoLoading ? "opacity-60" : "opacity-100"}`}>
-                    <div className="space-y-3 border-b border-white/5 pb-4">
+                    <div className="space-y-3 border-b border-border pb-4">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Live fuel/energy price benchmark</span>
-                        <span className="font-semibold text-white num">Rs. {tcoResult.fuel_price_lkr.toLocaleString()} / L or kWh</span>
+                        <span className="font-semibold text-foreground num">Rs. {tcoResult.fuel_price_lkr.toLocaleString()} / L or kWh</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Monthly fuel/energy consumption</span>
-                        <span className="font-semibold text-white num">{formatPrice(tcoResult.fuel_cost_monthly)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(tcoResult.fuel_cost_monthly)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Monthly lease installments</span>
-                        <span className="font-semibold text-white num">{formatPrice(tcoResult.lease_cost_monthly)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(tcoResult.lease_cost_monthly)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Amortized service, insurance, tyres & depreciation</span>
-                        <span className="font-semibold text-white num">{formatPrice(tcoResult.overhead_cost_monthly)}</span>
+                        <span className="font-semibold text-foreground num">{formatPrice(tcoResult.overhead_cost_monthly)}</span>
                       </div>
                     </div>
 
-                    <div aria-live="polite" className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary-bright">Total ownership cost / month</span>
-                      <p className="text-3xl font-bold text-white mt-1.5 num">{formatPrice(tcoResult.total_tco_monthly)}</p>
+                    <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center shadow-soft">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Total ownership cost / month</span>
+                      <p className="display-1 text-foreground mt-2 num">{formatPrice(tcoResult.total_tco_monthly)}</p>
                     </div>
 
-                    <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3 flex gap-2">
+                    <div className="rounded-lg bg-surface border border-border p-3 flex gap-2">
                       <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <p className="text-[10px] leading-relaxed text-muted-foreground font-semibold">{tcoResult.notes}</p>
                     </div>
@@ -736,9 +738,9 @@ export default function Calculator() {
               transition={{ duration: 0.2 }}
               className="space-y-6"
             >
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft">
                 <div className="mb-4">
-                  <h3 className="text-sm font-bold text-white">Live Permit Black Market Tracker</h3>
+                  <h3 className="text-sm font-bold text-foreground">Live Permit Black Market Tracker</h3>
                   <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Indicative values of transferable and EV remittance import licenses</p>
                 </div>
 
@@ -750,7 +752,7 @@ export default function Calculator() {
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
-                        <tr className="border-b border-white/5 text-muted-foreground uppercase tracking-wider text-[9px] font-bold">
+                        <tr className="border-b border-border text-muted-foreground uppercase tracking-wider text-[9px] font-bold">
                           <th className="py-3 px-4">Permit Name</th>
                           <th className="py-3 px-4">Type</th>
                           <th className="py-3 px-4 text-right">Premium Value (LKR)</th>
@@ -758,8 +760,8 @@ export default function Calculator() {
                       </thead>
                       <tbody>
                         {permits.map((permit) => (
-                          <tr key={permit.id} className="border-b border-white/5 hover:bg-white/[0.01] transition-colors">
-                            <td className="py-4 px-4 font-semibold text-white">{permit.permit_name}</td>
+                          <tr key={permit.id} className="border-b border-border hover:bg-surface transition-colors">
+                            <td className="py-4 px-4 font-semibold text-foreground">{permit.permit_name}</td>
                             <td className="py-4 px-4 capitalize font-medium text-muted-foreground">{permit.permit_type.replace("_", " ")}</td>
                             <td className="py-4 px-4 text-right font-bold text-primary num">{formatPrice(permit.market_price_lkr)}</td>
                           </tr>
@@ -781,36 +783,36 @@ export default function Calculator() {
               transition={{ duration: 0.2 }}
               className="space-y-6"
             >
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
+              <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft">
                 <div className="mb-6">
-                  <h3 className="text-sm font-bold text-white">Sri Lanka Value Retention Curves</h3>
+                  <h3 className="text-sm font-bold text-foreground">Sri Lanka Value Retention Curves</h3>
                   <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Asset retention curves demonstrating how specific models retain value in the local market</p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    { model: "Suzuki Wagon R", type: "Kei Car / Hybrid", values: ["92%", "85%", "78%"], tone: "text-emerald-400", border: "border-emerald-500/20", note: "The gold standard of value retention. Heavy demand for daily urban runs." },
-                    { model: "Honda Vezel Hybrid", type: "Crossover", values: ["82%", "65%", "48%"], tone: "text-amber-400", border: "border-amber-500/20", note: "Drops heavily after 3 years once the hybrid battery pack warranty expires." },
-                    { model: "Toyota Land Cruiser Prado", type: "Luxury SUV", values: ["95%", "92%", "88%"], tone: "text-primary", border: "border-primary/20", note: "Prado holds extreme value due to luxury status symbol and low import options." },
-                    { model: "Nissan Leaf EV", type: "Full EV", values: ["60%", "38%", "20%"], tone: "text-rose-400", border: "border-rose-500/20", note: "Fastest depreciation curve due to battery degradation fears." },
+                    { model: "Suzuki Wagon R", type: "Kei Car / Hybrid", values: ["92%", "85%", "78%"], tone: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/25", note: "The gold standard of value retention. Heavy demand for daily urban runs." },
+                    { model: "Honda Vezel Hybrid", type: "Crossover", values: ["82%", "65%", "48%"], tone: "text-amber-600 dark:text-amber-400", border: "border-amber-500/25", note: "Drops heavily after 3 years once the hybrid battery pack warranty expires." },
+                    { model: "Toyota Land Cruiser Prado", type: "Luxury SUV", values: ["95%", "92%", "88%"], tone: "text-primary", border: "border-primary/25", note: "Prado holds extreme value due to luxury status symbol and low import options." },
+                    { model: "Nissan Leaf EV", type: "Full EV", values: ["60%", "38%", "20%"], tone: "text-rose-600 dark:text-rose-400", border: "border-rose-500/25", note: "Fastest depreciation curve due to battery degradation fears." },
                   ].map((curve) => (
-                    <div key={curve.model} className={`rounded-xl border ${curve.border} bg-white/[0.01] p-4 flex flex-col justify-between`}>
+                    <div key={curve.model} className={`data-card border ${curve.border} bg-surface p-4 flex flex-col justify-between`}>
                       <div>
                         <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{curve.type}</span>
-                        <h4 className="text-sm font-bold text-white mt-1">{curve.model}</h4>
-                        
-                        <div className="mt-4 space-y-2 border-b border-white/5 pb-4">
+                        <h4 className="text-sm font-bold text-foreground mt-1">{curve.model}</h4>
+
+                        <div className="mt-4 space-y-2 border-b border-border pb-4">
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Year 1</span>
-                            <span className={`font-bold ${curve.tone}`}>{curve.values[0]}</span>
+                            <span className={`font-bold num ${curve.tone}`}>{curve.values[0]}</span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Year 3</span>
-                            <span className={`font-bold ${curve.tone}`}>{curve.values[1]}</span>
+                            <span className={`font-bold num ${curve.tone}`}>{curve.values[1]}</span>
                           </div>
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Year 5</span>
-                            <span className={`font-bold ${curve.tone}`}>{curve.values[2]}</span>
+                            <span className={`font-bold num ${curve.tone}`}>{curve.values[2]}</span>
                           </div>
                         </div>
                       </div>

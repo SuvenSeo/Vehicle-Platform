@@ -9,8 +9,27 @@
       content="AutoLens LK tracks Sri Lankan vehicle listings, price trends, district coverage, deal signals, and valuation tools in one market intelligence cockpit."
     />
     <meta name="author" content="AutoLens LK" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0c" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0a0a0c" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbfd" />
+    <script>
+      /* Pre-paint theme bootstrap — applies the saved/default theme before
+         first paint so there is no flash of the wrong palette. Dark is default. */
+      (function () {
+        try {
+          var mode = localStorage.getItem("autolens_theme_mode") || "dark";
+          var dark =
+            mode === "dark" ||
+            (mode === "system" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          root.classList.add(dark ? "theme-dark" : "theme-light");
+          root.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          document.documentElement.classList.add("theme-dark");
+        }
+      })();
+    </script>
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://vehicle-platform-one.vercel.app/" />
     <meta property="og:title" content="AutoLens LK — Sri Lanka Car Price Intelligence" />

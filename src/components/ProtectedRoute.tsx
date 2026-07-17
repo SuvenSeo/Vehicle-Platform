@@ -1,7 +1,9 @@
 import { type ReactNode } from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Crown, Lock, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
+import { revealContainer, revealItem, springSnappy } from "@/lib/motion";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { hasProAccess, isAuthenticated, logout, user } = useAuth();
@@ -15,7 +17,12 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-[1100px] grid min-h-screen items-center gap-8 px-5 py-10 sm:px-6 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-xl border border-border bg-card p-7 md:p-10">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={springSnappy}
+            className="rounded-xl border border-border bg-card p-7 md:p-10"
+          >
             <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary/80">
               <Lock className="h-3 w-3" /> Subscription required
             </span>
@@ -27,29 +34,49 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
               district intelligence, and exports unlock with an active Pro subscription.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Link to="/pro-preview" className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-[10px] font-semibold text-foreground no-underline hover:bg-foreground/[0.03]">
+              <Link
+                to="/pro-preview"
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-[10px] font-semibold text-foreground no-underline transition-colors hover:bg-foreground/[0.03] active:bg-foreground/[0.06]"
+              >
                 <Sparkles className="h-3 w-3" /> Preview Pro
               </Link>
-              <Link to="/sign-in" onClick={logout} className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white no-underline hover:bg-primary/95">
+              <Link
+                to="/sign-in"
+                onClick={logout}
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-colors hover:bg-primary/95 active:bg-primary/90"
+              >
                 <Crown className="h-3 w-3" /> Use paid login
               </Link>
-              <button type="button" onClick={logout} className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={logout}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:text-foreground"
+              >
                 <LogOut className="h-3 w-3" /> Sign out
               </button>
             </div>
-          </div>
+          </motion.div>
 
-          <aside className="space-y-2">
+          <motion.aside
+            variants={revealContainer}
+            initial="hidden"
+            animate="show"
+            className="space-y-2"
+          >
             {["Vehicle and district drill-downs", "Trend studio with exportable history", "Source coverage and quality signals", "PDF, Word, CSV, JSON exports"].map((item) => (
-              <div key={item} className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4">
+              <motion.div
+                key={item}
+                variants={revealItem}
+                className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4 transition-colors hover:border-primary/20"
+              >
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary/60" />
                 <div>
                   <p className="text-[13px] font-semibold text-foreground">{item}</p>
                   <p className="mt-1 text-[11px] text-muted-foreground">Locked until Pro subscription is active.</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </aside>
+          </motion.aside>
         </div>
       </div>
     );

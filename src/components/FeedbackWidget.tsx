@@ -70,7 +70,7 @@ export function FeedbackWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-primary max-sm:hidden"
+        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-primary active:scale-95 max-sm:hidden"
         aria-label="Send feedback"
         title="Send feedback"
       >
@@ -78,7 +78,7 @@ export function FeedbackWidget() {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg border-white/10 bg-[#0a0a0a] text-white">
+        <DialogContent className="max-w-lg border-border bg-card text-foreground">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl tracking-tight">Send Feedback</DialogTitle>
             <DialogDescription className="sr-only">
@@ -95,10 +95,10 @@ export function FeedbackWidget() {
                     key={option.value}
                     type="button"
                     onClick={() => setCategory(option.value)}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors duration-200 active:scale-95 ${
                       category === option.value
                         ? "border-primary/35 bg-primary/12 text-primary"
-                        : "border-white/10 bg-foreground/[0.03] text-muted-foreground hover:text-foreground"
+                        : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -112,7 +112,7 @@ export function FeedbackWidget() {
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               placeholder="What should AutoLens fix or improve?"
-              className="min-h-[130px] rounded-xl border-white/10 bg-black/25 text-sm text-foreground placeholder:text-muted-foreground"
+              className="min-h-[130px] rounded-xl border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground"
             />
 
             <Input
@@ -120,7 +120,7 @@ export function FeedbackWidget() {
               onChange={(event) => setEmail(event.target.value)}
               type="email"
               placeholder="Email optional"
-              className="h-10 rounded-xl border-white/10 bg-black/25 text-sm text-foreground"
+              className="h-10 rounded-xl border-border bg-surface text-sm text-foreground"
             />
 
             <div className="flex items-center justify-between gap-3">
@@ -130,7 +130,7 @@ export function FeedbackWidget() {
               <Button
                 disabled={!canSubmit}
                 onClick={submit}
-                className="h-10 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-white hover:bg-primary disabled:opacity-50"
+                className="h-10 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-transform duration-200 hover:bg-primary active:scale-95 disabled:opacity-50 disabled:active:scale-100"
               >
                 <Send className="mr-2 h-3.5 w-3.5" />
                 {submitting ? "Sending" : "Send"}

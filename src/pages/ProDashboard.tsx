@@ -186,10 +186,13 @@ function trendRows(points: ProTrendPoint[]) {
 
 function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: string; children?: React.ReactNode }) {
   return (
-    <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div>
-        <p className="tech-label text-primary">{eyebrow}</p>
-        <h2 className="headline-display mt-1 text-2xl">{title}</h2>
+    <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="max-w-2xl">
+        <p className="mb-2.5 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+          <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+          {eyebrow}
+        </p>
+        <h2 className="display-2 text-foreground">{title}</h2>
       </div>
       {children}
     </div>
@@ -198,13 +201,13 @@ function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: st
 
 function MetricCard({ label, value, detail, icon: Icon }: { label: string; value: string; detail?: string; icon: React.ElementType }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 transition-colors hover:border-border">
+    <div className="metric-tile group rounded-2xl p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
-        <Icon className="h-3.5 w-3.5 text-primary/60" />
+        <Icon className="h-3.5 w-3.5 text-primary/70" aria-hidden="true" />
       </div>
-      <p className="mt-3 text-xl font-bold tracking-normal text-foreground num">{value}</p>
-      {detail && <p className="mt-1 text-[11px] text-muted-foreground">{detail}</p>}
+      <p className="mt-3 text-[1.75rem] font-bold leading-none tracking-tight text-foreground num">{value}</p>
+      {detail && <p className="mt-2 text-[11px] text-muted-foreground">{detail}</p>}
     </div>
   );
 }
@@ -394,7 +397,7 @@ function DetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[88vh] max-w-5xl overflow-y-auto rounded-xl border-white/10 bg-[#080909] text-white">
+      <DialogContent className="max-h-[88vh] max-w-5xl overflow-y-auto rounded-2xl border-border bg-card text-foreground">
         {detail ? (
           <>
             <DialogHeader>
@@ -406,44 +409,45 @@ function DetailDialog({
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {detail.metrics.map((metric) => (
-                <div key={metric.label} className="rounded-xl border border-border bg-foreground/[0.03] p-4">
+                <div key={metric.label} className="rounded-xl border border-border bg-surface p-4">
                   <p className="field-label">{metric.label}</p>
-                  <p className="mt-2 text-xl font-bold text-white num">{metric.value}</p>
+                  <p className="mt-2 text-xl font-bold text-foreground num">{metric.value}</p>
                   {metric.detail && <p className="mt-1 text-xs text-muted-foreground">{metric.detail}</p>}
                 </div>
               ))}
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <section className="rounded-xl border border-border bg-black/20 p-4">
+              <section className="rounded-xl border border-border bg-surface p-4">
                 <h3 className="tech-label">Trend Detail</h3>
                 <div className="mt-4 h-72">
                   {chartData.length ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                        <XAxis dataKey="month" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
                         <Tooltip
-                          contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12 }}
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, color: "hsl(var(--foreground))" }}
+                          labelStyle={{ color: "hsl(var(--foreground))" }}
                           formatter={(value: number, name: string) => [`Rs. ${Number(value).toFixed(2)}M`, name]}
                         />
-                        <Line type="monotone" dataKey="median" name="Median" stroke="#e9b652" strokeWidth={2.5} dot={false} />
-                        <Line type="monotone" dataKey="avg" name="Average" stroke="#60a5fa" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+                        <Line type="monotone" dataKey="median" name="Median" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+                        <Line type="monotone" dataKey="avg" name="Average" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="4 3" dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/10 text-sm text-muted-foreground">
+                    <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
                       Trend history is not deep enough for this selection yet.
                     </div>
                   )}
                 </div>
               </section>
 
-              <section className="space-y-3 rounded-xl border border-border bg-black/20 p-4">
+              <section className="space-y-3 rounded-xl border border-border bg-surface p-4">
                 <h3 className="tech-label">Mix</h3>
                 {[...detail.source_mix, ...detail.district_mix].slice(0, 8).map((row) => (
-                  <div key={`${row.label}-${row.count}`} className="rounded-xl border border-border bg-foreground/[0.03] p-3">
+                  <div key={`${row.label}-${row.count}`} className="rounded-xl border border-border bg-card p-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-bold text-foreground">{row.label}</p>
                       <p className="text-xs font-bold text-primary-bright">{row.share_pct.toFixed(1)}%</p>
@@ -463,11 +467,11 @@ function DetailDialog({
                   <Link
                     key={listing.id}
                     to={`/listing/${listing.id}`}
-                    className="rounded-xl border border-border bg-foreground/[0.03] p-4 no-underline transition-colors hover:border-primary/25"
+                    className="rounded-xl border border-border bg-surface p-4 no-underline transition-colors hover:border-primary/25"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-white">{listing.title}</p>
+                        <p className="truncate text-sm font-bold text-foreground">{listing.title}</p>
                         <p className="mt-1 tech-label text-muted-foreground">
                           {listing.district || "Sri Lanka"} · {listing.source}
                         </p>
@@ -844,23 +848,23 @@ export default function ProDashboard() {
       <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
 
-      <div className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/logo.svg" alt="AutoLens LK" className="h-7 w-7 rounded-md ring-1 ring-white/[0.06]" />
+            <img src="/logo.svg" alt="AutoLens LK" className="h-7 w-7 rounded-md ring-1 ring-border" />
             <div>
-              <p className="text-[13px] font-bold text-white">AutoLens<span className="text-muted-foreground font-medium">LK</span></p>
+              <p className="text-[13px] font-bold text-foreground">AutoLens<span className="text-muted-foreground font-medium">LK</span></p>
               <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Pro Workspace</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-white/5 bg-white/[0.02] text-white hover:bg-white/[0.04] text-[10px] font-bold">
+            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-border bg-surface text-foreground hover:bg-card text-[10px] font-bold">
               <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
               <Crown className="h-3 w-3" /> {user?.plan || "pro"}
             </span>
-            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-400">
+            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-600 dark:hover:text-rose-400">
               <LogOut className="h-3 w-3" /> Sign out
             </button>
           </div>
@@ -868,19 +872,23 @@ export default function ProDashboard() {
       </div>
 
       <main className="mx-auto max-w-[1320px] space-y-8 px-5 py-8 sm:px-6 relative z-10">
-        <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-6 md:p-8 backdrop-blur-md">
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+        <motion.header variants={itemVariants} className="pt-4 pb-2 md:pt-8">
+          <div className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-end">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
-                <Lock className="h-3 w-3" /> Professional intelligence
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+                <Lock className="h-3 w-3" aria-hidden="true" /> Professional intelligence
               </span>
-              <h1 className="mt-4 font-display text-[2rem] font-bold tracking-tight text-white md:text-[2.75rem]">
+              <h1 className="display-hero mt-5 text-foreground">
                 Pro dashboard.
               </h1>
+              <p className="text-body-lg mt-5 max-w-xl">
+                The entire Sri Lankan market as a live terminal — priced inventory, lane-level trends,
+                cross-district arbitrage, and board-ready exports in one workspace.
+              </p>
             </div>
-            <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
               <p className="tech-label text-primary">Data freshness</p>
-              <p className="mt-2 text-2xl font-bold text-white">
+              <p className="mt-2 text-2xl font-bold text-foreground num">
                 {snapshot?.last_updated ? formatRelativeTime(snapshot.last_updated) : "Loading"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground font-semibold">Generated {snapshot ? fmtDate(snapshot.generated_at) : "pending"}</p>
@@ -889,10 +897,10 @@ export default function ProDashboard() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </motion.header>
 
         {error && (
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-300">
+          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-700 dark:text-rose-300">
             {error}
           </div>
         )}
@@ -908,14 +916,14 @@ export default function ProDashboard() {
                 key={id}
                 value={id}
                 onClick={() => setActiveTab(id)}
-                className="motion-card group flex h-auto flex-col items-stretch whitespace-normal rounded-[10px] border border-white/5 bg-white/[0.01] p-4 text-left data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-white data-[state=inactive]:hover:border-primary/20 data-[state=inactive]:hover:bg-white/[0.02] transition-all"
+                className="motion-card group flex h-auto flex-col items-stretch whitespace-normal rounded-xl border border-border bg-card p-4 text-left shadow-soft data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-foreground data-[state=inactive]:hover:border-primary/20 data-[state=inactive]:hover:bg-surface transition-all active:scale-[0.99]"
               >
                 <span className="flex w-full items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-white/5 bg-white/[0.02] text-primary-bright transition-colors group-data-[state=active]:border-primary/40 group-data-[state=active]:bg-primary/10">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-border bg-surface text-primary-bright transition-colors group-data-[state=active]:border-primary/40 group-data-[state=active]:bg-primary/10">
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-white">{label}</span>
+                    <span className="block truncate text-sm font-bold text-foreground">{label}</span>
                     <span className="mt-0.5 block truncate text-xs font-semibold leading-5 text-muted-foreground/80">{getModeDetail(id)}</span>
                   </span>
                 </span>
@@ -955,10 +963,10 @@ export default function ProDashboard() {
                     <Link
                       key={listing.id}
                       to={`/listing/${listing.id}`}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-border bg-white/[0.025] px-4 py-3 no-underline transition-colors hover:border-primary/25"
+                      className="flex items-center justify-between gap-4 rounded-xl border border-border bg-surface px-4 py-3 no-underline transition-colors hover:border-primary/25"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-white">{listing.make} {listing.model} {listing.year || ""}</p>
+                        <p className="truncate text-sm font-bold text-foreground">{listing.make} {listing.model} {listing.year || ""}</p>
                         <p className="mt-1 tech-label text-muted-foreground">
                           {listing.district || "Sri Lanka"} · {listing.source}
                         </p>
@@ -986,11 +994,11 @@ export default function ProDashboard() {
                   ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={snapshot?.source_coverage || []}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12 }} />
-                      <Bar dataKey="count" fill="#e9b652" radius={[8, 8, 0, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: "hsl(var(--muted) / 0.4)" }} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, color: "hsl(var(--foreground))" }} labelStyle={{ color: "hsl(var(--foreground))" }} />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                   )}
@@ -1057,7 +1065,7 @@ export default function ProDashboard() {
             ) : (
               <div className="max-h-[640px] overflow-auto rounded-xl border border-border">
                 <table className="w-full min-w-[860px] text-sm">
-                  <thead className="sticky top-0 z-10 bg-[#0c0d0e]">
+                  <thead className="sticky top-0 z-10 bg-surface">
                     <tr>
                       {["Vehicle", "Listings", "Median", "Range", "Avg Deal", "Districts", "Source"].map((heading) => (
                         <th key={heading} className="border-b border-border px-4 py-3 text-left field-label">{heading}</th>
@@ -1076,10 +1084,10 @@ export default function ProDashboard() {
                           </tr>
                         ))
                       : filteredLanes.map((lane) => (
-                          <tr key={`${lane.make}-${lane.model}`} className="border-t border-border hover:bg-white/[0.025]">
+                          <tr key={`${lane.make}-${lane.model}`} className="border-t border-border transition-colors hover:bg-surface">
                             <td className="px-4 py-3">
                               <button type="button" onClick={() => openVehicleDetail(lane)} className="text-left">
-                                <p className="font-bold text-white">{lane.make} {lane.model}</p>
+                                <p className="font-bold text-foreground">{lane.make} {lane.model}</p>
                                 <p className="tech-label text-muted-foreground">Latest {fmtDate(lane.latest_seen_at)}</p>
                               </button>
                             </td>
@@ -1117,11 +1125,11 @@ export default function ProDashboard() {
                     key={district.district}
                     type="button"
                     onClick={() => openDistrictDetail(district.district)}
-                    className="asset-surface rounded-xl p-5 text-left transition-colors hover:border-primary/25"
+                    className="asset-surface rounded-2xl p-5 text-left transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-soft-lg active:scale-[0.99]"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-lg font-bold text-white">{district.district}</p>
+                        <p className="text-lg font-bold text-foreground">{district.district}</p>
                         <p className="mt-1 tech-label text-muted-foreground">
                           {district.source_count} sources · latest {fmtDate(district.latest_seen_at)}
                         </p>
@@ -1131,7 +1139,7 @@ export default function ProDashboard() {
                     <div className="mt-5 grid grid-cols-2 gap-3">
                       <div>
                         <p className="field-label">Listings</p>
-                        <p className="mt-1 text-xl font-bold text-white num">{fmtCount(district.listing_count)}</p>
+                        <p className="mt-1 text-xl font-bold text-foreground num">{fmtCount(district.listing_count)}</p>
                       </div>
                       <div>
                         <p className="field-label">Median</p>
@@ -1151,7 +1159,7 @@ export default function ProDashboard() {
                 <SelectTrigger className="control-dark w-full md:w-[260px]">
                   <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
-                <SelectContent className="border-white/10 bg-[#111] text-white">
+                <SelectContent>
                   {lanes.slice(0, 80).map((lane) => (
                     <SelectItem key={`${lane.make}|||${lane.model}`} value={`${lane.make}|||${lane.model}`}>
                       {lane.make} {lane.model}
@@ -1179,7 +1187,7 @@ export default function ProDashboard() {
             ) : (
               <div className="overflow-auto rounded-xl border border-border" aria-label="Arbitrage gaps table">
                 <table className="w-full min-w-[640px] text-sm">
-                  <thead className="sticky top-0 z-10 bg-[#0c0d0e]">
+                  <thead className="sticky top-0 z-10 bg-surface">
                     <tr>
                       {["Buy in", "Sell in", "Buy median", "Sell median", "Gap %", "Buy depth", "Sell depth"].map((heading) => (
                         <th key={heading} className="border-b border-border px-4 py-3 text-left field-label">{heading}</th>
@@ -1190,9 +1198,9 @@ export default function ProDashboard() {
                     {arbitrageGaps.map((gap) => (
                       <tr
                         key={`${gap.buy_district}-${gap.sell_district}`}
-                        className="border-t border-border hover:bg-white/[0.025]"
+                        className="border-t border-border hover:bg-surface"
                       >
-                        <td className="px-4 py-3 font-semibold text-emerald-400">{gap.buy_district}</td>
+                        <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">{gap.buy_district}</td>
                         <td className="px-4 py-3 font-semibold text-primary">{gap.sell_district}</td>
                         <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.buy_median_lkr)}</td>
                         <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.sell_median_lkr)}</td>
@@ -1213,7 +1221,7 @@ export default function ProDashboard() {
                 <SelectTrigger className="control-dark w-full md:w-[320px]">
                   <SelectValue placeholder="Select vehicle lane" />
                 </SelectTrigger>
-                <SelectContent className="border-white/10 bg-[#111] text-white">
+                <SelectContent>
                   {lanes.slice(0, 60).map((lane) => (
                     <SelectItem key={`${lane.make}|||${lane.model}`} value={`${lane.make}|||${lane.model}`}>
                       {lane.make} {lane.model}
@@ -1225,7 +1233,7 @@ export default function ProDashboard() {
             <section className="page-panel rounded-xl p-5">
               <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h3 className="text-xl font-bold text-white">{trendDetail?.title || "Select a vehicle lane"}</h3>
+                  <h3 className="text-xl font-bold text-foreground">{trendDetail?.title || "Select a vehicle lane"}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{trendDetail?.summary || "Trend depth appears here once a lane is selected."}</p>
                 </div>
                 {trendDetail && <ExportButtons report={detailReport(trendDetail)} />}
@@ -1236,12 +1244,12 @@ export default function ProDashboard() {
                 ) : trendChart.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trendChart}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                      <XAxis dataKey="month" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
-                      <Tooltip contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12 }} />
-                      <Line type="monotone" dataKey="median" stroke="#e9b652" strokeWidth={3} dot={false} name="Median" />
-                      <Line type="monotone" dataKey="avg" stroke="#60a5fa" strokeWidth={2} dot={false} strokeDasharray="4 3" name="Average" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
+                      <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, color: "hsl(var(--foreground))" }} labelStyle={{ color: "hsl(var(--foreground))" }} />
+                      <Line type="monotone" dataKey="median" stroke="hsl(var(--primary))" strokeWidth={3} dot={false} name="Median" />
+                      <Line type="monotone" dataKey="avg" stroke="hsl(var(--muted-foreground))" strokeWidth={2} dot={false} strokeDasharray="4 3" name="Average" />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1256,10 +1264,10 @@ export default function ProDashboard() {
             {/* Import-era depreciation cohort split */}
             <SectionTitle eyebrow="Import-era market" title="Pre-freeze vs post-freeze cohorts">
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold text-amber-400">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                   Pre-freeze ≤2024
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/20 bg-sky-400/10 px-2.5 py-1 text-[10px] font-semibold text-sky-400">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
                   Post-freeze ≥2025
                 </span>
               </div>
@@ -1290,11 +1298,13 @@ export default function ProDashboard() {
                       }))}
                       margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                      <XAxis dataKey="make" tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis dataKey="make" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} unit="M" />
                       <Tooltip
-                        contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12 }}
+                        cursor={{ fill: "hsl(var(--muted) / 0.4)" }}
+                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, color: "hsl(var(--foreground))" }}
+                        labelStyle={{ color: "hsl(var(--foreground))" }}
                         formatter={(value: unknown, name: string, props: { payload?: Record<string, unknown> }) => {
                           const numVal = typeof value === "number" ? value : null;
                           const isPost = name === "post";
@@ -1303,8 +1313,8 @@ export default function ProDashboard() {
                           return [numVal !== null ? `${numVal.toFixed(2)}M LKR (${count} listings)` : "—", label];
                         }}
                       />
-                      <Bar dataKey="pre" name="Pre-freeze ≤2024" fill="#e9b652" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="post" name="Post-freeze ≥2025" fill="#38bdf8" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="pre" name="Pre-freeze ≤2024" fill="hsl(var(--deal-amber))" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="post" name="Post-freeze ≥2025" fill="hsl(var(--signal-cyan))" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -1312,7 +1322,7 @@ export default function ProDashboard() {
               {(eraData?.makes?.length ?? 0) > 0 && (
                 <div className="mt-4 overflow-auto rounded-lg border border-border" aria-label="Import era split table">
                   <table className="w-full min-w-[580px] text-sm">
-                    <thead className="bg-[#0c0d0e]">
+                    <thead className="bg-surface">
                       <tr>
                         {["Make", "Pre-freeze count", "Pre-freeze median", "Post-freeze count", "Post-freeze median", "Premium"].map((h) => (
                           <th key={h} className="border-b border-border px-4 py-2.5 text-left field-label">{h}</th>
@@ -1325,13 +1335,13 @@ export default function ProDashboard() {
                         const postMed = row.post_freeze.median_price_lkr;
                         const premium = preMed && postMed ? ((postMed - preMed) / preMed) * 100 : null;
                         return (
-                          <tr key={row.make} className="border-t border-border hover:bg-white/[0.025]">
-                            <td className="px-4 py-2.5 font-semibold text-white">{row.make}</td>
+                          <tr key={row.make} className="border-t border-border transition-colors hover:bg-surface">
+                            <td className="px-4 py-2.5 font-semibold text-foreground">{row.make}</td>
                             <td className="px-4 py-2.5 text-muted-foreground num">{row.pre_freeze.count.toLocaleString()}</td>
                             <td className="px-4 py-2.5 text-foreground num">{preMed !== null ? fmtMoney(preMed) : "—"}</td>
                             <td className="px-4 py-2.5 text-muted-foreground num">{row.post_freeze.count.toLocaleString()}</td>
                             <td className="px-4 py-2.5 text-foreground num">{postMed !== null ? fmtMoney(postMed) : "—"}</td>
-                            <td className={`px-4 py-2.5 font-bold num ${premium === null ? "text-muted-foreground" : premium >= 0 ? "text-sky-400" : "text-amber-400"}`}>
+                            <td className={`px-4 py-2.5 font-bold num ${premium === null ? "text-muted-foreground" : premium >= 0 ? "text-sky-600 dark:text-sky-400" : "text-amber-600 dark:text-amber-400"}`}>
                               {premium !== null ? `${premium >= 0 ? "+" : ""}${premium.toFixed(1)}%` : "—"}
                             </td>
                           </tr>
@@ -1364,16 +1374,16 @@ export default function ProDashboard() {
                     key={source.label}
                     type="button"
                     onClick={() => openSourceDetail(source)}
-                    className="asset-surface rounded-xl p-5 text-left transition-colors hover:border-primary/25"
+                    className="asset-surface rounded-2xl p-5 text-left transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-soft-lg active:scale-[0.99]"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-lg font-bold text-white">{source.label}</p>
+                        <p className="text-lg font-bold text-foreground">{source.label}</p>
                         <p className="mt-1 text-xs text-muted-foreground">Latest {fmtDate(source.latest_seen_at)}</p>
                       </div>
                       <Database className="h-5 w-5 text-primary" />
                     </div>
-                    <p className="mt-4 text-3xl font-bold text-white num">{source.count.toLocaleString()}</p>
+                    <p className="mt-4 text-3xl font-bold text-foreground num">{source.count.toLocaleString()}</p>
                     <p className="mt-1 text-xs font-semibold text-muted-foreground">{source.share_pct.toFixed(1)}% of priced coverage · {fmtMoney(source.avg_price_lkr)} avg</p>
                   </button>
                 ))}
@@ -1389,7 +1399,7 @@ export default function ProDashboard() {
                 type="button"
                 onClick={runCustomReport}
                 disabled={buildingReport || loading}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 tech-label text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 tech-label text-primary-foreground shadow-soft transition-[opacity,transform] hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {buildingReport ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 Download Custom Report
@@ -1402,7 +1412,7 @@ export default function ProDashboard() {
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
                       <p className="tech-label text-primary">Custom scope</p>
-                      <h3 className="mt-1 text-2xl font-bold text-white">Report composer</h3>
+                      <h3 className="mt-1 text-2xl font-bold text-foreground">Report composer</h3>
                     </div>
                     <Settings2 className="h-6 w-6 text-primary" />
                   </div>
@@ -1414,7 +1424,7 @@ export default function ProDashboard() {
                         <SelectTrigger className="control-dark">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="border-white/10 bg-[#111] text-white">
+                        <SelectContent>
                           {REPORT_SCOPE_OPTIONS.map((option) => (
                             <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                           ))}
@@ -1429,7 +1439,7 @@ export default function ProDashboard() {
                           <SelectTrigger className="control-dark">
                             <SelectValue placeholder="Select vehicle" />
                           </SelectTrigger>
-                          <SelectContent className="border-white/10 bg-[#111] text-white">
+                          <SelectContent>
                             {lanes.slice(0, 120).map((lane) => (
                               <SelectItem key={`${lane.make}|||${lane.model}`} value={`${lane.make}|||${lane.model}`}>
                                 {lane.make} {lane.model}
@@ -1442,7 +1452,7 @@ export default function ProDashboard() {
                           <SelectTrigger className="control-dark">
                             <SelectValue placeholder="Select area" />
                           </SelectTrigger>
-                          <SelectContent className="border-white/10 bg-[#111] text-white">
+                          <SelectContent>
                             {districts.map((district) => (
                               <SelectItem key={district.district} value={district.district}>{district.district}</SelectItem>
                             ))}
@@ -1453,7 +1463,7 @@ export default function ProDashboard() {
                           <SelectTrigger className="control-dark">
                             <SelectValue placeholder="Select source" />
                           </SelectTrigger>
-                          <SelectContent className="border-white/10 bg-[#111] text-white">
+                          <SelectContent>
                             {(snapshot?.source_coverage || []).map((source) => (
                               <SelectItem key={source.label} value={source.label}>{source.label}</SelectItem>
                             ))}
@@ -1472,7 +1482,7 @@ export default function ProDashboard() {
                         <SelectTrigger className="control-dark">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="border-white/10 bg-[#111] text-white">
+                        <SelectContent>
                           {EXPORT_FORMATS.map((item) => (
                             <SelectItem key={item.format} value={item.format}>{item.label}</SelectItem>
                           ))}
@@ -1486,7 +1496,7 @@ export default function ProDashboard() {
                         <SelectTrigger className="control-dark">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="border-white/10 bg-[#111] text-white">
+                        <SelectContent>
                           {REPORT_THEME_OPTIONS.map((option) => (
                             <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                           ))}
@@ -1545,7 +1555,7 @@ export default function ProDashboard() {
                   <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
                       <p className="tech-label text-primary">Contents</p>
-                      <h3 className="mt-1 text-2xl font-bold text-white">Choose sections</h3>
+                      <h3 className="mt-1 text-2xl font-bold text-foreground">Choose sections</h3>
                     </div>
                     <SlidersHorizontal className="h-6 w-6 text-primary" />
                   </div>
@@ -1559,16 +1569,16 @@ export default function ProDashboard() {
                           className={`flex cursor-pointer gap-3 rounded-xl border p-3 transition-colors ${
                             checked
                               ? "border-primary/35 bg-primary/10"
-                              : "border-border bg-black/20 hover:border-white/15"
+                              : "border-border bg-surface hover:border-primary/20"
                           }`}
                         >
                           <Checkbox
                             checked={checked}
                             onCheckedChange={(value) => toggleReportSection(section.id, Boolean(value))}
-                            className="mt-0.5 border-white/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-white"
+                            className="mt-0.5 border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                           />
                           <span>
-                            <span className="block text-sm font-bold text-white">{section.label}</span>
+                            <span className="block text-sm font-bold text-foreground">{section.label}</span>
                             <span className="mt-1 block text-xs leading-5 text-muted-foreground">{section.detail}</span>
                           </span>
                         </label>
@@ -1590,17 +1600,17 @@ export default function ProDashboard() {
                       />
                     </div>
 
-                    <div className="rounded-xl border border-border bg-black/25 p-4">
+                    <div className="rounded-xl border border-border bg-surface p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="field-label">Preview</p>
-                          <p className="mt-1 text-lg font-bold text-white">{customReportTargetLabel}</p>
+                          <p className="mt-1 text-lg font-bold text-foreground">{customReportTargetLabel}</p>
                         </div>
                         <Palette className="h-5 w-5 text-primary" />
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {reportSections.slice(0, 7).map((section) => (
-                          <span key={section} className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-foreground/[0.03] px-2.5 py-1 tech-label text-foreground">
+                          <span key={section} className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 tech-label text-foreground">
                             <CheckCircle2 className="h-3 w-3 text-primary" />
                             {REPORT_SECTION_OPTIONS.find((item) => item.id === section)?.label || section}
                           </span>

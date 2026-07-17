@@ -54,7 +54,7 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
           <div className="relative z-10 flex flex-col justify-between h-full space-y-8">
             <p className="tech-label tracking-[0.18em]">Average Index Price</p>
             <div>
-              <p className="text-5xl font-semibold leading-none text-white num lg:text-7xl">
+              <p className="text-5xl font-semibold leading-none text-foreground num lg:text-7xl">
                 {formatPrice(avgPrice)}
               </p>
               <div className={`mt-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 tech-label num ${
@@ -62,7 +62,7 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
                   ? "bg-muted/30 text-muted-foreground border border-border"
                   : momChange < 0
                     ? "bg-primary/10 text-primary-bright border border-primary/20"
-                    : "bg-red-500/10 text-red-400 border border-red-500/20"
+                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
               }`}>
                 {momChange == null ? (
                   "Building history"
@@ -81,7 +81,7 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
         <div className="cinematic-panel motion-card rounded-xl p-8 flex flex-col justify-between group">
           <p className="tech-label tracking-[0.18em]">Total Depth</p>
           <div>
-            <p className="text-4xl font-semibold leading-none text-white num lg:text-5xl">
+            <p className="text-4xl font-semibold leading-none text-foreground num lg:text-5xl">
               {totalCount.toLocaleString()}
             </p>
             <p className="mt-4 flex items-center gap-2 tech-label text-muted-foreground">
