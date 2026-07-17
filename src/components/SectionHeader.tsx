@@ -19,16 +19,19 @@ export function SectionHeader({
   titleClassName,
 }: SectionHeaderProps) {
   return (
-    <div className={cn("mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end", className)}>
-      <div className="max-w-2xl space-y-2.5 animate-fade-up">
+    <div className={cn("mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end", className)}>
+      <div className="max-w-2xl animate-fade-up">
         {eyebrow ? (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{eyebrow}</p>
+          <p className="mb-3 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+            <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+            {eyebrow}
+          </p>
         ) : null}
-        <h2 className={cn("font-display text-[1.5rem] font-semibold tracking-tight text-foreground sm:text-[1.75rem]", titleClassName)}>
+        <h2 className={cn("display-2 text-foreground", titleClassName)}>
           {title}
         </h2>
         {description ? (
-          <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+          <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground sm:text-base">{description}</p>
         ) : null}
       </div>
       {actions ? (

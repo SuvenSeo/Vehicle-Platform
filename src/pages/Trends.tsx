@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { getMakes, getModels, getPriceTrendSeries, getHybridBands, formatPrice } from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { ImportEraPublicSection } from "@/components/ImportEraPublicSection";
 import { RotateCcw, Zap } from "lucide-react";
+import { revealContainer, revealItem } from "@/lib/motion";
 import type { HybridBandsData, PriceTrendPoint } from "@/types/car";
 import {
   getExciseRatePerCc,
@@ -28,12 +30,13 @@ function exciseLabelFor(ccMax: number | null): string {
   return `Rs. ${HYBRID_BAND_EXCISE.midLow.toLocaleString()}–${HYBRID_BAND_EXCISE.midHigh.toLocaleString()}/cc`;
 }
 
-/** Band colour from low to high tax burden. */
+/** Band colour from low to high tax burden. Signal hues carry light + dark
+ * variants so the text meets contrast on both themes (bars stay saturated). */
 function bandColor(index: number): { bar: string; badge: string; text: string } {
   const palette = [
-    { bar: "bg-emerald-500", badge: "bg-emerald-500/10 border-emerald-500/25", text: "text-emerald-400" },
-    { bar: "bg-amber-500",   badge: "bg-amber-500/10 border-amber-500/25",     text: "text-amber-400"   },
-    { bar: "bg-rose-500",    badge: "bg-rose-500/10 border-rose-500/25",        text: "text-rose-400"    },
+    { bar: "bg-emerald-500", badge: "bg-emerald-500/10 border-emerald-500/25", text: "text-emerald-700 dark:text-emerald-400" },
+    { bar: "bg-amber-500",   badge: "bg-amber-500/10 border-amber-500/25",     text: "text-amber-700 dark:text-amber-400"   },
+    { bar: "bg-rose-500",    badge: "bg-rose-500/10 border-rose-500/25",        text: "text-rose-700 dark:text-rose-400"    },
   ];
   return palette[Math.min(index, palette.length - 1)];
 }
@@ -94,86 +97,70 @@ export default function Trends() {
   const emptyMessage = !selectedMake || !selectedModel ? "Select make and model to load price history." : error || "No trend data for this combination yet.";
   const hasNarrow = district !== "all" || condition !== "all";
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05,
-        delayChildren: 0.05
-      }
-    }
-  } as const;
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: "spring" as const,
-        stiffness: 220,
-        damping: 24
-      }
-    }
-  } as const;
+  const selectTriggerClass = "h-11 rounded-xl border-border bg-surface text-sm text-foreground";
+  const selectContentClass = "border-border bg-popover text-popover-foreground";
+  const fieldLabelClass = "text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground";
 
   return (
     <motion.div
       initial="hidden"
       animate="show"
-      variants={containerVariants}
+      variants={revealContainer}
       className="min-h-screen relative overflow-hidden bg-background"
     >
-      {/* Decorative Orbs */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[30%] left-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
+      {/* Decorative orbs — token-based, adapt to both themes */}
+      <div aria-hidden className="pointer-events-none absolute top-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]" />
+      <div aria-hidden className="pointer-events-none absolute bottom-[30%] left-[-10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
 
-      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
-        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Trend studio</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">Price trends.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">Track median price movement for any vehicle lane across Sri Lanka.</p>
+      {/* Hero — one confident headline that towers over everything */}
+      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
+        <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
+          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
+            Trend studio
+          </p>
+          <h1 className="display-hero mt-5 text-foreground">Price trends.</h1>
+          <p className="text-body-lg mt-5 max-w-xl">Track median price movement for any vehicle lane across Sri Lanka.</p>
         </div>
       </motion.section>
 
       <div className="mx-auto max-w-[1320px] space-y-6 px-5 py-8 sm:px-6 lg:py-10 relative z-10">
         {/* Controls */}
-        <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.02] p-5 sm:p-6 backdrop-blur-md">
+        <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <label htmlFor="t-make" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Make</label>
+              <label htmlFor="t-make" className={fieldLabelClass}>Make</label>
               <Select value={selectedMake} onValueChange={setSelectedMake}>
-                <SelectTrigger id="t-make" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30"><SelectValue placeholder="Select make" /></SelectTrigger>
-                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
+                <SelectTrigger id="t-make" className={selectTriggerClass}><SelectValue placeholder="Select make" /></SelectTrigger>
+                <SelectContent className={selectContentClass}>
                   {makes.map((m) => <SelectItem key={m.make} value={m.make}>{m.make}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-model" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Model</label>
+              <label htmlFor="t-model" className={fieldLabelClass}>Model</label>
               <Select value={selectedModel} onValueChange={setSelectedModel} disabled={!selectedMake || !modelsList.length}>
-                <SelectTrigger id="t-model" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30 disabled:opacity-50"><SelectValue placeholder="Select model" /></SelectTrigger>
-                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
+                <SelectTrigger id="t-model" className={selectTriggerClass}><SelectValue placeholder="Select model" /></SelectTrigger>
+                <SelectContent className={selectContentClass}>
                   {modelsList.map((m) => <SelectItem key={m.model} value={m.model}>{m.model}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-cond" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Condition</label>
+              <label htmlFor="t-cond" className={fieldLabelClass}>Condition</label>
               <Select value={condition} onValueChange={setCondition}>
-                <SelectTrigger id="t-cond" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30"><SelectValue /></SelectTrigger>
-                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
+                <SelectTrigger id="t-cond" className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                <SelectContent className={selectContentClass}>
                   <SelectItem value="all">Any</SelectItem><SelectItem value="used">Used</SelectItem>
                   <SelectItem value="reconditioned">Reconditioned</SelectItem><SelectItem value="brand_new">Brand new</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-dist" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">District</label>
+              <label htmlFor="t-dist" className={fieldLabelClass}>District</label>
               <Select value={district} onValueChange={setDistrict}>
-                <SelectTrigger id="t-dist" className="h-10 rounded-lg border-white/5 bg-white/[0.02] text-sm text-white focus:ring-1 focus:ring-primary/30"><SelectValue /></SelectTrigger>
-                <SelectContent className="border-white/5 bg-[#0e0e11] text-white">
+                <SelectTrigger id="t-dist" className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                <SelectContent className={selectContentClass}>
                   <SelectItem value="all">All districts</SelectItem>
                   {SRI_LANKA_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
@@ -181,38 +168,44 @@ export default function Trends() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/5 pt-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Lane:</span>
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            <span className={fieldLabelClass}>Lane:</span>
             {[
               { id: "make", label: selectedMake || "—" },
               { id: "model", label: selectedModel || "—" },
               { id: "condition", label: condition === "all" ? "Any" : condition },
               { id: "district", label: district === "all" ? "All LK" : district },
             ].map((chip) => (
-              <span key={chip.id} className="rounded-md border border-white/5 bg-white/[0.01] px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{chip.label}</span>
+              <span key={chip.id} className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{chip.label}</span>
             ))}
             {hasNarrow && (
-              <button type="button" onClick={() => { setDistrict("all"); setCondition("all"); }}
-                className="ml-auto flex items-center gap-1 text-[10px] font-bold text-muted-foreground transition-colors hover:text-foreground"
-              ><RotateCcw className="h-3 w-3" /> Reset filters</button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => { setDistrict("all"); setCondition("all"); }}
+                className="ml-auto h-8 gap-1.5 px-3 text-xs font-semibold text-muted-foreground"
+              >
+                <RotateCcw aria-hidden /> Reset filters
+              </Button>
             )}
           </div>
         </motion.div>
 
-        {/* Chart */}
-        <motion.div variants={itemVariants} className="min-h-[480px] rounded-xl border border-white/5 bg-white/[0.01] p-4 backdrop-blur-md">
+        {/* Chart — PriceHistoryChart owns its own theme-aware surface + Recharts */}
+        <motion.div variants={revealItem}>
           <PriceHistoryChart title={chartTitle} points={trendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? "Broaden filters" : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
         </motion.div>
 
-        <motion.div variants={itemVariants} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 backdrop-blur-sm">
-          <p className="text-[11px] text-muted-foreground font-medium">
+        <motion.div variants={revealItem} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+          <p className="text-[11px] font-medium text-muted-foreground">
             {selectedMake && selectedModel ? "Median advertised prices grouped by month from the public Sri Lanka snapshot." : "Choose a make and model to render the trajectory."}
           </p>
-          <span className="text-[10px] font-semibold text-primary/70 num">Public data</span>
+          <span className="shrink-0 text-[10px] font-semibold text-primary-bright num">Public data</span>
         </motion.div>
 
         {/* ── HYBRID TAX ARBITRAGE ──────────────────────────────── */}
-        <motion.div variants={itemVariants}>
+        <motion.div variants={revealItem}>
           <HybridTaxArbitrageSection
             data={hybridBands}
             loading={hybridLoading}
@@ -220,7 +213,7 @@ export default function Trends() {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants}>
+        <motion.div variants={revealItem}>
           <ImportEraPublicSection />
         </motion.div>
       </div>
@@ -245,20 +238,21 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
   return (
     <section
       aria-labelledby="hybrid-tax-heading"
-      className="rounded-xl border border-border bg-card p-5 sm:p-6"
+      className="rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6"
     >
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary/70">
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="max-w-2xl">
+          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
             Import tax intelligence
           </p>
           <h2
             id="hybrid-tax-heading"
-            className="mt-1.5 font-display text-[1.125rem] font-bold tracking-tight text-foreground sm:text-[1.25rem]"
+            className="display-2 mt-2 text-foreground"
           >
             Hybrid tax arbitrage bands
           </h2>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Median market prices vs excise duty across three engine-cc bands.
             The 1,500 cc cliff creates a pricing discontinuity worth exploiting.
           </p>
@@ -314,7 +308,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
                       {band.label}
                     </span>
                     {isCliffBand && (
-                      <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-400">
+                      <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-400">
                         Tax cliff ↓
                       </span>
                     )}
@@ -348,7 +342,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
                     {exciseLabelFor(band.cc_max)}
                   </span>
                   {isCliffBand && (
-                    <span className="ml-2 text-emerald-400/80">
+                    <span className="ml-2 text-emerald-700 dark:text-emerald-400">
                       · lowest hybrid rate
                     </span>
                   )}
@@ -360,10 +354,10 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
       )}
 
       {/* ── Cliff insight card ── */}
-      <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
+      <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
         <div className="mb-2 flex items-center gap-2">
-          <Zap className="h-4 w-4 text-amber-400" aria-hidden />
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-400">
+          <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
+          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
             1,500 cc excise cliff
           </p>
         </div>
@@ -381,12 +375,12 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
             Rs. {cliffInsight.rateAboveCliff.toLocaleString()}/cc
           </span>
           , adding{" "}
-          <span className="font-semibold text-amber-300 num">
+          <span className="font-semibold text-amber-700 dark:text-amber-300 num">
             Rs. {cliffInsight.exciseStepUp.toLocaleString()}
           </span>{" "}
           in excise duty crossing one cc. Buyers sourcing ≤ 1,500 cc hybrids
           also save{" "}
-          <span className="font-semibold text-emerald-300 num">
+          <span className="font-semibold text-emerald-700 dark:text-emerald-300 num">
             Rs. {cliffInsight.exciseSavingVsPetrolAtCliff.toLocaleString()}
           </span>{" "}
           in excise versus the equivalent petrol band at this capacity.
@@ -397,11 +391,11 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
         </p>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
         <p className="text-[11px] text-muted-foreground">
           Median prices from live market snapshot · excise rates from the 2025–2026 import tax model.
         </p>
-        <span className="text-[10px] font-semibold text-amber-400/60 num">Tax model</span>
+        <span className="shrink-0 text-[10px] font-semibold text-amber-700 dark:text-amber-400 num">Tax model</span>
       </div>
     </section>
   );

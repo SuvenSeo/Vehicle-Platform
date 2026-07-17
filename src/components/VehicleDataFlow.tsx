@@ -62,7 +62,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "Clean + map",
       detail: runningJobs > 0 ? "Validation and duplicate checks in progress" : "Schema mapping and duplicate checks stable",
       icon: ScanSearch,
-      tone: "border-white/12 bg-foreground/[0.03] text-foreground",
+      tone: "border-border bg-surface text-foreground",
     },
     {
       key: "score",
@@ -78,7 +78,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
       subtitle: "AutoLens feed",
       detail: `${processedCount} listings powering cards, map, trends, and valuation`,
       icon: Satellite,
-      tone: "border-white/12 bg-black/25 text-foreground",
+      tone: "border-border bg-surface text-foreground",
     },
   ] as const;
 
@@ -103,7 +103,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
         </div>
       </div>
 
-      <div className="relative z-10 overflow-hidden rounded-xl border border-white/10 bg-black/30 p-5 sm:p-6">
+      <div className="relative z-10 overflow-hidden rounded-xl border border-border bg-surface p-5 sm:p-6">
         <div className="absolute left-8 right-8 top-1/2 hidden h-px -translate-y-1/2 bg-primary/18 md:block" />
         <div className="absolute bottom-8 top-8 left-1/2 block w-px -translate-x-1/2 bg-primary/25 md:hidden" />
 
@@ -116,8 +116,8 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
                   <Icon className="w-4 h-4" />
                   <span className="tech-label">{stage.label}</span>
                 </div>
-                <p className="text-sm font-semibold text-white">{stage.subtitle}</p>
-                <p className="ui-caption mt-1 text-white/85 leading-relaxed">{stage.detail}</p>
+                <p className="text-sm font-semibold text-foreground">{stage.subtitle}</p>
+                <p className="ui-caption mt-1 text-muted-foreground leading-relaxed">{stage.detail}</p>
               </article>
             );
           })}
@@ -132,15 +132,15 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
             return (
               <article
                 key={source.source}
-                className="motion-card rounded-xl border border-white/10 bg-black/25 p-4"
+                className="motion-card rounded-xl border border-border bg-surface p-4 transition-colors hover:border-primary/40"
               >
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-foreground truncate">{source.source}</p>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 tech-label text-foreground num">
+                  <span className="rounded-full border border-border bg-card px-2 py-1 tech-label text-foreground num">
                     {source.count}
                   </span>
                 </div>
-                <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div className="mt-3 h-1.5 rounded-full bg-card overflow-hidden">
                   <div
                     className="h-full w-full origin-left bg-primary"
                     style={{ transform: `scaleX(${scaleX})` }}
@@ -151,7 +151,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
             );
           })
         ) : (
-          <div className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
+          <div className="rounded-xl border border-border bg-surface p-4 text-sm text-muted-foreground md:col-span-2 xl:col-span-3">
             No source listings available yet. Run a pipeline sync to populate this view.
           </div>
         )}

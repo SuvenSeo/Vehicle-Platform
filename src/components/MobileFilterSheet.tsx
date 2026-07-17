@@ -44,10 +44,10 @@ function PillBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
         active
           ? "border-primary/35 bg-primary/[0.12] text-primary"
-          : "border-white/10 bg-foreground/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+          : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
       }`}
     >
       {children}
@@ -184,7 +184,7 @@ export function MobileFilterSheet({
   const isPriceHidden = filters.price_availability === "unavailable";
 
   const selectTriggerClass =
-    "h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground";
+    "h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
   const selectContentClass =
     "max-h-64 border-border bg-popover text-foreground";
 
@@ -201,7 +201,7 @@ export function MobileFilterSheet({
               {activeCount > 0 && (
                 <span
                   aria-label={`${activeCount} active filters`}
-                  className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white"
+                  className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground"
                 >
                   {activeCount}
                 </span>
@@ -315,7 +315,7 @@ export function MobileFilterSheet({
                   inputMode="numeric"
                   placeholder="Min LKR"
                   aria-label="Minimum price"
-                  className="h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+                  className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
                 <Input
                   value={localPriceMax}
@@ -325,7 +325,7 @@ export function MobileFilterSheet({
                   inputMode="numeric"
                   placeholder="Max LKR"
                   aria-label="Maximum price"
-                  className="h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+                  className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
               </div>
             </FilterSection>
@@ -360,14 +360,14 @@ export function MobileFilterSheet({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="flex-1 rounded-xl border border-border py-3 text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            className="flex-1 rounded-xl border border-border py-3 text-[13px] font-semibold text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:text-foreground active:scale-[0.98]"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 rounded-xl bg-primary py-3 text-[13px] font-bold text-white transition-colors hover:bg-primary/95"
+            className="flex-1 rounded-xl bg-primary py-3 text-[13px] font-bold text-primary-foreground shadow-soft transition-all duration-150 hover:bg-primary/95 active:scale-[0.98]"
           >
             Apply filters
           </button>

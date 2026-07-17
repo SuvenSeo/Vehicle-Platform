@@ -194,33 +194,33 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-h-[92vh] max-w-[1180px] overflow-hidden border-white/10 bg-[#050607] p-0 text-white">
+      <DialogContent className="max-h-[92vh] max-w-[1180px] overflow-hidden border-border bg-card p-0 text-foreground">
         <div className="max-h-[92vh] overflow-y-auto">
-          <DialogHeader className="border-b border-border bg-[#080909] px-5 py-5 text-left md:px-7">
+          <DialogHeader className="border-b border-border bg-card px-5 py-5 text-left md:px-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 tech-label text-primary-bright">
                   <Scale className="h-3.5 w-3.5" />
                   Decision comparison
                 </div>
-                <DialogTitle className="text-3xl font-bold tracking-normal text-white md:text-4xl">Compare selected vehicles</DialogTitle>
+                <DialogTitle className="text-3xl font-bold tracking-normal text-foreground md:text-4xl">Compare selected vehicles</DialogTitle>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   Price, deal score, age, mileage, source, and location in one ranked view.
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-left">
-                <div className="rounded-xl border border-border bg-foreground/[0.03] px-3 py-2.5">
+                <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
                   <p className="tech-label text-muted-foreground">Compared</p>
-                  <p className="mt-1 text-lg font-bold text-white num">{listings.length}</p>
+                  <p className="mt-1 text-lg font-bold text-foreground num">{listings.length}</p>
                 </div>
-                <div className="rounded-xl border border-border bg-foreground/[0.03] px-3 py-2.5">
+                <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
                   <p className="tech-label text-muted-foreground">Price gap</p>
-                  <p className="mt-1 truncate text-lg font-bold text-white num">{priceSpreadLabel}</p>
+                  <p className="mt-1 truncate text-lg font-bold text-foreground num">{priceSpreadLabel}</p>
                 </div>
-                <div className="rounded-xl border border-border bg-foreground/[0.03] px-3 py-2.5">
+                <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
                   <p className="tech-label text-muted-foreground">Leader</p>
-                  <p className="mt-1 truncate text-lg font-bold text-white">{bestDealListing ? `${bestDealListing.make} ${bestDealListing.model}` : "N/A"}</p>
+                  <p className="mt-1 truncate text-lg font-bold text-foreground">{bestDealListing ? `${bestDealListing.make} ${bestDealListing.model}` : "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -235,7 +235,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                 const isLowestPrice = lowestPriceListing?.id === listing.id;
 
                 return (
-                  <article key={listing.id} className="overflow-hidden rounded-xl border border-border bg-[#0b0d0d]">
+                  <article key={listing.id} className="overflow-hidden rounded-xl border border-border bg-card shadow-soft transition-shadow duration-300 hover:shadow-soft-lg">
                     <div className="relative h-44 bg-black/40">
                       <VehicleThumbnail
                         src={image}
@@ -262,7 +262,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
 
                     <div className="space-y-4 p-4">
                       <div className="min-w-0">
-                        <p className="truncate text-lg font-bold tracking-normal text-white">
+                        <p className="truncate text-lg font-bold tracking-normal text-foreground">
                           {listing.make} {listing.model}
                         </p>
                         <p className="mt-1 truncate tech-label text-muted-foreground">
@@ -271,11 +271,11 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl border border-border bg-black/25 px-3 py-2.5">
+                        <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
                           <p className="tech-label text-muted-foreground">Price</p>
                           <p className="mt-1 text-base font-bold text-primary num">{formatPrice(listing.price_lkr)}</p>
                         </div>
-                        <div className="rounded-xl border border-border bg-black/25 px-3 py-2.5">
+                        <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
                           <p className="tech-label text-muted-foreground">Deal score</p>
                           <div className="mt-1">
                             <DealScoreBadge score={listing.deal_score} />
@@ -284,19 +284,19 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-caption font-semibold text-foreground">
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-surface px-2.5 py-2">
                           <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {listing.year || "Unknown"}
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-surface px-2.5 py-2">
                           <Gauge className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {mileage ? `${Math.round(mileage / 1000)}k km` : "Mileage N/A"}
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-surface px-2.5 py-2">
                           <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {listing.district || "District N/A"}
                         </span>
-                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-foreground/[0.03] px-2.5 py-2">
+                        <span className="inline-flex min-w-0 items-center gap-1.5 truncate rounded-xl border border-border bg-surface px-2.5 py-2">
                           <WalletCards className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                           {formatToken(listing.fuel_type)}
                         </span>
@@ -304,7 +304,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
 
                       <Link
                         to={`/listing/${listing.id}`}
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 tech-label text-primary-bright no-underline transition-colors hover:bg-primary/15"
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 tech-label text-primary-bright no-underline transition-colors duration-200 hover:bg-primary/15 hover:border-primary/30"
                       >
                         Open listing
                         <ArrowUpRight className="h-3.5 w-3.5" />
@@ -315,10 +315,10 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
               })}
             </section>
 
-            <section className="overflow-hidden rounded-xl border border-border bg-[#0a0b0b]">
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="border-b border-border px-4 py-4">
                 <p className="tech-label text-muted-foreground">Comparison matrix</p>
-                <h3 className="mt-1 text-xl font-bold tracking-normal text-white">Ranked listing details</h3>
+                <h3 className="mt-1 text-xl font-bold tracking-normal text-foreground">Ranked listing details</h3>
               </div>
 
               <div className="overflow-x-auto p-3">
@@ -329,11 +329,11 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                       gridTemplateColumns: `minmax(140px, 180px) repeat(${listings.length}, minmax(190px, 1fr))`,
                     }}
                   >
-                    <div className="rounded-xl border border-border bg-black/25 px-3 py-2 tech-label text-muted-foreground">
+                    <div className="rounded-xl border border-border bg-surface px-3 py-2 tech-label text-muted-foreground">
                       Metric
                     </div>
                     {listings.map((listing) => (
-                      <div key={`header-${listing.id}`} className="truncate rounded-xl border border-border bg-foreground/[0.03] px-3 py-2 text-sm font-bold text-white">
+                      <div key={`header-${listing.id}`} className="truncate rounded-xl border border-border bg-surface px-3 py-2 text-sm font-bold text-foreground">
                         {listing.make} {listing.model}
                       </div>
                     ))}
@@ -347,7 +347,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                         gridTemplateColumns: `minmax(140px, 180px) repeat(${listings.length}, minmax(190px, 1fr))`,
                       }}
                     >
-                      <div className="flex items-center rounded-xl border border-border bg-black/25 px-3 py-2 tech-label text-muted-foreground">
+                      <div className="flex items-center rounded-xl border border-border bg-surface px-3 py-2 tech-label text-muted-foreground">
                         {row.label}
                       </div>
 
@@ -356,10 +356,10 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                         return (
                           <div
                             key={`${row.key}-${listing.id}`}
-                            className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold ${
+                            className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors duration-200 ${
                               isBest
                                 ? "border-primary/35 bg-primary/10 text-primary-bright"
-                                : "border-border bg-white/[0.025] text-foreground"
+                                : "border-border bg-surface text-foreground"
                             }`}
                           >
                             <div className="flex items-center justify-between gap-2">

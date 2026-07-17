@@ -405,12 +405,20 @@ const DICTIONARIES: Record<Language, Dictionary> = {
 
 const AppPreferencesContext = createContext<AppPreferencesContextValue | null>(null);
 
-function resolveTheme(): "dark" | "light" {
-  // Dark-only for now: index.css carries a light palette, but the component
-  // library hardcodes dark glass styles (text-white, border-white/5), so the
-  // light theme renders white-on-white. Re-enable once components are
-  // migrated to semantic tokens.
-  return "dark";
+function systemPrefersDark(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
+}
+
+function resolveTheme(mode: ThemeMode): "dark" | "light" {
+  // Both themes are now first-class: components route through semantic tokens
+  // that adapt across :root (light) and .theme-dark. Dark stays the default.
+  if (mode === "light") return "light";
+  if (mode === "dark") return "dark";
+  return systemPrefersDark() ? "dark" : "light"; // "system"
 }
 
 function readStorage(key: string): string | null {
@@ -438,7 +446,7 @@ function writeStorage(key: string, value: string) {
 export function AppPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(DEFAULT_THEME_MODE);
   const [language, setLanguageState] = useState<Language>("en");
-  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("light");
+  const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
     const savedTheme = (readStorage(THEME_STORAGE_KEY) as ThemeMode | null) || DEFAULT_THEME_MODE;
@@ -450,7 +458,7 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     const root = document.documentElement;
     const applyTheme = () => {
-      const next = resolveTheme();
+      const next = resolveTheme(themeMode);
       setResolvedTheme(next);
       root.classList.toggle("theme-light", next === "light");
       root.classList.toggle("theme-dark", next === "dark");

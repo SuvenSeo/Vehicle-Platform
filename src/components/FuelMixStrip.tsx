@@ -4,11 +4,11 @@ import { getFuelMix, getHybridBands, formatPrice } from "@/services/api";
 import type { FuelMixBucket, HybridBand } from "@/types/car";
 
 const FUEL_COLORS: Record<string, { bar: string; badge: string; label: string }> = {
-  petrol:   { bar: "bg-amber-400",    badge: "border-amber-400/30 bg-amber-400/10 text-amber-300",    label: "Petrol" },
-  hybrid:   { bar: "bg-emerald-400",  badge: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300", label: "Hybrid" },
-  electric: { bar: "bg-sky-400",      badge: "border-sky-400/30 bg-sky-400/10 text-sky-300",          label: "Electric" },
-  diesel:   { bar: "bg-slate-400",    badge: "border-slate-400/30 bg-slate-400/10 text-slate-300",    label: "Diesel" },
-  other:    { bar: "bg-zinc-500",     badge: "border-zinc-500/30 bg-zinc-500/10 text-zinc-400",       label: "Other" },
+  petrol:   { bar: "bg-amber-400",    badge: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300",       label: "Petrol" },
+  hybrid:   { bar: "bg-emerald-400",  badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300", label: "Hybrid" },
+  electric: { bar: "bg-sky-400",      badge: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300",             label: "Electric" },
+  diesel:   { bar: "bg-slate-400",    badge: "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:border-slate-400/30 dark:bg-slate-400/10 dark:text-slate-300",  label: "Diesel" },
+  other:    { bar: "bg-zinc-500",     badge: "border-zinc-500/30 bg-zinc-500/10 text-zinc-600 dark:text-zinc-400",                                                     label: "Other" },
 };
 
 function FuelBar({ buckets, total }: { buckets: FuelMixBucket[]; total: number }) {
@@ -36,7 +36,7 @@ function FuelBadge({ bucket }: { bucket: FuelMixBucket }) {
   const colors = FUEL_COLORS[bucket.fuel_type] ?? FUEL_COLORS.other;
   if (bucket.count === 0) return null;
   return (
-    <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 ${colors.badge}`}>
+    <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-colors ${colors.badge}`}>
       <span className="text-[11px] font-semibold">{colors.label}</span>
       <span className="num text-[10px] font-bold opacity-80">{bucket.pct}%</span>
       <span className="num text-[10px] opacity-60">({bucket.count.toLocaleString()})</span>
@@ -51,10 +51,10 @@ function HybridBandRow({ band, maxCount }: { band: HybridBand; maxCount: number 
       <span className="w-28 shrink-0 text-[11px] font-semibold text-foreground">{band.label}</span>
       <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-emerald-500/10">
         <div
-          className="h-full rounded-md bg-emerald-500/30 transition-all"
+          className="h-full rounded-md bg-emerald-500/30 transition-all duration-500 ease-apple"
           style={{ width: `${widthPct}%` }}
         />
-        <span className="absolute inset-0 flex items-center pl-2 num text-[10px] font-semibold text-emerald-300">
+        <span className="absolute inset-0 flex items-center pl-2 num text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
           {band.count.toLocaleString()} listings
         </span>
       </div>
@@ -91,11 +91,11 @@ export function FuelMixStrip() {
 
   return (
     <section
-      className="rounded-2xl border border-border bg-surface p-5 sm:p-6"
+      className="rounded-2xl border border-border bg-surface p-5 shadow-soft transition-shadow duration-300 hover:shadow-soft-lg sm:p-6"
       aria-label="EV and hybrid market share"
     >
       <div className="mb-5 flex items-center gap-2">
-        <Zap className="h-4 w-4 text-emerald-400/80" />
+        <Zap className="h-4 w-4 text-emerald-600/80 dark:text-emerald-400/80" />
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Fuel mix

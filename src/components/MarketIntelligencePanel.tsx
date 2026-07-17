@@ -56,11 +56,15 @@ function MetricCell({
   tone?: "up" | "down";
 }) {
   return (
-    <div className="bg-card p-5 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)]">
+    <div className="bg-card p-5 transition-colors duration-200 hover:bg-foreground/[0.03]">
       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
       <p
         className={`mt-2 flex items-center gap-1 text-[1.5rem] font-semibold leading-none tracking-tight num ${
-          tone === "up" ? "text-emerald-400" : tone === "down" ? "text-rose-400" : "text-foreground"
+          tone === "up"
+            ? "text-emerald-600 dark:text-emerald-400"
+            : tone === "down"
+              ? "text-rose-600 dark:text-rose-400"
+              : "text-foreground"
         }`}
       >
         {tone === "up" && <ArrowUpRight className="h-4 w-4" />}
@@ -146,11 +150,11 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
     <div>
       {/* ── Bento grid ── */}
       <div
-        className="grid grid-cols-2 overflow-hidden rounded-3xl lg:grid-cols-4"
-        style={{ gap: "1px", background: "hsl(220 10% 100% / 0.07)", border: "1px solid hsl(220 10% 100% / 0.07)" }}
+        className="grid grid-cols-2 overflow-hidden rounded-3xl border border-border bg-border lg:grid-cols-4"
+        style={{ gap: "1px" }}
       >
         {/* Hero cell — moat number (spans 2 cols, 2 rows on lg) */}
-        <div className="relative col-span-2 overflow-hidden bg-card p-6 transition-colors duration-200 hover:bg-[hsl(220,8%,8%)] sm:p-8 lg:row-span-2">
+        <div className="relative col-span-2 overflow-hidden bg-card p-6 transition-colors duration-200 hover:bg-foreground/[0.03] sm:p-8 lg:row-span-2">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-primary to-primary/40" />
           <div
             className="pointer-events-none absolute inset-0"
@@ -190,7 +194,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             {sources.length > 0 && (
               <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-5">
                 {sources.map((s) => (
-                  <span key={s} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                  <span key={s} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-foreground">
                     {s}
                   </span>
                 ))}
@@ -225,17 +229,17 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             {feedSyncLabel === "—" ? "Awaiting sync" : `Synced ${feedSyncLabel}`}
           </span>
         </div>
-        <div className="divide-y divide-white/[0.03]">
+        <div className="divide-y divide-border">
           {feed.length ? (
             feed.map((row) => (
-              <div key={row.key} className="flex items-center justify-between px-5 py-2.5 transition-colors hover:bg-white/[0.015]">
+              <div key={row.key} className="flex items-center justify-between px-5 py-2.5 transition-colors duration-200 hover:bg-foreground/[0.02]">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Flame className="h-3.5 w-3.5 shrink-0 text-primary/50" />
                   <span className="truncate text-[13px] font-semibold text-foreground">{row.source}</span>
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {row.found > 0 ? (
-                    <span className="text-[12px] font-bold text-emerald-400/90 num">+{row.fresh.toLocaleString()} new</span>
+                    <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400/90 num">+{row.fresh.toLocaleString()} new</span>
                   ) : (
                     <span className="text-[12px] font-bold text-primary/80 num">+{row.fresh.toFixed(0)} deal</span>
                   )}

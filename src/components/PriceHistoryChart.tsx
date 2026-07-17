@@ -101,7 +101,7 @@ export function PriceHistoryChart({
           <div className="mt-6 grid grid-cols-2 gap-3">
             <div className="data-card p-3">
               <p className="tech-label">Current median</p>
-              <p className="mt-2 text-2xl font-bold tracking-normal text-white num">{latestMedianLabel}</p>
+              <p className="mt-2 text-2xl font-bold tracking-normal text-foreground num">{latestMedianLabel}</p>
             </div>
             <div className="data-card p-3">
               <p className="tech-label">Movement</p>
@@ -124,11 +124,11 @@ export function PriceHistoryChart({
             </div>
             <div className="data-card p-3">
               <p className="tech-label">Avg depth</p>
-              <p className="mt-2 text-lg font-bold tracking-normal text-white num">{formatSampleCount(averageSamples)}</p>
+              <p className="mt-2 text-lg font-bold tracking-normal text-foreground num">{formatSampleCount(averageSamples)}</p>
             </div>
             <div className="data-card p-3">
               <p className="tech-label">Range</p>
-              <p className="mt-2 text-sm font-bold leading-5 text-white num">
+              <p className="mt-2 text-sm font-bold leading-5 text-foreground num">
                 {lowPoint && highPoint ? `${formatPriceLkrMillions(lowPoint.median_price)} - ${formatPriceLkrMillions(highPoint.median_price)}` : "N/A"}
               </p>
             </div>
@@ -156,7 +156,7 @@ export function PriceHistoryChart({
 
           <div className="mt-6 h-[340px] w-full sm:h-[390px]">
             {isLoading ? (
-              <div className="skeleton-shimmer h-full w-full rounded-xl border border-white/5" />
+              <div className="skeleton-shimmer h-full w-full rounded-xl border border-border" />
             ) : chartData.length === 0 ? (
               <div className="console-empty flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-sm leading-relaxed text-muted-foreground">
                 <p>{emptyMessage}</p>
@@ -164,7 +164,7 @@ export function PriceHistoryChart({
                   <button
                     type="button"
                     onClick={onEmptyAction}
-                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-colors hover:bg-primary/20"
+                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-all duration-150 hover:bg-primary/20 active:scale-[0.97]"
                   >
                     {emptyActionLabel}
                   </button>
@@ -180,23 +180,23 @@ export function PriceHistoryChart({
                 <AreaChart data={chartData} margin={{ top: 18, right: 12, left: -18, bottom: 8 }}>
                   <defs>
                     <linearGradient id="priceHistoryGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#e9b652" stopOpacity={0.26} />
-                      <stop offset="58%" stopColor="#b87922" stopOpacity={0.1} />
-                      <stop offset="100%" stopColor="#b87922" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.26} />
+                      <stop offset="58%" stopColor="var(--gold)" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="rgba(255,255,255,0.045)" />
+                  <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--foreground) / 0.06)" />
                   <XAxis
                     dataKey="label"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#71717a", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#71717a", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
                     tickFormatter={(value: number) => `${value.toFixed(1)}M`}
                     width={56}
                   />
@@ -205,25 +205,25 @@ export function PriceHistoryChart({
                       name === "Median" ? formatPriceLkrMillions(Number(value) * 1_000_000) : value,
                       name,
                     ]}
-                    labelStyle={{ color: "#e4e4e7", fontWeight: 800 }}
+                    labelStyle={{ color: "hsl(var(--foreground))", fontWeight: 800 }}
                     contentStyle={{
-                      backgroundColor: "#080909",
-                      border: "1px solid rgba(255,255,255,0.12)",
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
                       borderRadius: "16px",
                       boxShadow: "0 18px 45px rgba(0,0,0,0.35)",
                     }}
-                    itemStyle={{ color: "#d4d4d8", fontWeight: 700 }}
+                    itemStyle={{ color: "hsl(var(--muted-foreground))", fontWeight: 700 }}
                   />
                   <Area
                     type="monotone"
                     dataKey="median_million"
                     name="Median"
-                    stroke="#e9b652"
+                    stroke="var(--gold)"
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#priceHistoryGradient)"
-                    dot={{ r: 3, strokeWidth: 2, fill: "#050607", stroke: "#e9b652" }}
-                    activeDot={{ r: 5, strokeWidth: 2, fill: "#e9b652", stroke: "#fff7df" }}
+                    dot={{ r: 3, strokeWidth: 2, fill: "hsl(var(--card))", stroke: "var(--gold)" }}
+                    activeDot={{ r: 5, strokeWidth: 2, fill: "var(--gold)", stroke: "var(--gold-bright)" }}
                     connectNulls
                   />
                 </AreaChart>

@@ -80,10 +80,10 @@ function PillButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-2.5 py-1.5 text-caption font-medium transition-colors ${
+      className={`rounded-lg border px-2.5 py-1.5 text-caption font-medium transition-colors active:scale-[0.97] ${
         active
           ? "border-primary/35 bg-primary/12 text-primary"
-          : "border-white/10 bg-foreground/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+          : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
       }`}
     >
       {children}
@@ -92,7 +92,7 @@ function PillButton({
 }
 
 function selectTriggerClass() {
-  return "h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground";
+  return "h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
 }
 
 function selectContentClass() {
@@ -327,7 +327,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           </div>
         ) : null}
 
-        <div className="flex gap-1 rounded-lg border border-border bg-black/40 p-1">
+        <div className="flex gap-1 rounded-lg border border-border bg-surface p-1">
           <button
             type="button"
             onClick={() => setInventoryMode("priced")}
@@ -362,7 +362,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           }}
           placeholder="Make, model, year…"
           aria-label="Search listings"
-          className="h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+          className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
         />
       </FilterGroup>
 
@@ -401,7 +401,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 onChange={(event) => setModelSearchQuery(event.target.value)}
                 placeholder="Find model…"
                 aria-label="Search model"
-                className="h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+                className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
@@ -426,7 +426,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           <p className="text-caption text-muted-foreground">Switch to &ldquo;With price&rdquo; to filter by budget.</p>
         ) : (
           <div className="space-y-2.5">
-            <p className="text-caption font-medium text-foreground">
+            <p className="num text-caption font-medium text-foreground">
               {formatPrice(priceRange[0])} – {formatPrice(priceRange[1])}
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -465,7 +465,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder="Min LKR"
                 aria-label="Minimum price"
-                className="h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+                className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
               />
               <Input
                 value={priceMaxInput}
@@ -480,7 +480,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder="Max LKR"
                 aria-label="Maximum price"
-                className="h-9 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+                className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
               />
             </div>
             <Slider
@@ -508,7 +508,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
       </FilterGroup>
 
       <FilterGroup label="Year">
-        <p className="mb-2 text-caption font-medium text-foreground">
+        <p className="num mb-2 text-caption font-medium text-foreground">
           {yearRange[0]} – {yearRange[1]}
         </p>
         <Slider
@@ -613,9 +613,9 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               inputMode="numeric"
               placeholder="Max km"
               aria-label="Maximum mileage"
-              className="h-9 flex-1 rounded-lg border-border bg-foreground/[0.03] text-sm text-foreground"
+              className="h-9 flex-1 rounded-lg border-border bg-surface text-sm text-foreground"
             />
-            <span className="shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue)}</span>
+            <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue)}</span>
           </div>
           <Slider
             thumbLabel="Maximum mileage slider"
@@ -694,7 +694,7 @@ export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersCha
       <div className="sticky bottom-4 z-40 mt-3 flex justify-end lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-white hover:bg-foreground/[0.05]">
+            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-foreground transition-colors hover:bg-foreground/[0.05] active:scale-[0.97]">
               <SlidersHorizontal className="h-4 w-4" />
               Filters
             </Button>

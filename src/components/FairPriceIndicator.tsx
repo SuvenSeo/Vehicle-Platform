@@ -43,7 +43,7 @@ export function FairPriceIndicator({ score, condition, size = "sm", className }:
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("inline-flex items-center gap-1.5 cursor-help transition-colors", size === "sm" ? "font-semibold uppercase rounded" : "uppercase font-bold", badgeClasses, className)}>
+          <span className={cn("inline-flex items-center gap-1.5 cursor-help transition-all duration-200 hover:opacity-80 active:scale-[0.98]", size === "sm" ? "font-semibold uppercase rounded" : "uppercase font-bold", badgeClasses, className)}>
             {label}
             <Info className={cn("opacity-60", size === "sm" ? "w-3 h-3" : "w-6 h-6 ml-2")} />
           </span>
@@ -53,12 +53,12 @@ export function FairPriceIndicator({ score, condition, size = "sm", className }:
           align="center"
           sideOffset={8}
           collisionPadding={16}
-          className="max-w-[280px] bg-[#111] border border-white/10 p-4 shadow-2xl rounded-xl z-50"
+          className="max-w-[280px] bg-popover border border-border p-4 shadow-soft-xl rounded-xl z-50"
         >
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-widest text-primary-bright font-bold border-b border-white/10 pb-2 mb-2">Dynamic Value Methodology</h4>
+            <h4 className="text-xs uppercase tracking-widest text-primary-bright font-bold border-b border-border pb-2 mb-2">Dynamic Value Methodology</h4>
             <p className="text-sm text-foreground leading-relaxed font-medium">
-              We calculate <span className="text-white">Fair Price</span> using a proprietary multi-factor algorithm against thousands of active Sri Lankan listings.
+              We calculate <span className="text-foreground font-semibold">Fair Price</span> using a proprietary multi-factor algorithm against thousands of active Sri Lankan listings.
             </p>
             <ul className="text-xs text-muted-foreground space-y-1.5 font-medium">
               <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Adjusts for Vehicle Mileage & Age</li>
@@ -66,7 +66,7 @@ export function FairPriceIndicator({ score, condition, size = "sm", className }:
               <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Accounts for live Market Demand</li>
               <li className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-primary" /> Factors in prevailing Import Duties</li>
             </ul>
-            <div className="bg-white/5 p-2 rounded border border-border mt-2">
+            <div className="bg-surface p-2 rounded border border-border mt-2">
               <p className="ui-caption italic">Scores between -5 and +8 typically fall comfortably within the {condition === "brand_new" ? "New Fair Price" : "Used Fair Price"} band.</p>
             </div>
           </div>

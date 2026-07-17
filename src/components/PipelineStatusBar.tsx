@@ -93,7 +93,7 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-black/20 px-6 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-6 py-3">
         <p className="ui-caption">{overallMessage}</p>
         <div className="flex flex-wrap items-center gap-3">
           <DataFreshnessIndicator latestListingAt={latestListingAt} lastUpdated={lastUpdated} />
@@ -129,9 +129,9 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
                         className={`w-4 h-4 shrink-0 ${job.status === "running" ? "animate-spin" : ""}`}
                         style={{ color }}
                       />
-                      <p className="text-sm font-semibold text-white truncate">{prettifyJobName(job.name)}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{prettifyJobName(job.name)}</p>
                     </div>
-                    <span className="tech-label rounded-md border border-white/12 bg-white/5 px-2 py-1 text-foreground">
+                    <span className="tech-label rounded-md border border-border bg-card px-2 py-1 text-foreground">
                       {job.status}
                     </span>
                   </div>

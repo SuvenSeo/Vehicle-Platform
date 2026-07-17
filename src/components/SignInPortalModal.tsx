@@ -29,7 +29,7 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl border-white/10 bg-[#0b0d0f] text-white rounded-xl p-8">
+      <DialogContent className="max-w-xl border-border bg-card text-foreground rounded-xl p-8">
         <DialogHeader className="space-y-3">
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/35 bg-primary/14 text-primary">
             <ShieldCheck className="h-5 w-5" />
@@ -45,7 +45,7 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
             type="button"
             variant="outline"
             onClick={handleProAccess}
-            className="h-12 rounded-xl border-primary/35 bg-primary/12 text-primary hover:bg-primary/20"
+            className="h-12 rounded-xl border-primary/35 bg-primary/12 text-primary transition-colors hover:bg-primary/20 active:scale-[0.99]"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Sign In to Pro Dashboard
@@ -54,7 +54,7 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
             type="button"
             variant="outline"
             onClick={handlePreviewAccess}
-            className="h-12 rounded-xl border-white/12 bg-foreground/[0.03] text-foreground hover:bg-foreground/[0.03]"
+            className="h-12 rounded-xl border-border bg-surface text-foreground transition-colors hover:bg-accent active:scale-[0.99]"
           >
             <ShieldCheck className="h-4 w-4 mr-2" />
             Preview Pro Features
@@ -62,7 +62,7 @@ export function SignInPortalModal({ open, onOpenChange }: SignInPortalModalProps
           <Button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="h-12 rounded-xl bg-white/5 border border-white/12 text-white hover:bg-white/10"
+            className="h-12 rounded-xl bg-surface border border-border text-foreground transition-colors hover:bg-accent active:scale-[0.99]"
           >
             <UserRound className="h-4 w-4 mr-2" />
             Guest Access

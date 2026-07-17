@@ -12,6 +12,10 @@ import {
   Zap,
 } from "lucide-react";
 import { getEvInsight, formatPrice } from "@/services/api";
+import { SectionHeader } from "@/components/SectionHeader";
+import { Button } from "@/components/ui/button";
+import { revealContainer, revealItem } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 const evModules = [
   { icon: Battery, step: "01", title: "Battery health", desc: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
@@ -28,30 +32,6 @@ const ownershipChecks = [
 const TCO_FUEL_COST_PER_KM_PETROL_LKR = 28;
 const TCO_FUEL_COST_PER_KM_EV_LKR = 6;
 const TCO_KM_PER_YEAR = 20_000;
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-      delayChildren: 0.05
-    }
-  }
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 220,
-      damping: 24
-    }
-  }
-} as const;
 
 export default function EVHub() {
   const insightQuery = useQuery({
@@ -97,174 +77,216 @@ export default function EVHub() {
     },
   ];
 
+  const [featureStat, ...secondaryStats] = liveStats;
+
   return (
     <motion.div
       initial="hidden"
       animate="show"
-      variants={containerVariants}
+      variants={revealContainer}
       className="min-h-screen relative overflow-hidden bg-background"
     >
       {/* Decorative Orbs */}
-      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-[8%] right-[-10%] w-[480px] h-[480px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute bottom-[18%] left-[-15%] w-[420px] h-[420px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
 
-      {/* Header */}
-      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
-        <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">EV intelligence</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">EV buying signals.</h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-muted-foreground font-medium">Battery health, charging fit, and duty signals for the Sri Lankan EV market.</p>
+      {/* Hero */}
+      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
+        <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-14 sm:px-6 sm:pt-20 sm:pb-16 lg:pt-24 lg:pb-20">
+          <p className="mb-5 inline-flex items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-primary-bright">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary" />
+            EV intelligence
+          </p>
+          <h1 className="display-hero text-foreground max-w-3xl">EV buying signals.</h1>
+          <p className="text-body-lg mt-6 max-w-xl">
+            Battery health, charging fit, and duty signals for the Sri Lankan EV market.
+          </p>
         </div>
       </motion.section>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-10 relative z-10">
-        {/* Live inventory pulse */}
-        <motion.div variants={itemVariants}>
-          <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white">Live EV inventory</h2>
-          <div className="grid gap-2 md:grid-cols-3">
-            {liveStats.map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md hover:border-primary/20 transition-all">
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">{stat.label}</p>
-                <p className="num mt-2 text-xl font-bold text-white">{stat.value}</p>
-                <p className="mt-1.5 text-[11px] text-muted-foreground font-medium">{stat.note}</p>
+      <div className="mx-auto max-w-[1320px] px-5 pb-20 pt-14 sm:px-6 lg:pt-16 space-y-16 lg:space-y-24 relative z-10">
+        {/* Live inventory pulse — one number towers */}
+        <motion.section variants={revealItem}>
+          <SectionHeader title="Live EV inventory" className="mb-8" />
+          <div className="space-y-3">
+            <div className="data-card flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{featureStat.label}</p>
+                <p className="num mt-3 text-5xl font-bold tracking-tight text-foreground sm:text-6xl">{featureStat.value}</p>
               </div>
-            ))}
+              <p className="max-w-xs text-[13px] font-medium leading-relaxed text-muted-foreground sm:text-right">{featureStat.note}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {secondaryStats.map((stat) => (
+                <div key={stat.label} className="data-card p-6">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">{stat.label}</p>
+                  <p className="num mt-2 text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="mt-1.5 text-[12px] font-medium text-muted-foreground">{stat.note}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </motion.div>
+        </motion.section>
 
-        {/* Top EV models */}
+        {/* Top EV models — feature the leading model */}
         {(pending || topModels.length > 0) && (
-          <motion.div variants={itemVariants}>
-            <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white">Top EV models</h2>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <motion.section variants={revealItem}>
+            <SectionHeader title="Top EV models" className="mb-8" />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {pending
                 ? Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 animate-pulse">
-                      <div className="h-3 w-2/3 rounded bg-white/[0.04] mb-3" />
-                      <div className="h-5 w-1/2 rounded bg-white/[0.04]" />
+                    <div
+                      key={i}
+                      className={cn("data-card p-6 animate-pulse", i === 0 && "xl:col-span-2")}
+                    >
+                      <div className="mb-3 h-3 w-2/3 rounded bg-muted" />
+                      <div className="h-5 w-1/2 rounded bg-muted" />
                     </div>
                   ))
-                : topModels.map((m) => (
-                    <div key={`${m.make}-${m.model}`} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md hover:border-primary/25 hover:bg-white/[0.02] transition-all">
-                      <div className="flex items-center gap-1.5 mb-3">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md border border-white/5 bg-white/[0.02]">
-                          <Zap className="h-3.5 w-3.5 text-primary" />
+                : topModels.map((m, i) => {
+                    const featured = i === 0;
+                    return (
+                      <div
+                        key={`${m.make}-${m.model}`}
+                        className={cn(
+                          "data-card group p-6 transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg",
+                          featured && "xl:col-span-2 xl:flex xl:flex-col xl:justify-between",
+                        )}
+                      >
+                        <div className="mb-4 flex items-center gap-2">
+                          <div className={cn(
+                            "flex items-center justify-center rounded-lg border border-border bg-surface",
+                            featured ? "h-10 w-10" : "h-8 w-8",
+                          )}>
+                            <Zap className={cn("text-primary", featured ? "h-5 w-5" : "h-3.5 w-3.5")} aria-hidden />
+                          </div>
+                          <p className={cn("font-bold leading-tight text-foreground", featured ? "text-[15px]" : "text-[13px]")}>
+                            {m.make} {m.model}
+                          </p>
                         </div>
-                        <p className="text-[12px] font-bold text-white leading-tight">{m.make} {m.model}</p>
+                        <p className={cn("num font-bold text-foreground", featured ? "text-3xl tracking-tight" : "text-lg")}>
+                          {m.median_price_lkr !== null ? formatPrice(m.median_price_lkr) : "—"}
+                        </p>
+                        <p className="mt-1.5 text-[11px] font-medium text-muted-foreground">
+                          {m.listing_count} listing{m.listing_count !== 1 ? "s" : ""} · median
+                        </p>
                       </div>
-                      <p className="num text-base font-bold text-white">
-                        {m.median_price_lkr !== null ? formatPrice(m.median_price_lkr) : "—"}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-foreground font-medium">{m.listing_count} listing{m.listing_count !== 1 ? "s" : ""} · median</p>
-                    </div>
-                  ))}
+                    );
+                  })}
             </div>
-          </motion.div>
+          </motion.section>
         )}
 
         {/* TCO comparison callout */}
-        <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
-              <TrendingDown className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">TCO comparison</p>
-              <h3 className="mt-1 text-[14px] font-bold text-white">EV vs. Toyota Aqua hybrid — real running cost</h3>
-              <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground font-medium">
-                Fuel saving estimated at <span className="font-bold text-white">Rs.{annualFuelSavingLkr.toLocaleString()}/yr</span> (LKR {TCO_FUEL_COST_PER_KM_EV_LKR} vs LKR {TCO_FUEL_COST_PER_KM_PETROL_LKR} per km, {(TCO_KM_PER_YEAR / 1000).toFixed(0)}k km/yr).
-              </p>
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-lg border border-white/5 bg-white/[0.01] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Median EV price</p>
-                  <p className="num mt-1.5 text-base font-bold text-white">
-                    {pending ? "…" : medianEvPrice !== null ? formatPrice(medianEvPrice) : "N/A"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-white/5 bg-white/[0.01] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Toyota Aqua benchmark</p>
-                  <p className="num mt-1.5 text-base font-bold text-white">
-                    {pending ? "…" : benchmark?.median_price_lkr != null ? formatPrice(benchmark.median_price_lkr) : "N/A"}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">
-                    {benchmark?.listing_count ? `${benchmark.listing_count} listings` : "hybrid benchmark"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-white/5 bg-white/[0.01] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Fuel savings payback</p>
-                  <p className="num mt-1.5 text-base font-bold text-white">
-                    {pending
-                      ? "…"
-                      : paybackYears !== null
-                        ? `~${paybackYears} yr${paybackYears !== 1 ? "s" : ""}`
-                        : "N/A"}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">to recover EV price premium</p>
-                </div>
+        <motion.section variants={revealItem}>
+          <div className="surface--glass rounded-2xl p-6 sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+                <TrendingDown className="h-5 w-5 text-primary" aria-hidden />
               </div>
-              <p className="mt-3 text-[10px] text-muted-foreground font-medium">
-                Indicative only. Actual savings vary by charging cost, mileage, and model.
-              </p>
+              <div className="min-w-0 flex-1">
+                <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">
+                  <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+                  TCO comparison
+                </p>
+                <h3 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">EV vs. Toyota Aqua hybrid — real running cost</h3>
+                <p className="mt-3 max-w-2xl text-[14px] font-medium leading-relaxed text-muted-foreground">
+                  Fuel saving estimated at <span className="num font-bold text-foreground">Rs.{annualFuelSavingLkr.toLocaleString()}/yr</span> (LKR {TCO_FUEL_COST_PER_KM_EV_LKR} vs LKR {TCO_FUEL_COST_PER_KM_PETROL_LKR} per km, {(TCO_KM_PER_YEAR / 1000).toFixed(0)}k km/yr).
+                </p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  <div className="metric-tile p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Median EV price</p>
+                    <p className="num mt-2 text-lg font-bold text-foreground">
+                      {pending ? "…" : medianEvPrice !== null ? formatPrice(medianEvPrice) : "N/A"}
+                    </p>
+                  </div>
+                  <div className="metric-tile p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Toyota Aqua benchmark</p>
+                    <p className="num mt-2 text-lg font-bold text-foreground">
+                      {pending ? "…" : benchmark?.median_price_lkr != null ? formatPrice(benchmark.median_price_lkr) : "N/A"}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium text-muted-foreground">
+                      {benchmark?.listing_count ? `${benchmark.listing_count} listings` : "hybrid benchmark"}
+                    </p>
+                  </div>
+                  <div className="metric-tile p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">Fuel savings payback</p>
+                    <p className="num mt-2 text-lg font-bold text-foreground">
+                      {pending
+                        ? "…"
+                        : paybackYears !== null
+                          ? `~${paybackYears} yr${paybackYears !== 1 ? "s" : ""}`
+                          : "N/A"}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium text-muted-foreground">to recover EV price premium</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-[11px] font-medium text-muted-foreground">
+                  Indicative only. Actual savings vary by charging cost, mileage, and model.
+                </p>
+              </div>
             </div>
           </div>
-        </motion.div>
+        </motion.section>
 
         {/* Decision modules */}
-        <motion.div variants={itemVariants}>
-          <h2 className="mb-5 font-display text-sm font-bold tracking-tight text-white">Decision modules</h2>
-          <div className="grid gap-2 md:grid-cols-3">
+        <motion.section variants={revealItem}>
+          <SectionHeader title="Decision modules" className="mb-8" />
+          <div className="grid gap-3 md:grid-cols-3">
             {evModules.map((m) => {
               const Icon = m.icon;
               return (
-                <div key={m.title} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 transition-all hover:border-primary/20 hover:bg-white/[0.02]">
+                <div key={m.title} className="data-card p-6 transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg">
                   <div className="flex items-center justify-between">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
-                      <Icon className="h-4 w-4 text-primary" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface">
+                      <Icon className="h-5 w-5 text-primary" aria-hidden />
                     </div>
-                    <span className="text-[10px] font-bold text-primary-bright num">{m.step}</span>
+                    <span className="num text-[11px] font-bold text-primary-bright">{m.step}</span>
                   </div>
-                  <h3 className="mt-4 text-[14px] font-bold text-white">{m.title}</h3>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed font-medium">{m.desc}</p>
+                  <h3 className="mt-5 text-[15px] font-bold text-foreground">{m.title}</h3>
+                  <p className="mt-2 text-[12px] font-medium leading-relaxed text-muted-foreground">{m.desc}</p>
                 </div>
               );
             })}
           </div>
-        </motion.div>
+        </motion.section>
 
         {/* Market action */}
-        <motion.div variants={itemVariants} className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
-          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
+        <motion.section variants={revealItem} className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+          <div className="data-card p-6 sm:p-8">
             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership checks</p>
-            <h3 className="mt-1.5 text-[14px] font-bold text-white">Buyer guidelines</h3>
-            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+            <h3 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">Buyer guidelines</h3>
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
               {ownershipChecks.map((c) => (
-                <div key={c.label} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <div key={c.label} className="metric-tile p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{c.label}</p>
-                  <p className="mt-2 text-xl font-bold text-white num">{c.value}</p>
-                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground font-medium">{c.note}</p>
+                  <p className="num mt-2 text-xl font-bold text-foreground">{c.value}</p>
+                  <p className="mt-2 text-[10px] font-medium leading-relaxed text-muted-foreground">{c.note}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="flex flex-col rounded-xl border border-white/5 bg-white/[0.01] p-5 sm:p-6 backdrop-blur-md">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02]">
-              <Car className="h-4 w-4 text-primary" />
+          <div className="data-card flex flex-col p-6 sm:p-8">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface">
+              <Car className="h-5 w-5 text-primary" aria-hidden />
             </div>
-            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Market action</p>
-            <h3 className="mt-1.5 text-base font-bold text-white">Browse EV inventory</h3>
-            <ul className="mt-4 flex flex-wrap gap-1.5">
+            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Market action</p>
+            <h3 className="mt-2 text-lg font-bold text-foreground">Browse EV inventory</h3>
+            <ul className="mt-5 flex flex-wrap gap-2">
               {["Filter electric inventory", "Check finance baseline", "Compare resale pressure"].map((a) => (
-                <li key={a} className="flex items-center gap-1.5 rounded-md border border-white/5 bg-white/[0.02] px-2.5 py-1 text-[10px] font-bold text-muted-foreground hover:text-white transition-all">
-                  <CheckCircle2 className="h-3 w-3 text-primary" /> {a}
+                <li key={a} className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold text-muted-foreground">
+                  <CheckCircle2 className="h-3 w-3 text-primary" aria-hidden /> {a}
                 </li>
               ))}
             </ul>
-            <Link to="/?fuel_type=electric#market" className="mt-6 flex h-10 items-center justify-center gap-2 rounded-lg bg-primary text-[10px] font-bold uppercase tracking-[0.1em] text-white no-underline transition-all hover:bg-primary/95 shadow-[0_4px_12px_rgba(124,58,237,0.15)]">
-              Browse electric inventory <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            <Button asChild size="lg" className="mt-auto w-full">
+              <Link to="/?fuel_type=electric#market">
+                Browse electric inventory <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
+            </Button>
           </div>
-        </motion.div>
+        </motion.section>
       </div>
     </motion.div>
   );
