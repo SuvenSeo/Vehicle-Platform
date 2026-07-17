@@ -11,6 +11,10 @@ on:
         description: "Factory rebuild (clears the build cache — use to unstick a wedged build)"
         type: boolean
         default: false
+      logs_only:
+        description: "Fetch the current build/run logs without syncing or restarting"
+        type: boolean
+        default: false
 
 jobs:
   sync-to-hf:
@@ -24,6 +28,7 @@ jobs:
           lfs: true
 
       - name: Push backend to HuggingFace Space
+        if: ${{ github.event.inputs.logs_only != 'true' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -71,7 +76,7 @@ jobs:
       # tell HF to (re)build rather than hoping it notices. `factory: true`
       # (manual dispatch only) forces a clean, cache-free rebuild to break a wedge.
       - name: Trigger HuggingFace Space rebuild
-        if: always()
+        if: ${{ always() && github.event.inputs.logs_only != 'true' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           FACTORY: ${{ github.event.inputs.factory || 'false' }}
@@ -92,3 +97,20 @@ jobs:
           if [ "$code" -ge 400 ]; then
             echo "::warning::HF restart API returned ${code} — the Space may need a manual Factory rebuild from the dashboard."
           fi
+
+      # Best-effort: dump the Space's build log tail so a stuck/slow build is
+      # diagnosable from the Actions run instead of needing dashboard access.
+      # The build-log endpoint is an SSE stream, so we time-box the read.
+      - name: Fetch HuggingFace build logs
+        if: always()
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          repo="Seo292/vehicle-platform-backend"
+          echo "=== runtime status ==="
+          curl -s --max-time 20 "https://huggingface.co/api/spaces/${repo}" \
+            -H "Authorization: Bearer ${HF_TOKEN}" | head -c 2000; echo
+          echo "=== build log tail (time-boxed 40s) ==="
+          curl -s --max-time 40 -N "https://huggingface.co/api/spaces/${repo}/logs/build" \
+            -H "Authorization: Bearer ${HF_TOKEN}" 2>/dev/null | tail -n 60 || echo "(build log stream unavailable)"
