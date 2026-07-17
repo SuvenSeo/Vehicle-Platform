@@ -6,6 +6,11 @@ on:
     paths:
       - "backend/**"
   workflow_dispatch:
+    inputs:
+      factory:
+        description: "Factory rebuild (clears the build cache — use to unstick a wedged build)"
+        type: boolean
+        default: false
 
 jobs:
   sync-to-hf:
@@ -58,4 +63,32 @@ jobs:
             git commit -m "deploy: sync from GitHub $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             git push
             echo "Deployed to HuggingFace."
+          fi
+
+      # HuggingFace normally auto-detects the new commit and rebuilds, but its
+      # free-tier build watcher can wedge (commit lands, build never advances).
+      # Calling the restart API explicitly makes the deploy authoritative: we
+      # tell HF to (re)build rather than hoping it notices. `factory: true`
+      # (manual dispatch only) forces a clean, cache-free rebuild to break a wedge.
+      - name: Trigger HuggingFace Space rebuild
+        if: always()
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          FACTORY: ${{ github.event.inputs.factory || 'false' }}
+        run: |
+          repo="Seo292/vehicle-platform-backend"
+          if [ "${FACTORY}" = "true" ]; then
+            echo "Requesting FACTORY rebuild of ${repo}…"
+            url="https://huggingface.co/api/spaces/${repo}/restart?factory=true"
+          else
+            echo "Requesting rebuild of ${repo}…"
+            url="https://huggingface.co/api/spaces/${repo}/restart"
+          fi
+          code=$(curl -s -o restart_resp.json -w "%{http_code}" -X POST "$url" \
+            -H "Authorization: Bearer ${HF_TOKEN}")
+          echo "HF restart HTTP ${code}"
+          cat restart_resp.json 2>/dev/null || true
+          echo
+          if [ "$code" -ge 400 ]; then
+            echo "::warning::HF restart API returned ${code} — the Space may need a manual Factory rebuild from the dashboard."
           fi
