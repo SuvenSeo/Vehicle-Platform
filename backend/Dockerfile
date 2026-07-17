@@ -10,9 +10,15 @@ RUN groupadd -g 10001 appgroup && \
     useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
 COPY requirements.txt ./requirements.txt
+# The API server imports the playwright PACKAGE (via the scheduler chain) but
+# never launches a browser — scraping runs in GitHub Actions, which installs
+# its own Chromium. So we install the pip package (fast, keeps imports working)
+# but NOT the ~150MB Chromium browser + system deps, cutting the image build
+# from ~40 min to ~2 min on HF's cpu-basic tier. If you ever enable the
+# in-container scheduler (DAILY_SYNC_ENABLED, discouraged), add back:
+#   && playwright install --with-deps chromium
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    playwright install --with-deps chromium
+    pip install --no-cache-dir -r requirements.txt
 
 # Change ownership of /app to appuser
 RUN chown -R appuser:appgroup /app
