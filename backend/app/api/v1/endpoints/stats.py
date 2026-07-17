@@ -28,6 +28,8 @@ from db.models import CarListing, PriceAggregate, ScrapeRun, live_listing_filter
 from app.models.schemas import StatsSummary, DistrictPrice
 from app.models.schemas import DashboardInsightsResponse, DistrictQuickInsightResponse
 from app.models.schemas import DistrictVelocityResponse, DistrictVelocityPoint
+from app.models.schemas import PriceIndexResponse
+from app.utils.price_index import build_price_index
 from app.services.rate_limit import RateLimiter
 
 _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
@@ -148,6 +150,12 @@ def build_live_market_snapshot(db: Session) -> dict:
             for source, run in sorted(latest_by_source.items())
         ],
     }
+
+@router.get("/price-index", response_model=PriceIndexResponse)
+def get_price_index(db: Session = Depends(get_db)):
+    """Mix-adjusted monthly used-vehicle price index (overall + top makes)."""
+    return build_price_index(db)
+
 
 @router.get("/summary", response_model=StatsSummary)
 def get_stats_summary(db: Session = Depends(get_db)):

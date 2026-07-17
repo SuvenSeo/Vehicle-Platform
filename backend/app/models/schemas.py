@@ -253,6 +253,69 @@ class SellerProfileResponse(BaseModel):
     fetched_at: datetime
 
 
+class HistoryReportFlag(BaseModel):
+    kind: str
+    severity: str
+    detail: str
+
+
+class HistoryReportRelatedListing(BaseModel):
+    id: int
+    source: str
+    title: str
+    price_lkr: Optional[float] = None
+    mileage: Optional[int] = None
+    first_seen_at: Optional[datetime] = None
+    is_active: bool = True
+    confidence: str
+
+
+class HistoryReportResponse(BaseModel):
+    listing_id: int
+    first_seen_at: Optional[datetime] = None
+    last_seen_at: Optional[datetime] = None
+    days_on_market: Optional[int] = None
+    is_active: bool = True
+    price_points: List["PriceHistoryPoint"]
+    price_cuts: int
+    total_change_pct: Optional[float] = None
+    related_listings: List[HistoryReportRelatedListing]
+    flags: List[HistoryReportFlag]
+    disclaimer: str
+
+
+class CollateralValueResponse(BaseModel):
+    make: str
+    model: str
+    year: Optional[int] = None
+    market_median_lkr: Optional[float] = None
+    p25_lkr: Optional[float] = None
+    p75_lkr: Optional[float] = None
+    comparable_count: int
+    live_supply: int
+    median_days_on_market: Optional[float] = None
+    trend_3m_pct: Optional[float] = None
+    confidence: str
+    computed_at: datetime
+    methodology: str
+
+
+class PriceIndexPoint(BaseModel):
+    period: str
+    index_value: float
+    median_price_lkr: float
+    listing_count: int
+    mom_change_pct: Optional[float] = None
+
+
+class PriceIndexResponse(BaseModel):
+    base_period: Optional[str] = None
+    latest_period: Optional[str] = None
+    points: List[PriceIndexPoint]
+    segments: dict
+    methodology: str
+
+
 class PriceDropItem(BaseModel):
     listing: "CarListingRead"
     previous_price_lkr: float

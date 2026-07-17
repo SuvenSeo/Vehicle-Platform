@@ -1,0 +1,99 @@
+"""Tests for the B2B collateral-value API."""
+
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from app.main import app
+from db.models import Base, CarListing
+from db.session import get_db
+
+
+_NOW = datetime(2026, 7, 16, 10, 0)
+
+
+def _client_with_data(rows):
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+    for r in rows:
+        db.add(r)
+    db.commit()
+    app.dependency_overrides[get_db] = lambda: db
+    return TestClient(app), db
+
+
+def _car(sid, *, price, make="Toyota", model="Premio", year=2019, first_days_ago=10):
+    seen = _NOW - timedelta(days=first_days_ago)
+    return CarListing(
+        source="ikman", source_id=sid, scraped_at=_NOW, first_seen_at=seen, last_seen_at=_NOW,
+        make=make, model=model, year=year, price_lkr=price, district="Colombo",
+        title=f"{make} {model}", url=f"https://ex.com/{sid}", is_active=True,
+    )
+
+
+def test_requires_key(monkeypatch):
+    monkeypatch.setenv("B2B_API_KEYS", "secret-key-1")
+    client, _ = _client_with_data([_car("a", price=9_000_000)])
+    try:
+        assert client.get("/api/v1/b2b/collateral-value?make=Toyota&model=Premio").status_code == 401
+        assert client.get(
+            "/api/v1/b2b/collateral-value?make=Toyota&model=Premio",
+            headers={"X-API-Key": "wrong"},
+        ).status_code == 401
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_503_when_unconfigured(monkeypatch):
+    monkeypatch.delenv("B2B_API_KEYS", raising=False)
+    client, _ = _client_with_data([_car("a", price=9_000_000)])
+    try:
+        r = client.get("/api/v1/b2b/collateral-value?make=Toyota&model=Premio", headers={"X-API-Key": "x"})
+        assert r.status_code == 503
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_valuation_computed(monkeypatch):
+    monkeypatch.setenv("B2B_API_KEYS", "k1")
+    rows = [_car(str(i), price=8_000_000 + i * 200_000) for i in range(10)]
+    client, _ = _client_with_data(rows)
+    try:
+        r = client.get(
+            "/api/v1/b2b/collateral-value?make=Toyota&model=Premio&year=2019",
+            headers={"X-API-Key": "k1"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["comparable_count"] == 10
+        assert body["market_median_lkr"] > 8_000_000
+        assert body["p25_lkr"] < body["market_median_lkr"] < body["p75_lkr"]
+        assert body["confidence"] == "medium"  # 6-19 comparables
+        assert body["median_days_on_market"] is not None
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_no_comparables(monkeypatch):
+    monkeypatch.setenv("B2B_API_KEYS", "k1")
+    client, _ = _client_with_data([_car("a", price=9_000_000, make="Toyota", model="Premio")])
+    try:
+        r = client.get(
+            "/api/v1/b2b/collateral-value?make=BMW&model=X5",
+            headers={"X-API-Key": "k1"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["comparable_count"] == 0
+        assert body["confidence"] == "none"
+        assert body["market_median_lkr"] is None
+    finally:
+        app.dependency_overrides.clear()

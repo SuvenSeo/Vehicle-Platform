@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from .endpoints import alerts, auth, calculators, chat, dealer, feedback, listings, market, pipeline, pro, stats
+from .endpoints import alerts, auth, b2b, calculators, chat, dealer, feedback, listings, market, pipeline, pro, stats
 from .endpoints.auth import require_pro_access
 
 api_router = APIRouter()
@@ -15,3 +15,4 @@ api_router.include_router(pipeline.router, prefix="/pipeline", tags=["pipeline"]
 api_router.include_router(market.router, prefix="/market", tags=["market"])
 api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"])
 api_router.include_router(dealer.router, prefix="/dealer", tags=["dealer"])
+api_router.include_router(b2b.router, prefix="/b2b", tags=["b2b"])

@@ -17,6 +17,7 @@ import httpx
 from bs4 import BeautifulSoup
 from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
+from app.utils.history_report import build_history_report
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -24,6 +25,7 @@ from app.models.schemas import (
     CustomVehicleEstimateRequest,
     CustomVehicleEstimateResponse,
     ComparableVehicle,
+    HistoryReportResponse,
     PriceDropsResponse,
     PriceHistoryResponse,
     SellerProfileResponse,
@@ -1942,6 +1944,16 @@ def get_listing_price_history(listing_id: int, db: Session = Depends(get_db)):
         "current_price_lkr": current_price,
         "change_pct": change_pct,
     }
+
+@router.get("/{listing_id}/history-report", response_model=HistoryReportResponse)
+def get_listing_history_report(listing_id: int, db: Session = Depends(get_db)):
+    """Per-vehicle dossier: price trajectory, days-on-market, cross-source
+    relistings, and fraud signals (odometer inconsistency, multi-listing)."""
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+    return build_history_report(db, listing)
+
 
 @router.get("/{listing_id}", response_model=CarListingRead)
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
