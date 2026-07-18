@@ -3,28 +3,27 @@ import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const platformLinks = [
-  { label: "Overview", to: "/#overview" },
+  { label: "Home", to: "/" },
   { label: "Market", to: "/#market" },
   { label: "Trends", to: "/trends" },
   { label: "Valuation", to: "/estimate" },
 ];
 
 const toolLinks = [
+  { label: "Pricing", to: "/pricing" },
+  { label: "Docs", to: "/docs" },
   { label: "Calculator", to: "/calculator" },
-  { label: "EV Hub", to: "/ev-hub" },
   { label: "Best Picks", to: "/best-picks" },
-  { label: "District Map", to: "/map" },
 ];
 
 const moreLinks = [
   { label: "Official Pulse", to: "/official-pulse" },
   { label: "Dealer", to: "/dealer" },
   { label: "Pro Preview", to: "/pro-preview" },
-  { label: "Docs", to: "/docs" },
-  { label: "Pricing", to: "/pricing" },
-  { label: "Branding", to: "/branding" },
-  { label: "Settings", to: "/settings" },
+  { label: "EV Hub", to: "/ev-hub" },
+  { label: "Map", to: "/map" },
   { label: "Journal", to: "/blogs" },
+  { label: "Settings", to: "/settings" },
 ];
 
 const externalLinks = [

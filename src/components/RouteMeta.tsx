@@ -75,10 +75,6 @@ const ROUTE_META: Record<string, Meta> = {
     title: `Pricing — ${SITE}`,
     description: "Free, Pro, Dealer, and Custom access for Sri Lanka vehicle market intelligence.",
   },
-  "/branding": {
-    title: `Brand Lab — ${SITE}`,
-    description: `Internal brand options and system brief for ${SITE}.`,
-  },
 };
 
 function setMeta(name: string, content: string) {

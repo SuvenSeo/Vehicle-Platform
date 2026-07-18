@@ -1451,8 +1451,19 @@ export const getMarketSignals = async (limit = 6): Promise<MarketSignal[]> => {
 };
 
 export const getMarketSignal = async (id: number): Promise<MarketSignal> => {
-  const data = await fetchJSON<JsonRecord>(`/market/signals/${id}`);
-  return normalizeMarketSignal(data);
+  try {
+    const data = await fetchJSON<JsonRecord>(`/market/signals/${id}`);
+    const signal = normalizeMarketSignal(data);
+    if (signal.id === id) return signal;
+  } catch {
+    // Fall through — older backends / cold starts may lack GET /signals/{id}.
+  }
+
+  const rows = await getMarketSignals(500);
+  const found = rows.find((signal) => signal.id === id);
+  if (found) return found;
+
+  throw new APIError(404, "Market signal not found");
 };
 
 export const getMakeModelInsight = async (make: string, model: string): Promise<MakeModelInsight> => {

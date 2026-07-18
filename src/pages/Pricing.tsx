@@ -231,6 +231,12 @@ export default function Pricing() {
             >
               Docs
             </Link>
+            <a
+              href="mailto:s.seoras@rgu.ac.uk?subject=Custom%20pricing%20inquiry"
+              className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
+            >
+              Message us
+            </a>
           </div>
         </motion.div>
       </div>

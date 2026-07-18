@@ -39,7 +39,6 @@ const Alerts = lazy(() => import("./pages/Alerts"));
 const PriceIndex = lazy(() => import("./pages/PriceIndex"));
 const Docs = lazy(() => import("./pages/Docs"));
 const Pricing = lazy(() => import("./pages/Pricing"));
-const Branding = lazy(() => import("./pages/Branding"));
 const OfficialPulse = lazy(() => import("./pages/OfficialPulse"));
 const OfficialPulseDetail = lazy(() => import("./pages/OfficialPulseDetail"));
 const OfficialPulseGuide = lazy(() => import("./pages/OfficialPulseGuide"));
@@ -151,7 +150,6 @@ const App = () => {
                   <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
                   <Route path="/docs" element={<Docs />} />
                   <Route path="/pricing" element={<Pricing />} />
-                  <Route path="/branding" element={<Branding />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={<SignIn />} />

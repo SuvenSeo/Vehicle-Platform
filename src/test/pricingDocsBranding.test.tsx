@@ -4,7 +4,6 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import Docs from "@/pages/Docs";
 import Pricing from "@/pages/Pricing";
-import Branding from "@/pages/Branding";
 
 function wrap(ui: ReactElement) {
   return render(
@@ -12,7 +11,7 @@ function wrap(ui: ReactElement) {
   );
 }
 
-describe("Docs, Pricing, Branding pages", () => {
+describe("Docs and Pricing pages", () => {
   it("renders platform docs with section anchors", () => {
     wrap(<Docs />);
     expect(screen.getByRole("heading", { name: /Platform docs/i })).toBeInTheDocument();
@@ -26,13 +25,10 @@ describe("Docs, Pricing, Branding pages", () => {
     expect(screen.getByText("LKR 999")).toBeInTheDocument();
     expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     expect(screen.getByText("Dealers")).toBeInTheDocument();
-  });
-
-  it("recommends MilaMark and lists brand options", () => {
-    wrap(<Branding />);
-    expect(screen.getByRole("heading", { name: /^Branding\.$/i })).toBeInTheDocument();
-    expect(screen.getAllByText("MilaMark").length).toBeGreaterThan(0);
-    expect(screen.getByText("LotPulse")).toBeInTheDocument();
-    expect(screen.getByText("Parity Desk")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Message us/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Message us/i })[0]).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:"),
+    );
   });
 });

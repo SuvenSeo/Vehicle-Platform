@@ -82,6 +82,20 @@ describe("Official Pulse pages", () => {
     expect(screen.getByRole("heading", { name: "How we read it" })).toBeInTheDocument();
   });
 
+  it("falls back to guides and retry when a signal cannot be loaded", async () => {
+    vi.mocked(getMarketSignal).mockRejectedValue(new Error("not found"));
+    renderAt("/official-pulse/999");
+
+    await waitFor(
+      () => {
+        expect(screen.getByRole("heading", { name: /Signal not found/i })).toBeInTheDocument();
+      },
+      { timeout: 4000 },
+    );
+    expect(screen.getByRole("button", { name: /Retry/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Read signal guides/i })).toBeInTheDocument();
+  });
+
   it("renders a source guide page", async () => {
     renderAt("/official-pulse/guide/customs_tenders");
 
