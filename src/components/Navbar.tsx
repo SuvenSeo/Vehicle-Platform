@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/BrandLogo";
 import { scrollBehavior } from "@/lib/motion";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, UserCircle2, X } from "lucide-react";
@@ -210,35 +211,31 @@ export function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-[1000] pointer-events-none">
-      <div className="flex justify-center px-3 pt-3 sm:px-4">
+      <div className="flex justify-center px-2 pt-3 sm:px-3">
         <nav
-          className="nav-glass pointer-events-auto w-[min(1280px,calc(100vw-24px))] overflow-visible rounded-2xl"
+          className="nav-glass pointer-events-auto w-[min(1480px,calc(100vw-16px))] overflow-visible rounded-full"
           aria-label="Primary navigation"
         >
-          <div className="relative flex min-h-[56px] items-center gap-2 px-2 py-1.5 sm:px-3">
+          <div className="relative flex min-h-[58px] items-center gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3">
             {/* ── Brand ─────────────────────────────────── */}
             <Link
               to="/"
               onClick={onHomeLinkClick}
-              className="group flex shrink-0 items-center gap-2.5 rounded-xl px-2 py-1 no-underline outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex shrink-0 items-center rounded-full px-1.5 py-1 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
+              aria-label="Motormila home"
             >
-              <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-surface">
-                <img src="/logo.svg" alt="Motormila logo" className="h-6 w-6 object-contain" />
-                <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${statusDot}`} />
-              </div>
-              <div className="hidden min-[390px]:block leading-none">
-                <p className="font-display text-[15px] font-semibold tracking-tight text-foreground leading-none">
-                  Motormila
-                </p>
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  Vehicle Intelligence
-                </p>
-              </div>
+              <span className="relative">
+                <BrandLogo compact showTagline={false} className="[&_.brand-wordmark]:hidden min-[390px]:[&_.brand-wordmark]:block" />
+                <span className={`absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background ${statusDot}`} />
+              </span>
             </Link>
 
             {/* ── Desktop nav tabs ──────────────────────── */}
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-              <div className="inline-flex items-center gap-0.5 rounded-full border border-border bg-foreground/[0.03] p-1">
+              <div
+                className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-border bg-foreground/[0.03] p-1 shadow-inner [&::-webkit-scrollbar]:hidden"
+                style={{ scrollbarWidth: "none" }}
+              >
                 {sections.map((section) => {
                   const active = isSectionActive(section);
                   return (
@@ -248,7 +245,7 @@ export function Navbar() {
                       onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                       aria-current={active ? "page" : undefined}
                       data-active={active}
-                      className={`relative rounded-full px-3.5 py-1.5 text-[12px] font-medium tracking-tight no-underline outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                      className={`relative whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium tracking-tight no-underline outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 xl:px-2.5 xl:text-[12px] 2xl:px-3.5 ${
                         active
                           ? "text-foreground"
                           : "text-muted-foreground hover:text-foreground"
@@ -280,7 +277,7 @@ export function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-2xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
+                  className="w-60 rounded-3xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
                 >
                   <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     Workspaces
@@ -290,7 +287,7 @@ export function Navbar() {
                     <DropdownMenuItem
                       key={section.href}
                       onSelect={() => navigate(section.href)}
-                      className="rounded-xl px-3 py-2 text-foreground/80 focus:bg-accent focus:text-foreground"
+                      className="rounded-2xl px-3 py-2 text-foreground/80 focus:bg-accent focus:text-foreground"
                     >
                       <div>
                         <p className="text-[13px] font-semibold">{section.label}</p>
@@ -381,11 +378,11 @@ export function Navbar() {
       {mobileOpen && (
         <div
           id="mobile-menu"
-          className="mx-auto mt-2 w-[min(92vw,500px)] pointer-events-auto px-3"
+          className="mx-auto mt-2 w-[min(1480px,calc(100vw-16px))] pointer-events-auto px-2 sm:px-3"
           aria-label="Navigation menu"
           onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
         >
-          <div className="rounded-2xl border border-border bg-popover/95 p-3 shadow-soft-lg backdrop-blur-2xl">
+          <div className="overflow-hidden rounded-3xl border border-border bg-popover/95 p-3.5 shadow-soft-lg backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform</p>
@@ -407,7 +404,7 @@ export function Navbar() {
                     onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
-                    className={`rounded-xl border px-3 py-2.5 text-center text-[11px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                    className={`rounded-2xl border px-3 py-2.5 text-center text-[11px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       active
                         ? "border-primary/20 bg-primary/10 text-primary-bright"
                         : "border-border text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
@@ -425,7 +422,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={() => { navigate("/pro"); setMobileOpen(false); }}
-                    className="col-span-2 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className="col-span-2 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                       <Crown className="h-3 w-3" />
@@ -436,7 +433,7 @@ export function Navbar() {
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="col-span-2 flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
+                    className="col-span-2 flex items-center gap-2 rounded-2xl border border-border px-3 py-2.5 text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
                   >
                     <LogOut className="h-3 w-3" />
                     <span className="text-[12px] font-medium tracking-tight">Sign Out</span>
@@ -446,7 +443,7 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={openSignIn}
-                  className="col-span-2 flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="col-span-2 flex items-center justify-between rounded-2xl border border-border px-3 py-2.5 text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                     <UserCircle2 className="h-3 w-3" />
@@ -460,7 +457,7 @@ export function Navbar() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 flex items-center justify-between rounded-xl border border-border px-3 py-2.5 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="mt-2 flex items-center justify-between rounded-2xl border border-border px-3 py-2.5 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                 <ExternalLink className="h-3 w-3" />
