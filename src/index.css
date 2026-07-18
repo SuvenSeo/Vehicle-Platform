@@ -45,7 +45,7 @@
     --input: 240 6% 10% / 0.14;
     --ring: 211 100% 45%;
 
-    --radius: 14px;
+    --radius: 20px;
 
     /* ── Semantic signals ─────────────────────────────────────────────── */
     --signal-green: 145 63% 38%;
@@ -410,7 +410,7 @@
   .data-card {
     @apply relative overflow-hidden;
     border: 1px solid hsl(var(--border));
-    border-radius: 12px;
+    border-radius: calc(var(--radius) + 4px);
     background: hsl(var(--card));
     box-shadow: var(--shadow-sm);
     transition:
@@ -427,7 +427,7 @@
   .metric-tile {
     @apply relative overflow-hidden px-4 py-3;
     border: 1px solid hsl(var(--border));
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: hsl(var(--surface));
     transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
   }
@@ -436,7 +436,7 @@
 
   .index-board-card {
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: calc(var(--radius) + 6px);
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
@@ -444,7 +444,7 @@
   }
 
   .console-empty {
-    @apply rounded-2xl border border-dashed px-6 py-12 text-center;
+    @apply rounded-3xl border border-dashed px-6 py-12 text-center;
     border-color: hsl(var(--border));
     background: hsl(var(--surface) / 0.6);
   }
@@ -613,7 +613,7 @@
   .auto-action:active { transform: scale(0.97); }
 
   .control-dark {
-    @apply h-11 rounded-xl text-foreground shadow-none;
+    @apply h-11 rounded-2xl text-foreground shadow-none;
     border-color: hsl(var(--input));
     background: hsl(var(--card));
   }
@@ -689,7 +689,7 @@
 
   .platform-metric-tile {
     border: 1px solid hsl(var(--border));
-    border-radius: 12px;
+    border-radius: var(--radius);
     background: hsl(var(--surface));
   }
 
@@ -719,6 +719,7 @@
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-top);
+    border-radius: 999px;
   }
 
   .nav-command-panel,
@@ -727,20 +728,20 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    border-radius: var(--radius);
+    border-radius: calc(var(--radius) + 8px);
     box-shadow: var(--shadow-lg);
   }
 
   .mobile-menu-item {
     position: relative;
-    border-radius: 10px;
+    border-radius: calc(var(--radius) - 2px);
     transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
   }
 
   .mobile-menu-item[data-active="true"],
   .mobile-menu-item:hover { background: hsl(var(--accent)); }
 
-  .mobile-menu-cta { border-radius: 10px; }
+  .mobile-menu-cta { border-radius: calc(var(--radius) - 2px); }
 }
 
 /* ============================================================================
@@ -753,7 +754,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.6);
-    border-radius: 18px;
+    border-radius: calc(var(--radius) + 6px);
     box-shadow: var(--shadow-md);
   }
 
@@ -768,7 +769,7 @@
    ========================================================================== */
 
 @layer components {
-  .vehicle-card { border-radius: 16px; }
+  .vehicle-card { border-radius: calc(var(--radius) + 4px); }
 
   .motion-card {
     @apply transition-[border-color,background-color,color,transform,box-shadow];
@@ -814,7 +815,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    border-radius: 14px;
+    border-radius: calc(var(--radius) + 2px);
     border: 1px solid hsl(var(--border));
     background: hsl(var(--card));
     box-shadow: var(--shadow-sm);
@@ -920,7 +921,7 @@
 
   .floating-action-menu-item {
     position: relative;
-    border-radius: 10px;
+    border-radius: calc(var(--radius) - 4px);
     transition: background-color var(--duration-fast) ease;
   }
 
@@ -955,7 +956,7 @@
   }
 
   .sign-in-feature-card {
-    border-radius: 12px;
+    border-radius: var(--radius);
     border: 1px solid hsl(var(--border));
     background: hsl(var(--card));
     box-shadow: var(--shadow-sm);

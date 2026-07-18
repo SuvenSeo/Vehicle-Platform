@@ -61,7 +61,7 @@ export function AppFooter() {
       <div className="layout-shell py-12 md:py-16">
         {/* Brand + tagline */}
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-lg border border-border bg-foreground/[0.03]">
+          <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-border bg-foreground/[0.03]">
             <img src="/logo.svg" alt="Motormila logo" className="h-7 w-7 object-contain" loading="lazy" decoding="async" />
           </div>
           <div>
