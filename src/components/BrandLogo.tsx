@@ -1,15 +1,43 @@
 import { cn } from "@/lib/utils";
 
+type BrandLogoSize = "default" | "compact" | "nav";
+
 type BrandLogoProps = {
   className?: string;
   markClassName?: string;
   showWordmark?: boolean;
   showTagline?: boolean;
   tagline?: string;
+  /** @deprecated Use `size="compact"` instead. */
   compact?: boolean;
+  size?: BrandLogoSize;
   /** Use the full stacked lockup image instead of mark + text. */
   lockup?: boolean;
 };
+
+const BRAND_SIZE_STYLES = {
+  default: {
+    mark: "h-10 w-10",
+    markPx: 40,
+    text: "text-[17px]",
+    gap: "gap-2.5",
+    useCompactMark: false,
+  },
+  compact: {
+    mark: "h-8 w-8",
+    markPx: 32,
+    text: "text-[15px]",
+    gap: "gap-2.5",
+    useCompactMark: true,
+  },
+  nav: {
+    mark: "h-11 w-11 sm:h-12 sm:w-12",
+    markPx: 48,
+    text: "text-[18px] sm:text-[20px]",
+    gap: "gap-2.5 sm:gap-3",
+    useCompactMark: true,
+  },
+} as const;
 
 /** Motormila mark + Motor/mila wordmark lockup (official brand assets). */
 export function BrandLogo({
@@ -19,6 +47,7 @@ export function BrandLogo({
   showTagline = false,
   tagline = "Sri Lanka Vehicle Market Intelligence",
   compact = false,
+  size,
   lockup = false,
 }: BrandLogoProps) {
   if (lockup) {
@@ -32,17 +61,19 @@ export function BrandLogo({
     );
   }
 
-  const markSize = compact ? "h-8 w-8" : "h-10 w-10";
+  const resolvedSize = size ?? (compact ? "compact" : "default");
+  const brandSize = BRAND_SIZE_STYLES[resolvedSize];
+  const { mark, markPx, text, gap, useCompactMark } = brandSize;
 
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
-      {compact ? (
+    <span className={cn("inline-flex items-center", gap, className)}>
+      {useCompactMark ? (
         <img
           src="/logo.png"
           alt=""
-          width={32}
-          height={32}
-          className={cn(markSize, "shrink-0 rounded-[22%] object-cover shadow-sm", markClassName)}
+          width={markPx}
+          height={markPx}
+          className={cn(mark, "shrink-0 rounded-[22%] object-cover shadow-sm ring-1 ring-foreground/10", markClassName)}
           decoding="async"
         />
       ) : (
@@ -50,19 +81,19 @@ export function BrandLogo({
           <img
             src="/logo-mark.png"
             alt=""
-            width={40}
-            height={40}
-            className={cn(markSize, "shrink-0 object-contain dark:hidden", markClassName)}
+            width={markPx}
+            height={markPx}
+            className={cn(mark, "shrink-0 object-contain dark:hidden", markClassName)}
             decoding="async"
           />
           <img
             src="/logo.png"
             alt=""
-            width={40}
-            height={40}
+            width={markPx}
+            height={markPx}
             className={cn(
-              markSize,
-              "hidden shrink-0 rounded-[22%] object-cover shadow-sm dark:block",
+              mark,
+              "hidden shrink-0 rounded-[22%] object-cover shadow-sm ring-1 ring-foreground/10 dark:block",
               markClassName,
             )}
             decoding="async"
@@ -74,7 +105,7 @@ export function BrandLogo({
           <span
             className={cn(
               "block font-display font-extrabold italic tracking-[-0.045em] text-foreground",
-              compact ? "text-[15px]" : "text-[17px]",
+              text,
             )}
           >
             Motor<span className="text-primary">mila</span>

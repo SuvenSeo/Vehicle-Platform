@@ -216,17 +216,17 @@ export function Navbar() {
           className="nav-glass pointer-events-auto w-[min(1480px,calc(100vw-16px))] overflow-visible rounded-full"
           aria-label="Primary navigation"
         >
-          <div className="relative flex min-h-[58px] items-center gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3">
+          <div className="relative flex min-h-[60px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[62px] sm:gap-2 sm:px-3">
             {/* ── Brand ─────────────────────────────────── */}
             <Link
               to="/"
               onClick={onHomeLinkClick}
-              className="group flex shrink-0 items-center rounded-full px-1.5 py-1 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex shrink-0 items-center rounded-full px-2 py-1.5 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-2.5"
               aria-label="Motormila home"
             >
               <span className="relative">
-                <BrandLogo compact showTagline={false} className="[&_.brand-wordmark]:hidden min-[390px]:[&_.brand-wordmark]:block" />
-                <span className={`absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background ${statusDot}`} />
+                <BrandLogo size="nav" showTagline={false} />
+                <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-background ${statusDot}`} />
               </span>
             </Link>
 
