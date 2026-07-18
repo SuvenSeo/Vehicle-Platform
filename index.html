@@ -55,6 +55,37 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" href="/logo.png" as="image" type="image/png" />
     <link rel="preload" href="/logo-mark.png" as="image" type="image/png" />
+    <script>
+      /* Recover from stale deploys where /assets/*.css 404s were rewritten to index.html,
+         which leaves the app rendered with zero styles until a hard refresh. */
+      (function () {
+        function reloadOnce(key) {
+          try {
+            if (sessionStorage.getItem(key) === "1") return;
+            sessionStorage.setItem(key, "1");
+          } catch (e) {
+            return;
+          }
+          location.reload();
+        }
+
+        window.addEventListener("load", function () {
+          var links = document.querySelectorAll('link[rel="stylesheet"][href*="/assets/"]');
+          if (!links.length) return;
+
+          links.forEach(function (link) {
+            fetch(link.href, { cache: "reload" }).then(function (res) {
+              var type = (res.headers.get("content-type") || "").toLowerCase();
+              if (!res.ok || type.indexOf("text/css") === -1) {
+                reloadOnce("autolens.css_reload_attempted");
+              }
+            }).catch(function () {
+              reloadOnce("autolens.css_reload_attempted");
+            });
+          });
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
