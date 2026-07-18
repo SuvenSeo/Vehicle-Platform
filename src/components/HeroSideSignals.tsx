@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Flame, MapPin, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Flame, Radar, Sparkles, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCountUp } from "@/hooks/useCountUp";
 import { prefersReducedMotion, springSnappy, springSoft } from "@/lib/motion";
@@ -25,13 +25,25 @@ type DealRow = {
   thumbnail_url?: string | null;
 };
 
+type PriceDropRow = {
+  id: number;
+  make: string;
+  model: string;
+  year?: number | null;
+  previous_price_lkr: number;
+  new_price_lkr: number;
+  drop_pct: number;
+  thumbnail_url?: string | null;
+};
+
 type Props = {
-  listingsCount: number;
-  sourcesCount: number;
-  districtsCount: number;
   trending?: TrendingRow | null;
   hotDeal?: DealRow | null;
+  priceDrop?: PriceDropRow | null;
+  newListings24h?: number;
+  goodDealsCount?: number;
   onTrendingClick?: () => void;
+  onBrowseNewest?: () => void;
 };
 
 type Accent = "primary" | "emerald" | "amber" | "violet";
@@ -72,18 +84,6 @@ function FloatingSignalCard({
   );
 }
 
-function LiveDot() {
-  return (
-    <span className="relative flex h-2 w-2 shrink-0">
-      <span
-        aria-hidden
-        className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70 opacity-70"
-      />
-      <span aria-hidden className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-    </span>
-  );
-}
-
 function MetricValue({ value, fallback }: { value: number; fallback: string }) {
   const display = useCountUp(value > 0 ? value : 0, 1400);
   if (value <= 0) return <>{fallback}</>;
@@ -91,12 +91,13 @@ function MetricValue({ value, fallback }: { value: number; fallback: string }) {
 }
 
 export function HeroSideSignals({
-  listingsCount,
-  sourcesCount,
-  districtsCount,
   trending,
   hotDeal,
+  priceDrop,
+  newListings24h = 0,
+  goodDealsCount = 0,
   onTrendingClick,
+  onBrowseNewest,
 }: Props) {
   const reduced = prefersReducedMotion();
 
@@ -137,20 +138,57 @@ export function HeroSideSignals({
             </FloatingSignalCard>
           ) : null}
 
-          <FloatingSignalCard delay={0.22} accent="emerald" float="b">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Live coverage
-              </p>
-              <LiveDot />
-            </div>
-            <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
-              <MetricValue value={listingsCount} fallback="120k+" />
-            </p>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              listings across <span className="font-semibold text-foreground/90 num">{sourcesCount || 10}</span> sources
-            </p>
-          </FloatingSignalCard>
+          {priceDrop ? (
+            <FloatingSignalCard delay={0.22} accent="emerald" float="b">
+              <Link
+                to={`/listing/${priceDrop.id}`}
+                className="group/drop flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
+              >
+                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-emerald-400/30 transition-shadow group-hover/drop:ring-emerald-400/55">
+                  <VehicleThumbnail
+                    src={priceDrop.thumbnail_url}
+                    listingId={priceDrop.id}
+                    alt={`${priceDrop.make} ${priceDrop.model}`}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover/drop:scale-105"
+                    placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
+                    <TrendingDown className="h-3 w-3" />
+                    Fresh price cut
+                  </p>
+                  <p className="truncate text-[13px] font-semibold tracking-tight text-foreground">
+                    {priceDrop.make} {priceDrop.model} {priceDrop.year || ""}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground num">
+                    <span className="line-through opacity-70">{formatPrice(priceDrop.previous_price_lkr)}</span>{" "}
+                    <span className="font-semibold text-foreground">{formatPrice(priceDrop.new_price_lkr)}</span>
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300 num">
+                  −{priceDrop.drop_pct}%
+                </span>
+              </Link>
+            </FloatingSignalCard>
+          ) : newListings24h > 0 ? (
+            <FloatingSignalCard delay={0.22} accent="emerald" float="b">
+              <button
+                type="button"
+                onClick={onBrowseNewest}
+                className="flex w-full flex-col text-left outline-none transition-transform duration-300 group-hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
+              >
+                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
+                  <Zap className="h-3 w-3" />
+                  New today
+                </p>
+                <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
+                  +<MetricValue value={newListings24h} fallback="—" />
+                </p>
+                <p className="mt-1.5 text-[11px] text-muted-foreground">listings added in the last 24 hours</p>
+              </button>
+            </FloatingSignalCard>
+          ) : null}
         </div>
       </div>
 
@@ -190,14 +228,19 @@ export function HeroSideSignals({
           ) : null}
 
           <FloatingSignalCard delay={0.26} accent="violet" float="b">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              <MapPin className="h-3 w-3" />
-              District reach
-            </p>
-            <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
-              <MetricValue value={districtsCount} fallback="25" />
-            </p>
-            <p className="mt-1.5 text-[11px] text-muted-foreground">districts indexed nationwide</p>
+            <Link
+              to="/best-picks"
+              className="group/radar block no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <Radar className="h-3 w-3" />
+                Deal radar
+              </p>
+              <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
+                <MetricValue value={goodDealsCount} fallback="—" />
+              </p>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">scored 8+ on the market right now</p>
+            </Link>
           </FloatingSignalCard>
 
           <motion.div

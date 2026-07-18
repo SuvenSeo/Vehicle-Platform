@@ -366,6 +366,24 @@ export default function Dashboard() {
     return rows.map((r) => ({ ...r, thumbnail_url: pickVehicleImageUrl([r.thumbnail_url]) }));
   }, [dashboardInsights?.hot_deals, fallbackHotDeals]);
 
+  const heroPriceDrop = useMemo(() => {
+    const drop = dropsQuery.data?.[0];
+    if (!drop?.listing) return null;
+    return {
+      id: drop.listing.id,
+      make: drop.listing.make,
+      model: drop.listing.model,
+      year: drop.listing.year,
+      previous_price_lkr: drop.previous_price_lkr,
+      new_price_lkr: drop.new_price_lkr,
+      drop_pct: drop.drop_pct,
+      thumbnail_url: pickVehicleImageUrl([drop.listing.thumbnail_url, drop.listing.images?.[0]]),
+    };
+  }, [dropsQuery.data]);
+
+  const heroNewListings24h = Number(dashboardInsights?.new_listings_24h ?? stats?.listings_this_week ?? 0);
+  const heroGoodDealsCount = Number(stats?.good_deals_count ?? 0);
+
   // ── Actions ────────────────────────────────────────────────────
 
   const toggleCompare = useCallback((listing: CarListing) => {
@@ -419,6 +437,11 @@ export default function Dashboard() {
 
   const focusModel = useCallback((make: string, model?: string) => {
     startTransition(() => { setFilters((prev) => ({ ...prev, q: undefined, make, model: model || undefined, page: 1 })); });
+    scrollToMarket();
+  }, [scrollToMarket]);
+
+  const browseNewestListings = useCallback(() => {
+    startTransition(() => { setFilters((prev) => ({ ...prev, sort: "newest", page: 1 })); });
     scrollToMarket();
   }, [scrollToMarket]);
 
@@ -503,15 +526,16 @@ export default function Dashboard() {
           className="relative z-10 mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
         >
           <HeroSideSignals
-            listingsCount={marketPulseListings}
-            sourcesCount={marketPulseSources}
-            districtsCount={marketPulseDistricts}
             trending={trendingModels[0] ?? null}
             hotDeal={hotDeals[0] ?? null}
+            priceDrop={heroPriceDrop}
+            newListings24h={heroNewListings24h}
+            goodDealsCount={heroGoodDealsCount}
             onTrendingClick={() => {
               const row = trendingModels[0];
               if (row) focusModel(row.make, row.model);
             }}
+            onBrowseNewest={browseNewestListings}
           />
 
           {/* ── Centered editorial headline ── */}
