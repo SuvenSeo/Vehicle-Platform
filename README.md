@@ -1,4 +1,4 @@
-# AutoLens LK - Vehicle Price Intelligence Platform
+# MilaMark - Vehicle Price Intelligence Platform
 
 Vehicle market intelligence platform inspired by the Sri Lanka Property Price Intelligence stack, adapted for car listings.
 

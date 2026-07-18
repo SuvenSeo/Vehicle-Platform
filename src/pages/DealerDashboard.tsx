@@ -23,6 +23,7 @@ import {
   buildDistrictPriceGaps,
   buildTurnoverSeries,
 } from "@/lib/dealerDashboardData";
+import { DEALER_PLAYBOOK, DEALER_QUICK_TOOLS } from "@/lib/dealerPlaybook";
 
 type WidgetKey = "turnover" | "priceGap" | "districtDemand" | "inventoryBenchmark";
 
@@ -372,7 +373,11 @@ export default function DealerDashboard() {
           </p>
           <h1 className="display-hero mt-4 max-w-3xl text-foreground">Dealer command center.</h1>
           <p className="text-body-lg mt-5 max-w-xl">Arbitrage, demand mapping, and lead flow intelligence.</p>
-          <Link to="/#market" className="mt-7 inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Open public inventory</Link>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Link to="/#market" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Open public inventory</Link>
+            <Link to="/pricing" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Dealer plans</Link>
+            <Link to="/official-pulse" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Official pulse</Link>
+          </div>
         </div>
       </motion.section>
 
@@ -393,7 +398,7 @@ export default function DealerDashboard() {
         <div className="grid gap-6 lg:grid-cols-[268px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">AutoLens LK</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">MilaMark</p>
               <h2 className="mt-2 font-display text-lg font-bold tracking-tight text-foreground">Command stack</h2>
               <nav className="mt-4 space-y-1" aria-label="Dealer command stack">
                 {[
@@ -408,6 +413,21 @@ export default function DealerDashboard() {
                     <span className="text-[9px] font-bold text-primary-bright num">{i.meta}</span>
                   </div>
                 ))}
+                <div className="pt-3">
+                  <p className="mb-2 px-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Quick tools</p>
+                  {DEALER_QUICK_TOOLS.map((tool) => (
+                    <Link
+                      key={tool.id}
+                      to={tool.to}
+                      className="mb-1 flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 no-underline transition-all hover:border-primary/40 hover:bg-card last:mb-0"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[11px] text-foreground font-medium">{tool.title}</span>
+                        <span className="block text-[9px] text-muted-foreground font-medium">{tool.description}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </nav>
             </motion.div>
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-4 shadow-soft">
@@ -462,6 +482,34 @@ export default function DealerDashboard() {
                 <p className="mt-1 text-[12px] text-foreground font-medium leading-relaxed">{activeNotif}</p>
               </div>
             </motion.div>
+
+            <div className="pt-4">
+              <SectionHeader
+                eyebrow="Playbook"
+                title="What dealers and brokers use this for"
+                description="Operator workflows from stock pricing to import duty, alerts, and weekly yard review."
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                {DEALER_PLAYBOOK.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    variants={revealItem}
+                    className="rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:border-primary/30"
+                  >
+                    <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary-bright">{item.forWhom}</p>
+                    <h3 className="mt-1.5 font-display text-[14px] font-bold tracking-tight text-foreground">{item.title}</h3>
+                    <p className="mt-2 text-[11px] text-muted-foreground font-medium leading-relaxed">{item.problem}</p>
+                    <p className="mt-2 text-[11px] text-foreground font-medium leading-relaxed">{item.whatMilaMarkDoes}</p>
+                    <Link
+                      to={item.whereToGo.to}
+                      className="mt-4 inline-flex text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright no-underline transition-colors hover:text-primary"
+                    >
+                      {item.whereToGo.label} →
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
 
             <div className="pt-4">
               <SectionHeader
@@ -545,16 +593,37 @@ export default function DealerDashboard() {
                   </div>
                 </WidgetShell>
 
-                <WidgetShell
-                  title="Inventory Benchmark"
-                  subtitle="Paste listing URLs to benchmark against the current market"
-                  collapsed={collapsed.inventoryBenchmark}
-                  onToggle={() => toggle("inventoryBenchmark")}
-                >
-                  <InventoryBenchmark />
-                </WidgetShell>
+                <div id="benchmark">
+                  <WidgetShell
+                    title="Inventory Benchmark"
+                    subtitle="Paste listing URLs to benchmark against the current market"
+                    collapsed={collapsed.inventoryBenchmark}
+                    onToggle={() => toggle("inventoryBenchmark")}
+                  >
+                    <InventoryBenchmark />
+                  </WidgetShell>
+                </div>
               </div>
             </div>
+
+            <motion.div
+              variants={revealItem}
+              className="rounded-2xl border border-border bg-card p-6 shadow-soft"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">Dealer plan</p>
+              <h3 className="mt-2 font-display text-[15px] font-bold tracking-tight text-foreground">
+                Full dealer workspace is part of Dealer plan — LKR 1,999/mo
+              </h3>
+              <p className="mt-2 max-w-xl text-[12px] text-muted-foreground font-medium leading-relaxed">
+                Keep using the command center today. Upgrade when you want billed seats, saved yard workflows, and priority market sync.
+              </p>
+              <Link
+                to="/pricing"
+                className="mt-4 inline-flex h-10 items-center rounded-full border border-border bg-surface px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:bg-card active:scale-[0.98]"
+              >
+                View dealer plans
+              </Link>
+            </motion.div>
           </main>
         </div>
       </div>

@@ -100,7 +100,7 @@ export function buildSellerFairAskWhatsAppText(input: SellerFairAskWhatsAppInput
   const { formatLkr, suggestedAsk, walkaway, dealerOfferBand } = input;
 
   return [
-    `AutoLens LK fair-ask for ${title}:`,
+    `MilaMark fair-ask for ${title}:`,
     `Suggested ask: ${formatLkr(suggestedAsk)}`,
     `Walkaway: ${formatLkr(walkaway)}`,
     `Dealer offer band: ${formatLkr(dealerOfferBand.low)} – ${formatLkr(dealerOfferBand.high)}`,

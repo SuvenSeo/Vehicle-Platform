@@ -260,7 +260,7 @@ function marketReport(
   districts: ProDistrictProfile[],
 ): ProReportPayload {
   return {
-    title: "AutoLens Pro Market Summary",
+    title: "MilaMark Pro Market Summary",
     subtitle: "Professional Sri Lanka vehicle market intelligence",
     scope: "market",
     generatedAt: new Date().toISOString(),
@@ -328,7 +328,7 @@ function sourceReport(snapshot: ProMarketSnapshot, source: ProBreakdownPoint): P
 
 function lanesTableReport(lanes: ProVehicleLane[]): ProReportPayload {
   return {
-    title: "AutoLens Vehicle Lane Table",
+    title: "MilaMark Vehicle Lane Table",
     subtitle: "Grouped Pro vehicle intelligence rows",
     scope: "vehicle_lane",
     generatedAt: new Date().toISOString(),
@@ -358,7 +358,7 @@ function lanesTableReport(lanes: ProVehicleLane[]): ProReportPayload {
 
 function districtsTableReport(districts: ProDistrictProfile[]): ProReportPayload {
   return {
-    title: "AutoLens District Opportunity Pack",
+    title: "MilaMark District Opportunity Pack",
     subtitle: "District-level Pro intelligence rows",
     scope: "district",
     generatedAt: new Date().toISOString(),
@@ -766,7 +766,7 @@ export default function ProDashboard() {
         subtitle: reportSubtitle,
         preparedFor: reportPreparedFor,
         notes: reportNotes,
-        coverSummary: reportNotes || base.coverSummary || `${scopeLabel} prepared from the current AutoLens Pro workspace.`,
+        coverSummary: reportNotes || base.coverSummary || `${scopeLabel} prepared from the current MilaMark Pro workspace.`,
         theme: reportTheme,
         sections: reportSections,
         listingLimit: reportListingLimit,
@@ -851,9 +851,9 @@ export default function ProDashboard() {
       <div className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/logo.svg" alt="AutoLens LK" className="h-7 w-7 rounded-md ring-1 ring-border" />
+            <img src="/logo.svg" alt="MilaMark" className="h-7 w-7 rounded-md ring-1 ring-border" />
             <div>
-              <p className="text-[13px] font-bold text-foreground">AutoLens<span className="text-muted-foreground font-medium">LK</span></p>
+              <p className="text-[13px] font-bold text-foreground">MilaMark</p>
               <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Pro Workspace</p>
             </div>
           </Link>
@@ -1512,7 +1512,7 @@ export default function ProDashboard() {
                         id="report-title"
                         value={reportTitle}
                         onChange={(event) => setReportTitle(event.target.value)}
-                        placeholder="AutoLens Pro market brief"
+                        placeholder="MilaMark Pro market brief"
                         className="control-dark"
                       />
                     </div>

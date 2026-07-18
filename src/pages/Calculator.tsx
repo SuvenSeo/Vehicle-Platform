@@ -280,7 +280,7 @@ export default function Calculator() {
         <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
           <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
             <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            AutoLens Intelligence Hub
+            MilaMark Intelligence Hub
           </p>
           <h1 className="display-hero mt-5 text-foreground">Mobility &amp; Tax Calculators.</h1>
           <p className="text-body-lg mt-5 max-w-xl">Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.</p>

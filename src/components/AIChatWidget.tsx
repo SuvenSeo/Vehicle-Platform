@@ -169,7 +169,7 @@ function pageContextFor(pathname: string, search: string): PageContext {
       label: "Preferences",
       summary: "The user is adjusting language and theme preferences.",
       prompts: [
-        { label: "Set up workflow", value: "Suggest the best AutoLens workflow for a buyer this week." },
+        { label: "Set up workflow", value: "Suggest the best MilaMark workflow for a buyer this week." },
         { label: "What can you do?", value: "Explain what you can help me do across this platform." },
         { label: "Start search", value: "Start a vehicle search from my budget and priorities." },
       ],
@@ -434,7 +434,7 @@ export function AIChatWidget() {
             <Bot className="h-4 w-4" />
           </div>
           <div>
-            <p className="m-0 text-xs font-bold text-foreground">{t("chat.tooltip.title", "Ask AutoLens Copilot")}</p>
+            <p className="m-0 text-xs font-bold text-foreground">{t("chat.tooltip.title", "Ask MilaMark Copilot")}</p>
             <p className="m-0 mt-1 ui-caption leading-snug text-muted-foreground">
               {t("chat.tooltip.subtitle", "Find, value, compare, and inspect cars")}
             </p>
@@ -445,7 +445,7 @@ export function AIChatWidget() {
       <button
         ref={fabRef}
         type="button"
-        aria-label={open ? t("chat.close", "Close AutoLens Copilot") : t("chat.open", "Open AutoLens Copilot")}
+        aria-label={open ? t("chat.close", "Close MilaMark Copilot") : t("chat.open", "Open MilaMark Copilot")}
         aria-expanded={open}
         onClick={() => {
           if (showTooltip) dismissTooltip();
@@ -462,7 +462,7 @@ export function AIChatWidget() {
           role="dialog"
           aria-modal="false"
           className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-xl border border-border bg-card text-foreground shadow-soft-xl`}
-          aria-label="AutoLens Copilot"
+          aria-label="MilaMark Copilot"
         >
           <header className="border-b border-border px-4 py-4">
             <div className="flex items-center justify-between gap-3">
@@ -471,7 +471,7 @@ export function AIChatWidget() {
                   <Bot className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold tracking-tight">{t("chat.header.title", "AutoLens Copilot")}</p>
+                  <p className="truncate text-sm font-bold tracking-tight">{t("chat.header.title", "MilaMark Copilot")}</p>
                   <p className="mt-0.5 truncate tech-label font-bold text-muted-foreground">
                     {t("chat.header.status", "Live market assistant")}
                   </p>
@@ -494,7 +494,7 @@ export function AIChatWidget() {
                   type="button"
                   onClick={closePanel}
                   className="aw-ctrl flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label={t("chat.close", "Close AutoLens Copilot")}
+                  aria-label={t("chat.close", "Close MilaMark Copilot")}
                 >
                   <X className="h-4 w-4" />
                 </button>

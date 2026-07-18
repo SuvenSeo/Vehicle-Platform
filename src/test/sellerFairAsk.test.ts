@@ -95,7 +95,7 @@ describe("buildSellerFairAskWhatsAppText", () => {
       dealerOfferBand: { low: 8_500_000, high: 9_200_000 },
       formatLkr: (v) => `Rs. ${(v / 1_000_000).toFixed(1)}M`,
     });
-    expect(text).toContain("AutoLens LK fair-ask for 2018 Toyota Aqua:");
+    expect(text).toContain("MilaMark fair-ask for 2018 Toyota Aqua:");
     expect(text).toContain("Suggested ask: Rs. 10.0M");
     expect(text).toContain("Walkaway: Rs. 9.2M");
     expect(text).toContain("Dealer offer band: Rs. 8.5M – Rs. 9.2M");
@@ -108,6 +108,6 @@ describe("buildSellerFairAskWhatsAppText", () => {
       dealerOfferBand: { low: 4_250_000, high: 4_600_000 },
       formatLkr: (v) => String(v),
     });
-    expect(text.startsWith("AutoLens LK fair-ask for My vehicle:")).toBe(true);
+    expect(text.startsWith("MilaMark fair-ask for My vehicle:")).toBe(true);
   });
 });

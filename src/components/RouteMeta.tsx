@@ -1,16 +1,17 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { BRAND } from "@/lib/brand";
 
 type Meta = { title: string; description: string };
 
-const SITE = "AutoLens LK";
-const ORIGIN = "https://vehicle-platform-one.vercel.app";
+const SITE = BRAND.siteName;
+const ORIGIN = BRAND.origin;
 const DEFAULT_DESCRIPTION =
   "Track Sri Lankan vehicle prices, trends, deal signals, and valuation tools in one market intelligence cockpit.";
 
 const ROUTE_META: Record<string, Meta> = {
   "/": {
-    title: `${SITE} — See the Real Price. Every Car. Every District.`,
+    title: `${SITE} — ${BRAND.tagline}`,
     description: DEFAULT_DESCRIPTION,
   },
   "/trends": {
@@ -47,19 +48,36 @@ const ROUTE_META: Record<string, Meta> = {
   },
   "/settings": {
     title: `Settings — ${SITE}`,
-    description: "Language, theme, and display preferences for AutoLens LK.",
+    description: `Language, theme, and display preferences for ${SITE}.`,
   },
   "/sign-in": {
     title: `Sign In — ${SITE}`,
-    description: "Sign in to the AutoLens LK vehicle intelligence dashboard.",
+    description: `Sign in to the ${SITE} vehicle intelligence dashboard.`,
   },
   "/pro": {
     title: `Pro Dashboard — ${SITE}`,
-    description: "The paid AutoLens market terminal: drill-downs, exports, and source quality signals.",
+    description: `The paid ${SITE} market terminal: drill-downs, exports, and source quality signals.`,
   },
   "/pro-preview": {
     title: `Pro Preview — ${SITE}`,
-    description: "A locked preview of the AutoLens Pro analytics workspace.",
+    description: `A locked preview of the ${SITE} Pro analytics workspace.`,
+  },
+  "/official-pulse": {
+    title: `Official Pulse — ${SITE}`,
+    description:
+      "Government and import market signals from DMT, Customs, and landed-cost references — explained in-platform.",
+  },
+  "/docs": {
+    title: `Platform Docs — ${SITE}`,
+    description: `How ${SITE} works: data sources, deal scores, Official Pulse, workspaces, and access tiers.`,
+  },
+  "/pricing": {
+    title: `Pricing — ${SITE}`,
+    description: "Free, Pro, Dealer, and Custom access for Sri Lanka vehicle market intelligence.",
+  },
+  "/branding": {
+    title: `Brand Lab — ${SITE}`,
+    description: `Internal brand options and system brief for ${SITE}.`,
   },
 };
 
@@ -117,6 +135,18 @@ export function RouteMeta() {
         ? {
             title: `Vehicle Market Hub — ${SITE}`,
             description: "Prices, district breakdown, and live listings for a specific vehicle in Sri Lanka.",
+          }
+        : pathname.startsWith("/official-pulse/guide/")
+        ? {
+            title: `Pulse Guide — ${SITE}`,
+            description:
+              "In-platform explanation of a government or import market signal source for Sri Lankan dealers.",
+          }
+        : pathname.startsWith("/official-pulse/")
+        ? {
+            title: `Pulse Signal — ${SITE}`,
+            description:
+              "Full official market signal with in-platform context from DMT, Customs, or import parity sources.",
           }
         : { title: `${SITE}`, description: DEFAULT_DESCRIPTION });
 

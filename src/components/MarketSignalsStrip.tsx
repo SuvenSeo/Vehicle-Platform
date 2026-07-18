@@ -1,24 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Landmark } from "lucide-react";
+import { ArrowUpRight, Landmark } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getMarketSignals } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
-
-const SOURCE_LABELS: Record<string, string> = {
-  dmt: "DMT",
-  customs: "Customs",
-  import_reference: "Import refs",
-};
-
-function labelSource(source: string): string {
-  const key = source.toLowerCase();
-  return SOURCE_LABELS[key] || source.replace(/_/g, " ");
-}
-
-function formatSignalValue(signal: MarketSignal): string {
-  if (signal.value_numeric == null) return signal.metric;
-  const value = signal.value_numeric.toLocaleString();
-  return signal.unit ? `${value} ${signal.unit}` : value;
-}
+import { formatPulseValue, labelPulseSource } from "@/lib/officialPulseContent";
 
 function SignalCard({ signal }: { signal: MarketSignal }) {
   const title = signal.category || signal.metric;
@@ -28,31 +13,33 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
       : null;
 
   return (
-    <article className="min-w-[220px] flex-1 rounded-xl border border-border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
-            {labelSource(signal.source)} · {signal.signal_type.replace(/_/g, " ")}
-          </p>
-          <h3 className="mt-2 text-sm font-semibold text-foreground">{title}</h3>
-        </div>
-        {signal.source_url ? (
-          <a
-            href={signal.source_url}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={`Open ${title} source`}
+    <Link
+      to={`/official-pulse/${signal.id}`}
+      className="min-w-[220px] flex-1 rounded-xl border border-border bg-card p-4 no-underline transition-colors hover:border-primary/40 hover:bg-card/90"
+    >
+      <article>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
+              {labelPulseSource(signal.source)} · {signal.signal_type.replace(/_/g, " ")}
+            </p>
+            <h3 className="mt-2 text-sm font-semibold text-foreground">{title}</h3>
+          </div>
+          <span
+            className="rounded-md border border-border p-1.5 text-muted-foreground"
+            aria-hidden
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        ) : null}
-      </div>
-      <p className="mt-3 text-lg font-semibold tracking-tight text-foreground num">{formatSignalValue(signal)}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">
-        {period ? `Period ${period}` : "Latest official pulse"}
-      </p>
-    </article>
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
+        <p className="mt-3 text-lg font-semibold tracking-tight text-foreground num">
+          {formatPulseValue(signal.value_numeric, signal.unit, signal.metric)}
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          {period ? `Period ${period}` : "Latest official pulse"}
+        </p>
+      </article>
+    </Link>
   );
 }
 
@@ -68,12 +55,20 @@ export function MarketSignalsStrip() {
 
   return (
     <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-label="Official market signals">
-      <div className="mb-4 flex items-center gap-2">
-        <Landmark className="h-4 w-4 text-primary/80" />
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Official pulse</p>
-          <h2 className="text-sm font-semibold text-foreground">Government & import market signals</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Landmark className="h-4 w-4 text-primary/80" />
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Official pulse</p>
+            <h2 className="text-sm font-semibold text-foreground">Government & import market signals</h2>
+          </div>
         </div>
+        <Link
+          to="/official-pulse"
+          className="text-[11px] font-semibold text-primary no-underline transition-colors hover:text-primary/80"
+        >
+          Open pulse desk →
+        </Link>
       </div>
 
       {isLoading ? (
@@ -90,7 +85,11 @@ export function MarketSignalsStrip() {
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
-          Official registration and import-cost signals will appear here after the market-signals sync runs.
+          Official registration and import-cost signals will appear here after the market-signals sync runs.{" "}
+          <Link to="/official-pulse" className="font-medium text-primary no-underline hover:underline">
+            Read what each signal means
+          </Link>
+          .
         </p>
       )}
     </section>

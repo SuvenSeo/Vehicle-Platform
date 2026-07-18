@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,14 @@ def get_market_signals(
     if signal_type:
         query = query.filter(func.lower(MarketSignal.signal_type) == signal_type.strip().lower())
     return query.order_by(desc(MarketSignal.observed_at), desc(MarketSignal.id)).limit(limit).all()
+
+
+@router.get("/signals/{signal_id}", response_model=MarketSignalRead)
+def get_market_signal(signal_id: int, db: Session = Depends(get_db)):
+    row = db.query(MarketSignal).filter(MarketSignal.id == signal_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Market signal not found")
+    return row
 
 
 @router.get("/import-prices", response_model=list[ImportPriceSnapshotRead])

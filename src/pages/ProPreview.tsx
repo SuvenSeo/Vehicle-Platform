@@ -68,6 +68,12 @@ export default function ProPreview() {
             >
               Browse public data
             </Link>
+            <Link
+              to="/pricing"
+              className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              See pricing
+            </Link>
           </div>
         </div>
       </motion.section>
