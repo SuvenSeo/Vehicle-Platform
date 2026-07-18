@@ -51,7 +51,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           transition={springSoft}
           className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center shadow-soft-lg"
         >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">MilaMark</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Motormila</p>
           <h1 className="mt-3 font-display text-xl font-semibold text-foreground">Something went wrong.</h1>
           <p className="mt-2 text-[12px] text-muted-foreground">Check the browser console for the runtime error.</p>
           {this.state.errorMessage && (

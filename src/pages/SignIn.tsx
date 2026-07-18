@@ -66,9 +66,9 @@ export default function SignIn() {
           <div>
             <Link to="/" className="inline-flex items-center gap-2 mb-8 group">
               <div className="w-7 h-7 rounded-lg overflow-hidden ring-1 ring-border transition-all group-hover:ring-primary/40">
-                <img src="/logo.svg" alt="MilaMark" className="w-full h-full object-cover" />
+                <img src="/logo.svg" alt="Motormila" className="w-full h-full object-cover" />
               </div>
-              <span className="font-display text-sm font-bold text-foreground">MilaMark</span>
+              <span className="font-display text-sm font-bold text-foreground">Motormila</span>
             </Link>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 mb-5">
               <Lock className="w-3 h-3 text-primary" aria-hidden />

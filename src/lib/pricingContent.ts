@@ -1,3 +1,5 @@
+import { BRAND } from "@/lib/brand";
+
 export type PricingTierId = "free" | "pro" | "dealer" | "custom";
 
 export type PricingTier = {
@@ -89,7 +91,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "Dedicated onboarding",
     ],
     ctaLabel: "Message us",
-    ctaTo: "mailto:s.seoras@rgu.ac.uk?subject=Custom%20pricing%20inquiry",
+    ctaTo: BRAND.contactMailto,
     external: true,
   },
 ];

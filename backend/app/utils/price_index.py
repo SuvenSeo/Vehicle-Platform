@@ -1,4 +1,4 @@
-"""AutoLens Sri Lanka Used Vehicle Price Index.
+"""Motormila Sri Lanka Used Vehicle Price Index.
 
 A mix-adjusted (Laspeyres-style, like-for-like) monthly index over the
 price_aggregates table. Fixed base-period weights prevent the index from
@@ -116,7 +116,7 @@ def build_price_index(db: Session) -> dict:
         "segments": segments,
         "methodology": (
             "Mix-adjusted (Laspeyres) index of used-vehicle asking prices across "
-            "the AutoLens multi-source index. Each month is measured against a fixed "
+            "the Motormila multi-source index. Each month is measured against a fixed "
             f"base period ({overall[0]['period'] if overall else 'n/a'} = 100) using "
             "like-for-like make/model/year cohorts weighted by base-period supply, so "
             "the index reflects genuine price movement, not changes in the mix of "

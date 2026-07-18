@@ -200,7 +200,7 @@ def test_build_digest_html_contains_title():
         hot_deals=[],
         alert_stats={"active_alerts": 0, "total_matches": 0},
     )
-    assert "AutoLens Pro" in html
+    assert "Motormila Pro" in html
     assert "Weekly Market Digest" in html
 
 

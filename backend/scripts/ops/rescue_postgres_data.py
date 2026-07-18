@@ -1,4 +1,4 @@
-"""Export and restore AutoLens Postgres data for provider migration.
+"""Export and restore Motormila Postgres data for provider migration.
 
 The main use case is rescuing the Neon dataset after the free transfer quota
 resets, then importing the dump into Supabase. This script intentionally prints
@@ -227,7 +227,7 @@ def import_data(args: argparse.Namespace) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export or import AutoLens Postgres data.")
+    parser = argparse.ArgumentParser(description="Export or import Motormila Postgres data.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     export_parser = subparsers.add_parser("export", help="Export source Postgres tables to gzip CSV files.")

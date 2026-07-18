@@ -98,7 +98,7 @@ describe("pro report exports", () => {
 
     expect(csv).toContain('"Toyota Aqua, Colombo"');
     expect(csv).toContain("Source Mix");
-    expect(csv).toContain("MilaMark aggregates public Sri Lanka vehicle marketplace data");
+    expect(csv).toContain("Motormila aggregates public Sri Lanka vehicle marketplace data");
 
     const parsed = JSON.parse(json);
     expect(parsed.title).toBe(report.title);
@@ -108,7 +108,7 @@ describe("pro report exports", () => {
   it("customizes sections, theme, and report metadata before export", () => {
     const custom = customizeProReport(report, {
       title: "Dealer board pack",
-      preparedFor: "MilaMark Owner",
+      preparedFor: "Motormila Owner",
       theme: "dealer-slate",
       sections: ["metrics", "disclaimer"],
       includeFilters: false,
@@ -119,7 +119,7 @@ describe("pro report exports", () => {
     expect(custom.title).toBe("Dealer board pack");
     expect(custom.theme).toBe("dealer-slate");
     expect(csv).toContain("Dealer board pack");
-    expect(csv).toContain("MilaMark Owner");
+    expect(csv).toContain("Motormila Owner");
     expect(csv).not.toContain("Source Mix");
     expect(csv).not.toContain("Sample Listings");
     expect(parsed.sections).toEqual(["metrics", "disclaimer"]);

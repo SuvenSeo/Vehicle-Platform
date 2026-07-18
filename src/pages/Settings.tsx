@@ -33,7 +33,7 @@ export default function Settings() {
             Preferences
           </p>
           <h1 className="mt-5 display-hero text-foreground">
-            {t("settings.title", "Personalize MilaMark")}
+            {t("settings.title", "Personalize Motormila")}
           </h1>
           <p className="mt-5 max-w-xl text-body-lg">Language, theme, and display preferences.</p>
         </div>
@@ -106,7 +106,7 @@ export default function Settings() {
                 <span>
                   <span className="block text-[13px] font-bold text-foreground">{t("theme.dark", "Dark")}</span>
                   <span className="block text-[11px] text-muted-foreground font-medium">
-                    MilaMark is dark-only for now — a light theme is in development.
+                    Motormila is dark-only for now — a light theme is in development.
                   </span>
                 </span>
               </span>

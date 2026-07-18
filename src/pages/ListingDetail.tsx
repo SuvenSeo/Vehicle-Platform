@@ -48,7 +48,7 @@ export default function ListingDetail() {
     const name = [listing.year, listing.make, listing.model].filter(Boolean).join(' ');
     const price = Number(listing.price_lkr || 0);
     const priceText = Number.isFinite(price) && price >= 100_000 ? ` — ${formatPrice(price)}` : '';
-    return `${name}${priceText} on MilaMark`;
+    return `${name}${priceText} on Motormila`;
   };
 
   const handleShare = async () => {
@@ -84,7 +84,7 @@ export default function ListingDetail() {
     ])
       .then(([detail, sim, profile, history]) => {
         setListing(detail); setSimilar(sim); setSellerProfile(profile); setPriceHistory(history); setLoading(false);
-        if (detail) document.title = `${detail.title} — MilaMark`;
+        if (detail) document.title = `${detail.title} — Motormila`;
       });
   }, [id]);
 
@@ -537,7 +537,7 @@ export default function ListingDetail() {
               <div aria-hidden className="absolute top-0 left-0 h-full w-[2px] bg-primary" />
               <div className="flex items-center gap-2 mb-2">
                 <Zap aria-hidden className="h-4 w-4 text-primary" />
-                <h2 className="text-[12px] font-bold text-foreground">MilaMark Insight</h2>
+                <h2 className="text-[12px] font-bold text-foreground">Motormila Insight</h2>
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
                 Tracked for <span className="num font-bold text-foreground">{trackedLabel}</span>.

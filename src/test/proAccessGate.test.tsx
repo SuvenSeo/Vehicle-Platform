@@ -70,7 +70,7 @@ describe("Pro access gate", () => {
   it("allows active Pro subscribers into the dashboard", () => {
     installLocalStorage({
       email: "owner@autolens.lk",
-      name: "MilaMark Owner",
+      name: "Motormila Owner",
       plan: "enterprise",
       subscriptionStatus: "active",
       avatarInitials: "AO",

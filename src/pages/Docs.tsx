@@ -29,7 +29,7 @@ export default function Docs() {
           </p>
           <h1 className="display-hero max-w-3xl text-foreground">Platform docs.</h1>
           <p className="text-body-lg mt-6 max-w-xl">
-            How MilaMark works — data sources, deal scores, Official Pulse, workspaces, and access tiers.
+            How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers.
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Link
