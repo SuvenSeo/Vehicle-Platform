@@ -516,9 +516,9 @@ export default function Dashboard() {
               </div>
             </motion.div>
 
-            <motion.h1 variants={heroItemVariants} className="display-hero mx-auto mt-6 max-w-4xl text-foreground">
+            <motion.h1 variants={heroItemVariants} className="display-hero mx-auto mt-6 max-w-4xl text-center text-foreground [font-size:clamp(1.85rem,5.4vw+0.35rem,5.25rem)]">
               <span className="block whitespace-nowrap">Sri Lanka&rsquo;s entire</span>
-              <span className="block">
+              <span className="block whitespace-nowrap">
                 vehicle market <span className="text-sheen">decoded.</span>
               </span>
             </motion.h1>
