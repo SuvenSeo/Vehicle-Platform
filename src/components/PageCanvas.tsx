@@ -15,10 +15,10 @@ export function PageCanvas({ children, className, ambient = "default" }: PageCan
       initial="hidden"
       animate="show"
       variants={revealContainer}
-      className={cn("page-canvas relative min-h-screen overflow-hidden", className)}
+      className={cn("page-canvas relative min-h-screen overflow-hidden -mt-16", className)}
     >
       <AmbientBackground variant={ambient} />
-      {children}
+      <div className="page-canvas__content relative z-[1] pt-16">{children}</div>
     </motion.div>
   );
 }

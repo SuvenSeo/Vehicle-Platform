@@ -288,7 +288,7 @@
 
   .page-canvas::before {
     content: "";
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
@@ -296,7 +296,7 @@
       radial-gradient(ellipse 90% 55% at 50% -12%, hsl(var(--primary) / 0.05), transparent 58%);
   }
 
-  .page-canvas > * {
+  .page-canvas__content > * {
     position: relative;
     z-index: 1;
   }
@@ -910,9 +910,11 @@
     --page-accent: var(--primary);
     --page-accent-soft: hsl(var(--primary) / 0.12);
     --page-accent-glow: hsl(var(--primary) / 0.22);
+    margin-top: -4rem;
+    padding-top: 4rem;
     background:
-      linear-gradient(135deg, var(--page-accent-soft) 0%, transparent 42%),
-      linear-gradient(180deg, hsl(var(--surface) / 0.84) 0%, hsl(var(--background)) 88%);
+      linear-gradient(135deg, var(--page-accent-soft) 0%, transparent 46%),
+      linear-gradient(180deg, hsl(var(--surface) / 0.42) 0%, hsl(var(--background)) 92%);
   }
 
   .page-hero--trends {
@@ -995,7 +997,7 @@
   }
 
   .page-hero__orb--a {
-    top: -18%;
+    top: -32%;
     left: -8%;
     width: min(44vw, 420px);
     height: min(44vw, 420px);
@@ -1036,7 +1038,7 @@
     z-index: 1;
     display: grid;
     gap: 2rem;
-    padding-top: 4rem;
+    padding-top: 2.5rem;
     padding-bottom: 3.5rem;
   }
 
@@ -1044,7 +1046,7 @@
     .page-hero__inner {
       grid-template-columns: minmax(0, 1fr) minmax(220px, 260px);
       align-items: end;
-      padding-top: 4.5rem;
+      padding-top: 3rem;
       padding-bottom: 4rem;
     }
 
