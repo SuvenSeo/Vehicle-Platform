@@ -2,7 +2,16 @@ export const BRAND = {
   name: "Motormila",
   siteName: "Motormila",
   tagline: "The fair mila for every motor.",
-  subtitle: "Vehicle Intelligence for Sri Lanka",
+  subtitle: "Sri Lanka Vehicle Market Intelligence",
+  colors: {
+    black: "#09090B",
+    blue: "#0A7AFF",
+  },
+  logo: {
+    mark: "/logo-mark.svg",
+    icon: "/logo.svg",
+    wordmark: "/logo-wordmark.svg",
+  },
   copilot: "Motormila Copilot",
   contactEmail: "s.seoras@rgu.ac.uk",
   contactMailto: "mailto:s.seoras@rgu.ac.uk?subject=Motormila%20custom%20pricing",

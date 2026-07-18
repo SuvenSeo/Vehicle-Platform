@@ -24,9 +24,9 @@
     --surface: 240 20% 97%;              /* #f5f5f7 section gray */
     --surface-foreground: 240 6% 10%;
 
-    /* ── Brand accent — Apple system blue ─────────────────────────────── */
-    --primary: 211 100% 45%;
-    --primary-bright: 211 100% 38%;             /* #0071e3 */
+    /* ── Brand accent — Motormila electric blue #0A7AFF ───────────────── */
+    --primary: 213 100% 52%;             /* #0A7AFF */
+    --primary-bright: 213 100% 42%;      /* stronger text on light */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 20% 96%;            /* #f5f5f7 */
@@ -43,7 +43,7 @@
 
     --border: 240 6% 10% / 0.10;         /* hairline on light */
     --input: 240 6% 10% / 0.14;
-    --ring: 211 100% 45%;
+    --ring: 213 100% 52%;
 
     --radius: 20px;
 
@@ -62,22 +62,22 @@
     /* ── Sidebar ──────────────────────────────────────────────────────── */
     --sidebar-background: 240 20% 98%;
     --sidebar-foreground: 240 6% 14%;
-    --sidebar-primary: 211 100% 45%;
+    --sidebar-primary: 213 100% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 20% 95%;
     --sidebar-accent-foreground: 240 6% 12%;
     --sidebar-border: 240 6% 10% / 0.10;
-    --sidebar-ring: 211 100% 45%;
+    --sidebar-ring: 213 100% 52%;
 
-    /* ── Accent palette (repurposed "gold" → system blue) ─────────────── */
+    /* ── Accent palette (repurposed "gold" → Motormila blue) ──────────── */
     /* Many components reference var(--gold*) directly; mapping them to the
        new accent flips those surfaces automatically. */
-    --gold: #0071e3;
-    --gold-bright: #0a84ff;
-    --gold-muted: rgba(0, 113, 227, 0.10);
-    --gold-glow: rgba(0, 113, 227, 0.22);
-    --accent-blue: #0071e3;
-    --accent-blue-bright: #0a84ff;
+    --gold: #0A7AFF;
+    --gold-bright: #3D94FF;
+    --gold-muted: rgba(10, 122, 255, 0.10);
+    --gold-glow: rgba(10, 122, 255, 0.22);
+    --accent-blue: #0A7AFF;
+    --accent-blue-bright: #3D94FF;
 
     /* ── Glass tints ──────────────────────────────────────────────────── */
     --glass-bg: rgba(255, 255, 255, 0.72);
@@ -128,7 +128,7 @@
     --surface: 240 10% 5%;               /* #0d0d10 surface */
     --surface-foreground: 240 20% 97%;
 
-    --primary: 211 100% 60%;            /* #1f8fff — Apple system blue, brightened for dark */
+    --primary: 213 100% 62%;            /* Motormila blue, brightened for dark */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 6% 12%;
@@ -145,7 +145,7 @@
 
     --border: 240 8% 24% / 0.42;
     --input: 240 8% 26% / 0.55;
-    --ring: 211 100% 60%;
+    --ring: 213 100% 62%;
 
     --signal-green: 145 60% 50%;
     --signal-cyan: 199 89% 60%;
@@ -162,17 +162,17 @@
     --sidebar-border: 240 6% 15% / 0.40;
 
     /* Brighter primary for SMALL text on dark surfaces — plain --primary
-       (60% lightness) lands just under WCAG 4.5:1 on charcoal at 10-12px. */
-    --primary-bright: 211 100% 72%;
+       lands just under WCAG 4.5:1 on charcoal at 10-12px. */
+    --primary-bright: 213 100% 72%;
 
-    /* Legacy aliases — kept in lockstep with --primary (hsl 211 100% 60%) so
+    /* Legacy aliases — kept in lockstep with Motormila blue so
        any remaining var(--gold*) reference renders identical to text-primary. */
-    --gold: hsl(211 100% 60%);
-    --gold-bright: hsl(211 100% 72%);
-    --gold-muted: hsla(211, 100%, 60%, 0.12);
-    --gold-glow: hsla(211, 100%, 60%, 0.26);
-    --accent-blue: #1f8fff;
-    --accent-blue-bright: #6cb8ff;
+    --gold: hsl(213 100% 62%);
+    --gold-bright: hsl(213 100% 72%);
+    --gold-muted: hsla(213, 100%, 62%, 0.12);
+    --gold-glow: hsla(213, 100%, 62%, 0.26);
+    --accent-blue: #3D94FF;
+    --accent-blue-bright: #6CB8FF;
 
     /* Glass — a real material: a touch brighter top edge catches light (§12). */
     --glass-bg: rgba(14, 14, 18, 0.66);

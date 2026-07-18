@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/BrandLogo";
 import { scrollBehavior } from "@/lib/motion";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, UserCircle2, X } from "lucide-react";
@@ -220,20 +221,13 @@ export function Navbar() {
             <Link
               to="/"
               onClick={onHomeLinkClick}
-              className="group flex shrink-0 items-center gap-2.5 rounded-full px-1.5 py-1 no-underline outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex shrink-0 items-center rounded-full px-1.5 py-1 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
+              aria-label="Motormila home"
             >
-              <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-surface shadow-sm">
-                <img src="/logo.svg" alt="Motormila logo" className="h-6 w-6 object-contain" />
-                <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${statusDot}`} />
-              </div>
-              <div className="hidden min-[390px]:block leading-none">
-                <p className="font-display text-[15px] font-semibold tracking-tight text-foreground leading-none">
-                  Motormila
-                </p>
-                <p className="mt-1 max-w-[9.5rem] truncate text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground xl:max-w-none">
-                  Vehicle Intelligence
-                </p>
-              </div>
+              <span className="relative">
+                <BrandLogo compact showTagline={false} className="[&_.brand-wordmark]:hidden min-[390px]:[&_.brand-wordmark]:block" />
+                <span className={`absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2 ring-background ${statusDot}`} />
+              </span>
             </Link>
 
             {/* ── Desktop nav tabs ──────────────────────── */}
