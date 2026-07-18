@@ -1,6 +1,8 @@
-import { memo, useEffect, useMemo } from "react";
-import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { memo, useMemo } from "react";
+import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
 import { DistrictVelocityPoint } from "@/types/car";
+import { LazyMapMount } from "@/components/leaflet/LazyMapMount";
+import { MapResizeController } from "@/components/leaflet/MapResizeController";
 
 interface DistrictVelocityMapProps {
   data: DistrictVelocityPoint[];
@@ -38,15 +40,6 @@ function velocityColor(score: number, maxScore: number): string {
 function velocityRadius(listingCount: number, maxCount: number): number {
   if (maxCount <= 0) return 8;
   return clamp(8 + (listingCount / maxCount) * 14, 8, 22);
-}
-
-function MapController() {
-  const map = useMap();
-  useEffect(() => {
-    map.invalidateSize();
-    map.fitBounds(SL_BOUNDS, { padding: [18, 18] });
-  }, [map]);
-  return null;
 }
 
 function formatVelocityPct(score: number): string {
@@ -113,7 +106,10 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border shadow-soft" style={{ height: 420 }}>
+      <LazyMapMount
+        className="overflow-hidden rounded-xl border border-border shadow-soft"
+        style={{ height: 420 }}
+      >
         <MapContainer
           center={SL_CENTER}
           zoom={7.5}
@@ -124,7 +120,7 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
           scrollWheelZoom
           style={{ height: "100%", width: "100%" }}
         >
-          <MapController />
+          <MapResizeController bounds={SL_BOUNDS} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -166,7 +162,7 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
             );
           })}
         </MapContainer>
-      </div>
+      </LazyMapMount>
     </div>
   );
 });
