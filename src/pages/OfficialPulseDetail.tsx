@@ -22,7 +22,13 @@ import {
 import { formatRelativeTime } from "@/lib/formatting";
 import { getMarketSignal } from "@/services/api";
 
-function NotFoundState({ message }: { message: string }) {
+function NotFoundState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
   return (
     <motion.div
       initial="hidden"
@@ -39,13 +45,30 @@ function NotFoundState({ message }: { message: string }) {
         <p className="section-eyebrow mt-4 text-primary-bright">Unavailable</p>
         <h1 className="mt-3 font-display text-xl font-semibold text-foreground">Signal not found</h1>
         <p className="mt-2 text-[13px] text-muted-foreground">{message}</p>
-        <Link
-          to="/official-pulse"
-          className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98]"
-        >
-          <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
-          Back to Official pulse
-        </Link>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <Link
+            to="/official-pulse"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98]"
+          >
+            <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
+            Back to Official pulse
+          </Link>
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground transition-all hover:border-primary/40 active:scale-[0.98]"
+            >
+              Retry
+            </button>
+          ) : null}
+          <Link
+            to="/official-pulse/guide/dmt_registrations"
+            className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 active:scale-[0.98]"
+          >
+            Read signal guides
+          </Link>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -62,7 +85,7 @@ export default function OfficialPulseDetail() {
     queryFn: () => getMarketSignal(signalId),
     enabled: idIsValid,
     staleTime: 5 * 60_000,
-    retry: 1,
+    retry: false,
   });
 
   if (!idIsValid) {
@@ -89,7 +112,10 @@ export default function OfficialPulseDetail() {
 
   if (signalQuery.isError || !signalQuery.data) {
     return (
-      <NotFoundState message="This market signal is missing or no longer in the live index." />
+      <NotFoundState
+        message="This market signal is missing or no longer in the live index. Open the pulse hub for the latest signals, or retry if the API was cold-starting."
+        onRetry={() => void signalQuery.refetch()}
+      />
     );
   }
 

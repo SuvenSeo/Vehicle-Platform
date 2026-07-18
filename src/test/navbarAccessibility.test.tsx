@@ -23,9 +23,9 @@ describe("Navbar accessibility active-state", () => {
       );
     });
 
-    const overviewLinks = screen.getAllByRole("link", { name: /overview/i });   
-    expect(overviewLinks.some((link) => link.getAttribute("aria-current") === "page")).toBe(true);
-    expect(overviewLinks.some((link) => link.getAttribute("data-active") === "true")).toBe(true);
+    const homeLinks = screen.getAllByRole("link", { name: /^home$/i });
+    expect(homeLinks.some((link) => link.getAttribute("aria-current") === "page")).toBe(true);
+    expect(homeLinks.some((link) => link.getAttribute("data-active") === "true")).toBe(true);
   });
 
   it("marks trends link as current on trends route", async () => {

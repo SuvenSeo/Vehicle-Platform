@@ -41,12 +41,12 @@ export function Navbar() {
 
   const sections = useMemo<NavSection[]>(
     () => [
-      { label: t("nav.overview", "Overview"), href: "#overview", id: "overview" },
+      { label: t("nav.home", "Home"), href: "/", id: "home", isRoute: true, activeOn: ["overview"] },
       { label: t("nav.market", "Market"), href: "#market", id: "market" },
       { label: t("nav.trends", "Trends"), href: "/trends", id: "trends", isRoute: true },
       { label: t("nav.valuation", "Valuation"), href: "/estimate", id: "estimate", isRoute: true },
-      { label: "Map", href: "/map", id: "map", isRoute: true },
-      { label: t("nav.blog", "Blog"), href: "/blogs", id: "blogs", isRoute: true },
+      { label: "Pricing", href: "/pricing", id: "pricing", isRoute: true },
+      { label: "Docs", href: "/docs", id: "docs", isRoute: true },
     ],
     [t],
   );
@@ -59,9 +59,8 @@ export function Navbar() {
       { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
       { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
-      { label: "Docs", href: "/docs", detail: "How MilaMark works" },
-      { label: "Pricing", href: "/pricing", detail: "Free, Pro, Dealer, Custom" },
-      { label: "Branding", href: "/branding", detail: "Name options & logo briefs" },
+      { label: "Map", href: "/map", detail: "District market geography" },
+      { label: "Journal", href: "/blogs", detail: "Editorial market guides" },
       { label: "Settings", href: "/settings", detail: "Language and theme" },
       isAuthenticated
         ? { label: "Pro Dashboard", href: "/pro", detail: "Paid market terminal" }
@@ -157,6 +156,12 @@ export function Navbar() {
   const handleScroll = (e: MouseEvent<HTMLAnchorElement>, path: string, isRoute?: boolean) => {
     if (isRoute) {
       e.preventDefault();
+      if (path === "/" && pathname === "/") {
+        window.scrollTo({ top: 0, behavior: scrollBehavior() });
+        setActiveSection("overview");
+        setMobileOpen(false);
+        return;
+      }
       navigate(path);
       setMobileOpen(false);
       return;
