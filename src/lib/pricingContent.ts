@@ -89,7 +89,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "Dedicated onboarding",
     ],
     ctaLabel: "Message us",
-    ctaTo: "mailto:s.seoras@rgu.ac.uk?subject=MilaMark%20custom%20pricing%20inquiry",
+    ctaTo: "mailto:s.seoras@rgu.ac.uk?subject=Custom%20pricing%20inquiry",
     external: true,
   },
 ];

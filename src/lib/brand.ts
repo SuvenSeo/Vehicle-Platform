@@ -6,6 +6,6 @@ export const BRAND = {
   copilot: "MilaMark Copilot",
   contactEmail: "s.seoras@rgu.ac.uk",
   contactMailto:
-    "mailto:s.seoras@rgu.ac.uk?subject=MilaMark%20custom%20pricing%20inquiry",
+    "mailto:s.seoras@rgu.ac.uk?subject=Custom%20pricing%20inquiry",
   origin: "https://vehicle-platform-one.vercel.app",
 } as const;
