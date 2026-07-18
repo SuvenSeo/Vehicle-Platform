@@ -36,27 +36,39 @@ export function BrandLogo({
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      {/* Light: stamp mark. Dark: app-icon chip so black ink stays visible. */}
-      <img
-        src="/logo-mark.png"
-        alt=""
-        width={compact ? 32 : 40}
-        height={compact ? 32 : 40}
-        className={cn(markSize, "shrink-0 object-contain dark:hidden", markClassName)}
-        decoding="async"
-      />
-      <img
-        src="/logo.png"
-        alt=""
-        width={compact ? 32 : 40}
-        height={compact ? 32 : 40}
-        className={cn(
-          markSize,
-          "hidden shrink-0 rounded-[22%] object-cover shadow-sm dark:block",
-          markClassName,
-        )}
-        decoding="async"
-      />
+      {compact ? (
+        <img
+          src="/logo.png"
+          alt=""
+          width={32}
+          height={32}
+          className={cn(markSize, "shrink-0 rounded-[22%] object-cover shadow-sm", markClassName)}
+          decoding="async"
+        />
+      ) : (
+        <>
+          <img
+            src="/logo-mark.png"
+            alt=""
+            width={40}
+            height={40}
+            className={cn(markSize, "shrink-0 object-contain dark:hidden", markClassName)}
+            decoding="async"
+          />
+          <img
+            src="/logo.png"
+            alt=""
+            width={40}
+            height={40}
+            className={cn(
+              markSize,
+              "hidden shrink-0 rounded-[22%] object-cover shadow-sm dark:block",
+              markClassName,
+            )}
+            decoding="async"
+          />
+        </>
+      )}
       {showWordmark && (
         <span className="brand-wordmark min-w-0 leading-none">
           <span
