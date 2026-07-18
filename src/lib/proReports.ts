@@ -12,7 +12,7 @@ import { formatPriceLkrMillions } from "@/lib/formatting";
 type JsPDFDoc = import("jspdf").jsPDF;
 
 const DATA_DISCLAIMER =
-  "AutoLens LK aggregates public Sri Lanka vehicle marketplace data. Treat outputs as decision support, not a binding valuation or offer.";
+  "MilaMark aggregates public Sri Lanka vehicle marketplace data. Treat outputs as decision support, not a binding valuation or offer.";
 
 const DEFAULT_SECTIONS: ProReportSectionId[] = ["metrics", "breakdowns", "trends", "listings", "table", "filters", "disclaimer"];
 
@@ -205,7 +205,7 @@ export function customizeProReport(report: ProReportPayload, options: ProReportO
 
 export function buildProReportCsv(report: ProReportPayload): string {
   const lines = [
-    ["AutoLens LK Pro Report"],
+    ["MilaMark Pro Report"],
     ["Title", report.title],
     ["Subtitle", report.subtitle || ""],
     ["Prepared for", report.preparedFor || ""],
@@ -280,7 +280,7 @@ function drawFooter(doc: JsPDFDoc, report: ProReportPayload, pageWidth: number, 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(...theme.muted);
-  doc.text(`AutoLens LK Pro Intelligence | ${new Date(report.generatedAt).toLocaleString("en-LK")}`, 40, pageHeight - 24);
+  doc.text(`MilaMark Pro Intelligence | ${new Date(report.generatedAt).toLocaleString("en-LK")}`, 40, pageHeight - 24);
   doc.text(`Page ${pageNumber}`, pageWidth - 72, pageHeight - 24);
 }
 
@@ -644,7 +644,7 @@ function exportPrint(report: ProReportPayload) {
       <body>
         <div class="page">
           <header class="hero">
-            <div class="kicker">AutoLens LK Pro Intelligence</div>
+            <div class="kicker">MilaMark Pro Intelligence</div>
             <h1>${htmlCell(report.title)}</h1>
             <p class="subtitle">${htmlCell(report.subtitle || "Professional Sri Lanka vehicle market intelligence")}</p>
             <div class="meta">

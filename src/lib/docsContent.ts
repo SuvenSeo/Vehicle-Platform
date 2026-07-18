@@ -10,10 +10,10 @@ export type DocsSection = {
 export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: "overview",
-    title: "What AutoLens LK is",
+    title: "What MilaMark is",
     summary: "Sri Lanka vehicle market intelligence — listings, deal scores, and decision tools in one cockpit.",
     body: [
-      "AutoLens LK is a vehicle intelligence platform built for the Sri Lankan used and import market. It aggregates public listings, scores how asking prices sit against condition-aware peers, and surfaces tools dealers, brokers, importers, and serious buyers actually use before they negotiate.",
+      "MilaMark is a vehicle intelligence platform built for the Sri Lankan used and import market. It aggregates public listings, scores how asking prices sit against condition-aware peers, and surfaces tools dealers, brokers, importers, and serious buyers actually use before they negotiate.",
       "The public dashboard is the front door: browse live inventory, filter by make, model, district, and fuel type, then drill into deal signals, trends, and valuation. Paid workspaces add depth — history, exports, dealer inventory ops, and Official Pulse signals from DMT, Customs, and import policy.",
       "This docs set explains how the pieces fit together: where data comes from, how deal scores are computed, what Official Pulse covers, and which routes belong to Free, Pro, Dealer, and Enterprise access.",
     ],
@@ -34,7 +34,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     title: "Data sources",
     summary: "Listings sync from major Sri Lankan marketplaces — ikman, riyasewana, and other high-volume boards.",
     body: [
-      "AutoLens LK scrapes and normalizes vehicle ads from the boards Sri Lankans already use. Primary coverage includes ikman and riyasewana, with additional volume from AutoLanka, Patpat, AutoDirect, and related classified sources as the pipeline expands.",
+      "MilaMark scrapes and normalizes vehicle ads from the boards Sri Lankans already use. Primary coverage includes ikman and riyasewana, with additional volume from AutoLanka, Patpat, AutoDirect, and related classified sources as the pipeline expands.",
       "Each listing is deduplicated where possible, mapped to a shared make/model schema, and tagged with district, fuel type, year, mileage, and asking price. Incomplete ads still appear, but deal confidence drops when peer samples are thin or fields are missing.",
       "Source mix matters for interpretation: one board may skew newer stock; another may skew older private sellers. Pro views expose source coverage so you can see whether a lane is dominated by a single site.",
     ],
@@ -78,7 +78,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     body: [
       "Official Pulse tracks government and regulatory signals that move landed cost and registration risk — DMT process notes, Customs duty context, and import-policy changes that dealers and importers watch weekly.",
       "Marketplace asking prices react after policy shifts; Pulse is meant to surface those shifts earlier so you are not pricing off last month’s duty assumptions. Free access shows a limited pulse; Pro and Dealer unlock history, richer timelines, and exportable briefs.",
-      "Pulse is not a substitute for a lawyer or clearing agent. It is a structured feed of signals linked to how AutoLens models import cost and market pressure.",
+      "Pulse is not a substitute for a lawyer or clearing agent. It is a structured feed of signals linked to how MilaMark models import cost and market pressure.",
     ],
     bullets: [
       "DMT and registration-side process signals",
@@ -98,7 +98,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     summary: "Inventory health, price gaps, URL benchmarks, and team seats for dealer lots.",
     body: [
       "The Dealer workspace at /dealer is built for yard operators who need turnover and pricing discipline, not just browsing. It surfaces inventory that is aging, asks that sit above or below peer medians, and demand cues by lane and district.",
-      "URL benchmark lets you paste a public listing link and see how that ask compares to AutoLens comps — useful when a walk-in buyer quotes another yard’s ad. Team seats (Dealer plan) keep sales staff on the same read of the market.",
+      "URL benchmark lets you paste a public listing link and see how that ask compares to MilaMark comps — useful when a walk-in buyer quotes another yard’s ad. Team seats (Dealer plan) keep sales staff on the same read of the market.",
       "Dealer access is a paid tier. Start from /dealer after sign-in; WhatsApp onboarding for yard setup happens after the account is live.",
     ],
     bullets: [
@@ -141,7 +141,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     body: [
       "The calculator at /calculator models landed cost from CIF, FX, fuel type, engine capacity or motor kW, and common surcharges (including SSCL where applicable). It is built for Sri Lanka import math — not a generic overseas duty estimator.",
       "Additional tabs cover lease repayment sketches, total cost of ownership, permit notes, and depreciation framing so importers and buyers can compare cash-to-own paths. Shareable URL params let you send a scenario to a colleague without retyping inputs.",
-      "Always cross-check duty rates with your clearing agent; AutoLens keeps the model aligned with published rules, but official gazettes and agent quotes remain the source of truth for a live clearance.",
+      "Always cross-check duty rates with your clearing agent; MilaMark keeps the model aligned with published rules, but official gazettes and agent quotes remain the source of truth for a live clearance.",
     ],
     bullets: [
       "CIF → LKR landed cost with fuel and CC/kW inputs",

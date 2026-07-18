@@ -9,21 +9,13 @@ export type BrandOption = {
 
 export const BRAND_OPTIONS: BrandOption[] = [
   {
-    name: "AutoLens LK",
-    tagline: "See the real price. Every car. Every district.",
-    why: "Clear category signal (auto + lens) plus LK locality. Easy to say, search, and extend into Pro / Dealer product names.",
-    domainVibe: "autolens.lk / autolenslk.com — product-first, national, trustworthy.",
-    logoBrief:
-      "Wordmark-led mark: geometric ‘AL’ monogram or a simple circular lens aperture enclosing a subtle map pin or island silhouette. Prefer sharp geometry over chrome car clichés. Primary blue on ink or paper; gold reserved for premium badges only.",
-    recommended: true,
-  },
-  {
     name: "MilaMark",
     tagline: "The fair mark for every listing.",
     why: "‘Mila’ nods to price/value in local speech; ‘Mark’ suggests a stamped fair-price signal dealers can trust.",
     domainVibe: "milamark.lk — short, brandable, slightly premium.",
     logoBrief:
       "Stamp or seal motif: a rounded rectangle ‘MM’ chop with a thin registration-style border. Avoid literal rupee signs. Works as app icon at 16px.",
+    recommended: true,
   },
   {
     name: "Nethra Motor",
@@ -36,7 +28,7 @@ export const BRAND_OPTIONS: BrandOption[] = [
   {
     name: "Parity Desk",
     tagline: "Price parity for the trade desk.",
-    why: "Sounds institutional — good for brokers and leasing — less consumer-warm than AutoLens.",
+    why: "Sounds institutional — good for brokers and leasing — less consumer-warm than a consumer fair-ask brand.",
     domainVibe: "paritydesk.com — fintech-adjacent, B2B.",
     logoBrief:
       "Two parallel bars of equal length (parity) meeting a small desk/ledger corner. Monochrome ink with primary accent on the equal gap.",
@@ -89,10 +81,34 @@ export const BRAND_OPTIONS: BrandOption[] = [
     logoBrief:
       "Open ledger book reduced to two stacked rules and a spine; or an ‘ML’ monogram with a single underline rule. Ink-first, gold sparingly.",
   },
+  {
+    name: "LotPulse",
+    tagline: "The pulse of every lot.",
+    why: "Dealer-yard energy with a live-data feel; strong for inventory ops, slightly less national for consumers.",
+    domainVibe: "lotpulse.lk — operational, yard-first.",
+    logoBrief:
+      "Heartbeat / pulse line resolving into a lot-grid of three parking rectangles. Keep geometry sharp; no ECG medical clichés.",
+  },
+  {
+    name: "AskIndex LK",
+    tagline: "Index the ask. Know the fair.",
+    why: "Pairs asking-price language with index credibility — clear for buyers and brokers, a bit long for wordmark.",
+    domainVibe: "askindex.lk — research + consumer hybrid.",
+    logoBrief:
+      "Ascending index bars capped by a small ask-tick mark. ‘LK’ as a quiet suffix. Prefer tabular numerals in the mark.",
+  },
+  {
+    name: "Kerbside Mark",
+    tagline: "Fair marks at the kerb.",
+    why: "Evokes street-level deals and walk-up yards; memorable locally, less formal for banking ICPs.",
+    domainVibe: "kerbsidemark.lk — grounded, Sri Lanka street trade.",
+    logoBrief:
+      "Simple kerb edge as a horizontal rule under a stamp ‘KM’ chop. Avoid literal sidewalk photos — keep it glyph-led.",
+  },
 ];
 
 export const BRAND_SYSTEM = {
-  primaryName: "AutoLens LK",
+  primaryName: "MilaMark",
   colors: {
     ink: "#09090B",
     paper: "#FBFBFD",
@@ -108,5 +124,5 @@ export const BRAND_SYSTEM = {
   },
   voice:
     "Direct, Sri Lanka–specific, and operator-honest. Prefer short declarative headlines, concrete market language (lane, ask, median, district), and no hype adjectives. Speak to dealers and decision-makers first; buyers second. Never invent statistics in marketing copy — point to the live product.",
-  killNames: ["Vehicle Platform", "Auto Price Watch"],
+  killNames: ["AutoLens", "AutoLens LK", "Vehicle Platform", "Auto Price Watch"],
 } as const;

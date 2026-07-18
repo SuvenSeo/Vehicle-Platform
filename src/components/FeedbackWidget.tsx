@@ -82,7 +82,7 @@ export function FeedbackWidget() {
           <DialogHeader>
             <DialogTitle className="font-display text-2xl tracking-tight">Send Feedback</DialogTitle>
             <DialogDescription className="sr-only">
-              Send a bug, idea, data, user experience, or general note to the AutoLens team.
+              Send a bug, idea, data, user experience, or general note to the MilaMark team.
             </DialogDescription>
           </DialogHeader>
 
@@ -111,7 +111,7 @@ export function FeedbackWidget() {
             <Textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="What should AutoLens fix or improve?"
+              placeholder="What should MilaMark fix or improve?"
               className="min-h-[130px] rounded-xl border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground"
             />
 

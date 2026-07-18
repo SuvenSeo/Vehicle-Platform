@@ -112,7 +112,7 @@ const lane = {
 const detail = {
   kind: "vehicle_lane",
   title: "Toyota Aqua",
-  summary: "2 priced listings tracked for this lane across AutoLens sources.",
+  summary: "2 priced listings tracked for this lane across MilaMark sources.",
   generated_at: "2026-05-20T10:00:00Z",
   metrics: [
     { label: "Listings", value: "2", detail: "Priced, non-outlier inventory" },

@@ -398,7 +398,7 @@ export default function DealerDashboard() {
         <div className="grid gap-6 lg:grid-cols-[268px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">AutoLens LK</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">MilaMark</p>
               <h2 className="mt-2 font-display text-lg font-bold tracking-tight text-foreground">Command stack</h2>
               <nav className="mt-4 space-y-1" aria-label="Dealer command stack">
                 {[
@@ -499,7 +499,7 @@ export default function DealerDashboard() {
                     <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary-bright">{item.forWhom}</p>
                     <h3 className="mt-1.5 font-display text-[14px] font-bold tracking-tight text-foreground">{item.title}</h3>
                     <p className="mt-2 text-[11px] text-muted-foreground font-medium leading-relaxed">{item.problem}</p>
-                    <p className="mt-2 text-[11px] text-foreground font-medium leading-relaxed">{item.whatAutoLensDoes}</p>
+                    <p className="mt-2 text-[11px] text-foreground font-medium leading-relaxed">{item.whatMilaMarkDoes}</p>
                     <Link
                       to={item.whereToGo.to}
                       className="mt-4 inline-flex text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright no-underline transition-colors hover:text-primary"

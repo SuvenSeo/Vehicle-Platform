@@ -75,7 +75,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
     {
       key: "publish",
       label: "Publish",
-      subtitle: "AutoLens feed",
+      subtitle: "MilaMark feed",
       detail: `${processedCount} listings powering cards, map, trends, and valuation`,
       icon: Satellite,
       tone: "border-border bg-surface text-foreground",
@@ -90,7 +90,7 @@ export const VehicleDataFlow = memo(function VehicleDataFlow({ listings, status 
             <Activity className="w-4 h-4 text-primary" />
             <p className="tech-label">Data pipeline</p>
           </div>
-          <h3 className="headline-display text-3xl sm:text-4xl">From market source to AutoLens feed.</h3>
+          <h3 className="headline-display text-3xl sm:text-4xl">From market source to MilaMark feed.</h3>
           <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
             A single flow moves every listing through ingestion, cleanup, scoring, and publishing.
           </p>

@@ -8,9 +8,10 @@ import { revealContainer, revealItem } from "@/lib/motion";
 import { ListingCard } from "@/components/ListingCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
+import { BRAND } from "@/lib/brand";
 
-const SITE = "AutoLens LK";
-const ORIGIN = "https://vehicle-platform-one.vercel.app";
+const SITE = BRAND.siteName;
+const ORIGIN = BRAND.origin;
 
 function toTitleCase(str: string): string {
   return str
@@ -49,8 +50,8 @@ export default function MakeModelHub() {
   const canonicalModel = insight?.model ?? modelDisplay;
   const title = `${canonicalMake} ${canonicalModel} — Prices & Listings in Sri Lanka | ${SITE}`;
   const description = insight
-    ? `${insight.total} ${canonicalMake} ${canonicalModel} listings in Sri Lanka. Average price ${formatPrice(insight.avg_price_lkr)}, median ${formatPrice(insight.median_price_lkr)}. Browse live market data on AutoLens LK.`
-    : `Browse ${vehicleLabel} prices, listings, and market intelligence for the Sri Lankan vehicle market on AutoLens LK.`;
+    ? `${insight.total} ${canonicalMake} ${canonicalModel} listings in Sri Lanka. Average price ${formatPrice(insight.avg_price_lkr)}, median ${formatPrice(insight.median_price_lkr)}. Browse live market data on MilaMark.`
+    : `Browse ${vehicleLabel} prices, listings, and market intelligence for the Sri Lankan vehicle market on MilaMark.`;
 
   useEffect(() => {
     document.title = title;

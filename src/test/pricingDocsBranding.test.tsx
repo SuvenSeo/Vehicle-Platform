@@ -23,16 +23,16 @@ describe("Docs, Pricing, Branding pages", () => {
   it("renders pricing tiers and ICP personas", () => {
     wrap(<Pricing />);
     expect(screen.getByRole("heading", { name: /^Pricing\.$/i })).toBeInTheDocument();
-    expect(screen.getByText("LKR 4,990")).toBeInTheDocument();
-    expect(screen.getByText("LKR 19,990")).toBeInTheDocument();
+    expect(screen.getByText("LKR 999")).toBeInTheDocument();
+    expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     expect(screen.getByText("Dealers")).toBeInTheDocument();
   });
 
-  it("recommends AutoLens LK and lists brand options", () => {
+  it("recommends MilaMark and lists brand options", () => {
     wrap(<Branding />);
     expect(screen.getByRole("heading", { name: /^Branding\.$/i })).toBeInTheDocument();
-    expect(screen.getAllByText("AutoLens LK").length).toBeGreaterThan(0);
-    expect(screen.getByText("MilaMark")).toBeInTheDocument();
+    expect(screen.getAllByText("MilaMark").length).toBeGreaterThan(0);
+    expect(screen.getByText("LotPulse")).toBeInTheDocument();
     expect(screen.getByText("Parity Desk")).toBeInTheDocument();
   });
 });

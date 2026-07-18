@@ -135,7 +135,7 @@ export default function OfficialPulseDetail() {
           <h1 className="display-hero max-w-3xl text-foreground">{title}</h1>
           <p className="text-body-lg mt-6 max-w-xl">
             {guide?.summary ||
-              "Government and import market signal observed by AutoLens, with in-platform context."}
+              "Government and import market signal observed by MilaMark, with in-platform context."}
           </p>
         </div>
       </motion.section>
@@ -244,7 +244,7 @@ export default function OfficialPulseDetail() {
             {sourceOpen ? (
               <div className="border-t border-border px-5 py-4">
                 <p className="text-[12px] text-muted-foreground">
-                  Optional external reference. Primary explanation stays in AutoLens above.
+                  Optional external reference. Primary explanation stays in MilaMark above.
                 </p>
                 <a
                   href={signal.source_url}

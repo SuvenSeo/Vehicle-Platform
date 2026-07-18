@@ -1,4 +1,4 @@
-export type PricingTierId = "free" | "pro" | "dealer" | "enterprise";
+export type PricingTierId = "free" | "pro" | "dealer" | "custom";
 
 export type PricingTier = {
   id: PricingTierId;
@@ -10,7 +10,9 @@ export type PricingTier = {
   highlight?: boolean;
   features: string[];
   ctaLabel: string;
+  /** Internal route (e.g. /dealer) or mailto: for custom */
   ctaTo: string;
+  external?: boolean;
 };
 
 export type IcpPersona = {
@@ -39,9 +41,9 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    priceLkr: "LKR 4,990",
+    priceLkr: "LKR 999",
     priceNote: "/mo",
-    annualNote: "LKR 49,900/yr",
+    annualNote: "LKR 9,990/yr (2 months free)",
     audience: "Brokers, analysts, and serious buyers who need depth",
     features: [
       "Full Pro terminal (/pro)",
@@ -57,9 +59,9 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "dealer",
     name: "Dealer",
-    priceLkr: "LKR 19,990",
+    priceLkr: "LKR 1,999",
     priceNote: "/mo",
-    annualNote: "LKR 199,900/yr",
+    annualNote: "LKR 19,990/yr (2 months free)",
     audience: "Yards and multi-lot dealers running inventory every day",
     highlight: true,
     features: [
@@ -74,20 +76,21 @@ export const PRICING_TIERS: PricingTier[] = [
     ctaTo: "/dealer",
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
+    id: "custom",
+    name: "Custom",
     priceLkr: "Custom",
-    priceNote: "from LKR 99,000/mo",
-    audience: "Banks, leasing desks, and insurers needing institutional feeds",
+    priceNote: "message us",
+    audience: "Banks, leasing desks, multi-branch importers — priced for your scope",
     features: [
       "Everything in Dealer",
       "Custom data feeds and SLAs",
-      "Seat packs and SSO-ready workflows",
+      "Seat packs and branded reports",
       "Policy and portfolio brief formats",
       "Dedicated onboarding",
     ],
-    ctaLabel: "Talk to us",
-    ctaTo: "/sign-in",
+    ctaLabel: "Message us",
+    ctaTo: "mailto:hello@milamark.lk?subject=MilaMark%20custom%20pricing",
+    external: true,
   },
 ];
 
@@ -110,12 +113,12 @@ export const ICP_PERSONAS: IcpPersona[] = [
   {
     title: "Leasing / banks",
     pain: "Residual and collateral reads lag noisy classified medians.",
-    fit: "Enterprise feeds, price index context, and lane history for portfolio decisions.",
+    fit: "Custom plans with feeds, price index context, and lane history for portfolio decisions.",
   },
   {
     title: "Insurers",
     pain: "Claims and underwriting need a consistent market read by district and segment.",
-    fit: "Index, map, and institutional tiers for structured market references.",
+    fit: "Index, map, and custom tiers for structured market references.",
   },
   {
     title: "Serious buyers",
@@ -135,15 +138,15 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How does Dealer onboarding work?",
-    a: "Open /dealer after sign-in. WhatsApp onboarding for yard setup and seats happens once the account is active — we do not put a public wa.me placeholder in the product.",
+    a: "Open /dealer after sign-in. WhatsApp onboarding for yard setup and seats happens once the account is active.",
   },
   {
     q: "Is annual billing cheaper?",
-    a: "Pro is LKR 49,900/yr and Dealer is LKR 199,900/yr — a discount versus twelve monthly invoices.",
+    a: "Pro is LKR 9,990/yr and Dealer is LKR 19,990/yr — two months free versus paying monthly.",
   },
   {
-    q: "What does Enterprise include?",
-    a: "Custom scope from LKR 99,000/mo: feeds, SLAs, seat packs, and brief formats for banks, leasing, and insurers. Start at /sign-in and we scope from there.",
+    q: "What is Custom?",
+    a: "Message us for multi-branch, leasing, bank, or insurer scope — feeds, SLAs, and seat packs. Use the Message us button on this page.",
   },
   {
     q: "Do deal scores work on Free?",

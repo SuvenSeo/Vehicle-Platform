@@ -59,7 +59,7 @@ export function Navbar() {
       { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
       { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
-      { label: "Docs", href: "/docs", detail: "How AutoLens LK works" },
+      { label: "Docs", href: "/docs", detail: "How MilaMark works" },
       { label: "Pricing", href: "/pricing", detail: "Free, Pro, Dealer, Enterprise" },
       { label: "Branding", href: "/branding", detail: "Name options & logo briefs" },
       { label: "Settings", href: "/settings", detail: "Language and theme" },
@@ -216,12 +216,12 @@ export function Navbar() {
               className="group flex shrink-0 items-center gap-2.5 rounded-xl px-2 py-1 no-underline outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-surface">
-                <img src="/logo.svg" alt="AutoLens LK logo" className="h-6 w-6 object-contain" />
+                <img src="/logo.svg" alt="MilaMark logo" className="h-6 w-6 object-contain" />
                 <span className={`absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full ${statusDot}`} />
               </div>
               <div className="hidden min-[390px]:block leading-none">
                 <p className="font-display text-[15px] font-semibold tracking-tight text-foreground leading-none">
-                  AutoLens<span className="ml-1 font-normal text-muted-foreground">LK</span>
+                  MilaMark
                 </p>
                 <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Vehicle Intelligence
@@ -345,7 +345,7 @@ export function Navbar() {
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Open AutoLens LK repository"
+                aria-label="Open MilaMark repository"
                 className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:inline-flex"
               >
                 <ExternalLink className="h-3 w-3" />
@@ -382,7 +382,7 @@ export function Navbar() {
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform</p>
-                <p className="mt-0.5 text-[11px] font-semibold text-foreground">AutoLens LK</p>
+                <p className="mt-0.5 text-[11px] font-semibold text-foreground">MilaMark</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1">
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />

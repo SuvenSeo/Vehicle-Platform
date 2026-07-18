@@ -22,6 +22,6 @@ describe("FeedbackWidget", () => {
 
     expect(await screen.findByRole("dialog", { name: /send feedback/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /data issue/i })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/what should autolens fix or improve/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/what should milamark fix or improve/i)).toBeInTheDocument();
   });
 });

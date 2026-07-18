@@ -143,7 +143,7 @@ export default function OfficialPulse() {
           <SectionHeader
             eyebrow="How to read it"
             title="Signal guides"
-            description="Each source is explained in AutoLens so you can act without leaving for a government site first."
+            description="Each source is explained in MilaMark so you can act without leaving for a government site first."
             className="mb-8"
           />
           <motion.div
@@ -183,7 +183,7 @@ export default function OfficialPulse() {
           <SectionHeader
             eyebrow="Live feed"
             title="Recent market signals"
-            description="Latest DMT, Customs, and import-parity observations synced into AutoLens."
+            description="Latest DMT, Customs, and import-parity observations synced into MilaMark."
             className="mb-8"
             actions={
               <div className="inline-flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
