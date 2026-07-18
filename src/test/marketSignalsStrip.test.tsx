@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
 import type { MarketSignal } from "@/types/car";
@@ -33,7 +34,9 @@ function renderStrip() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MarketSignalsStrip />
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <MarketSignalsStrip />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -43,7 +46,7 @@ describe("MarketSignalsStrip", () => {
     vi.clearAllMocks();
   });
 
-  it("renders signal cards when data is present", async () => {
+  it("renders signal cards that link into Official Pulse", async () => {
     vi.mocked(getMarketSignals).mockResolvedValue(sampleSignals);
     renderStrip();
 
@@ -52,14 +55,26 @@ describe("MarketSignalsStrip", () => {
     });
     expect(screen.getByText("Passenger cars")).toBeInTheDocument();
     expect(screen.getByText(/12,450 vehicles/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Passenger cars/i })).toHaveAttribute(
+      "href",
+      "/official-pulse/1",
+    );
+    expect(screen.getByRole("link", { name: /Open pulse desk/i })).toHaveAttribute(
+      "href",
+      "/official-pulse",
+    );
   });
 
-  it("shows empty state when no signals", async () => {
+  it("shows empty state with in-app pulse link when no signals", async () => {
     vi.mocked(getMarketSignals).mockResolvedValue([]);
     renderStrip();
 
     await waitFor(() => {
       expect(screen.getByText(/Official registration and import-cost signals will appear here/)).toBeInTheDocument();
     });
+    expect(screen.getByRole("link", { name: /Read what each signal means/i })).toHaveAttribute(
+      "href",
+      "/official-pulse",
+    );
   });
 });

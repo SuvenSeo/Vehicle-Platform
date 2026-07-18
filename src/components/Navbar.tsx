@@ -57,7 +57,11 @@ export function Navbar() {
       { label: "EV Hub", href: "/ev-hub", detail: "Battery and charging checks" },
       { label: "Best Picks", href: "/best-picks", detail: "Strict deal-score shortlist" },
       { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
+      { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
+      { label: "Docs", href: "/docs", detail: "How AutoLens LK works" },
+      { label: "Pricing", href: "/pricing", detail: "Free, Pro, Dealer, Enterprise" },
+      { label: "Branding", href: "/branding", detail: "Name options & logo briefs" },
       { label: "Settings", href: "/settings", detail: "Language and theme" },
       isAuthenticated
         ? { label: "Pro Dashboard", href: "/pro", detail: "Paid market terminal" }

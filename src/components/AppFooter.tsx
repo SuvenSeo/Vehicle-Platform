@@ -17,10 +17,12 @@ const toolLinks = [
 ];
 
 const moreLinks = [
+  { label: "Official Pulse", to: "/official-pulse" },
   { label: "Dealer", to: "/dealer" },
   { label: "Pro Preview", to: "/pro-preview" },
   { label: "Docs", to: "/docs" },
   { label: "Pricing", to: "/pricing" },
+  { label: "Branding", to: "/branding" },
   { label: "Settings", to: "/settings" },
   { label: "Journal", to: "/blogs" },
 ];
