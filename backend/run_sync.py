@@ -27,6 +27,7 @@ from app.utils.listing_lifecycle import mark_inactive_listings
 from app.utils.outliers import mark_price_outliers
 from app.utils.stats_cache import refresh_stats_cache
 from app.utils.thumbnail_cache import backfill_thumbnail_cache
+from app.utils.image_phash import backfill_image_phash
 from db.models import CarListing, ScrapeRun
 from db.session import ColdSessionLocal as SessionLocal, init_db
 from scripts.recover_missing_prices import recover_missing_prices
@@ -515,6 +516,7 @@ async def main(profile_override: str | None = None):
     run_outlier_detection = _resolve_bool_env("RUN_OUTLIER_DETECTION", True)
     run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", False)
     run_thumbnail_cache = _resolve_bool_env("RUN_THUMBNAIL_CACHE", False)
+    run_image_phash = _resolve_bool_env("RUN_IMAGE_PHASH", False)
     run_alert_match = _resolve_bool_env("RUN_ALERT_MATCH", False)
     run_price_recovery = _resolve_bool_env("RUN_PRICE_RECOVERY", False)
 
@@ -532,6 +534,7 @@ async def main(profile_override: str | None = None):
         run_outlier_detection=run_outlier_detection,
         run_stats_cache_refresh=run_stats_cache_refresh,
         run_thumbnail_cache=run_thumbnail_cache,
+        run_image_phash=run_image_phash,
         run_price_recovery=run_price_recovery,
         run_alert_match=run_alert_match,
         source_max_pages={source: pages for source, _cls, pages, _timeout in source_configs},
@@ -647,6 +650,20 @@ async def main(profile_override: str | None = None):
                 _close_db_session(db, context="thumbnail_cache_backfill")
         else:
             log.info("thumbnail_cache_backfill_skipped", reason="run_thumbnail_cache_disabled")
+
+        if run_image_phash:
+            db = SessionLocal()
+            try:
+                log.info("running_image_phash_backfill")
+                updated = backfill_image_phash(db)
+                log.info("image_phash_backfill_complete", listings_updated=updated)
+            except Exception as exc:
+                db.rollback()
+                log.error("image_phash_backfill_failed", error=str(exc))
+            finally:
+                _close_db_session(db, context="image_phash_backfill")
+        else:
+            log.info("image_phash_backfill_skipped", reason="run_image_phash_disabled")
 
         if run_price_recovery:
             db = SessionLocal()

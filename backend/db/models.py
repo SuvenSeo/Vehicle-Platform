@@ -42,6 +42,10 @@ class CarListing(Base):
     # Image & Thumbnails
     thumbnail_url = Column(Text)
     thumbnail_url_cached = Column(Text, nullable=True)
+    # Perceptual hash (64-bit pHash, hex-encoded) of the thumbnail image, used
+    # to spot the same physical vehicle re-listed with edited specs (year,
+    # district, price) that heuristic make/model matching would miss.
+    image_phash = Column(String(16), nullable=True)
 
     # Valuation
     deal_score = Column(Numeric(5, 1))

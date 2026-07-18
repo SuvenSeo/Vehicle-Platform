@@ -96,6 +96,34 @@ def test_no_false_odometer_flag_when_mileage_rises():
     assert "odometer_inconsistency" not in kinds
 
 
+def test_photo_match_related_listing_despite_different_year_and_district():
+    db = _session()
+    # Same physical vehicle, but the relist changed year and district — the
+    # spec heuristic (year + district match) would miss this entirely.
+    a = _listing("a", source="ikman", year=2019, district="Colombo")
+    a.image_phash = "0" * 16
+    b = _listing("b", source="riyasewana", year=2018, district="Gampaha")
+    b.image_phash = "0" * 16  # identical hash = distance 0
+    db.add_all([a, b]); db.commit()
+
+    report = build_history_report(db, a)
+    matches = {r["id"]: r["confidence"] for r in report["related_listings"]}
+    assert matches.get(b.id) == "photo_match"
+
+
+def test_photo_match_ignores_dissimilar_hashes():
+    db = _session()
+    a = _listing("a", source="ikman", year=2019, district="Colombo")
+    a.image_phash = "0000000000000000"
+    b = _listing("b", source="riyasewana", year=2018, district="Gampaha")
+    b.image_phash = "ffffffffffffffff"  # maximally different
+    db.add_all([a, b]); db.commit()
+
+    report = build_history_report(db, a)
+    related_ids = {r["id"] for r in report["related_listings"]}
+    assert b.id not in related_ids
+
+
 def test_possibly_sold_flag():
     db = _session()
     car = _listing("gone", is_active=False)

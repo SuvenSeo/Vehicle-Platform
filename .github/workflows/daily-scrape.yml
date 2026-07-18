@@ -177,6 +177,7 @@ jobs:
           RUN_PRICE_RECOVERY: "true"
           RUN_ALERT_MATCH: "true"
           RUN_THUMBNAIL_CACHE: "true"
+          RUN_IMAGE_PHASH: "true"
         run: python run_sync.py
 
   snapshot-export:

@@ -126,7 +126,11 @@ export function ListingHistoryReport({ listingId }: { listingId: number | string
                   <span className="text-[10px] text-muted-foreground font-medium">
                     {r.source}
                     {r.mileage ? ` · ${(r.mileage / 1000).toFixed(0)}k km` : ""}
-                    {r.confidence === "confirmed" ? " · matched" : " · likely match"}
+                    {r.confidence === "confirmed"
+                      ? " · matched"
+                      : r.confidence === "photo_match"
+                        ? " · same photo"
+                        : " · likely match"}
                   </span>
                 </span>
                 {r.price_lkr && <span className="shrink-0 text-[12px] font-bold text-foreground num">{formatPrice(r.price_lkr)}</span>}

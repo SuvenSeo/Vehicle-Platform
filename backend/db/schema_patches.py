@@ -12,10 +12,12 @@ log = structlog.get_logger()
 _CAR_LISTING_COLUMN_PATCHES = (
     ("thumbnail_url_cached", "TEXT", "TEXT"),
     ("is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
+    ("image_phash", "VARCHAR(16)", "VARCHAR(16)"),
 )
 
 _CAR_LISTING_INDEX_PATCHES = (
     ("idx_car_listings_last_seen_at", "car_listings", "last_seen_at"),
+    ("idx_car_listings_image_phash", "car_listings", "image_phash"),
 )
 
 

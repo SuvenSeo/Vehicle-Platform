@@ -7,9 +7,12 @@ whether the odometer went BACKWARDS between sightings.
 
 Identity is heuristic (spec-matched, no registration data), so matches are
 labelled by confidence:
-- "confirmed": linked by the nightly dedup pass (is_duplicate/duplicate_of)
-- "likely":    same normalised make+model, exact year, mileage within 10%
-               (price deliberately unconstrained — relistings change price)
+- "confirmed":    linked by the nightly dedup pass (is_duplicate/duplicate_of)
+- "photo_match":  same thumbnail image (pHash within threshold) — catches a
+                   relist with an edited year/district/price that the spec
+                   heuristic below would miss entirely
+- "likely":       same normalised make+model, exact year, mileage within 10%
+                   (price deliberately unconstrained — relistings change price)
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import structlog
 from sqlalchemy.orm import Session
 
 from app.utils.deduplication import _norm
+from app.utils.image_phash import is_same_photo
 from app.utils.time import utc_now
 from db.models import CarListing, VehiclePriceHistory
 
@@ -55,13 +59,37 @@ def _related_listings(db: Session, listing: CarListing) -> list[tuple[CarListing
     for row in confirmed:
         related[row.id] = (row, "confirmed")
 
+    norm_make, norm_model = _norm(listing.make), _norm(listing.model)
+
+    # Photo matches: same thumbnail image regardless of stated year/district/
+    # price. This is what catches a re-list where the seller (deliberately or
+    # not) changed a spec field — the heuristic match below requires year and
+    # district to agree, so it can't see these. Scoped to the same normalised
+    # make to keep the candidate set small; pHash comparison itself is
+    # make-agnostic (it only looks at pixels).
+    if listing.image_phash and norm_make:
+        photo_candidates = (
+            db.query(CarListing)
+            .filter(
+                CarListing.id != listing.id,
+                CarListing.image_phash.isnot(None),
+                CarListing.make.ilike(f"%{listing.make}%"),
+            )
+            .limit(300)
+            .all()
+        )
+        for row in photo_candidates:
+            if row.id in related:
+                continue
+            if is_same_photo(listing.image_phash, row.image_phash):
+                related[row.id] = (row, "photo_match")
+
     # Heuristic matches: same make+model+year+district. District is required
     # (and non-null) to control false positives — a 2019 Premio is common, but
     # a 2019 Premio in the SAME district is a plausible same-vehicle relist.
     # Mileage is deliberately NOT a hard filter: a relist changes price, and an
     # odometer rollback changes mileage — filtering on it would hide the fraud
     # signal we most want to surface.
-    norm_make, norm_model = _norm(listing.make), _norm(listing.model)
     if norm_make and norm_model and listing.district:
         query = db.query(CarListing).filter(
             CarListing.id != listing.id,
@@ -74,9 +102,13 @@ def _related_listings(db: Session, listing: CarListing) -> list[tuple[CarListing
             if _norm(row.make) == norm_make and _norm(row.model) == norm_model:
                 related[row.id] = (row, "likely")
 
+    _CONFIDENCE_RANK = {"confirmed": 0, "photo_match": 1, "likely": 2}
     ordered = sorted(
         related.values(),
-        key=lambda pair: (pair[1] != "confirmed", _naive(pair[0].first_seen_at) or utc_now()),
+        key=lambda pair: (
+            _CONFIDENCE_RANK.get(pair[1], 9),
+            _naive(pair[0].first_seen_at) or utc_now(),
+        ),
     )
     return ordered[:MAX_RELATED]
 
