@@ -1450,6 +1450,11 @@ export const getMarketSignals = async (limit = 6): Promise<MarketSignal[]> => {
   return (data || []).map(normalizeMarketSignal);
 };
 
+export const getMarketSignal = async (id: number): Promise<MarketSignal> => {
+  const data = await fetchJSON<JsonRecord>(`/market/signals/${id}`);
+  return normalizeMarketSignal(data);
+};
+
 export const getMakeModelInsight = async (make: string, model: string): Promise<MakeModelInsight> => {
   const catalog = await getSnapshotListingCatalog();
   if (catalog) {

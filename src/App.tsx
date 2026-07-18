@@ -37,6 +37,12 @@ const ProPreview = lazy(() => import("./pages/ProPreview"));
 const MakeModelHub = lazy(() => import("./pages/MakeModelHub"));
 const Alerts = lazy(() => import("./pages/Alerts"));
 const PriceIndex = lazy(() => import("./pages/PriceIndex"));
+const Docs = lazy(() => import("./pages/Docs"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Branding = lazy(() => import("./pages/Branding"));
+const OfficialPulse = lazy(() => import("./pages/OfficialPulse"));
+const OfficialPulseDetail = lazy(() => import("./pages/OfficialPulseDetail"));
+const OfficialPulseGuide = lazy(() => import("./pages/OfficialPulseGuide"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -140,6 +146,9 @@ const App = () => {
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
                   <Route path="/alerts" element={<Alerts />} />
                   <Route path="/price-index" element={<PriceIndex />} />
+                  <Route path="/official-pulse" element={<OfficialPulse />} />
+                  <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
+                  <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={<SignIn />} />

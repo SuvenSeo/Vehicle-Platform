@@ -61,6 +61,11 @@ const ROUTE_META: Record<string, Meta> = {
     title: `Pro Preview — ${SITE}`,
     description: "A locked preview of the AutoLens Pro analytics workspace.",
   },
+  "/official-pulse": {
+    title: `Official Pulse — ${SITE}`,
+    description:
+      "Government and import market signals from DMT, Customs, and landed-cost references — explained in-platform.",
+  },
 };
 
 function setMeta(name: string, content: string) {
@@ -117,6 +122,18 @@ export function RouteMeta() {
         ? {
             title: `Vehicle Market Hub — ${SITE}`,
             description: "Prices, district breakdown, and live listings for a specific vehicle in Sri Lanka.",
+          }
+        : pathname.startsWith("/official-pulse/guide/")
+        ? {
+            title: `Pulse Guide — ${SITE}`,
+            description:
+              "In-platform explanation of a government or import market signal source for Sri Lankan dealers.",
+          }
+        : pathname.startsWith("/official-pulse/")
+        ? {
+            title: `Pulse Signal — ${SITE}`,
+            description:
+              "Full official market signal with in-platform context from DMT, Customs, or import parity sources.",
           }
         : { title: `${SITE}`, description: DEFAULT_DESCRIPTION });
 
