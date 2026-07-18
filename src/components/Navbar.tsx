@@ -56,6 +56,7 @@ export function Navbar() {
       { label: "Calculator", href: "/calculator", detail: "Import duty & cost breakdown" },
       { label: "EV Hub", href: "/ev-hub", detail: "Battery and charging checks" },
       { label: "Best Picks", href: "/best-picks", detail: "Strict deal-score shortlist" },
+      { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
       { label: "Settings", href: "/settings", detail: "Language and theme" },
       isAuthenticated

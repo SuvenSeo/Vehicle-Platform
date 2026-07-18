@@ -58,6 +58,56 @@ export interface PriceHistoryPoint {
   scraped_at: string;
 }
 
+// ── History report (additive — supports the in-progress listing history feature;
+//    not wired into the routed UI, kept so the WIP component compiles) ──
+export interface HistoryReportFlag {
+  kind: string;
+  severity: "high" | "medium" | "info" | string;
+  detail: string;
+}
+
+export interface HistoryReportRelatedListing {
+  id: number;
+  source: string;
+  title: string;
+  price_lkr: number | null;
+  mileage: number | null;
+  first_seen_at: string | null;
+  is_active: boolean;
+  confidence: "confirmed" | "likely" | string;
+}
+
+export interface HistoryReport {
+  listing_id: number;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  days_on_market: number | null;
+  is_active: boolean;
+  price_points: PriceHistoryPoint[];
+  price_cuts: number;
+  total_change_pct: number | null;
+  related_listings: HistoryReportRelatedListing[];
+  flags: HistoryReportFlag[];
+  disclaimer: string;
+}
+
+// ── Price index (additive — supports the in-progress market index page) ──
+export interface PriceIndexPoint {
+  period: string;
+  index_value: number;
+  mom_change_pct: number | null;
+  median_price_lkr?: number | null;
+  sample_size?: number | null;
+}
+
+export interface PriceIndex {
+  base_period: string;
+  points: PriceIndexPoint[];
+  segments: Record<string, PriceIndexPoint[]>;
+  methodology?: string | null;
+  last_updated?: string | null;
+}
+
 export interface PriceHistoryInfo {
   listing_id: number;
   points: PriceHistoryPoint[];
