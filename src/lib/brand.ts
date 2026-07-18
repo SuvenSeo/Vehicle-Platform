@@ -8,9 +8,10 @@ export const BRAND = {
     blue: "#0A7AFF",
   },
   logo: {
-    mark: "/logo-mark.svg",
-    icon: "/logo.svg",
-    wordmark: "/logo-wordmark.svg",
+    mark: "/logo-mark.png",
+    icon: "/logo.png",
+    wordmark: "/logo-wordmark.png",
+    lockup: "/brand-lockup.png",
   },
   copilot: "Motormila Copilot",
   contactEmail: "s.seoras@rgu.ac.uk",
