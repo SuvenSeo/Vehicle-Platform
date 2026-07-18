@@ -1,7 +1,9 @@
 import { MotionConfig } from "framer-motion";
-import { useState, useEffect, Suspense, lazy } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import { ScrollRestoration } from "@/components/ScrollRestoration";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,30 +18,30 @@ import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { AuthProvider } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-const AIChatWidget = lazy(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
+const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
 
 // Lazy load heavy page chunks
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const DealerDashboard = lazy(() => import("./pages/DealerDashboard"));
-const ListingDetail = lazy(() => import("./pages/ListingDetail"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Trends = lazy(() => import("./pages/Trends"));
-const Estimate = lazy(() => import("./pages/Estimate"));
-const Calculator = lazy(() => import("./pages/Calculator"));
-const EVHub = lazy(() => import("./pages/EVHub"));
-const BestPicks = lazy(() => import("./pages/BestPicks"));
-const SignIn = lazy(() => import("./pages/SignIn"));
-const ProDashboard = lazy(() => import("./pages/ProDashboard"));
-const ProPreview = lazy(() => import("./pages/ProPreview"));
-const MakeModelHub = lazy(() => import("./pages/MakeModelHub"));
-const Alerts = lazy(() => import("./pages/Alerts"));
-const PriceIndex = lazy(() => import("./pages/PriceIndex"));
-const Docs = lazy(() => import("./pages/Docs"));
-const Pricing = lazy(() => import("./pages/Pricing"));
-const OfficialPulse = lazy(() => import("./pages/OfficialPulse"));
-const OfficialPulseDetail = lazy(() => import("./pages/OfficialPulseDetail"));
-const OfficialPulseGuide = lazy(() => import("./pages/OfficialPulseGuide"));
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const DealerDashboard = lazyWithRetry(() => import("./pages/DealerDashboard"));
+const ListingDetail = lazyWithRetry(() => import("./pages/ListingDetail"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const Trends = lazyWithRetry(() => import("./pages/Trends"));
+const Estimate = lazyWithRetry(() => import("./pages/Estimate"));
+const Calculator = lazyWithRetry(() => import("./pages/Calculator"));
+const EVHub = lazyWithRetry(() => import("./pages/EVHub"));
+const BestPicks = lazyWithRetry(() => import("./pages/BestPicks"));
+const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
+const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
+const ProPreview = lazyWithRetry(() => import("./pages/ProPreview"));
+const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
+const Alerts = lazyWithRetry(() => import("./pages/Alerts"));
+const PriceIndex = lazyWithRetry(() => import("./pages/PriceIndex"));
+const Docs = lazyWithRetry(() => import("./pages/Docs"));
+const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
+const OfficialPulse = lazyWithRetry(() => import("./pages/OfficialPulse"));
+const OfficialPulseDetail = lazyWithRetry(() => import("./pages/OfficialPulseDetail"));
+const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuide"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,7 +79,11 @@ function MainLayout({ chatMounted }: { chatMounted: boolean }) {
         </Suspense>
       )}
       <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
-        <Outlet />
+        <RouteErrorBoundary>
+          <Suspense fallback={<MinimalLoader />}>
+            <Outlet />
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
       <AppFooter />
       <MobileBottomNav />
@@ -92,6 +98,11 @@ const App = () => {
 
   useEffect(() => {
     const id = window.setTimeout(() => setChatMounted(true), 2000);
+    try {
+      window.sessionStorage.removeItem("autolens.chunk_reload_attempted");
+    } catch {
+      // Ignore storage failures.
+    }
     return () => window.clearTimeout(id);
   }, []);
 
@@ -106,8 +117,7 @@ const App = () => {
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <ScrollRestoration />
             <RouteMeta />
-            <Suspense fallback={<MinimalLoader />}>
-              <Routes>
+            <Routes>
                 <Route element={<MainLayout chatMounted={chatMounted} />}>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dealer" element={<DealerDashboard />} />
@@ -128,11 +138,22 @@ const App = () => {
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
-                <Route path="/sign-in" element={<SignIn />} />
-                <Route path="/pro-preview" element={<ProPreview />} />
-                <Route path="/pro" element={<ProtectedRoute><ProDashboard /></ProtectedRoute>} />
+                <Route path="/sign-in" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <SignIn />
+                  </Suspense>
+                } />
+                <Route path="/pro-preview" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <ProPreview />
+                  </Suspense>
+                } />
+                <Route path="/pro" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <ProtectedRoute><ProDashboard /></ProtectedRoute>
+                  </Suspense>
+                } />
               </Routes>
-            </Suspense>
           </BrowserRouter>
               </MotionConfig>
     </TooltipProvider>
