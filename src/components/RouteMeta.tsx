@@ -34,13 +34,13 @@ const ROUTE_META: Record<string, Meta> = {
     title: `Best Picks — ${SITE}`,
     description: "A strict, deal-score ranked shortlist of the strongest vehicle deals on the market.",
   },
-  "/map": {
-    title: `Market Map — ${SITE}`,
-    description: "Explore vehicle listings and price intelligence across all 25 districts of Sri Lanka.",
+  "/alerts": {
+    title: `Alerts — ${SITE}`,
+    description: "Saved listing watches and market match alerts for Sri Lanka vehicles.",
   },
-  "/blogs": {
-    title: `Journal — ${SITE}`,
-    description: "Guides and analysis on buying, pricing, and understanding the Sri Lankan vehicle market.",
+  "/price-index": {
+    title: `Price Index — ${SITE}`,
+    description: "Mix-adjusted used-vehicle price index for the Sri Lankan market.",
   },
   "/dealer": {
     title: `Dealer Workspace — ${SITE}`,

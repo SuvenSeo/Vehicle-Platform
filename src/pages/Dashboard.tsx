@@ -939,10 +939,10 @@ export default function Dashboard() {
                 </h3>
               </div>
               <Link
-                to="/map"
+                to="/#market"
                 className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright"
               >
-                Full map <ArrowUpRight className="h-3 w-3" />
+                Market feed <ArrowUpRight className="h-3 w-3" />
               </Link>
             </div>
             <Suspense
@@ -972,9 +972,9 @@ export default function Dashboard() {
             {[
               { label: "Valuation", to: "/estimate" },
               { label: "Trends", to: "/trends" },
-              { label: "Map", to: "/map" },
               { label: "Calculator", to: "/calculator" },
               { label: "EV Hub", to: "/ev-hub" },
+              { label: "Official Pulse", to: "/official-pulse" },
             ].map((tool) => (
               <Link key={tool.label} to={tool.to}
                 className="group/tool flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/30 hover:bg-primary/[0.06] hover:shadow-soft active:scale-[0.98]"

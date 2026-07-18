@@ -116,18 +116,6 @@ function pageContextFor(pathname: string, search: string): PageContext {
     };
   }
 
-  if (pathname.startsWith("/blogs")) {
-    return {
-      label: "Research brief",
-      summary: "The user is reading market research and may need a decision checklist or a summary tied back to inventory.",
-      prompts: [
-        { label: "Summarize", value: "Summarize the current market brief into buyer actions." },
-        { label: "Apply it", value: "Turn this insight into a shortlist and negotiation checklist." },
-        { label: "Risk checks", value: "What should I verify before trusting this market signal?" },
-      ],
-    };
-  }
-
   if (pathname.startsWith("/best-picks")) {
     return {
       label: "Best picks",
@@ -136,18 +124,6 @@ function pageContextFor(pathname: string, search: string): PageContext {
         { label: "Rank picks", value: "Rank the current best-pick style options by buyer usefulness." },
         { label: "Avoid traps", value: "What deal-score traps should I watch for before contacting a seller?" },
         { label: "Shortlist", value: "Build a 3-car shortlist from strong value signals." },
-      ],
-    };
-  }
-
-  if (pathname.startsWith("/map")) {
-    return {
-      label: "Geo intelligence",
-      summary: "The user is studying district pricing and supply concentration.",
-      prompts: [
-        { label: "District read", value: "Explain how district pricing should change my search strategy." },
-        { label: "Colombo vs outside", value: "Compare Colombo and outstation pricing tradeoffs." },
-        { label: "Find district deals", value: "Find districts where the market may have better value." },
       ],
     };
   }

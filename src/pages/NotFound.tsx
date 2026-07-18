@@ -21,9 +21,9 @@ const links = [
     featured: false,
   },
   {
-    to: "/map",
-    label: "District map",
-    description: "See supply and pricing across the island.",
+    to: "/calculator",
+    label: "Import calculator",
+    description: "Break down duty, tax, and landed cost.",
     icon: MapPin,
     featured: false,
   },

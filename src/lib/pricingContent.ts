@@ -34,7 +34,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "Dashboard browse across live listings",
       "Limited Official Pulse snapshot",
       "Starter import calculator",
-      "Public trends and map access",
+      "Public trends and dashboard district velocity",
       "Deal scores on listing cards",
     ],
     ctaLabel: "Open dashboard",
@@ -120,7 +120,7 @@ export const ICP_PERSONAS: IcpPersona[] = [
   {
     title: "Insurers",
     pain: "Claims and underwriting need a consistent market read by district and segment.",
-    fit: "Index, map, and custom tiers for structured market references.",
+    fit: "Index, district velocity, and custom tiers for structured market references.",
   },
   {
     title: "Serious buyers",

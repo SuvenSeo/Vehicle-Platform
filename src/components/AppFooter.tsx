@@ -6,23 +6,23 @@ const platformLinks = [
   { label: "Home", to: "/" },
   { label: "Market", to: "/#market" },
   { label: "Trends", to: "/trends" },
-  { label: "Valuation", to: "/estimate" },
+  { label: "Calculator", to: "/calculator" },
 ];
 
 const toolLinks = [
+  { label: "EV Hub", to: "/ev-hub" },
+  { label: "Valuation", to: "/estimate" },
   { label: "Pricing", to: "/pricing" },
   { label: "Docs", to: "/docs" },
-  { label: "Calculator", to: "/calculator" },
-  { label: "Best Picks", to: "/best-picks" },
 ];
 
 const moreLinks = [
   { label: "Official Pulse", to: "/official-pulse" },
   { label: "Dealer", to: "/dealer" },
+  { label: "Best Picks", to: "/best-picks" },
+  { label: "Price Index", to: "/price-index" },
   { label: "Pro Preview", to: "/pro-preview" },
-  { label: "EV Hub", to: "/ev-hub" },
-  { label: "Map", to: "/map" },
-  { label: "Journal", to: "/blogs" },
+  { label: "Alerts", to: "/alerts" },
   { label: "Settings", to: "/settings" },
 ];
 

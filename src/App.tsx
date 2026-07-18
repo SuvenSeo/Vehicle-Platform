@@ -28,9 +28,7 @@ const Trends = lazy(() => import("./pages/Trends"));
 const Estimate = lazy(() => import("./pages/Estimate"));
 const Calculator = lazy(() => import("./pages/Calculator"));
 const EVHub = lazy(() => import("./pages/EVHub"));
-const Blogs = lazy(() => import("./pages/Blogs"));
 const BestPicks = lazy(() => import("./pages/BestPicks"));
-const MapPage = lazy(() => import("./pages/MapPage"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const ProDashboard = lazy(() => import("./pages/ProDashboard"));
 const ProPreview = lazy(() => import("./pages/ProPreview"));
@@ -137,10 +135,8 @@ const App = () => {
                   <Route path="/trends" element={<Trends />} />
                   <Route path="/estimate" element={<Estimate />} />
                   <Route path="/calculator" element={<Calculator />} />
-                  <Route path="/blogs" element={<Blogs />} />
                   <Route path="/ev-hub" element={<EVHub />} />
                   <Route path="/best-picks" element={<BestPicks />} />
-                  <Route path="/map" element={<MapPage />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
                   <Route path="/alerts" element={<Alerts />} />
