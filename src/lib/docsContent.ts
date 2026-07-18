@@ -15,7 +15,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     body: [
       "MilaMark is a vehicle intelligence platform built for the Sri Lankan used and import market. It aggregates public listings, scores how asking prices sit against condition-aware peers, and surfaces tools dealers, brokers, importers, and serious buyers actually use before they negotiate.",
       "The public dashboard is the front door: browse live inventory, filter by make, model, district, and fuel type, then drill into deal signals, trends, and valuation. Paid workspaces add depth — history, exports, dealer inventory ops, and Official Pulse signals from DMT, Customs, and import policy.",
-      "This docs set explains how the pieces fit together: where data comes from, how deal scores are computed, what Official Pulse covers, and which routes belong to Free, Pro, Dealer, and Enterprise access.",
+      "This docs set explains how the pieces fit together: where data comes from, how deal scores are computed, what Official Pulse covers, and which routes belong to Free, Pro, Dealer, and Custom access.",
     ],
     bullets: [
       "Public market browse on the main dashboard",
@@ -180,16 +180,16 @@ export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: "pricing-access",
     title: "Pricing & access",
-    summary: "Free browse, Pro terminal, Dealer workspace, and Enterprise for banks and leasing.",
+    summary: "Free browse, Pro terminal, Dealer workspace, and Custom plans for banks and leasing.",
     body: [
-      "Access is tiered. Free covers dashboard browse, limited Official Pulse, and a starter calculator path. Pro (LKR 4,990/mo) unlocks the terminal, pulse history, alerts depth, and exports. Dealer (LKR 19,990/mo) adds the full /dealer workspace, URL benchmark, and team seats. Enterprise is custom from LKR 99,000/mo for banks, leasing, and insurers.",
+      "Access is tiered. Free covers dashboard browse, limited Official Pulse, and a starter calculator path. Pro (LKR 999/mo) unlocks the terminal, pulse history, alerts depth, and exports. Dealer (LKR 1,999/mo) adds the full /dealer workspace, URL benchmark, and team seats. Custom is quote-based for banks, leasing, and insurers — message us from the Pricing page.",
       "Months of scraping, normalization, and scoring are not free forever — paid tiers fund pipeline uptime and deeper signals. Annual billing discounts Pro and Dealer. See the Pricing page for feature tables and FAQ.",
     ],
     bullets: [
       "Free — browse and starter tools",
-      "Pro — terminal, history, alerts, exports",
-      "Dealer — workspace, benches, seats",
-      "Enterprise — custom for institutional buyers",
+      "Pro — LKR 999/mo terminal, history, alerts, exports",
+      "Dealer — LKR 1,999/mo workspace, benches, seats",
+      "Custom — message us for institutional scope",
     ],
     relatedRoutes: [
       { label: "Pricing", to: "/pricing" },

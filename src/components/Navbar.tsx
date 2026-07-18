@@ -60,7 +60,7 @@ export function Navbar() {
       { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
       { label: "Docs", href: "/docs", detail: "How MilaMark works" },
-      { label: "Pricing", href: "/pricing", detail: "Free, Pro, Dealer, Enterprise" },
+      { label: "Pricing", href: "/pricing", detail: "Free, Pro, Dealer, Custom" },
       { label: "Branding", href: "/branding", detail: "Name options & logo briefs" },
       { label: "Settings", href: "/settings", detail: "Language and theme" },
       isAuthenticated

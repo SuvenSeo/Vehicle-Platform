@@ -15,6 +15,14 @@ const COMPARE_ROWS: { label: string; free: string; pro: string; dealer: string; 
   { label: "SLA / feeds", free: "—", pro: "—", dealer: "—", enterprise: "Yes" },
 ];
 
+const CTA_CLASS = (highlight?: boolean) =>
+  `mt-6 inline-flex h-10 items-center justify-center rounded-full px-4 text-[12px] font-semibold no-underline transition-all active:scale-[0.98] ${
+    highlight
+      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+      : "border border-border bg-surface text-foreground hover:border-primary/35"
+  }`;
+
+
 export default function Pricing() {
   return (
     <motion.div
@@ -133,16 +141,15 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  to={tier.ctaTo}
-                  className={`mt-6 inline-flex h-10 items-center justify-center rounded-full px-4 text-[12px] font-semibold no-underline transition-all active:scale-[0.98] ${
-                    tier.highlight
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "border border-border bg-surface text-foreground hover:border-primary/35"
-                  }`}
-                >
-                  {tier.ctaLabel}
-                </Link>
+                {tier.external ? (
+                  <a href={tier.ctaTo} className={CTA_CLASS(tier.highlight)}>
+                    {tier.ctaLabel}
+                  </a>
+                ) : (
+                  <Link to={tier.ctaTo} className={CTA_CLASS(tier.highlight)}>
+                    {tier.ctaLabel}
+                  </Link>
+                )}
               </div>
             ))}
           </div>
@@ -161,7 +168,7 @@ export default function Pricing() {
                   <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Free</th>
                   <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Pro</th>
                   <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-primary-bright">Dealer</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Enterprise</th>
+                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Custom</th>
                 </tr>
               </thead>
               <tbody>

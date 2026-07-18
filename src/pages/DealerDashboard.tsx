@@ -612,7 +612,7 @@ export default function DealerDashboard() {
             >
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">Dealer plan</p>
               <h3 className="mt-2 font-display text-[15px] font-bold tracking-tight text-foreground">
-                Full dealer workspace is part of Dealer plan — LKR 19,990/mo
+                Full dealer workspace is part of Dealer plan — LKR 1,999/mo
               </h3>
               <p className="mt-2 max-w-xl text-[12px] text-muted-foreground font-medium leading-relaxed">
                 Keep using the command center today. Upgrade when you want billed seats, saved yard workflows, and priority market sync.
