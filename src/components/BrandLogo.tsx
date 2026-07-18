@@ -11,7 +11,7 @@ type BrandLogoProps = {
   lockup?: boolean;
 };
 
-/** Motormila mark + Motor/mila wordmark lockup. */
+/** Motormila mark + Motor/mila wordmark lockup (official brand assets). */
 export function BrandLogo({
   className,
   markClassName,
@@ -25,14 +25,14 @@ export function BrandLogo({
     return (
       <img
         src="/brand-lockup.png"
-        alt="Motormila — Sri Lanka Vehicle Price Intelligence"
-        className={cn("h-auto w-full max-w-[220px] object-contain", className)}
+        alt="Motormila — Sri Lanka Vehicle Market Intelligence"
+        className={cn("h-auto w-full max-w-[240px] object-contain", className)}
         decoding="async"
       />
     );
   }
 
-  const markSize = compact ? "h-8 w-8" : "h-9 w-9";
+  const markSize = compact ? "h-8 w-8" : "h-10 w-10";
 
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
@@ -40,17 +40,21 @@ export function BrandLogo({
       <img
         src="/logo-mark.png"
         alt=""
-        width={compact ? 32 : 36}
-        height={compact ? 32 : 36}
+        width={compact ? 32 : 40}
+        height={compact ? 32 : 40}
         className={cn(markSize, "shrink-0 object-contain dark:hidden", markClassName)}
         decoding="async"
       />
       <img
         src="/logo.png"
         alt=""
-        width={compact ? 32 : 36}
-        height={compact ? 32 : 36}
-        className={cn(markSize, "hidden shrink-0 rounded-[22%] object-cover dark:block", markClassName)}
+        width={compact ? 32 : 40}
+        height={compact ? 32 : 40}
+        className={cn(
+          markSize,
+          "hidden shrink-0 rounded-[22%] object-cover shadow-sm dark:block",
+          markClassName,
+        )}
         decoding="async"
       />
       {showWordmark && (
@@ -64,7 +68,7 @@ export function BrandLogo({
             Motor<span className="text-primary">mila</span>
           </span>
           {showTagline && (
-            <span className="mt-1.5 block max-w-[15rem] truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="mt-1.5 block max-w-[16rem] truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {tagline}
             </span>
           )}

@@ -12,6 +12,7 @@ export const BRAND = {
     icon: "/logo.png",
     wordmark: "/logo-wordmark.png",
     lockup: "/brand-lockup.png",
+    sheet: "/brand-sheet.png",
   },
   copilot: "Motormila Copilot",
   contactEmail: "s.seoras@rgu.ac.uk",
