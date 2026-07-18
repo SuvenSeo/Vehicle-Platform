@@ -19,6 +19,8 @@ import {
   SellerTrustProfile,
   PriceDropItem,
   PriceHistoryInfo,
+  HistoryReport,
+  PriceIndex,
   FuelMixData,
   HybridBandsData,
   SourceQualityResponse,
@@ -902,6 +904,14 @@ export const getPriceDrops = async (days = 7, limit = 12): Promise<PriceDropItem
       };
     })
     .filter((item) => item.listing.id && item.drop_pct > 0);
+};
+
+export const getListingHistoryReport = async (id: string | number): Promise<HistoryReport> => {
+  return fetchJSON<HistoryReport>(`/listings/${id}/history-report`);
+};
+
+export const getPriceIndex = async (): Promise<PriceIndex> => {
+  return fetchJSON<PriceIndex>(`/stats/price-index`);
 };
 
 export const getListingPriceHistory = async (id: string | number): Promise<PriceHistoryInfo> => {

@@ -19,6 +19,7 @@ import { HybridCliffBadge } from '@/components/HybridCliffBadge';
 import { MileageTrustChip } from '@/components/MileageTrustChip';
 import { SellSpeedChip } from '@/components/SellSpeedChip';
 import { AdvertHealthChip } from '@/components/AdvertHealthChip';
+import { ListingHistoryReport } from '@/components/ListingHistoryReport';
 import { inferFinanceClass } from '@/lib/cashToOwn';
 import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
@@ -340,6 +341,8 @@ export default function ListingDetail() {
                 {listing.description || 'No description provided. Market intelligence indicates this vehicle is priced within the range of comparable models.'}
               </p>
             </motion.div>
+
+            {listing.id != null && <ListingHistoryReport listingId={listing.id} />}
 
             {/* Finance Dashboard widgets */}
             {hasPrice && (() => {

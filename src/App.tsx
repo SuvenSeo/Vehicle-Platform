@@ -36,6 +36,7 @@ const ProDashboard = lazy(() => import("./pages/ProDashboard"));
 const ProPreview = lazy(() => import("./pages/ProPreview"));
 const MakeModelHub = lazy(() => import("./pages/MakeModelHub"));
 const Alerts = lazy(() => import("./pages/Alerts"));
+const PriceIndex = lazy(() => import("./pages/PriceIndex"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -138,6 +139,7 @@ const App = () => {
                   <Route path="/listing/:id" element={<ListingDetail />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
                   <Route path="/alerts" element={<Alerts />} />
+                  <Route path="/price-index" element={<PriceIndex />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={<SignIn />} />
