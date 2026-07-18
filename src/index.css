@@ -514,9 +514,9 @@
   .display-hero {
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: clamp(2.5rem, 6vw + 0.25rem, 5.25rem);   /* ~40 → 84px */
-    line-height: 0.98;
-    letter-spacing: -0.035em;                            /* tighten as it grows */
+    font-size: clamp(2.75rem, 7.2vw + 0.15rem, 5.85rem); /* ~44 → 94px */
+    line-height: 0.96;
+    letter-spacing: -0.04em;
     text-wrap: balance;
   }
 
@@ -547,11 +547,65 @@
 
   /* Ink → accent text sheen for signature words in a headline. */
   .text-sheen {
-    background-image: linear-gradient(120deg, hsl(var(--foreground)) 0%, hsl(var(--foreground)) 40%, hsl(var(--primary)) 130%);
+    background-image: linear-gradient(
+      115deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--foreground)) 28%,
+      hsl(var(--primary)) 52%,
+      hsl(var(--foreground)) 78%,
+      hsl(var(--primary)) 100%
+    );
+    background-size: 220% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
+    animation: sheen-sweep 5.5s var(--ease-soft) infinite;
+  }
+
+  @keyframes sheen-sweep {
+    0%, 18% { background-position: 100% 50%; }
+    55%, 100% { background-position: 0% 50%; }
+  }
+
+  .hero-atmosphere {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .hero-atmosphere__grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    background-image:
+      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 10%, transparent 72%);
+  }
+
+  .hero-atmosphere__glow {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(90px);
+  }
+
+  .hero-atmosphere__mark {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: min(58vw, 520px);
+    aspect-ratio: 1;
+    translate: -50% -52%;
+    opacity: 0.07;
+    background: center / contain no-repeat url("/logo.png");
+    filter: saturate(1.1);
+  }
+
+  .theme-dark .hero-atmosphere__mark {
+    opacity: 0.14;
   }
 
   /* A hairline that fades at both ends — magazine-grade section rule. */
@@ -1047,6 +1101,11 @@
     opacity: 1;
     transform: none;
     transition: none;
+  }
+
+  .text-sheen {
+    animation: none;
+    background-position: 0% 50%;
   }
 
   .animate-motion-rise,
