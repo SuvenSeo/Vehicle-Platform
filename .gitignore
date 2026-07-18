@@ -54,3 +54,4 @@ coverage
 .ruff_cache/
 /PROJECT.md
 /ORIGINAL_REQUEST.md
+.env*
