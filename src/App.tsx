@@ -1,7 +1,7 @@
-import { scrollBehavior } from "@/lib/motion";
 import { MotionConfig } from "framer-motion";
 import { useState, useEffect, Suspense, lazy } from "react";
-import { BrowserRouter, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
+import { ScrollRestoration } from "@/components/ScrollRestoration";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -52,26 +52,6 @@ const queryClient = new QueryClient({
   },
 });
 
-function ScrollToHash() {
-  const { pathname, hash } = useLocation();
-
-  useEffect(() => {
-    if (!hash) return;
-
-    const targetId = hash.replace("#", "");
-    const frame = window.requestAnimationFrame(() => {
-      const element = document.getElementById(targetId);
-      if (element) {
-        element.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
-      }
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [pathname, hash]);
-
-  return null;
-}
-
 const MinimalLoader = () => (
   <div className="flex h-[50vh] w-full items-center justify-center" aria-label="Loading" role="status">
     <div className="flex flex-col items-center gap-4">
@@ -89,7 +69,6 @@ function MainLayout({ chatMounted }: { chatMounted: boolean }) {
     <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Navbar />
-      <ScrollToHash />
       <SettingsFloatingIcon />
       <FeedbackWidget />
       {chatMounted && (
@@ -125,6 +104,7 @@ const App = () => {
           <ScrollProgressBar />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <ScrollRestoration />
             <RouteMeta />
             <Suspense fallback={<MinimalLoader />}>
               <Routes>
