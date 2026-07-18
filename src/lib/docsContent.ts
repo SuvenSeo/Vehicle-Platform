@@ -20,13 +20,13 @@ export const DOCS_SECTIONS: DocsSection[] = [
     bullets: [
       "Public market browse on the main dashboard",
       "Deal scores and fair-ask context on listings",
-      "Trends, price index, map, alerts, and calculator",
+      "Trends, price index, alerts, and calculator",
       "Pro terminal and Dealer workspace for paid teams",
     ],
     relatedRoutes: [
       { label: "Dashboard", to: "/" },
       { label: "Pricing", to: "/pricing" },
-      { label: "Journal", to: "/blogs" },
+      { label: "Docs", to: "/docs" },
     ],
   },
   {
@@ -157,24 +157,24 @@ export const DOCS_SECTIONS: DocsSection[] = [
   },
   {
     id: "alerts-trends",
-    title: "Alerts, trends, index & map",
-    summary: "Watch the market over time — alerts, trend charts, the national price index, and district map.",
+    title: "Alerts, trends & price index",
+    summary: "Watch the market over time — alerts, trend charts, and the national price index.",
     body: [
       "Alerts (/alerts) watch for listings that match your rules — make, model, price band, and related filters — and surface current matches when the pipeline refreshes. Pro deepens history and notification options.",
       "Trends (/trends) charts price movement by lane so you can see whether a model is firming or softening before you commit. The Price Index (/price-index) compresses the used market into a mix-adjusted benchmark so one noisy segment does not dominate the story.",
-      "The Map (/map) places inventory and pricing context across Sri Lanka’s districts. Use it when geography matters as much as the ask — low-supply districts can hold firmer prices even when national medians look soft.",
+      "District demand also lives on the home dashboard via the velocity strip and district map widget — use those when geography matters as much as the ask.",
     ],
     bullets: [
       "/alerts — rule-based listing watches",
       "/trends — lane price movement over time",
       "/price-index — mix-adjusted national benchmark",
-      "/map — district-level market geography",
+      "Home dashboard — district demand velocity",
     ],
     relatedRoutes: [
       { label: "Alerts", to: "/alerts" },
       { label: "Trends", to: "/trends" },
       { label: "Price index", to: "/price-index" },
-      { label: "Map", to: "/map" },
+      { label: "Dashboard", to: "/" },
     ],
   },
   {
@@ -215,7 +215,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     relatedRoutes: [
       { label: "Dashboard", to: "/" },
       { label: "Official Pulse", to: "/official-pulse" },
-      { label: "Journal", to: "/blogs" },
+      { label: "Pricing", to: "/pricing" },
     ],
   },
 ];

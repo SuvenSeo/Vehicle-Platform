@@ -44,6 +44,8 @@ export function Navbar() {
       { label: t("nav.home", "Home"), href: "/", id: "home", isRoute: true, activeOn: ["overview"] },
       { label: t("nav.market", "Market"), href: "#market", id: "market" },
       { label: t("nav.trends", "Trends"), href: "/trends", id: "trends", isRoute: true },
+      { label: "Calculator", href: "/calculator", id: "calculator", isRoute: true },
+      { label: "EV Hub", href: "/ev-hub", id: "ev-hub", isRoute: true },
       { label: t("nav.valuation", "Valuation"), href: "/estimate", id: "estimate", isRoute: true },
       { label: "Pricing", href: "/pricing", id: "pricing", isRoute: true },
       { label: "Docs", href: "/docs", id: "docs", isRoute: true },
@@ -53,14 +55,11 @@ export function Navbar() {
 
   const moreSections = useMemo(
     () => [
-      { label: "Calculator", href: "/calculator", detail: "Import duty & cost breakdown" },
-      { label: "EV Hub", href: "/ev-hub", detail: "Battery and charging checks" },
       { label: "Best Picks", href: "/best-picks", detail: "Strict deal-score shortlist" },
       { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
       { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
-      { label: "Map", href: "/map", detail: "District market geography" },
-      { label: "Journal", href: "/blogs", detail: "Editorial market guides" },
+      { label: "Alerts", href: "/alerts", detail: "Saved listing watches" },
       { label: "Settings", href: "/settings", detail: "Language and theme" },
       isAuthenticated
         ? { label: "Pro Dashboard", href: "/pro", detail: "Paid market terminal" }

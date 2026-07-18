@@ -22,7 +22,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     forWhom: "brokers",
     problem: "The same model prices differently by district, but spreads are hard to see in listing feeds.",
     whatMotormilaDoes: "Surface district spreads on the map and trend views so you can buy low and place high.",
-    whereToGo: { label: "View district map", to: "/map" },
+    whereToGo: { label: "View district demand", to: "/#market" },
   },
   {
     id: "import-landed-cost",
