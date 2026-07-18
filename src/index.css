@@ -585,7 +585,8 @@
       0 18px 40px -28px hsl(var(--primary) / 0.35);
     transition:
       border-color var(--duration-base) var(--ease-out),
-      box-shadow var(--duration-base) var(--ease-out);
+      box-shadow var(--duration-base) var(--ease-out),
+      transform var(--duration-base) var(--ease-out);
   }
 
   .hero-signal-card::before {
@@ -644,16 +645,80 @@
     background: hsl(258 78% 62% / 0.42);
   }
 
-  .hero-signal-card--float-a.hero-signal-card--animate {
+  .hero-signal-float-wrap {
+    transform-origin: 50% 60%;
+    will-change: transform;
+  }
+
+  .hero-signal-float-wrap--slant-a {
+    --hero-signal-tilt: -2.6deg;
+    --hero-signal-x: 8px;
+    margin-left: 0.35rem;
+  }
+
+  .hero-signal-float-wrap--slant-b {
+    --hero-signal-tilt: 2.1deg;
+    --hero-signal-x: -6px;
+    margin-left: -0.3rem;
+  }
+
+  .hero-signal-float-wrap--slant-c {
+    --hero-signal-tilt: 2.45deg;
+    --hero-signal-x: 10px;
+    margin-right: 0.45rem;
+  }
+
+  .hero-signal-float-wrap--slant-d {
+    --hero-signal-tilt: -1.9deg;
+    --hero-signal-x: -8px;
+    margin-right: -0.25rem;
+  }
+
+  .hero-signal-float-wrap--slant-e {
+    --hero-signal-tilt: 3.1deg;
+    --hero-signal-x: 12px;
+    margin-right: 0.6rem;
+  }
+
+  .hero-signal-float-wrap--float-a.hero-signal-float-wrap--animate {
     animation: hero-signal-float-a 6.2s ease-in-out infinite;
   }
 
-  .hero-signal-card--float-b.hero-signal-card--animate {
+  .hero-signal-float-wrap--float-b.hero-signal-float-wrap--animate {
     animation: hero-signal-float-b 7.1s ease-in-out infinite;
   }
 
-  .hero-signal-card--float-c.hero-signal-card--animate {
+  .hero-signal-float-wrap--float-c.hero-signal-float-wrap--animate {
     animation: hero-signal-float-c 5.6s ease-in-out infinite;
+  }
+
+  .hero-signal-float-wrap:hover .hero-signal-card {
+    box-shadow:
+      var(--shadow-lg),
+      inset 0 1px 0 var(--glass-top),
+      0 22px 46px -26px hsl(var(--primary) / 0.42);
+    transform: scale(1.02);
+  }
+
+  .hero-signal-chip-wrap {
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+
+  .hero-signal-chip-wrap--slant-e {
+    --hero-signal-tilt: 3.1deg;
+    --hero-signal-x: 10px;
+    margin-right: 0.55rem;
+  }
+
+  .hero-signal-chip-wrap--animate {
+    animation: hero-signal-float-c 6.8s ease-in-out infinite;
+    animation-delay: -1.8s;
+  }
+
+  .hero-signal-chip-wrap:hover .hero-signal-chip {
+    transform: scale(1.03);
+    border-color: hsl(var(--primary) / 0.35);
   }
 
   .hero-signal-chip {
@@ -669,11 +734,6 @@
       border-color var(--duration-base) var(--ease-out),
       box-shadow var(--duration-base) var(--ease-out),
       transform var(--duration-base) var(--ease-out);
-  }
-
-  .hero-signal-chip--animate {
-    animation: hero-signal-float-c 6.8s ease-in-out infinite;
-    animation-delay: -1.8s;
   }
 
   .hero-signal-thumb {
@@ -1149,18 +1209,36 @@
 }
 
 @keyframes hero-signal-float-a {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(-0.4deg); }
-  50% { transform: translate3d(0, -12px, 0) rotate(0.35deg); }
+  0%, 100% {
+    transform: translate3d(var(--hero-signal-x, 0px), 0, 0)
+      rotate(calc(var(--hero-signal-tilt, 0deg) - 0.45deg));
+  }
+  50% {
+    transform: translate3d(calc(var(--hero-signal-x, 0px) + 3px), -12px, 0)
+      rotate(calc(var(--hero-signal-tilt, 0deg) + 0.55deg));
+  }
 }
 
 @keyframes hero-signal-float-b {
-  0%, 100% { transform: translate3d(0, -8px, 0) rotate(0.3deg); }
-  50% { transform: translate3d(0, 10px, 0) rotate(-0.45deg); }
+  0%, 100% {
+    transform: translate3d(var(--hero-signal-x, 0px), -8px, 0)
+      rotate(calc(var(--hero-signal-tilt, 0deg) + 0.35deg));
+  }
+  50% {
+    transform: translate3d(calc(var(--hero-signal-x, 0px) - 2px), 10px, 0)
+      rotate(calc(var(--hero-signal-tilt, 0deg) - 0.6deg));
+  }
 }
 
 @keyframes hero-signal-float-c {
-  0%, 100% { transform: translate3d(0, 4px, 0) rotate(0.2deg); }
-  50% { transform: translate3d(0, -14px, 0) rotate(-0.25deg); }
+  0%, 100% {
+    transform: translate3d(var(--hero-signal-x, 0px), 4px, 0)
+      rotate(calc(var(--hero-signal-tilt, 0deg) - 0.3deg));
+  }
+  50% {
+    transform: translate3d(calc(var(--hero-signal-x, 0px) + 2px), -14px, 0)
+      rotate(calc(var(--hero-signal-tilt, 0deg) + 0.65deg));
+  }
 }
 
 @keyframes hero-signal-shimmer {
@@ -1218,8 +1296,14 @@
   .animate-fade-up,
   .animate-fade-in,
   .hero-signal-card--animate,
-  .hero-signal-chip--animate {
+  .hero-signal-float-wrap--animate,
+  .hero-signal-chip-wrap--animate {
     animation: none !important;
+  }
+
+  .hero-signal-float-wrap:hover .hero-signal-card,
+  .hero-signal-chip-wrap:hover .hero-signal-chip {
+    transform: none;
   }
 
   .ambient-orb { animation: none !important; }

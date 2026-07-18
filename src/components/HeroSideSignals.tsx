@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Flame, Radar, Sparkles, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCountUp } from "@/hooks/useCountUp";
-import { prefersReducedMotion, springSnappy, springSoft } from "@/lib/motion";
+import { prefersReducedMotion, springSoft } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/services/api";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
@@ -48,6 +48,7 @@ type Props = {
 
 type Accent = "primary" | "emerald" | "amber" | "violet";
 type FloatVariant = "a" | "b" | "c";
+type SlantVariant = "a" | "b" | "c" | "d" | "e";
 
 function FloatingSignalCard({
   children,
@@ -55,31 +56,39 @@ function FloatingSignalCard({
   delay = 0,
   accent = "primary",
   float = "a",
+  slant = "a",
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
   accent?: Accent;
   float?: FloatVariant;
+  slant?: SlantVariant;
 }) {
   const reduced = prefersReducedMotion();
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18, scale: 0.94 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay, ...springSoft }}
-      whileHover={reduced ? undefined : { y: -5, scale: 1.025, transition: springSnappy }}
       className={cn(
-        "hero-signal-card group p-3.5",
-        `hero-signal-card--accent-${accent}`,
-        `hero-signal-card--float-${float}`,
-        !reduced && "hero-signal-card--animate",
-        className,
+        "hero-signal-float-wrap",
+        `hero-signal-float-wrap--float-${float}`,
+        `hero-signal-float-wrap--slant-${slant}`,
+        !reduced && "hero-signal-float-wrap--animate",
       )}
     >
-      <span className="hero-signal-card__glow" aria-hidden />
-      <div className="relative z-10">{children}</div>
+      <div
+        className={cn(
+          "hero-signal-card group p-3.5",
+          `hero-signal-card--accent-${accent}`,
+          className,
+        )}
+      >
+        <span className="hero-signal-card__glow" aria-hidden />
+        <div className="relative z-10">{children}</div>
+      </div>
     </motion.div>
   );
 }
@@ -107,7 +116,7 @@ export function HeroSideSignals({
       <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[min(18vw,248px)] xl:block">
         <div className="pointer-events-auto sticky top-28 flex flex-col gap-4 pt-6">
           {trending ? (
-            <FloatingSignalCard delay={0.1} accent="primary" float="a">
+            <FloatingSignalCard delay={0.1} accent="primary" float="a" slant="a">
               <button
                 type="button"
                 onClick={onTrendingClick}
@@ -139,7 +148,7 @@ export function HeroSideSignals({
           ) : null}
 
           {priceDrop ? (
-            <FloatingSignalCard delay={0.22} accent="emerald" float="b">
+            <FloatingSignalCard delay={0.22} accent="emerald" float="b" slant="b">
               <Link
                 to={`/listing/${priceDrop.id}`}
                 className="group/drop flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -172,7 +181,7 @@ export function HeroSideSignals({
               </Link>
             </FloatingSignalCard>
           ) : newListings24h > 0 ? (
-            <FloatingSignalCard delay={0.22} accent="emerald" float="b">
+            <FloatingSignalCard delay={0.22} accent="emerald" float="b" slant="b">
               <button
                 type="button"
                 onClick={onBrowseNewest}
@@ -196,7 +205,7 @@ export function HeroSideSignals({
       <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[min(18vw,248px)] xl:block">
         <div className="pointer-events-auto sticky top-32 flex flex-col gap-4 pt-10">
           {hotDeal ? (
-            <FloatingSignalCard delay={0.14} accent="amber" float="c">
+            <FloatingSignalCard delay={0.14} accent="amber" float="c" slant="c">
               <Link
                 to={`/listing/${hotDeal.id}`}
                 className="group/deal flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -227,7 +236,7 @@ export function HeroSideSignals({
             </FloatingSignalCard>
           ) : null}
 
-          <FloatingSignalCard delay={0.26} accent="violet" float="b">
+          <FloatingSignalCard delay={0.26} accent="violet" float="b" slant="d">
             <Link
               to="/best-picks"
               className="group/radar block no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
@@ -247,15 +256,14 @@ export function HeroSideSignals({
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.34, ...springSoft }}
-            whileHover={reduced ? undefined : { y: -4, scale: 1.03, transition: springSnappy }}
+            className={cn(
+              "hero-signal-chip-wrap hero-signal-chip-wrap--slant-e",
+              !reduced && "hero-signal-chip-wrap--animate",
+            )}
           >
             <Link
               to="/best-picks"
-              className={cn(
-                "hero-signal-chip inline-flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold text-muted-foreground no-underline",
-                !reduced && "hero-signal-chip--animate",
-                "transition-colors hover:border-primary/35 hover:text-foreground",
-              )}
+              className="hero-signal-chip inline-flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
             >
               <Sparkles className="h-3 w-3 text-primary-bright" />
               Best picks
