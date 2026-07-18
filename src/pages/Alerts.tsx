@@ -8,9 +8,11 @@ import { matchAlerts, formatPrice, type AlertMatchResponse, type ServerMarketAle
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { revealContainer, revealItem, springSoft } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem, springSoft } from "@/lib/motion";
 
-const containerVariants = revealContainer;
 const itemVariants = revealItem;
 
 function AlertMatchSection({ token }: { token: string }) {
@@ -308,32 +310,25 @@ export default function Alerts() {
   const showFallback = !loading && error !== null && alerts.length === 0 && localAlerts.length > 0;
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={containerVariants}
-      className="relative mx-auto max-w-2xl overflow-hidden bg-background px-5 py-12 sm:px-6 sm:py-16"
-    >
-      {/* Decorative Orbs */}
-      <div className="pointer-events-none absolute right-[-10%] top-[10%] h-[300px] w-[300px] rounded-full bg-primary/5 blur-[80px]" />
-      <div className="pointer-events-none absolute bottom-[20%] left-[-20%] h-[300px] w-[300px] rounded-full bg-primary/5 blur-[80px]" />
+    <PageCanvas ambient="subtle">
+      <PageHero
+        theme="alerts"
+        eyebrow="Market watch"
+        eyebrowIcon={Bell}
+        watermarkIcon={Bell}
+        title={<>Market Alerts</>}
+        description="Get notified when vehicles matching your criteria appear on the market."
+        highlights={[
+          { label: "Active", value: String(alerts.length), hint: "Saved alert rules" },
+          { label: "Matches", value: "Live", hint: "Scan against inventory" },
+          { label: "Sync", value: token ? "On" : "Local", hint: "Server or device storage" },
+        ]}
+      />
 
-      {/* Hero */}
-      <motion.div variants={itemVariants} className="relative z-10 mb-12">
-        <p className="mb-4 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
-          <Bell className="h-3.5 w-3.5" aria-hidden />
-          Market watch
-        </p>
-        <h1 className="display-hero text-foreground">Market Alerts</h1>
-        <p className="mt-5 max-w-xl text-body-lg">
-          Get notified when vehicles matching your criteria appear on the market.
-        </p>
-      </motion.div>
-
-      {/* Create form */}
-      <motion.div variants={itemVariants} className="relative z-10 mb-14">
+      <PageBody narrow className="py-8 sm:py-10">
+        <motion.div variants={itemVariants} className="mb-14">
         <CreateAlertForm token={token} onCreated={refresh} onCreate={create} />
-      </motion.div>
+        </motion.div>
 
       {/* Active alerts */}
       <motion.section variants={itemVariants} aria-labelledby="active-alerts-heading" className="relative z-10 mb-16">
@@ -413,9 +408,10 @@ export default function Alerts() {
       </motion.section>
 
       {/* Match results */}
-      <motion.div variants={itemVariants} className="relative z-10">
+      <motion.div variants={itemVariants}>
         <AlertMatchSection token={token} />
       </motion.div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

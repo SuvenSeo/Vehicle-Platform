@@ -13,6 +13,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { SectionHeader } from "@/components/SectionHeader";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 import {
   PULSE_SOURCE_GUIDES,
@@ -95,32 +98,21 @@ export default function OfficialPulse() {
       : signals.filter((s) => s.source.toLowerCase() === sourceFilter);
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="page-canvas relative min-h-screen overflow-hidden"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[-10%] top-[8%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-[18%] left-[-15%] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px]"
-      />
-
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
-        <div className="mx-auto max-w-[1320px] px-5 pb-14 pt-16 sm:px-6 lg:pb-20 lg:pt-24">
-          <div className="section-eyebrow mb-5 inline-flex items-center gap-2">
-            <Landmark aria-hidden className="h-3.5 w-3.5" />
-            Official pulse
-          </div>
-          <h1 className="display-hero max-w-3xl text-foreground">Official pulse.</h1>
-          <p className="text-body-lg mt-6 max-w-xl">
-            Government &amp; import market signals, explained in-platform
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+    <PageCanvas>
+      <PageHero
+        theme="official"
+        eyebrow="Official pulse"
+        eyebrowIcon={Landmark}
+        watermarkIcon={Radio}
+        title={<>Official pulse<span className="text-sheen">.</span></>}
+        description="Government & import market signals, explained in-platform."
+        highlights={[
+          { label: "Signals", value: signalsQuery.isPending ? "…" : String(signals.length), hint: "Indexed official metrics" },
+          { label: "Sources", value: String(sourceChips.length || "—"), hint: "Government and import feeds" },
+          { label: "Guides", value: String(PULSE_SOURCE_GUIDES.length), hint: "Explainer cards in-platform" },
+        ]}
+        actions={
+          <>
             <Link
               to="/docs#official-pulse"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -134,11 +126,11 @@ export default function OfficialPulse() {
             >
               View pricing
             </Link>
-          </div>
-        </div>
-      </motion.section>
+          </>
+        }
+      />
 
-      <div className="relative z-10 mx-auto max-w-[1320px] space-y-16 px-5 py-14 sm:px-6 lg:space-y-24 lg:py-20">
+      <PageBody className="space-y-16 lg:space-y-24">
         <motion.section variants={revealItem}>
           <SectionHeader
             eyebrow="How to read it"
@@ -273,7 +265,7 @@ export default function OfficialPulse() {
             </motion.div>
           )}
         </motion.section>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

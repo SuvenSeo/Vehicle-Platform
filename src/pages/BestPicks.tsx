@@ -9,6 +9,9 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
 import { minCashDownForPrice, sortListingsByAffordability } from "@/lib/cashToOwn";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
 import { revealContainer, revealItem } from "@/lib/motion";
 
 const PICKS_PAGES = 4;
@@ -97,29 +100,22 @@ export default function BestPicks() {
       : "ranked by deal strength";
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative ambient orbs — primary-tinted, adapts across themes */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" aria-hidden />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" aria-hidden />
-
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-card/50 backdrop-blur-md">
-        <div className="mx-auto max-w-[1320px] px-5 py-14 sm:px-6 sm:py-20 lg:py-24">
-          <p className="section-eyebrow text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            Best picks
-          </p>
-          <h1 className="display-hero mt-4 max-w-3xl text-foreground">Deal-score picks.</h1>
-          <p className="text-body-lg mt-5 max-w-xl">
-            {loading ? "Scanning inventory..." : `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`}
-          </p>
-          {!loading && !error && picks.length > 0 && (
-            <div className="mt-8 flex flex-wrap gap-2.5" role="group" aria-label="Sort best picks">
+    <PageCanvas>
+      <PageHero
+        theme="deals"
+        eyebrow="Best picks"
+        eyebrowIcon={Star}
+        watermarkIcon={Star}
+        title={<>Deal-score picks<span className="text-sheen">.</span></>}
+        description={loading ? "Scanning inventory..." : `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`}
+        highlights={[
+          { label: "Min score", value: `${MIN_DEAL_SCORE}+`, hint: "Strict deal-score floor" },
+          { label: "Inventory", value: loading ? "…" : String(ranked.length), hint: "Vehicles in this shortlist" },
+          { label: "Sort modes", value: "2", hint: "Deal score or affordability" },
+        ]}
+      >
+        {!loading && !error && picks.length > 0 && (
+          <div className="mt-8 flex flex-wrap gap-2.5" role="group" aria-label="Sort best picks">
               <button
                 type="button"
                 onClick={() => setSortMode("deal_score")}
@@ -146,10 +142,9 @@ export default function BestPicks() {
               </button>
             </div>
           )}
-        </div>
-      </motion.section>
+      </PageHero>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-12 sm:px-6 lg:py-16 space-y-14 lg:space-y-20 relative z-10">
+      <PageBody className="space-y-14 lg:space-y-20">
         {/* Biggest cuts this week — powered by per-listing price history */}
         <motion.section initial="hidden" animate="show" variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft backdrop-blur-md sm:p-6">
             <div className="flex items-center gap-2.5 border-b border-border pb-3">
@@ -319,7 +314,7 @@ export default function BestPicks() {
             )}
           </>
         )}
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Check, HelpCircle, Sparkles, Users } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS } from "@/lib/pricingContent";
-import { revealContainer, revealItem } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem } from "@/lib/motion";
 
 const COMPARE_ROWS: { label: string; free: string; pro: string; dealer: string; enterprise: string }[] = [
   { label: "Dashboard browse", free: "Yes", pro: "Yes", dealer: "Yes", enterprise: "Yes" },
@@ -26,32 +29,21 @@ const CTA_CLASS = (highlight?: boolean) =>
 
 export default function Pricing() {
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="relative min-h-screen overflow-hidden bg-background"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-[25%] left-[-12%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]"
-      />
-
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-card/50 backdrop-blur-md">
-        <div className="mx-auto max-w-[1320px] px-5 py-16 sm:px-6 sm:py-20 lg:py-24">
-          <p className="section-eyebrow mb-5 inline-flex items-center gap-2">
-            <Sparkles aria-hidden className="h-3.5 w-3.5" />
-            Access tiers
-          </p>
-          <h1 className="display-hero max-w-3xl text-foreground">Pricing.</h1>
-          <p className="text-body-lg mt-6 max-w-xl">
-            Built for Sri Lanka dealers and decision-makers — months of scraping shouldn’t be free forever.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+    <PageCanvas>
+      <PageHero
+        theme="default"
+        eyebrow="Access tiers"
+        eyebrowIcon={Sparkles}
+        watermarkIcon={Users}
+        title={<>Pricing<span className="text-sheen">.</span></>}
+        description="Built for Sri Lanka dealers and decision-makers — months of scraping shouldn't be free forever."
+        highlights={[
+          { label: "Workspaces", value: "4", hint: "Free through enterprise tiers" },
+          { label: "Dealer lane", value: "Pro", hint: "Command center + exports" },
+          { label: "Docs", value: "Live", hint: "Platform methodology" },
+        ]}
+        actions={
+          <>
             <Link
               to="/sign-in"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -72,11 +64,11 @@ export default function Pricing() {
               <BookOpen aria-hidden className="h-4 w-4" />
               Docs
             </Link>
-          </div>
-        </div>
-      </motion.section>
+          </>
+        }
+      />
 
-      <div className="relative z-10 mx-auto max-w-[1320px] space-y-16 px-5 py-14 sm:px-6 lg:space-y-20 lg:py-20">
+      <PageBody className="space-y-16 lg:space-y-20">
         <motion.section variants={revealItem} aria-labelledby="icp-heading">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
@@ -240,7 +232,7 @@ export default function Pricing() {
             </a>
           </div>
         </motion.div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

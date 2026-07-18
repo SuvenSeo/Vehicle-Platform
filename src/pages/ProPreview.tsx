@@ -2,7 +2,10 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { BarChart3, Crown, Download, FileText, Lock, MapPin, ShieldCheck, Sparkles } from "lucide-react";
-import { revealContainer, revealItem, springSoft } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem, springSoft } from "@/lib/motion";
 
 const LANES = [
   { name: "Toyota Aqua", listings: 824, median: "Rs. 7.8M", district: "Colombo" },
@@ -34,28 +37,21 @@ function LockedOverlay() {
 
 export default function ProPreview() {
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="page-canvas relative min-h-screen overflow-hidden"
-    >
-      {/* Ambient wash — token-driven, adapts to both themes */}
-      <div aria-hidden className="pointer-events-none absolute right-[-10%] top-[8%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
-      <div aria-hidden className="pointer-events-none absolute bottom-[18%] left-[-15%] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[100px]" />
-
-      {/* Hero — one confident, towering headline */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
-        <div className="mx-auto max-w-[1320px] px-5 pb-14 pt-16 sm:px-6 lg:pb-20 lg:pt-24">
-          <div className="section-eyebrow mb-5 inline-flex items-center gap-2">
-            <Crown aria-hidden className="h-3.5 w-3.5" />
-            Pro Preview
-          </div>
-          <h1 className="display-hero max-w-3xl text-foreground">Pro workspace preview.</h1>
-          <p className="text-body-lg mt-6 max-w-xl">
-            See the depth of lane drill-downs, district profiles, and export packs before you sign in.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+    <PageCanvas>
+      <PageHero
+        theme="default"
+        eyebrow="Pro Preview"
+        eyebrowIcon={Crown}
+        watermarkIcon={BarChart3}
+        title={<>Pro workspace preview<span className="text-sheen">.</span></>}
+        description="See the depth of lane drill-downs, district profiles, and export packs before you sign in."
+        highlights={[
+          { label: "Lanes", value: "4+", hint: "Model-level drill downs" },
+          { label: "Exports", value: String(REPORTS.length), hint: "Report formats in Pro" },
+          { label: "Districts", value: "25", hint: "Regional demand profiles" },
+        ]}
+        actions={
+          <>
             <Link
               to="/sign-in"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -74,11 +70,11 @@ export default function ProPreview() {
             >
               See pricing
             </Link>
-          </div>
-        </div>
-      </motion.section>
+          </>
+        }
+      />
 
-      <div className="relative z-10 mx-auto max-w-[1320px] px-5 py-14 sm:px-6 lg:py-20">
+      <PageBody>
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
             {/* Featured card — lane table, the primary item */}
@@ -188,7 +184,7 @@ export default function ProPreview() {
             </motion.div>
           </aside>
         </div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

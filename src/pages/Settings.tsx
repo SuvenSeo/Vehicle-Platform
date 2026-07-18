@@ -1,7 +1,10 @@
 import { Check, Globe, Monitor, MoonStar } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAppPreferences } from "@/lib/appPreferences";
-import { revealContainer, revealItem } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 type LangOpt = { value: "en" | "si" | "ta"; key: string; fallback: string; hint: string };
@@ -15,31 +18,22 @@ export default function Settings() {
   const { language, setLanguage, t } = useAppPreferences();
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative Orbs */}
-      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+    <PageCanvas ambient="subtle">
+      <PageHero
+        theme="settings"
+        eyebrow="Preferences"
+        eyebrowIcon={Globe}
+        watermarkIcon={MoonStar}
+        title={t("settings.title", "Personalize Motormila")}
+        description="Language, theme, and display preferences."
+        highlights={[
+          { label: "Languages", value: "3", hint: "English, Sinhala, Tamil" },
+          { label: "Theme", value: "Auto", hint: "Light or dark display" },
+          { label: "Locale", value: "Live", hint: "Labels across the app" },
+        ]}
+      />
 
-      {/* Hero */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-surface/50 backdrop-blur-xl">
-        <div className="mx-auto max-w-[1320px] px-5 py-16 sm:px-6 sm:py-20 lg:py-24">
-          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            Preferences
-          </p>
-          <h1 className="mt-5 display-hero text-foreground">
-            {t("settings.title", "Personalize Motormila")}
-          </h1>
-          <p className="mt-5 max-w-xl text-body-lg">Language, theme, and display preferences.</p>
-        </div>
-      </motion.section>
-
-      <div className="mx-auto max-w-5xl px-5 py-14 sm:px-6 lg:py-20 relative z-10">
+      <PageBody narrow>
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Language — featured, primary preference */}
           <motion.div variants={revealItem} className="surface lg:col-span-7 p-6 sm:p-7">
@@ -116,7 +110,7 @@ export default function Settings() {
             </div>
           </motion.div>
         </div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

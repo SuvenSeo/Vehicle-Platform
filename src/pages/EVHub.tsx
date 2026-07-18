@@ -14,7 +14,10 @@ import {
 import { getEvInsight, formatPrice } from "@/services/api";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
-import { revealContainer, revealItem } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const evModules = [
@@ -80,31 +83,22 @@ export default function EVHub() {
   const [featureStat, ...secondaryStats] = liveStats;
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative Orbs */}
-      <div className="absolute top-[8%] right-[-10%] w-[480px] h-[480px] bg-primary/5 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-[18%] left-[-15%] w-[420px] h-[420px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
+    <PageCanvas ambient="subtle">
+      <PageHero
+        theme="ev"
+        eyebrow="EV intelligence"
+        eyebrowIcon={Zap}
+        watermarkIcon={Battery}
+        title={<>EV buying signals<span className="text-sheen">.</span></>}
+        description="Battery health, charging fit, and duty signals for the Sri Lankan EV market."
+        highlights={liveStats.slice(0, 3).map((stat) => ({
+          label: stat.label,
+          value: stat.value,
+          hint: stat.note,
+        }))}
+      />
 
-      {/* Hero */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
-        <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-14 sm:px-6 sm:pt-20 sm:pb-16 lg:pt-24 lg:pb-20">
-          <p className="mb-5 inline-flex items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-primary-bright">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary" />
-            EV intelligence
-          </p>
-          <h1 className="display-hero text-foreground max-w-3xl">EV buying signals.</h1>
-          <p className="text-body-lg mt-6 max-w-xl">
-            Battery health, charging fit, and duty signals for the Sri Lankan EV market.
-          </p>
-        </div>
-      </motion.section>
-
-      <div className="mx-auto max-w-[1320px] px-5 pb-20 pt-14 sm:px-6 lg:pt-16 space-y-16 lg:space-y-24 relative z-10">
+      <PageBody className="space-y-16 lg:space-y-24">
         {/* Live inventory pulse — one number towers */}
         <motion.section variants={revealItem}>
           <SectionHeader title="Live EV inventory" className="mb-8" />
@@ -287,7 +281,7 @@ export default function EVHub() {
             </Button>
           </div>
         </motion.section>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

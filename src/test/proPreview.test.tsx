@@ -38,9 +38,9 @@ describe("ProPreview", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/Pro workspace preview\./i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pro workspace preview/i })).toBeInTheDocument();
     expect(screen.getAllByText(/unlock with pro/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/report formats/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/report formats/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /sign in to unlock/i })).toHaveAttribute("href", "/sign-in");
     expect(localStorage.getItem("autolens.auth_user")).toBeNull();
   });
