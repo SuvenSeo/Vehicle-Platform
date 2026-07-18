@@ -66,6 +66,18 @@ const ROUTE_META: Record<string, Meta> = {
     description:
       "Government and import market signals from DMT, Customs, and landed-cost references — explained in-platform.",
   },
+  "/docs": {
+    title: `Platform Docs — ${SITE}`,
+    description: "How AutoLens LK works: data sources, deal scores, Official Pulse, workspaces, and access tiers.",
+  },
+  "/pricing": {
+    title: `Pricing — ${SITE}`,
+    description: "Free, Pro, Dealer, and Enterprise access for Sri Lanka vehicle market intelligence.",
+  },
+  "/branding": {
+    title: `Brand Lab — ${SITE}`,
+    description: "Internal brand options and system brief for AutoLens LK.",
+  },
 };
 
 function setMeta(name: string, content: string) {

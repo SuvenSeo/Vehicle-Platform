@@ -149,6 +149,9 @@ const App = () => {
                   <Route path="/official-pulse" element={<OfficialPulse />} />
                   <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
                   <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
+                  <Route path="/docs" element={<Docs />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/branding" element={<Branding />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={<SignIn />} />

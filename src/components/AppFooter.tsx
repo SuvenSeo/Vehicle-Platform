@@ -19,6 +19,8 @@ const toolLinks = [
 const moreLinks = [
   { label: "Dealer", to: "/dealer" },
   { label: "Pro Preview", to: "/pro-preview" },
+  { label: "Docs", to: "/docs" },
+  { label: "Pricing", to: "/pricing" },
   { label: "Settings", to: "/settings" },
   { label: "Journal", to: "/blogs" },
 ];
