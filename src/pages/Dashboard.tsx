@@ -16,6 +16,7 @@ import { MarketIntelligencePanel } from "@/components/MarketIntelligencePanel";
 import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
 import { FuelMixStrip } from "@/components/FuelMixStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
+import { HeroSideSignals } from "@/components/HeroSideSignals";
 import { RevealSection } from "@/components/RevealSection";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Input } from "@/components/ui/input";
@@ -492,24 +493,31 @@ export default function Dashboard() {
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section id="overview" className="relative overflow-hidden border-b border-border bg-surface">
-        <div className="hero-atmosphere" aria-hidden>
-          <div className="hero-atmosphere__grid" />
-          <div className="hero-atmosphere__glow left-[-8%] top-[-18%] h-[34rem] w-[34rem] bg-primary/20" />
-          <div className="hero-atmosphere__glow right-[-6%] bottom-[-22%] h-[30rem] w-[30rem] bg-primary/10" />
-          <div className="hero-atmosphere__glow left-[42%] top-[8%] h-[18rem] w-[18rem] bg-primary/[0.08]" />
-          <div className="hero-atmosphere__mark" />
-        </div>
+        <div aria-hidden className="pointer-events-none absolute left-[20%] top-[-20%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[130px]" />
+        <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
 
         <motion.div
           initial="hidden"
           animate="show"
           variants={heroContainerVariants}
-          className="relative z-10 mx-auto max-w-[1560px] px-5 py-14 sm:px-6 sm:py-20 lg:py-24"
+          className="relative z-10 mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
         >
+          <HeroSideSignals
+            listingsCount={marketPulseListings}
+            sourcesCount={marketPulseSources}
+            districtsCount={marketPulseDistricts}
+            trending={trendingModels[0] ?? null}
+            hotDeal={hotDeals[0] ?? null}
+            onTrendingClick={() => {
+              const row = trendingModels[0];
+              if (row) focusModel(row.make, row.model);
+            }}
+          />
+
           {/* ── Centered editorial headline ── */}
-          <div className="mx-auto max-w-4xl text-center">
+          <div className="relative mx-auto max-w-3xl text-center">
             <motion.div variants={heroItemVariants} className="flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/80 px-3.5 py-1.5 shadow-soft backdrop-blur-md">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 shadow-soft backdrop-blur-md">
                 <span className="relative flex h-1.5 w-1.5">
                   <span aria-hidden className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
                   <span aria-hidden className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
@@ -520,46 +528,30 @@ export default function Dashboard() {
               </div>
             </motion.div>
 
-            <motion.h1 variants={heroItemVariants} className="display-hero mx-auto mt-7 max-w-5xl text-foreground">
+            <motion.h1 variants={heroItemVariants} className="display-hero mx-auto mt-6 max-w-5xl text-foreground">
               Sri Lanka&rsquo;s entire vehicle market,
               <span className="text-sheen"> decoded.</span>
             </motion.h1>
 
-            <motion.p variants={heroItemVariants} className="text-body-lg mx-auto mt-6 max-w-2xl">
+            <motion.p variants={heroItemVariants} className="text-body-lg mx-auto mt-6 max-w-xl">
               <span className="font-bold text-foreground num">{marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}</span> live listings from{" "}
               <span className="font-bold text-foreground num">{marketPulseSources || 10}</span> sources across{" "}
               <span className="font-bold text-foreground num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
               deal scores, and the market intelligence dealers keep to themselves.
             </motion.p>
 
-            <motion.div variants={heroItemVariants} className="mx-auto mt-5 flex flex-wrap items-center justify-center gap-2.5">
+            <motion.div variants={heroItemVariants} className="mx-auto mt-4 flex justify-center">
               <DataFreshnessIndicator
                 latestListingAt={liveMarketSnapshot?.latest_listing_at}
                 lastUpdated={stats?.last_updated}
               />
-              <a
-                href="#market"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="action-primary h-10 px-5 text-[12px] no-underline"
-              >
-                Browse live market
-              </a>
-              <Link
-                to="/estimate"
-                className="action-soft h-10 px-5 text-[12px] no-underline"
-              >
-                Get a valuation
-              </Link>
             </motion.div>
 
             {/* Search (centered) */}
-            <motion.div variants={heroItemVariants} className="mx-auto mt-9 max-w-2xl text-left">
+            <motion.div variants={heroItemVariants} className="mx-auto mt-8 max-w-2xl text-left">
                 <div className="relative">
-                  <div className="flex items-center gap-2 rounded-full border border-border bg-card/90 shadow-soft-lg backdrop-blur-md transition-all focus-within:border-primary/45 focus-within:shadow-gold-glow">
-                    <Search aria-hidden className="ml-5 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="flex items-center gap-2 rounded-xl border border-border bg-card shadow-soft-lg backdrop-blur-md transition-all focus-within:border-primary/40 focus-within:shadow-gold-glow">
+                    <Search aria-hidden className="ml-4 h-5 w-5 shrink-0 text-muted-foreground" />
                     <label htmlFor="hero-search" className="sr-only">{t("common.search", "Search")} vehicles</label>
                     <input
                       id="hero-search"
@@ -597,13 +589,13 @@ export default function Dashboard() {
                       enterKeyHint="search"
                       className="h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
                     />
-                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-full bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
+                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
                       {t("common.search", "Search")}
                     </button>
                   </div>
 
                   {showHeroSuggestions && (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-3xl border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-border bg-card/95 p-1 shadow-soft-xl backdrop-blur-xl">
                       {heroSuggestionsLoading ? (
                         <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("common.searching", "Searching...")}</p>
                       ) : heroSuggestions.length ? (
@@ -614,7 +606,7 @@ export default function Dashboard() {
                               id={`hero-suggestion-${idx}`}
                               aria-selected={idx === heroActiveIdx}
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                              className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
+                              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
                             >
                               <span className="text-[13px] font-bold text-foreground">{s.make} {s.model} {s.year}</span>
                               <span className="text-[12px] font-bold text-primary-bright num">
@@ -633,7 +625,7 @@ export default function Dashboard() {
                 )}
 
                 {/* Quick scans */}
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Popular</span>
                   {([
                     { label: "Toyota Aqua", make: "Toyota", model: "Aqua" },
@@ -644,7 +636,7 @@ export default function Dashboard() {
                   ] as const).map((item) => (
                     <button key={item.label} type="button"
                       onClick={() => { setHeroSearch(item.label); focusModel(item.make, item.model); }}
-                      className="rounded-full border border-border bg-card/90 px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition-all hover:border-primary/40 hover:bg-surface hover:text-foreground active:scale-[0.97]"
+                      className="rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition-all hover:border-primary/40 hover:bg-surface hover:text-foreground active:scale-[0.97]"
                     >{item.label}</button>
                   ))}
                 </div>

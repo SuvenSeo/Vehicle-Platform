@@ -568,46 +568,6 @@
     55%, 100% { background-position: 0% 50%; }
   }
 
-  .hero-atmosphere {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
-
-  .hero-atmosphere__grid {
-    position: absolute;
-    inset: 0;
-    opacity: 0.35;
-    background-image:
-      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
-    background-size: 64px 64px;
-    mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 10%, transparent 72%);
-  }
-
-  .hero-atmosphere__glow {
-    position: absolute;
-    border-radius: 999px;
-    filter: blur(90px);
-  }
-
-  .hero-atmosphere__mark {
-    position: absolute;
-    left: 50%;
-    top: 42%;
-    width: min(58vw, 520px);
-    aspect-ratio: 1;
-    translate: -50% -52%;
-    opacity: 0.07;
-    background: center / contain no-repeat url("/logo.png");
-    filter: saturate(1.1);
-  }
-
-  .theme-dark .hero-atmosphere__mark {
-    opacity: 0.14;
-  }
-
   /* A hairline that fades at both ends — magazine-grade section rule. */
   .rule-fade {
     height: 1px;
