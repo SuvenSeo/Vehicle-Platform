@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Weekly Pro email digest for AutoLens LK.
+"""Weekly Pro email digest for Motormila.
 
 Builds an HTML summary of market activity (top vehicle lanes, hot deals, and
 active alert counts) and either:
@@ -50,9 +50,9 @@ from db.models import CarListing, MarketAlert, MarketAlertMatch, live_listing_fi
 # ---------------------------------------------------------------------------
 
 SENDGRID_SEND_URL = "https://api.sendgrid.com/v3/mail/send"
-DIGEST_FROM_EMAIL = os.getenv("DIGEST_FROM_EMAIL", "noreply@autolens.lk")
-DIGEST_FROM_NAME = os.getenv("DIGEST_FROM_NAME", "AutoLens LK")
-DIGEST_SUBJECT = os.getenv("DIGEST_SUBJECT", "AutoLens Pro — Weekly Market Digest")
+DIGEST_FROM_EMAIL = os.getenv("DIGEST_FROM_EMAIL", "noreply@motormila.lk")
+DIGEST_FROM_NAME = os.getenv("DIGEST_FROM_NAME", "Motormila")
+DIGEST_SUBJECT = os.getenv("DIGEST_SUBJECT", "Motormila Pro — Weekly Market Digest")
 
 PRO_PLANS = {"pro", "enterprise"}
 ACTIVE_STATUSES = {"active", "trialing"}
@@ -301,7 +301,7 @@ def build_digest_html(
                   <tr>
                     <td style="background:#1e40af;padding:24px 32px;">
                       <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:-0.5px;">
-                        AutoLens Pro &mdash; Weekly Market Digest
+                        Motormila Pro &mdash; Weekly Market Digest
                       </h1>
                       <p style="margin:6px 0 0;color:#bfdbfe;font-size:13px;">{date_str}</p>
                     </td>
@@ -364,7 +364,7 @@ def build_digest_html(
                   <tr>
                     <td style="padding:20px 32px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
                       <p style="margin:0;">
-                        This digest was generated automatically by AutoLens LK.
+                        This digest was generated automatically by Motormila.
                         Data reflects listings active at the time of generation.
                       </p>
                       <p style="margin:8px 0 0;">
@@ -466,7 +466,7 @@ def run_digest(*, dry_run: bool, db: Optional[Session] = None) -> dict:
     recipients = resolve_recipients()
 
     if dry_run or not api_key:
-        print("=== AutoLens Pro Weekly Digest (DRY-RUN) ===")
+        print("=== Motormila Pro Weekly Digest (DRY-RUN) ===")
         if not api_key:
             print("(SENDGRID_API_KEY not set — printing to stdout)")
         print(f"Recipients would be: {recipients or ['<none configured>']}")
@@ -489,7 +489,7 @@ def run_digest(*, dry_run: bool, db: Optional[Session] = None) -> dict:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Send the AutoLens Pro weekly digest.")
+    parser = argparse.ArgumentParser(description="Send the Motormila Pro weekly digest.")
     parser.add_argument(
         "--dry-run",
         action="store_true",

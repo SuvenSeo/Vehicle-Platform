@@ -50,7 +50,7 @@ export const PULSE_SOURCE_GUIDES: PulseSourceGuide[] = [
       "We track DMT registration-related documents and page activity as a proxy pulse, not a raw VIN-level feed.",
       "Higher document counts in a period usually mean more registration paperwork is circulating for that window.",
       "Compare the latest period against recent months to spot acceleration or slowdown, not day-to-day noise.",
-      "Pair registration pace with live listing counts in MilaMark to see whether supply is catching demand.",
+      "Pair registration pace with live listing counts in Motormila to see whether supply is catching demand.",
     ],
     dealerTip:
       "When registration documents spike for a segment you stock, expect more competing inventory within 2–6 weeks — tighten ask prices early rather than waiting for aged stock.",
@@ -94,7 +94,7 @@ export const PULSE_SOURCE_GUIDES: PulseSourceGuide[] = [
       "We scan Sri Lanka Customs tender-sales pages for vehicle-related tender links and activity counts.",
       "The signal value is typically a count of matching vehicle-tender references observed for the period.",
       "A rising tender count is a supply-side heads-up, not a guaranteed retail price drop the next day.",
-      "Cross-check tender spikes with segment medians in MilaMark before adjusting floor prices.",
+      "Cross-check tender spikes with segment medians in Motormila before adjusting floor prices.",
     ],
     dealerTip:
       "Before matching a low retail ask after a tender wave, confirm whether those units actually reach your segment — many tender lots stay wholesale or specialty channels.",

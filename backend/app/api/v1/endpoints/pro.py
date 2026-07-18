@@ -652,7 +652,7 @@ def get_pro_vehicle_lane_detail(
     return ProDetailPayload(
         kind="vehicle_lane",
         title=f"{make} {model}{district_label}",
-        summary=f"{total} priced listings tracked for this lane across AutoLens sources.",
+        summary=f"{total} priced listings tracked for this lane across Motormila sources.",
         generated_at=utc_now(),
         metrics=[
             ProMetric(label="Listings", value=f"{total:,}", detail="Priced, non-outlier inventory"),

@@ -62,7 +62,7 @@ function renderPage({ title, description, image, url }) {
 <meta name="description" content="${d}" />
 <link rel="canonical" href="${u}" />
 <meta property="og:type" content="website" />
-<meta property="og:site_name" content="AutoLens LK" />
+<meta property="og:site_name" content="Motormila" />
 <meta property="og:title" content="${t}" />
 <meta property="og:description" content="${d}" />
 <meta property="og:url" content="${u}" />
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
   const id = String(req.query?.id || "").trim();
   const listingUrl = `${SITE_ORIGIN}/listing/${encodeURIComponent(id)}`;
 
-  let title = "Vehicle Listing — AutoLens LK";
+  let title = "Vehicle Listing — Motormila";
   let description =
     "Track Sri Lankan vehicle prices, trends, deal signals, and valuation tools in one market intelligence cockpit.";
   let image = `${SITE_ORIGIN}/og-card.jpg`;
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     if (listing && (listing.make || listing.title)) {
       const name = [listing.year, listing.make, listing.model].filter(Boolean).join(" ") || listing.title;
       const price = formatPriceLkr(listing.price_lkr);
-      title = `${name}${price ? ` — ${price}` : ""} | AutoLens LK`;
+      title = `${name}${price ? ` — ${price}` : ""} | Motormila`;
 
       const parts = [];
       if (price) parts.push(price);
@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       }
       if (listing.fuel_type) parts.push(String(listing.fuel_type));
       if (listing.source) parts.push(`via ${listing.source}`);
-      description = `${parts.join(" · ")} — live market data on AutoLens LK.`;
+      description = `${parts.join(" · ")} — live market data on Motormila.`;
 
       const thumb = String(listing.thumbnail_url || "").trim();
       if (/^https:\/\//.test(thumb)) image = thumb;

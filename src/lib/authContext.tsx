@@ -104,7 +104,7 @@ function loadUser(): AuthUser | null {
 function normalizeServerUser(raw: Partial<AuthUser> | undefined, email: string): AuthUser | null {
   if (!raw?.email && !email) return null;
   const normalizedEmail = String(raw?.email || email).trim().toLowerCase();
-  const name = String(raw?.name || normalizedEmail.split("@")[0] || "MilaMark User").trim();
+  const name = String(raw?.name || normalizedEmail.split("@")[0] || "Motormila User").trim();
   const plan = raw?.plan === "enterprise" ? "enterprise" : raw?.plan === "free" ? "free" : "pro";
   const subscriptionStatus =
     raw?.subscriptionStatus === "active" || raw?.subscriptionStatus === "trialing" || raw?.subscriptionStatus === "past_due"

@@ -1,4 +1,4 @@
-"""Build public AutoLens snapshot JSON files from the configured database.
+"""Build public Motormila snapshot JSON files from the configured database.
 
 This is intentionally read-only. It lets the public site read Cloudflare R2
 JSON snapshots instead of hitting Postgres for every visitor.
@@ -324,7 +324,7 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None) -> dict[s
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export public JSON snapshots for AutoLens.")
+    parser = argparse.ArgumentParser(description="Export public JSON snapshots for Motormila.")
     parser.add_argument(
         "--output",
         type=Path,

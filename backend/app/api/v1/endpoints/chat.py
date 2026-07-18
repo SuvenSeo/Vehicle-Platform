@@ -221,7 +221,7 @@ def _intent(message: str) -> str:
 
 def _build_groq_prompt(message: str, context: Dict[str, Any], history: List[ChatMessage]) -> List[Dict[str, str]]:
     system_prompt = (
-        "You are AutoLens Copilot, the Sri Lankan vehicle marketplace assistant. "
+        "You are Motormila Copilot, the Sri Lankan vehicle marketplace assistant. "
         "Use ONLY the provided context and do not invent listings, metrics, or operational states. "
         "If data is missing, clearly say it is unavailable. "
         "Adapt your answer to the user's current page context when provided. "
@@ -371,7 +371,7 @@ def _build_fallback_response(
         )
 
     return (
-        f"AutoLens live snapshot ({utc_now().strftime('%Y-%m-%d %H:%M UTC')}):\n"
+        f"Motormila live snapshot ({utc_now().strftime('%Y-%m-%d %H:%M UTC')}):\n"
         f"- Active listings: {scope_total}\n"
         f"- Market average: {_fmt_price(avg_price)}\n"
         f"- Price range: {_fmt_price(min_price)} to {_fmt_price(max_price)}\n"

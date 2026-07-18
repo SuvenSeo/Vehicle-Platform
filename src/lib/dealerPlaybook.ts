@@ -3,7 +3,7 @@ export type DealerPlaybookItem = {
   title: string;
   forWhom: string; // dealers | brokers | importers | yards
   problem: string;
-  whatMilaMarkDoes: string;
+  whatMotormilaDoes: string;
   whereToGo: { label: string; to: string };
 };
 
@@ -13,7 +13,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Price stock against district median",
     forWhom: "dealers",
     problem: "Yard asks drift from local comps and sit stale or leave money on the table.",
-    whatMilaMarkDoes: "Benchmark listing URLs against live district medians and show the gap in one pass.",
+    whatMotormilaDoes: "Benchmark listing URLs against live district medians and show the gap in one pass.",
     whereToGo: { label: "Open inventory benchmark", to: "/dealer#benchmark" },
   },
   {
@@ -21,7 +21,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Spot arbitrage across districts",
     forWhom: "brokers",
     problem: "The same model prices differently by district, but spreads are hard to see in listing feeds.",
-    whatMilaMarkDoes: "Surface district spreads on the map and trend views so you can buy low and place high.",
+    whatMotormilaDoes: "Surface district spreads on the map and trend views so you can buy low and place high.",
     whereToGo: { label: "View district map", to: "/map" },
   },
   {
@@ -29,7 +29,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Import duty / landed cost before buying stock",
     forWhom: "importers",
     problem: "Duty, VAT, and CIF assumptions blow up landed cost after the purchase is already committed.",
-    whatMilaMarkDoes: "Run import duty and landed-cost scenarios before you wire money or bid on a unit.",
+    whatMotormilaDoes: "Run import duty and landed-cost scenarios before you wire money or bid on a unit.",
     whereToGo: { label: "Open calculator", to: "/calculator" },
   },
   {
@@ -37,7 +37,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Watch DMT / Customs official pulse",
     forWhom: "importers",
     problem: "Policy and gazette moves land late, after stock decisions are already locked in.",
-    whatMilaMarkDoes: "Track official DMT and Customs signals in one pulse feed so operators react early.",
+    whatMotormilaDoes: "Track official DMT and Customs signals in one pulse feed so operators react early.",
     whereToGo: { label: "Open official pulse", to: "/official-pulse" },
   },
   {
@@ -45,7 +45,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Fair ask / negotiation",
     forWhom: "dealers",
     problem: "Sellers and buyers anchor on list price instead of condition-adjusted market value.",
-    whatMilaMarkDoes: "Estimate fair value from live comps so negotiation starts from a defensible ask.",
+    whatMotormilaDoes: "Estimate fair value from live comps so negotiation starts from a defensible ask.",
     whereToGo: { label: "Run valuation", to: "/estimate" },
   },
   {
@@ -53,7 +53,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Alerts for under-market comps",
     forWhom: "brokers",
     problem: "Underpriced units disappear before the yard team refreshes the board.",
-    whatMilaMarkDoes: "Watch saved filters and ping when comps land under market.",
+    whatMotormilaDoes: "Watch saved filters and ping when comps land under market.",
     whereToGo: { label: "Set alerts", to: "/alerts" },
   },
   {
@@ -61,7 +61,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Pro reports for weekly yard review",
     forWhom: "yards",
     problem: "Weekly stock reviews rely on screenshots and gut feel instead of a shared market brief.",
-    whatMilaMarkDoes: "Package Pro market reports you can walk through in the Monday yard meeting.",
+    whatMotormilaDoes: "Package Pro market reports you can walk through in the Monday yard meeting.",
     whereToGo: { label: "Open Pro preview", to: "/pro-preview" },
   },
   {
@@ -69,7 +69,7 @@ export const DEALER_PLAYBOOK: DealerPlaybookItem[] = [
     title: "Best picks for acquisition",
     forWhom: "dealers",
     problem: "Acquisition lists mix noise with real deal-score opportunities.",
-    whatMilaMarkDoes: "Shortlist strict deal-score picks ready for sourcing and floor planning.",
+    whatMotormilaDoes: "Shortlist strict deal-score picks ready for sourcing and floor planning.",
     whereToGo: { label: "View best picks", to: "/best-picks" },
   },
 ];

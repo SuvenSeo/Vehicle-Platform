@@ -34,7 +34,7 @@ export default function PriceIndexPage() {
 
   useEffect(() => {
     let cancelled = false;
-    document.title = "SL Used Vehicle Price Index — MilaMark";
+    document.title = "SL Used Vehicle Price Index — Motormila";
     getPriceIndex()
       .then((d) => { if (!cancelled) setData(d); })
       .catch(() => { if (!cancelled) setError(true); })

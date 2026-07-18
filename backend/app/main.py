@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AutoLens LK API",
+    title="Motormila API",
     description="Car Market Intelligence Platform for Sri Lanka",
     version="1.0.0",
     lifespan=lifespan,

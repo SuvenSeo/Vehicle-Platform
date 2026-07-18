@@ -1,4 +1,4 @@
-"""Upload generated AutoLens snapshots to Cloudflare R2.
+"""Upload generated Motormila snapshots to Cloudflare R2.
 
 Required environment variables:
   R2_ACCOUNT_ID

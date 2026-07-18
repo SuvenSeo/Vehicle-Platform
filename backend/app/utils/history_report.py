@@ -220,7 +220,7 @@ def build_history_report(db: Session, listing: CarListing) -> dict:
         "flags": flags,
         "disclaimer": (
             "Matches are spec-based (make, model, year, mileage) from public ads — "
-            "AutoLens has no access to registration records. Verify identity via "
+            "Motormila has no access to registration records. Verify identity via "
             "chassis number and DMT records before relying on this report."
         ),
     }

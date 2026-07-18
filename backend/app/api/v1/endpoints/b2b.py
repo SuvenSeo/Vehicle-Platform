@@ -93,7 +93,7 @@ def collateral_value(
             trend_3m_pct=None, confidence="none", computed_at=utc_now(),
             methodology=(
                 "No comparable live listings found for this make/model/year in the "
-                "AutoLens index. Widen the year band or verify the model name."
+                "Motormila index. Widen the year band or verify the model name."
             ),
         )
 
@@ -139,7 +139,7 @@ def collateral_value(
         computed_at=now,
         methodology=(
             "Market value derived from live asking prices of comparable vehicles in "
-            "the AutoLens multi-source index (11 Sri Lankan marketplaces). Median and "
+            "the Motormila multi-source index (11 Sri Lankan marketplaces). Median and "
             "IQR (p25-p75) define a fair range; days-on-market indicates collateral "
             "liquidity; the 3-month trend compares against comparables listed 90+ days "
             "ago. Asking prices, not confirmed transactions — a benchmark to augment, "

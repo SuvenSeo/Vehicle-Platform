@@ -62,11 +62,11 @@ export function AppFooter() {
         {/* Brand + tagline */}
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-lg border border-border bg-foreground/[0.03]">
-            <img src="/logo.svg" alt="MilaMark logo" className="h-7 w-7 object-contain" loading="lazy" decoding="async" />
+            <img src="/logo.svg" alt="Motormila logo" className="h-7 w-7 object-contain" loading="lazy" decoding="async" />
           </div>
           <div>
             <h2 id="platform-footer-title" className="font-display text-lg font-semibold tracking-tight text-foreground">
-              MilaMark
+              Motormila
             </h2>
             <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Vehicle Intelligence for Sri Lanka

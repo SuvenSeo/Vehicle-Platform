@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Check, HelpCircle, Sparkles, Users } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 import { ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS } from "@/lib/pricingContent";
 import { revealContainer, revealItem } from "@/lib/motion";
 
@@ -232,7 +233,7 @@ export default function Pricing() {
               Docs
             </Link>
             <a
-              href="mailto:s.seoras@rgu.ac.uk?subject=Custom%20pricing%20inquiry"
+              href={BRAND.contactMailto}
               className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
             >
               Message us
