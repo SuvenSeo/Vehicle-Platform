@@ -2,36 +2,28 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, ExternalLink, FileText, Radio } from "lucide-react";
 import { DOCS_SECTIONS } from "@/lib/docsContent";
-import { revealContainer, revealItem } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem } from "@/lib/motion";
 
 export default function Docs() {
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="relative min-h-screen overflow-hidden bg-background"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-[20%] left-[-10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]"
-      />
-
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-card/50 backdrop-blur-md">
-        <div className="mx-auto max-w-[1320px] px-5 py-16 sm:px-6 sm:py-20 lg:py-24">
-          <p className="section-eyebrow mb-5 inline-flex items-center gap-2">
-            <BookOpen aria-hidden className="h-3.5 w-3.5" />
-            Documentation
-          </p>
-          <h1 className="display-hero max-w-3xl text-foreground">Platform docs.</h1>
-          <p className="text-body-lg mt-6 max-w-xl">
-            How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers.
-          </p>
-          <div className="mt-9 flex flex-wrap gap-3">
+    <PageCanvas>
+      <PageHero
+        theme="docs"
+        eyebrow="Documentation"
+        eyebrowIcon={BookOpen}
+        watermarkIcon={FileText}
+        title={<>Platform docs<span className="text-sheen">.</span></>}
+        description="How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers."
+        highlights={[
+          { label: "Sections", value: String(DOCS_SECTIONS.length), hint: "Platform methodology" },
+          { label: "Pulse", value: "Live", hint: "Government import signals" },
+          { label: "Access", value: "Tiers", hint: "Free through enterprise" },
+        ]}
+        actions={
+          <>
             <Link
               to="/pricing"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -46,11 +38,11 @@ export default function Docs() {
               <Radio aria-hidden className="h-4 w-4" />
               Official Pulse
             </Link>
-          </div>
-        </div>
-      </motion.section>
+          </>
+        }
+      />
 
-      <div className="relative z-10 mx-auto max-w-[1320px] px-5 py-14 sm:px-6 lg:py-20">
+      <PageBody>
         <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-14">
           <motion.aside variants={revealItem} className="lg:sticky lg:top-24 lg:self-start">
             <p className="section-eyebrow mb-4">On this page</p>
@@ -150,7 +142,7 @@ export default function Docs() {
             </motion.div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

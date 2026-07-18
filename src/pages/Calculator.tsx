@@ -16,6 +16,9 @@ import {
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
 
@@ -265,30 +268,23 @@ export default function Calculator() {
   };
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={containerVariants}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Background Orbs — token-based, adapt to both themes */}
-      <div aria-hidden className="pointer-events-none absolute top-[-12%] left-[-10%] h-[560px] w-[560px] rounded-full bg-primary/5 blur-[130px]" />
-      <div aria-hidden className="pointer-events-none absolute bottom-[18%] right-[-12%] h-[480px] w-[480px] rounded-full bg-primary/5 blur-[120px]" />
+    <PageCanvas>
+      <PageHero
+        theme="calculator"
+        eyebrow="Motormila Intelligence Hub"
+        eyebrowIcon={Compass}
+        watermarkIcon={Banknote}
+        title={<>Mobility &amp; Tax Calculators<span className="text-sheen">.</span></>}
+        description="Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves."
+        highlights={[
+          { label: "Import duty", value: "Live", hint: "Gazette-aligned landed cost" },
+          { label: "Ownership", value: "TCO", hint: "Fuel, lease, and service map" },
+          { label: "Permits", value: "Tracker", hint: "Black market permit signals" },
+        ]}
+      />
 
-      {/* Hero — one confident headline that towers over everything */}
-      <motion.section variants={itemVariants} className="relative z-10 border-b border-border">
-        <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
-          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            Motormila Intelligence Hub
-          </p>
-          <h1 className="display-hero mt-5 text-foreground">Mobility &amp; Tax Calculators.</h1>
-          <p className="text-body-lg mt-5 max-w-xl">Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.</p>
-        </div>
-      </motion.section>
-
-      {/* Tabs Selector */}
-      <motion.div variants={itemVariants} className="mx-auto flex max-w-[1320px] flex-nowrap items-center gap-3 px-5 py-6 sm:px-6">
+      <PageBody className="space-y-0 pb-0">
+      <motion.div variants={itemVariants} className="flex max-w-[1320px] flex-nowrap items-center gap-3 pb-6">
         <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-full border border-border bg-card p-1.5 shadow-soft snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
           {[
             { id: "landed-cost", label: "Landed Cost", icon: Banknote },
@@ -826,6 +822,7 @@ export default function Calculator() {
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, BarChart3, MapPin, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/SectionHeader";
-import { revealContainer, revealItem, springSnappy } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem, springSnappy } from "@/lib/motion";
 
 const links = [
   {
@@ -31,51 +34,28 @@ const links = [
 
 const NotFound = () => {
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="relative min-h-screen overflow-hidden bg-background"
-    >
-      {/* Decorative accent glow — token-tinted, correct in both themes */}
-      <div className="pointer-events-none absolute right-[-10%] top-[8%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
-      <div className="pointer-events-none absolute bottom-[16%] left-[-15%] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[90px]" />
+    <PageCanvas ambient="subtle">
+      <PageHero
+        theme="default"
+        eyebrow="404"
+        title={<>Page not found<span className="text-sheen">.</span></>}
+        description="This route doesn't exist. Try one of the links below."
+        highlights={[
+          { label: "Inventory", value: "Live", hint: "Browse the full market" },
+          { label: "Trends", value: "Open", hint: "Price movement studio" },
+          { label: "Calculator", value: "Ready", hint: "Import and TCO tools" },
+        ]}
+        actions={
+          <Button asChild size="lg" variant="outline">
+            <Link to="/">
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              Back to dashboard
+            </Link>
+          </Button>
+        }
+      />
 
-      {/* Hero — one confident, towering headline */}
-      <section className="relative z-10">
-        <div className="layout-shell py-16 sm:py-24 lg:py-32">
-          <motion.p
-            variants={revealItem}
-            className="num section-eyebrow text-primary-bright"
-          >
-            404
-          </motion.p>
-          <motion.h1
-            variants={revealItem}
-            className="display-hero mt-4 max-w-4xl text-foreground"
-          >
-            Page not found.
-          </motion.h1>
-          <motion.p
-            variants={revealItem}
-            className="text-body-lg mt-5 max-w-xl"
-          >
-            This route doesn't exist. Try one of the links below.
-          </motion.p>
-          <motion.div variants={revealItem} className="mt-9">
-            <Button asChild size="lg" variant="outline">
-              <Link to="/">
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-                Back to dashboard
-              </Link>
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Quick links — one featured card, then a calm secondary row */}
-      <section className="relative z-10">
-        <div className="layout-shell pb-20 lg:pb-28">
+      <PageBody className="pb-20 lg:pb-28">
           <motion.div variants={revealItem}>
             <SectionHeader
               eyebrow="Popular destinations"
@@ -83,7 +63,7 @@ const NotFound = () => {
             />
           </motion.div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
             {links.map((l) => {
               const Icon = l.icon;
               return (
@@ -140,9 +120,8 @@ const NotFound = () => {
               );
             })}
           </div>
-        </div>
-      </section>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 };
 

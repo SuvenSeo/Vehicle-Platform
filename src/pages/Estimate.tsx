@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { revealContainer, revealItem } from "@/lib/motion";
 import { APIError, estimatePrice, formatPrice, getMakes, getModels, getPriceTrends } from "@/services/api";
 import { PriceEstimate, PriceTrendPoint } from "@/types/car";
 import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { SellerFairAskCard } from "@/components/SellerFairAskCard";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
 import { AlertTriangle, BarChart3, Gauge, ShieldCheck, TrendingUp } from "lucide-react";
+import { revealContainer, revealItem } from "@/lib/motion";
 
 type EstimateForm = {
   make: string;
@@ -109,34 +112,22 @@ export default function Estimate() {
   const projection = useMemo(() => result ? getTrendProjection(trendPoints, result.median) : null, [result, trendPoints]);
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative Orbs */}
-      <div aria-hidden className="absolute top-[6%] right-[-12%] h-[520px] w-[520px] rounded-full bg-primary/5 blur-[110px] pointer-events-none" />
-      <div aria-hidden className="absolute bottom-[20%] left-[-15%] h-[400px] w-[400px] rounded-full bg-primary/5 blur-[90px] pointer-events-none" />
+    <PageCanvas>
+      <PageHero
+        theme="valuation"
+        eyebrow="Valuation workbench"
+        eyebrowIcon={Gauge}
+        watermarkIcon={BarChart3}
+        title={<>What&rsquo;s your car worth?</>}
+        description="District-aware fair value ranges, trend projection, and seller ask guidance from live Sri Lanka inventory."
+        highlights={[
+          { label: "Method", value: "Comps", hint: "Comparable listing median" },
+          { label: "Trend aware", value: "12 mo", hint: "Price trajectory projection" },
+          { label: "District fit", value: "25+", hint: "Localized market lanes" },
+        ]}
+      />
 
-      {/* Hero */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-surface/40 backdrop-blur-md">
-        <div className="mx-auto max-w-[1320px] px-5 py-16 sm:px-6 lg:py-24">
-          <p className="section-eyebrow inline-flex items-center gap-2 text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
-            Valuation workbench
-          </p>
-          <h1 className="display-hero mt-4 max-w-3xl text-foreground">
-            What's your car worth?
-          </h1>
-          <p className="text-body-lg mt-5 max-w-xl">
-            Estimate fair value for any vehicle based on live market data, comparable listings, and district-level pricing.
-          </p>
-        </div>
-      </motion.section>
-
-      {/* Two-column layout */}
-      <div className="relative z-10 mx-auto max-w-[1320px] px-5 py-12 sm:px-6 lg:py-16">
+      <PageBody>
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
 
           {/* ── INPUT PANEL ──────────────────────────────────────── */}
@@ -376,7 +367,7 @@ export default function Estimate() {
             )}
           </motion.div>
         </div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

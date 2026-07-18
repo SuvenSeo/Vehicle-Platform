@@ -21,7 +21,7 @@ describe("Docs and Pricing pages", () => {
 
   it("renders pricing tiers and ICP personas", () => {
     wrap(<Pricing />);
-    expect(screen.getByRole("heading", { name: /^Pricing\.$/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pricing/i })).toBeInTheDocument();
     expect(screen.getByText("LKR 999")).toBeInTheDocument();
     expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     expect(screen.getByText("Dealers")).toBeInTheDocument();

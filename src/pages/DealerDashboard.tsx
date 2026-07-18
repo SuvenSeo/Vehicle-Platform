@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, Bell, ChevronDown, ChevronUp, RefreshCw, ShieldCheck, Upload } from "lucide-react";
+import { AlertTriangle, BarChart3, Bell, ChevronDown, ChevronUp, RefreshCw, ShieldCheck, Upload } from "lucide-react";
 import {
   benchmarkDealerUrls,
   formatPrice,
@@ -15,7 +15,10 @@ import {
 import type { UrlBenchmarkResult } from "@/services/api";
 import { getStoredAuthToken } from "@/lib/authToken";
 import type { ProMarketSnapshot } from "@/types/pro";
-import { revealContainer, revealItem, springSoft } from "@/lib/motion";
+import { revealItem, springSoft } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   buildDealerNotifications,
@@ -355,33 +358,28 @@ export default function DealerDashboard() {
   };
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative Orbs */}
-      <div aria-hidden className="absolute top-[5%] right-[-10%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
-      <div aria-hidden className="absolute bottom-[10%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" />
-
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-surface">
-        <div className="mx-auto max-w-[1320px] px-5 py-14 sm:px-6 lg:py-20">
-          <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
-            Dealer workspace
-          </p>
-          <h1 className="display-hero mt-4 max-w-3xl text-foreground">Dealer command center.</h1>
-          <p className="text-body-lg mt-5 max-w-xl">Arbitrage, demand mapping, and lead flow intelligence.</p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+    <PageCanvas>
+      <PageHero
+        theme="dealer"
+        eyebrow="Dealer workspace"
+        watermarkIcon={BarChart3}
+        title={<>Dealer command center<span className="text-sheen">.</span></>}
+        description="Arbitrage, demand mapping, and lead flow intelligence."
+        highlights={[
+          { label: "Inventory", value: "Live", hint: "Public market browse" },
+          { label: "Pulse", value: "Gov", hint: "Official import signals" },
+          { label: "Plans", value: "Pro", hint: "Dealer workspace tiers" },
+        ]}
+        actions={
+          <>
             <Link to="/#market" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Open public inventory</Link>
             <Link to="/pricing" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Dealer plans</Link>
             <Link to="/official-pulse" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Official pulse</Link>
-          </div>
-        </div>
-      </motion.section>
+          </>
+        }
+      />
 
-      <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 lg:py-14 relative z-10">
+      <PageBody className="py-10 lg:py-14">
         {dashboardError ? (
           <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500 dark:text-rose-400" />
@@ -626,7 +624,7 @@ export default function DealerDashboard() {
             </motion.div>
           </main>
         </div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

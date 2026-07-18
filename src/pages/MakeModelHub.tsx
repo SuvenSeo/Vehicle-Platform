@@ -5,6 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart2, Car, TrendingUp } from "lucide-react";
 import { getMakeModelInsight, getListings, formatPrice } from "@/services/api";
 import { revealContainer, revealItem } from "@/lib/motion";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
 import { ListingCard } from "@/components/ListingCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
@@ -140,61 +143,46 @@ export default function MakeModelHub() {
   ];
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative ambient orbs — primary-tinted, adapt across themes */}
-      <div className="absolute top-[10%] right-[-10%] w-[450px] h-[450px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" aria-hidden />
-      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[90px] pointer-events-none" aria-hidden />
-
-      {/* ── Hero — the model, its lead, and the aggregate snapshot as hero numbers ── */}
-      <motion.section
-        variants={revealItem}
-        className="relative z-10 border-b border-border bg-card/50 backdrop-blur-md"
+    <PageCanvas>
+      <PageHero
+        theme="default"
+        eyebrow="Market hub"
+        eyebrowIcon={Car}
+        watermarkIcon={BarChart2}
+        title={isPending ? vehicleLabel : `${canonicalMake} ${canonicalModel}`}
+        description="Prices, district breakdown, and live listings for the Sri Lankan market."
+        highlights={[
+          { label: "Market hub", value: "Live", hint: "Sri Lanka inventory lane" },
+          { label: "Districts", value: "25+", hint: "Geographic breakdown" },
+          { label: "Listings", value: "Indexed", hint: "Live inventory lane" },
+        ]}
       >
-        <div className="mx-auto max-w-[1320px] px-5 py-14 sm:px-6 sm:py-20 lg:py-24">
-          <p className="section-eyebrow inline-flex items-center gap-2 text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            Market hub
-          </p>
-          <h1 className="display-hero mt-5 max-w-3xl text-foreground">
-            {isPending ? vehicleLabel : `${canonicalMake} ${canonicalModel}`}
-          </h1>
-          <p className="text-body-lg mt-5 max-w-xl">
-            Prices, district breakdown, and live listings for the Sri Lankan market.
-          </p>
-
-          {/* Aggregate stat band — the key numbers, at hero scale */}
-          <div className="mt-10 sm:mt-12">
-            <div className="flex items-center gap-2.5">
-              <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-live-dot" />
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                Market snapshot
-              </h2>
-            </div>
-            <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft sm:grid-cols-3">
-              {statsCards.map((card) => (
-                <div key={card.label} className="bg-card p-6">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    {card.label}
-                  </p>
-                  <p className="num mt-2.5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                    {card.value}
-                  </p>
-                  {card.note && (
-                    <p className="mt-2 text-[11px] font-medium text-muted-foreground">{card.note}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+        <div className="mt-10 sm:mt-12">
+          <div className="flex items-center gap-2.5">
+            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-live-dot" />
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+              Market snapshot
+            </h2>
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft sm:grid-cols-3">
+            {statsCards.map((card) => (
+              <div key={card.label} className="bg-card p-6">
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  {card.label}
+                </p>
+                <p className="num mt-2.5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  {card.value}
+                </p>
+                {card.note && (
+                  <p className="mt-2 text-[11px] font-medium text-muted-foreground">{card.note}</p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      </motion.section>
+      </PageHero>
 
-      <div className="mx-auto max-w-[1320px] px-5 py-12 sm:px-6 lg:py-16 space-y-16 lg:space-y-24 relative z-10">
+      <PageBody className="space-y-16 lg:space-y-24">
         {isError && (
           <motion.div
             variants={revealItem}
@@ -336,7 +324,7 @@ export default function MakeModelHub() {
             </Button>
           </motion.div>
         </motion.div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }

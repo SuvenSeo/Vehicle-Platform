@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { ImportEraPublicSection } from "@/components/ImportEraPublicSection";
-import { RotateCcw, Zap } from "lucide-react";
-import { revealContainer, revealItem } from "@/lib/motion";
+import { RotateCcw, Zap, BarChart3 } from "lucide-react";
+import { PageBody } from "@/components/PageBody";
+import { PageCanvas } from "@/components/PageCanvas";
+import { PageHero } from "@/components/PageHero";
+import { revealItem } from "@/lib/motion";
 import type { HybridBandsData, PriceTrendPoint } from "@/types/car";
 import {
   getExciseRatePerCc,
@@ -102,29 +105,21 @@ export default function Trends() {
   const fieldLabelClass = "text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground";
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={revealContainer}
-      className="min-h-screen relative overflow-hidden bg-background"
-    >
-      {/* Decorative orbs — token-based, adapt to both themes */}
-      <div aria-hidden className="pointer-events-none absolute top-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]" />
-      <div aria-hidden className="pointer-events-none absolute bottom-[30%] left-[-10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
+    <PageCanvas>
+      <PageHero
+        theme="trends"
+        eyebrow="Trend studio"
+        watermarkIcon={BarChart3}
+        title={<>Price trends<span className="text-sheen">.</span></>}
+        description="Track median price movement for any vehicle lane across Sri Lanka."
+        highlights={[
+          { label: "Coverage", value: "All LK", hint: "District-level price lanes" },
+          { label: "Hybrid lens", value: "Tax bands", hint: "Excise cliff intelligence" },
+          { label: "History", value: "Monthly", hint: "Median price trajectories" },
+        ]}
+      />
 
-      {/* Hero — one confident headline that towers over everything */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border">
-        <div className="mx-auto max-w-[1320px] px-5 pt-16 pb-12 sm:px-6 sm:pt-20 sm:pb-16">
-          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            Trend studio
-          </p>
-          <h1 className="display-hero mt-5 text-foreground">Price trends.</h1>
-          <p className="text-body-lg mt-5 max-w-xl">Track median price movement for any vehicle lane across Sri Lanka.</p>
-        </div>
-      </motion.section>
-
-      <div className="mx-auto max-w-[1320px] space-y-6 px-5 py-8 sm:px-6 lg:py-10 relative z-10">
+      <PageBody className="space-y-6">
         {/* Controls */}
         <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -216,8 +211,8 @@ export default function Trends() {
         <motion.div variants={revealItem}>
           <ImportEraPublicSection />
         </motion.div>
-      </div>
-    </motion.div>
+      </PageBody>
+    </PageCanvas>
   );
 }
 

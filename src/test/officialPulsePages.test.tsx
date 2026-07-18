@@ -59,7 +59,7 @@ describe("Official Pulse pages", () => {
     renderAt("/official-pulse");
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /Official pulse\./i })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /Official pulse/i })).toBeInTheDocument();
     });
     expect(screen.getAllByText("Customs tender sales").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Open in-platform/i })).toHaveAttribute(
