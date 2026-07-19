@@ -8,6 +8,8 @@ import {
 interface ProvinceVelocityStripProps {
   data: DistrictVelocityPoint[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -84,6 +86,8 @@ function ProvinceCell({
 export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
   data,
   isLoading,
+  isError,
+  onRetry,
 }: ProvinceVelocityStripProps) {
   const provinces = useMemo(() => aggregateDistrictVelocityByProvince(data), [data]);
 
@@ -109,6 +113,25 @@ export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
         {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="h-[88px] animate-pulse rounded-xl border border-border bg-surface" />
         ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Province velocity temporarily unavailable — market API returned an error.
+        </p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
     );
   }

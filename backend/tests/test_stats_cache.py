@@ -3,11 +3,12 @@
 Covers:
   - MarketStatsCache model round-trip
   - _is_fresh TTL logic
-  - refresh_stats_cache populates both keys
-  - get_cached_summary / get_cached_district_prices honour staleness
-  - store_summary_cache / store_district_prices_cache helpers
+  - refresh_stats_cache populates summary, district_prices, and district_velocity
+  - get_cached_summary / get_cached_district_prices / get_cached_district_velocity honour staleness
+  - store_summary_cache / store_district_prices_cache / store_district_velocity_cache helpers
   - stats summary endpoint uses cache on hit, stores on miss
   - district-prices endpoint uses cache on hit, stores on miss
+  - district-velocity endpoint uses cache on hit and stale fallback on compute failure
 """
 
 import sys
@@ -20,15 +21,17 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import stats as stats_module
-from app.models.schemas import StatsSummary
+from app.models.schemas import DistrictVelocityResponse, StatsSummary
 from app.utils import stats_cache
 from app.utils.stats_cache import (
     CACHE_TTL_SECONDS,
     _is_fresh,
     get_cached_district_prices,
+    get_cached_district_velocity,
     get_cached_summary,
     refresh_stats_cache,
     store_district_prices_cache,
+    store_district_velocity_cache,
     store_summary_cache,
 )
 from db.models import Base, CarListing, MarketStatsCache, PriceAggregate
@@ -311,9 +314,13 @@ def test_refresh_stats_cache_creates_both_keys():
 
     summary_entry = db.query(MarketStatsCache).filter_by(cache_key="summary").first()
     dp_entry = db.query(MarketStatsCache).filter_by(cache_key="district_prices").first()
+    velocity_entry = db.query(MarketStatsCache).filter_by(cache_key="district_velocity").first()
 
     assert summary_entry is not None
     assert dp_entry is not None
+    assert velocity_entry is not None
+    assert isinstance(velocity_entry.payload, dict)
+    assert "points" in velocity_entry.payload
 
 
 def test_refresh_stats_cache_summary_reflects_listing_count():
@@ -448,3 +455,121 @@ def test_district_prices_endpoint_stores_to_cache_on_miss():
     cached = get_cached_district_prices(db)
     assert cached is not None
     assert "points" in cached
+
+
+# ---------------------------------------------------------------------------
+# district-velocity cache
+# ---------------------------------------------------------------------------
+
+
+def _fresh_velocity_payload() -> dict:
+    return {
+        "points": [
+            {
+                "district": "Colombo",
+                "lat": 6.9271,
+                "lng": 79.8612,
+                "listing_count": 10,
+                "new_7d_count": 2,
+                "velocity_score": 0.2,
+            }
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def test_get_cached_district_velocity_returns_none_when_no_entry():
+    db = _session()
+    assert get_cached_district_velocity(db) is None
+
+
+def test_get_cached_district_velocity_returns_none_when_stale():
+    db = _session()
+    db.add(
+        MarketStatsCache(
+            cache_key="district_velocity",
+            payload=_fresh_velocity_payload(),
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 10),
+        )
+    )
+    db.commit()
+    assert get_cached_district_velocity(db) is None
+    stale = get_cached_district_velocity(db, allow_stale=True)
+    assert stale is not None
+    assert stale.points[0].district == "Colombo"
+
+
+def test_district_velocity_endpoint_returns_cached_on_hit(monkeypatch):
+    db = _session()
+    db.add(
+        MarketStatsCache(
+            cache_key="district_velocity",
+            payload=_fresh_velocity_payload(),
+            refreshed_at=datetime.now(timezone.utc),
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        stats_module,
+        "compute_district_velocity",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute")),
+    )
+
+    result = stats_module.get_district_velocity(db=db)
+    assert isinstance(result, DistrictVelocityResponse)
+    assert result.points[0].listing_count == 10
+
+
+def test_district_velocity_endpoint_stores_to_cache_on_miss(monkeypatch):
+    monkeypatch.setattr(
+        stats_module,
+        "utc_now",
+        lambda: datetime(2026, 4, 19, 12, 0, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        stats_cache,
+        "utc_now",
+        lambda: datetime(2026, 4, 19, 12, 0, tzinfo=timezone.utc),
+    )
+
+    db = _session()
+    db.add(_listing("vel-1", 7_000_000, 5.0, district="Colombo"))
+    db.commit()
+
+    assert get_cached_district_velocity(db) is None
+    result = stats_module.get_district_velocity(db=db)
+    assert result.points
+    cached = get_cached_district_velocity(db)
+    assert cached is not None
+    assert cached.points[0].district == "Colombo"
+
+
+def test_district_velocity_endpoint_serves_stale_cache_on_compute_failure(monkeypatch):
+    db = _session()
+    db.add(
+        MarketStatsCache(
+            cache_key="district_velocity",
+            payload=_fresh_velocity_payload(),
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 60),
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        stats_module,
+        "compute_district_velocity",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+
+    result = stats_module.get_district_velocity(db=db)
+    assert result.points[0].district == "Colombo"
+
+
+def test_store_district_velocity_cache_round_trip():
+    db = _session()
+    payload = DistrictVelocityResponse.model_validate(_fresh_velocity_payload())
+    store_district_velocity_cache(db, payload)
+    cached = get_cached_district_velocity(db)
+    assert cached is not None
+    assert cached.points[0].velocity_score == 0.2
