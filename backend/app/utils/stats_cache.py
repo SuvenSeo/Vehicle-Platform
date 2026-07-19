@@ -74,10 +74,16 @@ def _upsert(db: Session, key: str, payload: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def get_cached_summary(db: Session) -> Optional[StatsSummary]:
-    """Return a fresh cached ``StatsSummary`` or ``None`` on miss/staleness."""
+def get_cached_summary(
+    db: Session,
+    *,
+    allow_stale: bool = False,
+) -> Optional[StatsSummary]:
+    """Return cached ``StatsSummary`` or ``None`` on miss/staleness."""
     entry = _get_entry(db, "summary")
-    if entry is None or not _is_fresh(entry):
+    if entry is None:
+        return None
+    if not allow_stale and not _is_fresh(entry):
         return None
     try:
         return StatsSummary.model_validate(entry.payload)
@@ -86,10 +92,16 @@ def get_cached_summary(db: Session) -> Optional[StatsSummary]:
         return None
 
 
-def get_cached_district_prices(db: Session) -> Optional[dict]:
-    """Return fresh cached district-prices payload or ``None`` on miss/staleness."""
+def get_cached_district_prices(
+    db: Session,
+    *,
+    allow_stale: bool = False,
+) -> Optional[dict]:
+    """Return cached district-prices payload or ``None`` on miss/staleness."""
     entry = _get_entry(db, "district_prices")
-    if entry is None or not _is_fresh(entry):
+    if entry is None:
+        return None
+    if not allow_stale and not _is_fresh(entry):
         return None
     payload = entry.payload
     if not isinstance(payload, dict):

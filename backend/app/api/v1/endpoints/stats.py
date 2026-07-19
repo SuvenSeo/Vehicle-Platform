@@ -167,56 +167,63 @@ def get_stats_summary(db: Session = Depends(get_db)):
     if cached is not None:
         return cached
 
-    seven_days_ago = utc_now() - timedelta(days=7)
+    try:
+        seven_days_ago = utc_now() - timedelta(days=7)
 
-    total = db.query(func.count(CarListing.id)).filter(live_listing_filter()).scalar() or 0
-    avg_price = db.query(func.avg(CarListing.price_lkr)).filter(
-        live_listing_filter(), CarListing.price_lkr.isnot(None)
-    ).scalar()
-    good_deals = db.query(func.count(CarListing.id)).filter(
-        CarListing.deal_score >= 20, live_listing_filter()
-    ).scalar() or 0
-    this_week = db.query(func.count(CarListing.id)).filter(
-        CarListing.first_seen_at >= seven_days_ago
-    ).scalar() or 0
-    districts = count_canonical_districts(
-        db.query(CarListing).filter(CarListing.district.isnot(None))
-    )
-    source_count = db.query(func.count(func.distinct(CarListing.source))).filter(
-        live_listing_filter(),
-        CarListing.source.isnot(None),
-    ).scalar() or 0
-    last_updated = db.query(
-        func.max(func.coalesce(CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at))
-    ).filter(
-        live_listing_filter()
-    ).scalar()
+        total = db.query(func.count(CarListing.id)).filter(live_listing_filter()).scalar() or 0
+        avg_price = db.query(func.avg(CarListing.price_lkr)).filter(
+            live_listing_filter(), CarListing.price_lkr.isnot(None)
+        ).scalar()
+        good_deals = db.query(func.count(CarListing.id)).filter(
+            CarListing.deal_score >= 20, live_listing_filter()
+        ).scalar() or 0
+        this_week = db.query(func.count(CarListing.id)).filter(
+            CarListing.first_seen_at >= seven_days_ago
+        ).scalar() or 0
+        districts = count_canonical_districts(
+            db.query(CarListing).filter(CarListing.district.isnot(None))
+        )
+        source_count = db.query(func.count(func.distinct(CarListing.source))).filter(
+            live_listing_filter(),
+            CarListing.source.isnot(None),
+        ).scalar() or 0
+        last_updated = db.query(
+            func.max(func.coalesce(CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at))
+        ).filter(
+            live_listing_filter()
+        ).scalar()
 
-    # MoM price change from aggregates
-    price_change_mom = None
-    now = utc_now()
-    cur_y, cur_m = now.year, now.month
-    prev_m, prev_y = (cur_m - 1, cur_y) if cur_m > 1 else (12, cur_y - 1)
-    cur_avg = db.query(func.avg(PriceAggregate.avg_price_lkr)).filter(
-        PriceAggregate.period_year == cur_y, PriceAggregate.period_month == cur_m
-    ).scalar()
-    prev_avg = db.query(func.avg(PriceAggregate.avg_price_lkr)).filter(
-        PriceAggregate.period_year == prev_y, PriceAggregate.period_month == prev_m
-    ).scalar()
-    if cur_avg and prev_avg and float(prev_avg) > 0:
-        price_change_mom = round(((float(cur_avg) - float(prev_avg)) / float(prev_avg)) * 100, 1)
+        # MoM price change from aggregates
+        price_change_mom = None
+        now = utc_now()
+        cur_y, cur_m = now.year, now.month
+        prev_m, prev_y = (cur_m - 1, cur_y) if cur_m > 1 else (12, cur_y - 1)
+        cur_avg = db.query(func.avg(PriceAggregate.avg_price_lkr)).filter(
+            PriceAggregate.period_year == cur_y, PriceAggregate.period_month == cur_m
+        ).scalar()
+        prev_avg = db.query(func.avg(PriceAggregate.avg_price_lkr)).filter(
+            PriceAggregate.period_year == prev_y, PriceAggregate.period_month == prev_m
+        ).scalar()
+        if cur_avg and prev_avg and float(prev_avg) > 0:
+            price_change_mom = round(((float(cur_avg) - float(prev_avg)) / float(prev_avg)) * 100, 1)
 
-    result = StatsSummary(
-        total_listings=total,
-        avg_price_lkr=float(avg_price) if avg_price else None,
-        price_change_mom=price_change_mom,
-        good_deals_count=good_deals,
-        listings_this_week=this_week,
-        districts_covered=districts,
-        district_count=int(districts),
-        source_count=int(source_count),
-        last_updated=last_updated,
-    )
+        result = StatsSummary(
+            total_listings=total,
+            avg_price_lkr=float(avg_price) if avg_price else None,
+            price_change_mom=price_change_mom,
+            good_deals_count=good_deals,
+            listings_this_week=this_week,
+            districts_covered=districts,
+            district_count=int(districts),
+            source_count=int(source_count),
+            last_updated=last_updated,
+        )
+    except Exception:
+        stale = get_cached_summary(db, allow_stale=True)
+        if stale is not None:
+            return stale
+        raise
+
     store_summary_cache(db, result)
     return result
 
@@ -242,16 +249,20 @@ async def stream_live_market_snapshot(request: Request):
 
     async def events():
         global _sse_active_connections
+
+        def _fetch_snapshot() -> dict:
+            db = SessionLocal()
+            try:
+                return build_live_market_snapshot(db)
+            finally:
+                db.close()
+
         try:
             while True:
                 if await request.is_disconnected():
                     break
 
-                db = SessionLocal()
-                try:
-                    snapshot = build_live_market_snapshot(db)
-                finally:
-                    db.close()
+                snapshot = await asyncio.to_thread(_fetch_snapshot)
 
                 yield f"event: snapshot\ndata: {json.dumps(snapshot)}\n\n"
                 await asyncio.sleep(LIVE_STREAM_INTERVAL_SECONDS)
@@ -275,145 +286,152 @@ def get_district_prices(db: Session = Depends(get_db)):
     if cached is not None:
         return cached
 
-    median_by_district = build_district_median_map(db)
-    results = (
-        db.query(
-            CarListing.district,
-            func.count(CarListing.id).label("count"),
-            func.avg(CarListing.price_lkr).label("avg_price"),
-        )
-        .filter(
-            CarListing.district.isnot(None),
-            CarListing.price_lkr.isnot(None),
-            live_listing_filter(),
-        )
-        .group_by(CarListing.district)
-        .order_by(desc("count"))
-        .all()
-    )
-
-    points = []
-    inferred_mode = (
-        len(results) <= 1
-        and len(results) > 0
-        and str(results[0][0] or "").strip().lower() == "sri lanka"
-    )
-
-    if inferred_mode:
-        rows = (
-            db.query(CarListing.district, CarListing.url, CarListing.price_lkr, CarListing.make, CarListing.model)
+    try:
+        median_by_district = build_district_median_map(db)
+        results = (
+            db.query(
+                CarListing.district,
+                func.count(CarListing.id).label("count"),
+                func.avg(CarListing.price_lkr).label("avg_price"),
+            )
             .filter(
+                CarListing.district.isnot(None),
                 CarListing.price_lkr.isnot(None),
                 live_listing_filter(),
             )
+            .group_by(CarListing.district)
+            .order_by(desc("count"))
             .all()
         )
 
-        agg = {}
-        for district, url, price, make, model in rows:
+        points = []
+        inferred_mode = (
+            len(results) <= 1
+            and len(results) > 0
+            and str(results[0][0] or "").strip().lower() == "sri lanka"
+        )
+
+        if inferred_mode:
+            rows = (
+                db.query(CarListing.district, CarListing.url, CarListing.price_lkr, CarListing.make, CarListing.model)
+                .filter(
+                    CarListing.price_lkr.isnot(None),
+                    live_listing_filter(),
+                )
+                .all()
+            )
+
+            agg = {}
+            for district, url, price, make, model in rows:
+                normalized = normalize_district_name(district)
+                if normalized == "Sri Lanka" or normalized is None:
+                    normalized = find_district_from_url(url)
+                if not normalized:
+                    continue
+                item = agg.setdefault(normalized, {"count": 0, "total": 0.0, "model_counts": {}, "prices": []})
+                item["count"] += 1
+                item["total"] += float(price)
+                item["prices"].append(float(price))
+                make_model = f"{str(make or '').strip()} {str(model or '').strip()}".strip()
+                if make_model:
+                    item["model_counts"][make_model] = item["model_counts"].get(make_model, 0) + 1
+
+            for district, values in agg.items():
+                coords = SL_DISTRICT_COORDS.get(district)
+                if not coords or values["count"] <= 0:
+                    continue
+                avg_price = values["total"] / values["count"]
+                district_median = median_from_values(values["prices"]) or avg_price
+                top_model_name = None
+                top_model_count = None
+                if values["model_counts"]:
+                    top_model_name, top_model_count = sorted(
+                        values["model_counts"].items(),
+                        key=lambda item: item[1],
+                        reverse=True,
+                    )[0]
+                top_make = None
+                top_model = None
+                if top_model_name:
+                    parts = top_model_name.split(" ", 1)
+                    top_make = parts[0] if parts else None
+                    top_model = parts[1] if len(parts) > 1 else None
+
+                points.append(
+                    {
+                        "district": district,
+                        "lat": coords[0],
+                        "lng": coords[1],
+                        "count": values["count"],
+                        "avg_price_lkr": round(float(avg_price), 2),
+                        "median_price_lkr": round(float(district_median), 2),
+                        "top_make": top_make,
+                        "top_model": top_model,
+                        "top_model_count": int(top_model_count) if top_model_count else None,
+                    }
+                )
+            points.sort(key=lambda p: p["count"], reverse=True)
+            result = {"points": points}
+            store_district_prices_cache(db, result)
+            return result
+
+        model_results = (
+            db.query(
+                CarListing.district,
+                CarListing.make,
+                CarListing.model,
+                func.count(CarListing.id).label("model_count"),
+            )
+            .filter(
+                CarListing.district.isnot(None),
+                CarListing.make.isnot(None),
+                CarListing.model.isnot(None),
+                live_listing_filter(),
+            )
+            .group_by(CarListing.district, CarListing.make, CarListing.model)
+            .all()
+        )
+
+        top_model_by_district = {}
+        for district, make, model, model_count in model_results:
             normalized = normalize_district_name(district)
-            if normalized == "Sri Lanka" or normalized is None:
-                normalized = find_district_from_url(url)
             if not normalized:
                 continue
-            item = agg.setdefault(normalized, {"count": 0, "total": 0.0, "model_counts": {}, "prices": []})
-            item["count"] += 1
-            item["total"] += float(price)
-            item["prices"].append(float(price))
-            make_model = f"{str(make or '').strip()} {str(model or '').strip()}".strip()
-            if make_model:
-                item["model_counts"][make_model] = item["model_counts"].get(make_model, 0) + 1
+            current = top_model_by_district.get(normalized)
+            count_int = int(model_count or 0)
+            if current is None or count_int > current["count"]:
+                top_model_by_district[normalized] = {
+                    "make": str(make),
+                    "model": str(model),
+                    "count": count_int,
+                }
 
-        for district, values in agg.items():
-            coords = SL_DISTRICT_COORDS.get(district)
-            if not coords or values["count"] <= 0:
+        for district, count, avg_price in results:
+            normalized = normalize_district_name(district)
+            if not normalized:
                 continue
-            avg_price = values["total"] / values["count"]
-            district_median = median_from_values(values["prices"]) or avg_price
-            top_model_name = None
-            top_model_count = None
-            if values["model_counts"]:
-                top_model_name, top_model_count = sorted(
-                    values["model_counts"].items(),
-                    key=lambda item: item[1],
-                    reverse=True,
-                )[0]
-            top_make = None
-            top_model = None
-            if top_model_name:
-                parts = top_model_name.split(" ", 1)
-                top_make = parts[0] if parts else None
-                top_model = parts[1] if len(parts) > 1 else None
-
-            points.append(
-                {
-                    "district": district,
+            coords = SL_DISTRICT_COORDS.get(normalized)
+            if coords and avg_price:
+                top = top_model_by_district.get(normalized)
+                district_median = median_by_district.get(normalized, float(avg_price))
+                points.append({
+                    "district": normalized,
                     "lat": coords[0],
                     "lng": coords[1],
-                    "count": values["count"],
+                    "count": count,
                     "avg_price_lkr": round(float(avg_price), 2),
                     "median_price_lkr": round(float(district_median), 2),
-                    "top_make": top_make,
-                    "top_model": top_model,
-                    "top_model_count": int(top_model_count) if top_model_count else None,
-                }
-            )
-        points.sort(key=lambda p: p["count"], reverse=True)
+                    "top_make": top["make"] if top else None,
+                    "top_model": top["model"] if top else None,
+                    "top_model_count": top["count"] if top else None,
+                })
         result = {"points": points}
-        store_district_prices_cache(db, result)
-        return result
+    except Exception:
+        stale = get_cached_district_prices(db, allow_stale=True)
+        if stale is not None:
+            return stale
+        raise
 
-    model_results = (
-        db.query(
-            CarListing.district,
-            CarListing.make,
-            CarListing.model,
-            func.count(CarListing.id).label("model_count"),
-        )
-        .filter(
-            CarListing.district.isnot(None),
-            CarListing.make.isnot(None),
-            CarListing.model.isnot(None),
-            live_listing_filter(),
-        )
-        .group_by(CarListing.district, CarListing.make, CarListing.model)
-        .all()
-    )
-
-    top_model_by_district = {}
-    for district, make, model, model_count in model_results:
-        normalized = normalize_district_name(district)
-        if not normalized:
-            continue
-        current = top_model_by_district.get(normalized)
-        count_int = int(model_count or 0)
-        if current is None or count_int > current["count"]:
-            top_model_by_district[normalized] = {
-                "make": str(make),
-                "model": str(model),
-                "count": count_int,
-            }
-
-    for district, count, avg_price in results:
-        normalized = normalize_district_name(district)
-        if not normalized:
-            continue
-        coords = SL_DISTRICT_COORDS.get(normalized)
-        if coords and avg_price:
-            top = top_model_by_district.get(normalized)
-            district_median = median_by_district.get(normalized, float(avg_price))
-            points.append({
-                "district": normalized,
-                "lat": coords[0],
-                "lng": coords[1],
-                "count": count,
-                "avg_price_lkr": round(float(avg_price), 2),
-                "median_price_lkr": round(float(district_median), 2),
-                "top_make": top["make"] if top else None,
-                "top_model": top["model"] if top else None,
-                "top_model_count": top["count"] if top else None,
-            })
-    result = {"points": points}
     store_district_prices_cache(db, result)
     return result
 
