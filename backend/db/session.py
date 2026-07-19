@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 from dotenv import load_dotenv, find_dotenv
@@ -56,15 +56,18 @@ for url, label in [(HOT_URL, "HOT_DATABASE_URL"), (COLD_URL, "COLD_DATABASE_URL"
 def _make_engine(url: str):
     if url.startswith("sqlite"):
         return create_engine(url, connect_args={"check_same_thread": False})
-    # Bounded connect + statement time for remote Postgres (HF Spaces / poolers).
-    # NullPool kept: serverless/Space workers should not hold idle pooled conns.
+    # Bounded connect for remote Postgres (HF Spaces / poolers).
+    # Do NOT pass libpq `options=-c statement_timeout=...` here: Supabase
+    # transaction poolers (pgbouncer) reject/break startup options and can
+    # crash the API process on every connection. Statement timeout is set
+    # per-session in get_db() after connect instead.
+    # NullPool kept: Space workers should not hold idle pooled conns.
     return create_engine(
         url,
         poolclass=NullPool,
         pool_pre_ping=True,
         connect_args={
             "connect_timeout": 5,
-            "options": "-c statement_timeout=15000",
         },
     )
 
@@ -83,9 +86,24 @@ engine       = hot_engine
 SessionLocal = HotSessionLocal
 
 
+def _apply_statement_timeout(db) -> None:
+    """Best-effort per-session statement timeout (pooler-safe)."""
+    bind = db.get_bind()
+    if bind is None or bind.dialect.name == "sqlite":
+        return
+    try:
+        db.execute(text("SET statement_timeout = 15000"))
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
 def get_db():
     db = HotSessionLocal()
     try:
+        _apply_statement_timeout(db)
         yield db
     finally:
         db.close()
@@ -94,6 +112,7 @@ def get_db():
 def get_hot_db():
     db = HotSessionLocal()
     try:
+        _apply_statement_timeout(db)
         yield db
     finally:
         db.close()
