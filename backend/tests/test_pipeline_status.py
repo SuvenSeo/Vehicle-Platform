@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+import export_public_snapshots
 from app.api.v1.endpoints import pipeline
 from db.models import Base, ScrapeRun
 
@@ -262,6 +263,54 @@ def test_latest_run_queries_do_not_scan_full_history_window():
     assert set(successes) == {"ikman"}
     assert _to_close(latest["ikman"].started_at, now - timedelta(minutes=5))
     assert _to_close(successes["ikman"].finished_at, now)
+
+
+def test_build_pipeline_status_matches_live_endpoint(monkeypatch):
+    db = _session()
+    now = datetime(2026, 7, 19, 14, 0, tzinfo=timezone.utc)
+    success_at = now - timedelta(hours=2)
+    _freeze_now(monkeypatch, now)
+
+    _add_run(
+        db,
+        source="ikman",
+        status="SUCCESS",
+        started_at=success_at - timedelta(minutes=20),
+        finished_at=success_at,
+    )
+    _add_run(
+        db,
+        source="riyasewana",
+        status="SUCCESS",
+        started_at=success_at - timedelta(minutes=15),
+        finished_at=success_at,
+    )
+
+    live = pipeline.pipeline_status(db=db, is_admin=False)
+    snapshot = export_public_snapshots.build_pipeline_status(db)
+
+    assert snapshot == live
+    assert snapshot["overall_status"] == "ok"
+    assert any(job["name"] == "scrape_ikman" for job in snapshot["jobs"])
+
+
+def test_build_pipeline_status_falls_back_on_failure(monkeypatch):
+    db = _session()
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("pipeline status unavailable")
+
+    monkeypatch.setattr(
+        export_public_snapshots.pipeline_endpoint,
+        "pipeline_status",
+        _boom,
+    )
+
+    payload = export_public_snapshots.build_pipeline_status(db)
+
+    assert payload["overall_status"] == "ok"
+    assert payload["jobs"] == []
+    assert isinstance(payload["generated_at"], str)
 
 
 def _to_close(actual, expected) -> bool:
