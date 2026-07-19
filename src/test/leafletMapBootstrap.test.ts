@@ -16,4 +16,14 @@ describe("leaflet map bootstrap", () => {
     expect(mapSrc).toContain("LazyMapMount");
     expect(mapSrc).toContain("MapResizeController");
   });
+
+  it("loads demand velocity widgets through lazyWithRetry", () => {
+    const dashboardSrc = readFileSync(
+      resolve(process.cwd(), "src/pages/Dashboard.tsx"),
+      "utf8",
+    );
+    expect(dashboardSrc).toContain("lazyWithRetry");
+    expect(dashboardSrc).toContain('import("@/components/DistrictVelocityMap")');
+    expect(dashboardSrc).not.toMatch(/const DistrictVelocityMap = lazy\(/);
+  });
 });

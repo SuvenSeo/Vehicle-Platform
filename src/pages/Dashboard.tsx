@@ -1,9 +1,10 @@
 import { scrollBehavior } from "@/lib/motion";
-import { startTransition, useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
+import { startTransition, useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
-import { FilterState, CarListing, DashboardInsights } from "@/types/car";
+import { FilterState, CarListing, DashboardInsights, DistrictVelocityPoint } from "@/types/car";
 import { getPriceDrops,
   getStats, getListings, getMakes,
   formatPrice, getDashboardInsights, LISTINGS_PAGE_SIZE, getDistrictVelocity,
@@ -99,12 +100,14 @@ const cardItemVariants = {
   }
 } as const;
 
-const DistrictVelocityMap = lazy(() =>
+const DistrictVelocityMap = lazyWithRetry(() =>
   import("@/components/DistrictVelocityMap").then((m) => ({ default: m.DistrictVelocityMap }))
 );
-const ProvinceVelocityStrip = lazy(() =>
+const ProvinceVelocityStrip = lazyWithRetry(() =>
   import("@/components/ProvinceVelocityStrip").then((m) => ({ default: m.ProvinceVelocityStrip }))
 );
+
+const EMPTY_VELOCITY_POINTS: DistrictVelocityPoint[] = [];
 
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
 
@@ -215,9 +218,14 @@ export default function Dashboard() {
     queryKey: ["district-velocity"],
     queryFn: getDistrictVelocity,
     staleTime: 300_000,
-    retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    // fetchJSON already retries transient 5xx — keep RQ retries low to avoid stampede.
+    retry: 1,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
+  const velocityPoints = velocityQuery.data?.points ?? EMPTY_VELOCITY_POINTS;
+  const retryVelocity = useCallback(() => {
+    void velocityQuery.refetch();
+  }, [velocityQuery.refetch]);
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
     queryFn: () => getListings(filters),
@@ -992,20 +1000,16 @@ export default function Dashboard() {
             >
               <div className="space-y-4">
                 <ProvinceVelocityStrip
-                  data={velocityQuery.data?.points ?? []}
+                  data={velocityPoints}
                   isLoading={velocityQuery.isPending}
                   isError={velocityQuery.isError}
-                  onRetry={() => {
-                    void velocityQuery.refetch();
-                  }}
+                  onRetry={retryVelocity}
                 />
                 <DistrictVelocityMap
-                  data={velocityQuery.data?.points ?? []}
+                  data={velocityPoints}
                   isLoading={velocityQuery.isPending}
                   isError={velocityQuery.isError}
-                  onRetry={() => {
-                    void velocityQuery.refetch();
-                  }}
+                  onRetry={retryVelocity}
                 />
               </div>
             </Suspense>

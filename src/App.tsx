@@ -98,12 +98,9 @@ const App = () => {
 
   useEffect(() => {
     const id = window.setTimeout(() => setChatMounted(true), 2000);
-    try {
-      window.sessionStorage.removeItem("autolens.chunk_reload_attempted");
-      window.sessionStorage.removeItem("autolens.css_reload_attempted");
-    } catch {
-      // Ignore storage failures.
-    }
+    // Do not clear chunk/css reload guards on mount — that re-arms infinite
+    // reload loops when a stale asset is still being served. Guards expire
+    // via TTL in lazyWithRetry / index.html instead.
     return () => window.clearTimeout(id);
   }, []);
 

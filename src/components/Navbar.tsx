@@ -130,23 +130,30 @@ export function Navbar() {
     );
   }, [pipelineStatus]);
 
-  const liveState = pipelineStatus?.overall_status ?? "running";
+  // null = still loading / failed — do not pretend the pipeline is actively syncing.
+  const liveState = pipelineStatus?.overall_status ?? null;
   const liveLabel =
     liveState === "ok"
       ? t("nav.live", "Live")
       : liveState === "delayed"
         ? t("nav.delayed", "Delayed")
-        : t("nav.syncing", "Syncing");
+        : liveState === "running"
+          ? t("nav.syncing", "Syncing")
+          : t("nav.statusUnknown", "Status unknown");
   const liveFreshnessLabel = latestSyncIso
     ? formatRelativeTime(latestSyncIso)
-    : t("nav.awaiting", "Awaiting sync");
+    : liveState
+      ? t("nav.awaiting", "Awaiting sync")
+      : t("nav.statusUnavailable", "Unavailable");
 
   const statusDot =
     liveState === "ok"
       ? "bg-emerald-500"
       : liveState === "delayed"
         ? "bg-primary"
-        : "bg-primary/70 animate-pulse-soft";
+        : liveState === "running"
+          ? "bg-primary/70 animate-pulse-soft"
+          : "bg-muted-foreground/50";
 
   const isSectionActive = ({ id, href, activeOn, isRoute }: NavSection) => {
     if (id === "home") {
