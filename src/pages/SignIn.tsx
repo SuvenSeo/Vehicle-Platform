@@ -13,6 +13,13 @@ import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 const schema = z.object({ email: z.string().email("Invalid email"), password: z.string().min(1, "Required") });
 type FormValues = z.infer<typeof schema>;
 
+/** Only same-origin relative paths (leading `/`, not `//`) are allowed as post-login redirects. */
+export function sanitizeSignInRedirect(pathname: unknown): string {
+  if (typeof pathname !== "string") return "/pro";
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) return "/pro";
+  return pathname;
+}
+
 const FEATURES = [
   { icon: BarChart3, text: "Market analytics dashboard" },
   { icon: TrendingUp, text: "Price trend forecasting" },
@@ -29,7 +36,9 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/pro";
+  const from = sanitizeSignInRedirect(
+    (location.state as { from?: { pathname: string } } | null)?.from?.pathname,
+  );
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema) });
 

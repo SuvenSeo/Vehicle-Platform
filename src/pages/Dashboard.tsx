@@ -230,6 +230,9 @@ export default function Dashboard() {
     queryKey: ["listings", filters],
     queryFn: () => getListings(filters),
   });
+  const retryListings = useCallback(() => {
+    void listingsQuery.refetch();
+  }, [listingsQuery.refetch]);
 
   const stats: StatsOverview | null = statsQuery.data ?? null;
   const makes = useMemo(() => makesQuery.data ?? [], [makesQuery.data]);
@@ -237,6 +240,7 @@ export default function Dashboard() {
   const listings = useMemo(() => listingsQuery.data?.listings ?? [], [listingsQuery.data]);
   const total = listingsQuery.data?.total ?? 0;
   const loadingListings = listingsQuery.isPending;
+  const listingsFailed = listingsQuery.isError;
 
   const serverAlerts = useServerMarketAlerts();
 
@@ -885,6 +889,19 @@ export default function Dashboard() {
                   {Array.from({ length: marketView === "grid" ? 9 : 6 }).map((_, i) => (
                     <ListingCardSkeleton key={`skel-${i}`} />
                   ))}
+                </div>
+              ) : listingsFailed ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-20 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Listings temporarily unavailable — market API returned an error.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={retryListings}
+                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+                  >
+                    Retry
+                  </button>
                 </div>
               ) : listings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
