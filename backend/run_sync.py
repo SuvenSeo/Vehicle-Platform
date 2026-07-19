@@ -526,7 +526,8 @@ async def main(profile_override: str | None = None):
     run_dedup = _resolve_bool_env("RUN_DEDUP", False)
     run_listing_lifecycle = _resolve_bool_env("RUN_LISTING_LIFECYCLE", True)
     run_outlier_detection = _resolve_bool_env("RUN_OUTLIER_DETECTION", True)
-    run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", False)
+    # Default with market analysis so summary/district caches stay fresh after sync.
+    run_stats_cache_refresh = _resolve_bool_env("RUN_STATS_CACHE_REFRESH", run_market_analysis)
     run_thumbnail_cache = _resolve_bool_env("RUN_THUMBNAIL_CACHE", False)
     run_image_phash = _resolve_bool_env("RUN_IMAGE_PHASH", False)
     run_alert_match = _resolve_bool_env("RUN_ALERT_MATCH", False)

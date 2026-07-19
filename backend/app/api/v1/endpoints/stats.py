@@ -181,7 +181,10 @@ def get_stats_summary(db: Session = Depends(get_db)):
             CarListing.first_seen_at >= seven_days_ago
         ).scalar() or 0
         districts = count_canonical_districts(
-            db.query(CarListing).filter(CarListing.district.isnot(None))
+            db.query(CarListing).filter(
+                CarListing.district.isnot(None),
+                live_listing_filter(),
+            )
         )
         source_count = db.query(func.count(func.distinct(CarListing.source))).filter(
             live_listing_filter(),

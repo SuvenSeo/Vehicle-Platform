@@ -179,6 +179,28 @@ def test_stats_summary_counts_normalized_districts():
     assert summary.district_count == 3
 
 
+def test_stats_summary_districts_exclude_inactive_and_outlier_listings():
+    db = _session()
+    inactive_only = _listing("inactive-matara", 6_000_000, 4.0, district="Matara")
+    inactive_only.is_active = False
+    outlier_only = _listing("outlier-galle", 6_500_000, 4.0, district="Galle")
+    outlier_only.is_outlier = True
+    db.add_all(
+        [
+            _listing("live-colombo", 7_100_000, 5.0, district="Colombo"),
+            inactive_only,
+            outlier_only,
+        ]
+    )
+    db.commit()
+
+    summary = stats.get_stats_summary(db=db)
+
+    assert summary.districts_covered == 1
+    assert summary.district_count == 1
+    assert summary.total_listings == 1
+
+
 def test_stats_summary_exposes_freshness_and_source_coverage():
     db = _session()
     db.add_all(

@@ -201,7 +201,10 @@ def _compute_summary(db: Session) -> dict:
         or 0
     )
     districts = count_canonical_districts(
-        db.query(CarListing).filter(CarListing.district.isnot(None))
+        db.query(CarListing).filter(
+            CarListing.district.isnot(None),
+            live_listing_filter(),
+        )
     )
     source_count = (
         db.query(func.count(func.distinct(CarListing.source)))
