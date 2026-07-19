@@ -10,8 +10,10 @@ from app.scrapers.auto_lanka_site import AutoLankaSiteScraper
 from app.scrapers.autodirect import AutoDirectScraper
 from app.scrapers.autolanka import AutoLankaScraper
 from app.scrapers.autostream import AutoStreamScraper
+from app.scrapers.cartivate import CartivateScraper
 from app.scrapers.carshop import CarshopScraper
 from app.scrapers.dimo import DimoScraper
+from app.scrapers.hitad import HitadScraper
 from app.scrapers.ikman import IkmanCarScraper
 from app.scrapers.patpat import PatpatScraper
 from app.scrapers.riyahub import RiyahubScraper
@@ -46,6 +48,8 @@ ALT_SOURCES = {
     "saleme",
     "riyahub",
     "dimo",
+    "hitad",
+    "cartivate",
 }
 SOURCE_PROFILES = {
     "all": (
@@ -60,6 +64,8 @@ SOURCE_PROFILES = {
         "saleme",
         "riyahub",
         "dimo",
+        "hitad",
+        "cartivate",
     ),
     "daily": ("ikman", "riyasewana", "carshop", "saleme", "riyahub", "dimo"),
     "alt": (
@@ -72,6 +78,8 @@ SOURCE_PROFILES = {
         "saleme",
         "riyahub",
         "dimo",
+        "hitad",
+        "cartivate",
     ),
 }
 SOURCE_REGISTRY = {
@@ -129,6 +137,16 @@ SOURCE_REGISTRY = {
         "scraper": DimoScraper,
         "max_pages_env": "SCRAPE_MAX_PAGES_DIMO",
         "timeout_env": "SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO",
+    },
+    "hitad": {
+        "scraper": HitadScraper,
+        "max_pages_env": "SCRAPE_MAX_PAGES_HITAD",
+        "timeout_env": "SCRAPE_SOURCE_TIMEOUT_SECONDS_HITAD",
+    },
+    "cartivate": {
+        "scraper": CartivateScraper,
+        "max_pages_env": "SCRAPE_MAX_PAGES_CARTIVATE",
+        "timeout_env": "SCRAPE_SOURCE_TIMEOUT_SECONDS_CARTIVATE",
     },
 }
 

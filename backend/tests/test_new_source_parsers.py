@@ -5,8 +5,10 @@ from bs4 import BeautifulSoup
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+from app.scrapers.cartivate import CartivateScraper
 from app.scrapers.carshop import CarshopScraper
 from app.scrapers.dimo import DimoScraper
+from app.scrapers.hitad import HitadScraper
 from app.scrapers.riyahub import RiyahubScraper
 from app.scrapers.saleme import SaleMeScraper
 
@@ -208,3 +210,99 @@ def test_dimo_builds_priced_payload_from_product_page_shape():
     assert payload["model"] == "Gls"
     assert payload["price_lkr"] == 45_900_000
     assert payload["district"] == "Colombo"
+
+
+def test_hitad_builds_payload_from_listing_card():
+    html = """
+    <div class="listing-card row">
+      <div class="item-image-box">
+        <a href="https://www.hitad.lk/details/13150">
+          <img src="https://cdn.hitad.lk/assets/uploads/swift.jpg"/>
+        </a>
+      </div>
+      <div class="item-info">
+        <div class="ad-info">
+          <h4 class="item-title">
+            <a href="https://www.hitad.lk/details/13150" title="Suzuki Swift RS Turbo Safety 2019">
+              Suzuki Swift RS Turbo Safety 2019
+            </a>
+          </h4>
+          <div class="item-cat">
+            <span><a href="#">Colombo</a></span> / <span><a href="#">Cars</a></span>
+          </div>
+          <h3 class="item-price">Rs.9,150,000 <span>(Negotiable)</span></h3>
+        </div>
+      </div>
+    </div>
+    """
+
+    payload = HitadScraper(db=None)._build_payload_from_card(_soup(html).select_one("div.listing-card"))
+
+    assert payload is not None
+    assert payload["source"] == "hitad"
+    assert payload["make"] == "Suzuki"
+    assert payload["model"] == "Swift"
+    assert payload["year"] == 2019
+    assert payload["price_lkr"] == 9_150_000
+    assert payload["district"] == "Colombo"
+    assert payload["url"] == "https://www.hitad.lk/details/13150"
+    assert "swift.jpg" in (payload.get("thumbnail_url") or "")
+
+
+def test_hitad_keeps_negotiable_only_listings():
+    html = """
+    <div class="listing-card row">
+      <h4 class="item-title">
+        <a href="https://www.hitad.lk/details/99" title="Toyota Aqua 2018">Toyota Aqua 2018</a>
+      </h4>
+      <div class="item-cat"><span>Kandy</span> / <span>Cars</span></div>
+      <h3 class="item-price">Negotiable</h3>
+    </div>
+    """
+
+    payload = HitadScraper(db=None)._build_payload_from_card(_soup(html).select_one("div.listing-card"))
+
+    assert payload is not None
+    assert payload["source"] == "hitad"
+    assert payload["make"] == "Toyota"
+    assert payload["model"] == "Aqua"
+    assert payload["price_lkr"] is None
+    assert payload["district"] == "Kandy"
+
+
+def test_cartivate_builds_payload_from_listing_card():
+    html = """
+    <div class="tfcl-listing-card">
+      <div class="featured-property"
+           data-image="https://cartivatemotors.lk/storage/2026/07/sonet.jpg"
+           data-price="LKR 11,550,000"
+           title="KIA SONET HTX Plus 2026"></div>
+      <div class="card-content">
+        <h3 class="tfcl-listing-title">
+          <a href="https://cartivatemotors.lk/listing/kia-sonet-htx-plus-2026/"
+             title="KIA SONET HTX Plus 2026">KIA SONET HTX Plus 2026</a>
+        </h3>
+        <div class="price"><span class="inner sale_price">LKR 11,550,000</span></div>
+        <ul class="infor-description">
+          <li class="listing-information fuel">Fuel type Petrol</li>
+          <li class="listing-information mileage">Mileage 0</li>
+          <li class="listing-information transmission">Transmission Auto</li>
+        </ul>
+      </div>
+    </div>
+    """
+
+    payload = CartivateScraper(db=None)._build_payload_from_card(
+        _soup(html).select_one("div.tfcl-listing-card")
+    )
+
+    assert payload is not None
+    assert payload["source"] == "cartivate"
+    assert payload["make"] == "Kia"
+    assert payload["model"] == "Sonet"
+    assert payload["year"] == 2026
+    assert payload["price_lkr"] == 11_550_000
+    assert payload["district"] == "Colombo"
+    assert payload["mileage"] == 0
+    assert payload["url"] == "https://cartivatemotors.lk/listing/kia-sonet-htx-plus-2026/"
+    assert "sonet.jpg" in (payload.get("thumbnail_url") or "")

@@ -17,6 +17,8 @@ def test_canonical_source_key_normalizes_known_aliases():
     assert canonical_source_key("sale-me") == "saleme"
     assert canonical_source_key("cars-at-dimo") == "dimo"
     assert canonical_source_key("riyahub.lk") == "riyahub"
+    assert canonical_source_key("hitad.lk") == "hitad"
+    assert canonical_source_key("cartivate-motors") == "cartivate"
     assert canonical_source_key("Department of Motor Traffic") == "dmt"
     assert canonical_source_key("Sri Lanka Customs") == "customs"
 
@@ -35,6 +37,12 @@ def test_source_alias_tokens_include_new_source_variants():
     assert source_alias_tokens("sale-me") == {"saleme", "salemelk"}
     assert source_alias_tokens("riyahub.lk") == {"riyahub", "riyahublk"}
     assert source_alias_tokens("carshop.lk") == {"carshop", "carshoplk"}
+    assert source_alias_tokens("hitad.lk") == {"hitad", "hitadlk"}
+    assert source_alias_tokens("cartivate-motors") == {
+        "cartivate",
+        "cartivatemotors",
+        "cartivatemotorslk",
+    }
 
 
 def test_source_alias_tokens_falls_back_to_canonical_token_for_unknown_sources():

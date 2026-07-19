@@ -125,12 +125,17 @@ def test_run_sync_main_falls_back_for_non_positive_page_values_and_runs_sequenti
 
 def test_unified_all_profile_includes_new_scheduled_listing_sources():
     expected = {"carshop", "saleme", "riyahub", "dimo"}
+    alt_expected = {"hitad", "cartivate"}
 
     assert expected <= set(run_sync.SOURCE_PROFILES["all"])
     assert expected <= set(run_sync.SOURCE_PROFILES["daily"])
     assert expected <= set(run_sync.SOURCE_PROFILES["alt"])
     assert expected <= set(run_sync.SOURCE_REGISTRY.keys())
     assert expected <= run_sync.ALT_SOURCES
+    assert alt_expected <= set(run_sync.SOURCE_PROFILES["all"])
+    assert alt_expected <= set(run_sync.SOURCE_PROFILES["alt"])
+    assert alt_expected <= set(run_sync.SOURCE_REGISTRY.keys())
+    assert alt_expected <= run_sync.ALT_SOURCES
 
 
 def test_run_sync_can_skip_market_analysis_without_skipping_sources(monkeypatch):
@@ -239,6 +244,8 @@ def test_run_alt_sync_main_falls_back_for_non_positive_source_page_values(monkey
         "saleme": 7,
         "riyahub": 7,
         "dimo": 7,
+        "hitad": 7,
+        "cartivate": 7,
     }
     assert all(timeout == 60 for _source, _pages, timeout in calls)
 
