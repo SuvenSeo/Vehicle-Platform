@@ -18,6 +18,7 @@ from bs4 import BeautifulSoup
 from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
 from app.utils.history_report import build_history_report
+from app.utils.price_history import summarize_price_history
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -1931,18 +1932,12 @@ def get_listing_price_history(listing_id: int, db: Session = Depends(get_db)):
         {"price_lkr": float(row.price_lkr), "scraped_at": row.scraped_at}
         for row in rows
     ]
-    first_price = points[0]["price_lkr"] if points else None
-    current_price = points[-1]["price_lkr"] if points else None
-    change_pct = None
-    if first_price and current_price is not None and first_price > 0:
-        change_pct = round((current_price - first_price) / first_price * 100, 1)
+    summary = summarize_price_history(points)
 
     return {
         "listing_id": listing_id,
         "points": points,
-        "first_price_lkr": first_price,
-        "current_price_lkr": current_price,
-        "change_pct": change_pct,
+        **summary,
     }
 
 @router.get("/{listing_id}/history-report", response_model=HistoryReportResponse)

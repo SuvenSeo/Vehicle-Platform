@@ -193,6 +193,9 @@ def test_price_history_endpoint():
         assert body["first_price_lkr"] == 10_000_000
         assert body["current_price_lkr"] == 9_000_000
         assert body["change_pct"] == -10.0
+        assert body["cut_count"] == 1
+        assert body["raise_count"] == 0
+        assert body["tracked_points"] == 2
 
         missing = client.get("/api/v1/listings/999999/price-history")
         assert missing.status_code == 404
