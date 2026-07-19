@@ -7,6 +7,7 @@ import "@fontsource/geist-mono/latin-400.css";
 import "@fontsource/geist-mono/latin-500.css";
 import "@fontsource/geist-mono/latin-600.css";
 import "@fontsource/geist-mono/latin-700.css";
+import "leaflet/dist/leaflet.css";
 import "./index.css";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { Analytics } from "@vercel/analytics/react";

@@ -1,9 +1,11 @@
-import { memo, useEffect, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { DistrictPrice } from "@/types/car";
 import { formatPrice } from "@/services/api";
-import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
 import { revealItem } from "@/lib/motion";
+import { LazyMapMount } from "@/components/leaflet/LazyMapMount";
+import { MapResizeController } from "@/components/leaflet/MapResizeController";
 
 interface MarketMapProps {
   data: DistrictPrice[];
@@ -51,15 +53,6 @@ function mapRadius(listingCount: number, maxCount: number) {
   return clamp(8 + ratio * 14, 8, 22);
 }
 
-function MapController() {
-  const map = useMap();
-  useEffect(() => {
-    map.invalidateSize();
-    map.fitBounds(SL_BOUNDS, { padding: [18, 18] });
-  }, [map]);
-  return null;
-}
-
 export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDistrictSelect, isLoading }: MarketMapProps) {
   const points = useMemo(
     () => data.filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng)),
@@ -102,7 +95,10 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
         <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">Click any district for detail</div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border transition-colors" style={{ height: 420 }}>
+      <LazyMapMount
+        className="overflow-hidden rounded-xl border border-border transition-colors"
+        style={{ height: 420 }}
+      >
         <MapContainer
           center={SL_CENTER}
           zoom={7.5}
@@ -113,7 +109,7 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
           scrollWheelZoom
           style={{ height: "100%", width: "100%" }}
         >
-          <MapController />
+          <MapResizeController bounds={SL_BOUNDS} />
 
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
@@ -168,7 +164,7 @@ export const MarketMap = memo(function MarketMap({ data, selectedDistrict, onDis
             );
           })}
         </MapContainer>
-      </div>
+      </LazyMapMount>
     </motion.div>
   );
 });
