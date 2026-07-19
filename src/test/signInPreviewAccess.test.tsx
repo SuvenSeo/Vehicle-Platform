@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import SignIn from "@/pages/SignIn";
+import SignIn, { sanitizeSignInRedirect } from "@/pages/SignIn";
 import { AuthProvider } from "@/lib/authContext";
 
 function installLocalStorage() {
@@ -106,6 +106,61 @@ describe("SignIn preview access", () => {
 
     expect(await screen.findByText(/full pro workspace/i)).toBeInTheDocument();
     expect(localStorage.getItem("autolens.auth_user")).toContain("reviewer@example.com");
+
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("sanitizes open-redirect candidates to a same-origin relative path", () => {
+    expect(sanitizeSignInRedirect("/pro")).toBe("/pro");
+    expect(sanitizeSignInRedirect("/dealer?tab=ops")).toBe("/dealer?tab=ops");
+    expect(sanitizeSignInRedirect("//evil.example/phish")).toBe("/pro");
+    expect(sanitizeSignInRedirect("https://evil.example/phish")).toBe("/pro");
+    expect(sanitizeSignInRedirect("evil.example")).toBe("/pro");
+    expect(sanitizeSignInRedirect(undefined)).toBe("/pro");
+  });
+
+  it("ignores forged absolute from state and lands on /pro after demo login", async () => {
+    vi.stubEnv("VITE_ENABLE_DEMO_AUTH", "true");
+    vi.stubEnv(
+      "VITE_DEMO_USERS",
+      JSON.stringify([
+        {
+          email: "reviewer@example.com",
+          password: "review-only-secret",
+          name: "Env Reviewer",
+          plan: "enterprise",
+          subscriptionStatus: "active",
+          avatarInitials: "ER",
+        },
+      ]),
+    );
+    vi.resetModules();
+
+    const { AuthProvider: FreshAuthProvider } = await import("@/lib/authContext");
+    const FreshSignIn = (await import("@/pages/SignIn")).default;
+
+    render(
+      <FreshAuthProvider>
+        <MemoryRouter
+          initialEntries={[{ pathname: "/sign-in", state: { from: { pathname: "//evil.example/phish" } } }]}
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
+          <Routes>
+            <Route path="/sign-in" element={<FreshSignIn />} />
+            <Route path="/pro" element={<div>Safe Pro Landing</div>} />
+            <Route path="*" element={<div>Unexpected redirect</div>} />
+          </Routes>
+        </MemoryRouter>
+      </FreshAuthProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "reviewer@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "review-only-secret" } });
+    fireEvent.click(screen.getByRole("button", { name: /^sign in/i }));
+
+    expect(await screen.findByText(/safe pro landing/i)).toBeInTheDocument();
+    expect(screen.queryByText(/unexpected redirect/i)).not.toBeInTheDocument();
 
     vi.unstubAllEnvs();
     vi.resetModules();

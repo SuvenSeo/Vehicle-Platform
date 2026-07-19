@@ -1,6 +1,6 @@
 import { TestRouter } from "@/test/testUtils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
 
@@ -85,6 +85,7 @@ vi.mock("@/services/api", () => ({
   deleteAlert: vi.fn(),
   matchAlerts: vi.fn().mockResolvedValue({ results: [], checked_at: new Date().toISOString() }),
   getDistrictVelocity: vi.fn().mockResolvedValue({ points: [], generated_at: new Date().toISOString() }),
+  getPriceDrops: vi.fn().mockResolvedValue([]),
   formatPrice: (value: number | null) => (value == null ? "N/A" : `Rs. ${value}`),
 }));
 
@@ -178,5 +179,25 @@ describe("Dashboard runtime safety", () => {
     await waitFor(() => {
       expect(api.getListings).toHaveBeenCalled();
     });
+  });
+
+  it("shows listings error with Retry instead of empty-filter copy", async () => {
+    vi.mocked(api.getListings).mockRejectedValue(new Error("listings down"));
+
+    renderDashboard();
+
+    expect(
+      await screen.findByText(/listings temporarily unavailable/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/no results/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/widen your filters/i)).not.toBeInTheDocument();
+
+    vi.mocked(api.getListings).mockResolvedValue({ listings: [], total: 0 });
+    fireEvent.click(screen.getByRole("button", { name: /^retry$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no results/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/listings temporarily unavailable/i)).not.toBeInTheDocument();
   });
 });

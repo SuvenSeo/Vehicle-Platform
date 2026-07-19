@@ -92,7 +92,7 @@ class HotDealPoint(BaseModel):
     id: int
     make: str
     model: str
-    year: int
+    year: Optional[int] = None
     district: Optional[str] = None
     source: str
     price_lkr: float

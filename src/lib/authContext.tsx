@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { API_BASE } from "@/services/api";
-import { storeAuthToken } from "@/lib/authToken";
+import { getStoredAuthToken, storeAuthToken } from "@/lib/authToken";
 
 export interface AuthUser {
   email: string;
@@ -147,11 +147,16 @@ async function loginWithBackend(email: string, password: string): Promise<AuthUs
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
-  const hasProAccess = Boolean(
+  // Plan/status from localStorage alone is forgeable. When backend auth is on,
+  // Pro routes also require a bearer token issued by /auth/login.
+  const planAllowsPro = Boolean(
     user &&
       (user.plan === "pro" || user.plan === "enterprise") &&
       (user.subscriptionStatus === "active" || user.subscriptionStatus === "trialing"),
   );
+  const hasProAccess = BACKEND_AUTH_ENABLED
+    ? planAllowsPro && Boolean(getStoredAuthToken())
+    : planAllowsPro;
 
   const login = useCallback(async (email: string, password: string) => {
     const normalizedEmail = email.toLowerCase().trim();

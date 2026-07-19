@@ -84,7 +84,12 @@ def resolve_canonical_district(
 
 
 def count_canonical_districts(query: Query) -> int:
-    """Count distinct canonical Sri Lanka districts from a CarListing query."""
+    """Count distinct canonical Sri Lanka districts from a CarListing query.
+
+    Callers should apply ``live_listing_filter()`` (and any other scope) on
+    ``query`` first. The URL-inference fallback materializes matching rows;
+    an unscoped query can load large inactive sets into memory.
+    """
     canonical: set[str] = set()
     non_normalizing: set[str] = set()
 
@@ -101,6 +106,7 @@ def count_canonical_districts(query: Query) -> int:
     if non_normalizing:
         fallback_filters.append(CarListing.district.in_(non_normalizing))
 
+    # Relies on caller-scoped query (prefer live_listing_filter) to bound this .all().
     fallback_rows = (
         query.filter(or_(*fallback_filters))
         .with_entities(CarListing.district, CarListing.url)

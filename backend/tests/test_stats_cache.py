@@ -5,9 +5,10 @@ Covers:
   - _is_fresh TTL logic
   - refresh_stats_cache populates summary, district_prices, and district_velocity
   - get_cached_summary / get_cached_district_prices / get_cached_district_velocity honour staleness
+  - allow_stale=True serves expired summary / district_prices / district_velocity payloads
   - store_summary_cache / store_district_prices_cache / store_district_velocity_cache helpers
-  - stats summary endpoint uses cache on hit, stores on miss
-  - district-prices endpoint uses cache on hit, stores on miss
+  - stats summary endpoint uses cache on hit, stores on miss, stale fallback on compute failure
+  - district-prices endpoint uses cache on hit, stores on miss, stale fallback on compute failure
   - district-velocity endpoint uses cache on hit and stale fallback on compute failure
 """
 
@@ -161,6 +162,15 @@ def test_get_cached_summary_returns_none_when_stale():
     assert get_cached_summary(db) is None
 
 
+def test_get_cached_summary_allow_stale_returns_stale_entry():
+    db = _session()
+    _stale_summary_entry(db)
+    assert get_cached_summary(db) is None
+    stale = get_cached_summary(db, allow_stale=True)
+    assert stale is not None
+    assert stale.total_listings == 99
+
+
 def test_get_cached_summary_returns_summary_when_fresh():
     db = _session()
     _fresh_summary_entry(db, total_listings=42)
@@ -204,6 +214,24 @@ def test_get_cached_district_prices_returns_none_when_stale():
     db.add(entry)
     db.commit()
     assert get_cached_district_prices(db) is None
+
+
+def test_get_cached_district_prices_allow_stale_returns_stale_entry():
+    db = _session()
+    stale_time = datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 60)
+    expected = {"points": [{"district": "Gampaha", "count": 7}]}
+    db.add(
+        MarketStatsCache(
+            cache_key="district_prices",
+            payload=expected,
+            refreshed_at=stale_time,
+        )
+    )
+    db.commit()
+    assert get_cached_district_prices(db) is None
+    stale = get_cached_district_prices(db, allow_stale=True)
+    assert stale is not None
+    assert stale["points"][0]["district"] == "Gampaha"
 
 
 def test_get_cached_district_prices_returns_dict_when_fresh():
@@ -409,6 +437,20 @@ def test_stats_summary_endpoint_computes_fresh_when_stale():
     assert cached.total_listings == 1
 
 
+def test_stats_summary_endpoint_serves_stale_cache_on_compute_failure(monkeypatch):
+    db = _session()
+    _stale_summary_entry(db)
+
+    monkeypatch.setattr(
+        stats_module,
+        "utc_now",
+        lambda: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+
+    result = stats_module.get_stats_summary(db=db)
+    assert result.total_listings == 99
+
+
 # ---------------------------------------------------------------------------
 # Endpoint integration: district-prices
 # ---------------------------------------------------------------------------
@@ -455,6 +497,29 @@ def test_district_prices_endpoint_stores_to_cache_on_miss():
     cached = get_cached_district_prices(db)
     assert cached is not None
     assert "points" in cached
+
+
+def test_district_prices_endpoint_serves_stale_cache_on_compute_failure(monkeypatch):
+    db = _session()
+    stale_payload = {"points": [{"district": "Colombo", "count": 42}]}
+    db.add(
+        MarketStatsCache(
+            cache_key="district_prices",
+            payload=stale_payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 60),
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        stats_module,
+        "build_district_median_map",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+
+    result = stats_module.get_district_prices(db=db)
+    assert result["points"][0]["district"] == "Colombo"
+    assert result["points"][0]["count"] == 42
 
 
 # ---------------------------------------------------------------------------

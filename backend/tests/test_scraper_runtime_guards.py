@@ -168,6 +168,7 @@ def test_run_sync_can_skip_market_analysis_without_skipping_sources(monkeypatch)
 def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
     _reset_dummy_aggregator_counts()
     calls = []
+    cache_refresh_calls = []
 
     async def fake_run_source(scraper_cls, max_pages: int, source_timeout_seconds: int):
         calls.append((scraper_cls.SOURCE, max_pages, source_timeout_seconds))
@@ -180,10 +181,16 @@ def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
     monkeypatch.setattr(run_sync, "_release_market_analysis_lock", lambda _db: None)
     monkeypatch.setattr(run_sync, "CarPriceAggregator", _DummyAggregator)
     monkeypatch.setattr(run_sync, "bulk_refresh_deal_scores", _dummy_bulk_refresh_deal_scores)
+    monkeypatch.setattr(
+        run_sync,
+        "refresh_stats_cache",
+        lambda db: cache_refresh_calls.append(db),
+    )
     monkeypatch.setenv("SCRAPE_PROFILE", "daily")
     monkeypatch.setenv("RUN_SCRAPERS", "false")
     monkeypatch.setenv("RUN_MARKET_ANALYSIS", "true")
     monkeypatch.setenv("RUN_MARKET_SIGNALS", "false")
+    monkeypatch.delenv("RUN_STATS_CACHE_REFRESH", raising=False)
 
     asyncio.run(run_sync.main())
 
@@ -191,6 +198,7 @@ def test_run_sync_can_run_market_analysis_without_sources(monkeypatch):
     assert _DummyAggregator.init_count == 1
     assert _DummyAggregator.compute_count == 1
     assert len(_bulk_refresh_calls) == 1
+    assert len(cache_refresh_calls) == 1
 
 
 def test_run_alt_sync_main_falls_back_for_non_positive_source_page_values(monkeypatch):
