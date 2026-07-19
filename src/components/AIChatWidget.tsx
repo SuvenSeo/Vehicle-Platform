@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { type ChatListingResult, sendChatMessage, formatPrice } from "@/services/api";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { safeExternalUrl } from "@/lib/safeExternalUrl";
 
 const STORAGE_KEY = "autolens_chat_v2";
 const TOOLTIP_KEY = "autolens_chat_tooltip_seen";
@@ -202,37 +203,40 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
 
   return (
     <div className="grid w-full max-w-[330px] gap-2">
-      {listings.slice(0, 3).map((item) => (
-        <div key={`${messageId}-${item.id}`} className="rounded-xl border border-border bg-surface p-3 transition-colors hover:border-primary/40">
-          <p className="line-clamp-2 text-xs font-bold leading-snug text-foreground">{item.title}</p>
-          <p className="mt-1 ui-caption num text-muted-foreground">
-            {item.price_lkr ? formatPrice(item.price_lkr) : "Price unavailable"}
-            {item.district ? ` · ${item.district}` : ""}
-            {typeof item.deal_score === "number" ? ` · ${item.deal_score.toFixed(0)} score` : ""}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {item.detail_url && (
-              <Link
-                to={item.detail_url}
-                className="tech-label font-bold text-primary no-underline hover:text-primary"
-              >
-                Open listing
-              </Link>
-            )}
-            {item.external_url && (
-              <a
-                href={item.external_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 tech-label font-bold text-muted-foreground no-underline hover:text-foreground"
-              >
-                Source
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
+      {listings.slice(0, 3).map((item) => {
+        const sourceUrl = safeExternalUrl(item.external_url);
+        return (
+          <div key={`${messageId}-${item.id}`} className="rounded-xl border border-border bg-surface p-3 transition-colors hover:border-primary/40">
+            <p className="line-clamp-2 text-xs font-bold leading-snug text-foreground">{item.title}</p>
+            <p className="mt-1 ui-caption num text-muted-foreground">
+              {item.price_lkr ? formatPrice(item.price_lkr) : "Price unavailable"}
+              {item.district ? ` · ${item.district}` : ""}
+              {typeof item.deal_score === "number" ? ` · ${item.deal_score.toFixed(0)} score` : ""}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {item.detail_url && (
+                <Link
+                  to={item.detail_url}
+                  className="tech-label font-bold text-primary no-underline hover:text-primary"
+                >
+                  Open listing
+                </Link>
+              )}
+              {sourceUrl && (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 tech-label font-bold text-muted-foreground no-underline hover:text-foreground"
+                >
+                  Source
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

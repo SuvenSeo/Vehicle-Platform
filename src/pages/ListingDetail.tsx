@@ -9,6 +9,7 @@ import { getListing, getListingPriceHistory, getSellerTrustProfile, getSimilarLi
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
 import { pickVehicleImageUrl } from '@/lib/listingImage';
+import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { toast } from 'sonner';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { DealLadder } from '@/components/DealLadder';
@@ -166,7 +167,7 @@ export default function ListingDetail() {
   }
 
   // ── Derived data ───────────────────────────────────────────
-  const listingUrl = listing.url || listing.detail_url || listing.external_url || '#';
+  const listingUrl = safeExternalUrl(listing.url || listing.detail_url || listing.external_url);
   const heroImage = pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url]);
   const specs = [
     { label: "Year", value: listing.year ? String(listing.year) : "Unknown", icon: Calendar },
@@ -271,7 +272,7 @@ export default function ListingDetail() {
           )}
 
           <div className="mt-6 flex flex-wrap items-center gap-2.5">
-            {listingUrl !== '#' && (
+            {listingUrl && (
               <a href={listingUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 hover:shadow-soft-lg active:scale-[0.97]">
                 View on {listing.source} <ExternalLink aria-hidden className="h-3 w-3" />
               </a>
