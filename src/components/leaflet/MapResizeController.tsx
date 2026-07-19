@@ -8,19 +8,27 @@ interface MapResizeControllerProps {
   padding?: [number, number];
 }
 
+const DEFAULT_PADDING: [number, number] = [18, 18];
+
 /**
  * Keeps Leaflet in sync when the map mounts inside lazy-loaded or scroll-revealed
  * sections whose layout settles after first paint.
  */
-export function MapResizeController({ bounds, padding = [18, 18] }: MapResizeControllerProps) {
+export function MapResizeController({
+  bounds,
+  padding = DEFAULT_PADDING,
+}: MapResizeControllerProps) {
   const map = useMap();
+  const padX = padding[0];
+  const padY = padding[1];
 
   useEffect(() => {
     const container = map.getContainer();
+    const resolvedPadding: [number, number] = [padX, padY];
 
     const sync = () => {
       map.invalidateSize({ animate: false, pan: false });
-      map.fitBounds(bounds, { padding, animate: false });
+      map.fitBounds(bounds, { padding: resolvedPadding, animate: false });
     };
 
     sync();
@@ -45,7 +53,7 @@ export function MapResizeController({ bounds, padding = [18, 18] }: MapResizeCon
       intersectionObserver.disconnect();
       window.removeEventListener("resize", sync);
     };
-  }, [map, bounds, padding]);
+  }, [map, bounds, padX, padY]);
 
   return null;
 }
