@@ -257,7 +257,7 @@ function filename(report: ProReportPayload, extension: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
-    .slice(0, 70) || "autolens-pro-report";
+    .slice(0, 70) || "motormila-pro-report";
   return `${slug}-${new Date(report.generatedAt).toISOString().slice(0, 10)}.${extension}`;
 }
 
@@ -298,7 +298,7 @@ function drawCover(doc: JsPDFDoc, report: ProReportPayload, pageWidth: number) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.setTextColor(...theme.softText);
-  doc.text("AUTOLENS LK PRO", 40, 46);
+  doc.text("MOTORMILA PRO", 40, 46);
   doc.text(theme.name.toUpperCase(), pageWidth - 150, 58);
 
   doc.setFontSize(28);
@@ -519,7 +519,7 @@ async function exportDocx(report: ProReportPayload) {
   const children: FileChild[] = [
     new Paragraph({
       children: [
-        new TextRun({ text: "AUTOLENS LK PRO", bold: true, color: "0E9F6E", size: 20 }),
+        new TextRun({ text: "MOTORMILA PRO", bold: true, color: "0E9F6E", size: 20 }),
         new TextRun({ text: `   ${theme.name}`, color: "6B7280", size: 18 }),
       ],
     }),

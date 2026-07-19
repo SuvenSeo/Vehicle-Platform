@@ -15,9 +15,22 @@ _CAR_LISTING_COLUMN_PATCHES = (
     ("image_phash", "VARCHAR(16)", "VARCHAR(16)"),
 )
 
-_CAR_LISTING_INDEX_PATCHES = (
+# (index_name, table_name, columns SQL fragment)
+# Best-effort only: bounded timeouts + fail-open. Never use CONCURRENTLY here —
+# these run inside a transaction with SET LOCAL, and CONCURRENTLY is not used
+# elsewhere in this codebase.
+_INDEX_PATCHES = (
     ("idx_car_listings_last_seen_at", "car_listings", "last_seen_at"),
     ("idx_car_listings_image_phash", "car_listings", "image_phash"),
+    # Live listing filters: is_active + is_outlier (+ optional district).
+    # Leftmost prefix also covers (is_active, is_outlier) without a second index.
+    (
+        "idx_car_listings_active_outlier_district",
+        "car_listings",
+        "is_active, is_outlier, district",
+    ),
+    ("idx_scrape_runs_started_at", "scrape_runs", "started_at"),
+    ("idx_scrape_runs_source_started_at", "scrape_runs", "source, started_at"),
 )
 
 
@@ -28,6 +41,10 @@ def _column_exists(engine: Engine, table: str, column: str) -> bool:
     except Exception:
         return False
     return column in columns
+
+
+def _create_index_sql(index_name: str, table_name: str, columns: str) -> str:
+    return f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({columns})"
 
 
 def apply_schema_patches(engine: Engine) -> None:
@@ -74,11 +91,12 @@ def apply_schema_patches(engine: Engine) -> None:
                 error=str(exc),
             )
 
-    for index_name, table_name, column_name in _CAR_LISTING_INDEX_PATCHES:
+    # Ensure tables like scrape_runs exist before index patches reference them.
+    Base.metadata.create_all(bind=engine)
+
+    for index_name, table_name, columns in _INDEX_PATCHES:
         try:
-            _bounded_ddl(
-                f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
-            )
+            _bounded_ddl(_create_index_sql(index_name, table_name, columns))
         except Exception as exc:
             # Best-effort optimization: the nightly scrape run retries it in a
             # quieter window; never block API startup on an index build.
@@ -87,5 +105,3 @@ def apply_schema_patches(engine: Engine) -> None:
                 index=index_name,
                 error=str(exc),
             )
-
-    Base.metadata.create_all(bind=engine)

@@ -16,7 +16,7 @@ import os
 _calculators_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_calculators_rate_limiter)])
-logger = logging.getLogger("autolens.calculators")
+logger = logging.getLogger("motormila.calculators")
 
 # Fallback fuel prices in LKR
 FALLBACK_PETROL_92 = 370.0

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import math
 import sys
 from datetime import datetime, timedelta, timezone
@@ -19,14 +20,17 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from sqlalchemy import and_, desc, func, or_  # noqa: E402
+from sqlalchemy import and_, desc, func  # noqa: E402
 from sqlalchemy.orm import load_only  # noqa: E402
 
 from app.api.v1.endpoints import listings as listings_endpoint  # noqa: E402
+from app.api.v1.endpoints import pipeline as pipeline_endpoint  # noqa: E402
 from app.api.v1.endpoints import stats as stats_endpoint  # noqa: E402
 from app.utils.districts import count_canonical_districts  # noqa: E402
-from db.models import CarListing, ScrapeRun, live_listing_filter  # noqa: E402
+from db.models import CarListing, live_listing_filter  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 MIN_REASONABLE_PRICE_LKR = 100_000
 DEFAULT_OUTPUT_DIR = BASE_DIR / "snapshots" / "latest"
@@ -173,46 +177,16 @@ def build_stats_summary(db) -> dict[str, Any]:
 
 
 def build_pipeline_status(db) -> dict[str, Any]:
-    generated_at = datetime.now(timezone.utc)
-    rows = db.query(ScrapeRun).order_by(desc(ScrapeRun.started_at)).limit(200).all()
-    latest_by_source: dict[str, ScrapeRun] = {}
-    for row in rows:
-        source = str(row.source or "unknown")
-        latest_by_source.setdefault(source, row)
-
-    jobs = []
-    overall = "ok"
-    for source, row in sorted(latest_by_source.items()):
-        finished = row.finished_at or row.started_at
-        finished_utc = finished.replace(tzinfo=timezone.utc) if finished and finished.tzinfo is None else finished
-        age_hours = None
-        if finished_utc:
-            age_hours = (generated_at - finished_utc.astimezone(timezone.utc)).total_seconds() / 3600
-        status = "running" if str(row.status or "").upper() == "RUNNING" else "ok"
-        if age_hours is not None and age_hours > 30:
-            status = "delayed"
-        if status == "delayed":
-            overall = "delayed"
-        elif status == "running" and overall != "delayed":
-            overall = "running"
-        jobs.append(
-            {
-                "name": f"scrape_{source}",
-                "status": status,
-                "last_status": row.status,
-                "last_success": to_utc_iso(finished) if str(row.status or "").upper() == "SUCCESS" else None,
-                "last_run": to_utc_iso(row.started_at),
-                "last_finished": to_utc_iso(row.finished_at),
-                "last_error": (str(row.error_message or "").strip()[:220] or None),
-                "expected_hours": 18,
-            }
-        )
-
-    return {
-        "generated_at": generated_at.isoformat(),
-        "overall_status": overall,
-        "jobs": jobs,
-    }
+    """Public snapshot payload — same logic as GET /pipeline/status (anonymous)."""
+    try:
+        return pipeline_endpoint.pipeline_status(db=db, is_admin=False)
+    except Exception:
+        logger.exception("Failed to build pipeline-status snapshot; using empty fallback")
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "overall_status": "ok",
+            "jobs": [],
+        }
 
 
 def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:

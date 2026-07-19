@@ -16,10 +16,6 @@ vi.mock("@/components/ListingCard", () => ({
   ListingCard: () => <div>ListingCard</div>,
 }));
 
-vi.mock("@/components/MarketMap", () => ({
-  MarketMap: () => <div>MarketMap</div>,
-}));
-
 vi.mock("@/components/MarketPredictor", () => ({
   MarketPredictor: () => <div>MarketPredictor</div>,
 }));
@@ -30,10 +26,6 @@ vi.mock("@/components/ComparisonModal", () => ({
 
 vi.mock("@/components/PipelineStatusBar", () => ({
   PipelineStatusBar: () => <div>PipelineStatusBar</div>,
-}));
-
-vi.mock("@/components/VehicleDataFlow", () => ({
-  VehicleDataFlow: () => <div>VehicleDataFlow</div>,
 }));
 
 vi.mock("@/components/RevealSection", () => ({

@@ -59,12 +59,15 @@
       /* Recover from stale deploys where /assets/*.css 404s were rewritten to index.html,
          which leaves the app rendered with zero styles until a hard refresh. */
       (function () {
-        var CSS_RELOAD_KEY = "autolens.css_reload_attempted";
+        var CSS_RELOAD_KEY = "motormila.css_reload_attempted";
+        var CSS_RELOAD_KEY_LEGACY = "autolens.css_reload_attempted";
         var CSS_RELOAD_TTL_MS = 30000;
 
         function canReload() {
           try {
-            var raw = sessionStorage.getItem(CSS_RELOAD_KEY);
+            var raw =
+              sessionStorage.getItem(CSS_RELOAD_KEY) ||
+              sessionStorage.getItem(CSS_RELOAD_KEY_LEGACY);
             if (!raw) return true;
             var stamped = Number(raw);
             if (!isFinite(stamped)) return false;
