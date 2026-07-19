@@ -91,7 +91,9 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   const districtCount = Number(stats?.district_count || 0);
   const avgPrice = Number(snapshot?.avg_price_lkr ?? stats?.avg_price_lkr ?? 0);
   const momChange = stats?.price_change_mom ?? null;
-  const new24h = Number(insights?.new_listings_24h ?? stats?.listings_this_week ?? 0);
+  // Only use true 24h insight data — never substitute weekly counts for this metric.
+  const new24h =
+    insights?.new_listings_24h == null ? null : Number(insights.new_listings_24h);
   const goodDeals = Number(stats?.good_deals_count ?? 0);
   const freshness = getListingDataFreshness({
     latestListingAt: snapshot?.latest_listing_at,
@@ -99,14 +101,20 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   });
   const feedSyncAt = snapshot?.generated_at ?? freshness.primaryAt;
   const feedSyncLabel = formatCompactAge(feedSyncAt);
+  const awaitingFeedSync = feedSyncLabel === "—";
 
   // Animated counters
   const liveCount = useCountUp(liveListings, 1400);
   const avgCount = useCountUp(avgPrice, 1400);
-  const newCount = useCountUp(new24h, 1100);
+  const newCount = useCountUp(new24h ?? 0, 1100);
   const dealsCount = useCountUp(goodDeals, 1100);
 
-  const liveDisplay = liveListings > 0 ? liveCount.toLocaleString() : "120,000+";
+  const liveDisplay =
+    liveListings > 0
+      ? liveCount.toLocaleString()
+      : liveListings === 0
+        ? "0"
+        : "No indexed listings";
 
   // Live incoming feed — prefer real scrape runs, fall back to scored deals.
   const feed = useMemo<FeedRow[]>(() => {
@@ -210,7 +218,16 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
           value={momChange == null ? "Building history" : `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`}
           tone={momChange == null ? undefined : momChange > 0 ? "up" : momChange < 0 ? "down" : undefined}
         />
-        <MetricCell label="New · 24h" value={new24h > 0 ? newCount.toLocaleString() : "—"} />
+        <MetricCell
+          label="New · 24h"
+          value={
+            new24h == null
+              ? "—"
+              : new24h > 0
+                ? newCount.toLocaleString()
+                : "0"
+          }
+        />
         <MetricCell label="Good deals" value={goodDeals > 0 ? dealsCount.toLocaleString() : "—"} />
       </div>
 
@@ -226,7 +243,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             title={feedSyncAt ? freshness.absoluteLabel : undefined}
           >
             <Radio className="h-3 w-3 text-primary/70" />
-            {feedSyncLabel === "—" ? "Awaiting sync" : `Synced ${feedSyncLabel}`}
+            {awaitingFeedSync ? "Awaiting sync" : `Synced ${feedSyncLabel}`}
           </span>
         </div>
         <div className="divide-y divide-border">
@@ -248,7 +265,9 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
               </div>
             ))
           ) : (
-            <p className="px-5 py-8 text-center text-[12px] text-muted-foreground">Awaiting live sync</p>
+            <p className="px-5 py-8 text-center text-[12px] text-muted-foreground">
+              {awaitingFeedSync ? "Awaiting live sync" : "No recent scrape activity"}
+            </p>
           )}
         </div>
       </div>
