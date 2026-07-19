@@ -17,6 +17,7 @@ from app.scrapers.patpat import PatpatScraper
 from app.scrapers.riyahub import RiyahubScraper
 from app.scrapers.riyasewana import RiyasewanaScraper
 from app.scrapers.saleme import SaleMeScraper
+from app.api.v1.endpoints.pipeline import reconcile_orphan_running_runs
 from app.services.aggregator import CarPriceAggregator
 from app.services.market_signals import MarketSignalImporter
 from app.services.source_aliases import canonical_source_key, source_alias_tokens
@@ -501,6 +502,17 @@ async def main(profile_override: str | None = None):
     except Exception as exc:
         log.error("db_schema_init_failed", error=str(exc))
         raise
+
+    # Fail stale RUNNING rows left behind by crashed workers before starting new scrapes.
+    reconcile_db = SessionLocal()
+    try:
+        orphan_count = reconcile_orphan_running_runs(reconcile_db)
+        if orphan_count:
+            log.info("orphan_running_runs_reconciled", count=orphan_count)
+    except Exception as exc:
+        log.warning("orphan_running_reconcile_failed", error=str(exc))
+    finally:
+        _close_db_session(reconcile_db, context="orphan_running_reconcile")
 
     start_time = datetime.now()
     profile = _resolve_profile(profile_override)

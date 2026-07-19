@@ -9,7 +9,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import and_, desc, func
 
 from app.services.source_aliases import canonical_source_key
 from db.models import ScrapeRun
@@ -34,9 +34,10 @@ SOURCE_ORDER = [
     "riyahub",
     "dimo",
 ]
+# High-volume sources can have ~13h overnight gaps between syncs.
 EXPECTED_HOURS = {
-    "ikman": 8,
-    "riyasewana": 8,
+    "ikman": 15,
+    "riyasewana": 15,
     "autolanka": 12,
     "autodirect": 12,
     "patpat": 12,
@@ -46,6 +47,9 @@ EXPECTED_HOURS = {
     "riyahub": 12,
     "dimo": 12,
 }
+CORE_SOURCES = frozenset({"ikman", "riyasewana"})
+ORPHAN_RUNNING_MINUTES = 90
+ORPHAN_RUNNING_ERROR = "Marked failed: orphan RUNNING scrape (exceeded stale threshold)."
 
 
 class PipelineTriggerRequest(BaseModel):
@@ -132,6 +136,153 @@ def _is_running(run: ScrapeRun | None, now: datetime) -> bool:
     return now - started_at <= timedelta(hours=6)
 
 
+def reconcile_orphan_running_runs(
+    db: Session,
+    *,
+    older_than_minutes: int = ORPHAN_RUNNING_MINUTES,
+    now: datetime | None = None,
+) -> int:
+    """Mark stale RUNNING scrape rows (no finished_at) as FAILED.
+
+    Returns the number of rows updated. Safe to call repeatedly.
+    """
+    current = _to_utc(now) or datetime.now(timezone.utc)
+    cutoff = current - timedelta(minutes=max(1, int(older_than_minutes)))
+    orphans = (
+        db.query(ScrapeRun)
+        .filter(
+            ScrapeRun.status == "RUNNING",
+            ScrapeRun.finished_at.is_(None),
+            ScrapeRun.started_at < cutoff,
+        )
+        .all()
+    )
+    if not orphans:
+        return 0
+
+    for run in orphans:
+        run.status = "FAILED"
+        run.finished_at = current
+        existing = str(run.error_message or "").strip()
+        if not existing:
+            run.error_message = ORPHAN_RUNNING_ERROR
+
+    db.commit()
+    return len(orphans)
+
+
+def _pick_preferred_run(existing: ScrapeRun | None, candidate: ScrapeRun, *, by_finished: bool) -> ScrapeRun:
+    if existing is None:
+        return candidate
+    if by_finished:
+        existing_ts = _to_utc(existing.finished_at)
+        candidate_ts = _to_utc(candidate.finished_at)
+    else:
+        existing_ts = _to_utc(existing.started_at)
+        candidate_ts = _to_utc(candidate.started_at)
+    if candidate_ts and (existing_ts is None or candidate_ts > existing_ts):
+        return candidate
+    if candidate_ts == existing_ts and int(candidate.id or 0) > int(existing.id or 0):
+        return candidate
+    return existing
+
+
+def _canonical_latest_map(runs: list[ScrapeRun], *, by_finished: bool) -> dict[str, ScrapeRun]:
+    grouped: dict[str, ScrapeRun] = {}
+    for run in runs:
+        source_key = _canonical_source(run.source)
+        if not source_key:
+            continue
+        grouped[source_key] = _pick_preferred_run(grouped.get(source_key), run, by_finished=by_finished)
+    return grouped
+
+
+def _latest_run_per_source(db: Session) -> dict[str, ScrapeRun]:
+    """Portable per-source latest run (SQLite + Postgres) via grouped max(started_at)."""
+    latest_started = (
+        db.query(
+            ScrapeRun.source.label("source"),
+            func.max(ScrapeRun.started_at).label("max_started"),
+        )
+        .group_by(ScrapeRun.source)
+        .subquery()
+    )
+    rows = (
+        db.query(ScrapeRun)
+        .join(
+            latest_started,
+            and_(
+                ScrapeRun.source == latest_started.c.source,
+                ScrapeRun.started_at == latest_started.c.max_started,
+            ),
+        )
+        .all()
+    )
+    return _canonical_latest_map(rows, by_finished=False)
+
+
+def _latest_success_per_source(db: Session) -> dict[str, ScrapeRun]:
+    """Portable per-source latest SUCCESS run via grouped max(finished_at)."""
+    latest_finished = (
+        db.query(
+            ScrapeRun.source.label("source"),
+            func.max(ScrapeRun.finished_at).label("max_finished"),
+        )
+        .filter(
+            ScrapeRun.status == "SUCCESS",
+            ScrapeRun.finished_at.isnot(None),
+        )
+        .group_by(ScrapeRun.source)
+        .subquery()
+    )
+    rows = (
+        db.query(ScrapeRun)
+        .join(
+            latest_finished,
+            and_(
+                ScrapeRun.source == latest_finished.c.source,
+                ScrapeRun.finished_at == latest_finished.c.max_finished,
+                ScrapeRun.status == "SUCCESS",
+            ),
+        )
+        .all()
+    )
+    return _canonical_latest_map(rows, by_finished=True)
+
+
+def _active_runs_per_source(db: Session, now: datetime) -> dict[str, ScrapeRun]:
+    rows = (
+        db.query(ScrapeRun)
+        .filter(
+            ScrapeRun.status == "RUNNING",
+            ScrapeRun.finished_at.is_(None),
+        )
+        .order_by(desc(ScrapeRun.started_at), desc(ScrapeRun.id))
+        .all()
+    )
+    active: dict[str, ScrapeRun] = {}
+    for run in rows:
+        if not _is_running(run, now):
+            continue
+        source_key = _canonical_source(run.source)
+        if not source_key or source_key in active:
+            continue
+        active[source_key] = run
+    return active
+
+
+def _derive_overall_status(jobs: list[dict]) -> str:
+    """Overall health follows core sources only; secondary delays stay in the jobs list."""
+    core_jobs = [job for job in jobs if str(job.get("name") or "").removeprefix("scrape_") in CORE_SOURCES]
+    if not core_jobs:
+        return "delayed"
+    if any(job["status"] == "running" for job in core_jobs):
+        return "running"
+    if any(job["status"] == "delayed" for job in core_jobs):
+        return "delayed"
+    return "ok"
+
+
 @router.get("/runs", response_model=dict)
 def pipeline_runs(
     limit: int = Query(25, ge=1, le=200),
@@ -183,38 +334,22 @@ def trigger_pipeline_job(payload: PipelineTriggerRequest, _admin: None = Depends
 @router.get("/status", response_model=dict)
 def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_valid_admin_key)):
     now = datetime.now(timezone.utc)
-    recent_runs = (
-        db.query(ScrapeRun)
-        .order_by(desc(ScrapeRun.started_at))
-        .limit(2000)
-        .all()
-    )
+    reconcile_orphan_running_runs(db, now=now)
 
-    grouped: dict[str, list[ScrapeRun]] = {}
-    for run in recent_runs:
-        source_key = _canonical_source(run.source)
-        if not source_key:
-            continue
-        grouped.setdefault(source_key, []).append(run)
+    last_run_by_source = _latest_run_per_source(db)
+    last_success_by_source = _latest_success_per_source(db)
+    active_by_source = _active_runs_per_source(db, now)
 
     source_keys = list(SOURCE_ORDER)
-    for key in grouped.keys():
+    for key in {*last_run_by_source, *last_success_by_source, *active_by_source}:
         if key not in source_keys:
             source_keys.append(key)
 
     jobs = []
     for source in source_keys:
-        runs = grouped.get(source, [])
-        last_run = runs[0] if runs else None
-        last_success = next(
-            (
-                run
-                for run in runs
-                if str(run.status or "").upper() == "SUCCESS" and run.finished_at is not None
-            ),
-            None,
-        )
-        active_run = next((run for run in runs if _is_running(run, now)), None)
+        last_run = last_run_by_source.get(source)
+        last_success = last_success_by_source.get(source)
+        active_run = active_by_source.get(source)
 
         success_at = _to_utc(last_success.finished_at) if last_success else None
         run_at = _to_utc(last_run.started_at) if last_run else None
@@ -243,15 +378,8 @@ def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_
             }
         )
 
-    if any(job["status"] == "running" for job in jobs):
-        overall = "running"
-    elif any(job["status"] == "delayed" for job in jobs):
-        overall = "delayed"
-    else:
-        overall = "ok"
-
     return {
         "generated_at": now.isoformat(),
-        "overall_status": overall,
+        "overall_status": _derive_overall_status(jobs),
         "jobs": jobs,
     }
