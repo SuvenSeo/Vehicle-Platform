@@ -1,10 +1,11 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { springSnappy } from "@/lib/motion";
 import { motion } from "framer-motion";
 
 type RouteErrorBoundaryProps = {
   children: ReactNode;
+  resetKey?: string;
 };
 
 type RouteErrorBoundaryState = {
@@ -12,11 +13,17 @@ type RouteErrorBoundaryState = {
   message: string | null;
 };
 
-export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
+class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteErrorBoundaryState> {
   state: RouteErrorBoundaryState = { hasError: false, message: null };
 
   static getDerivedStateFromError(): RouteErrorBoundaryState {
     return { hasError: true, message: null };
+  }
+
+  componentDidUpdate(prevProps: RouteErrorBoundaryProps) {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false, message: null });
+    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -67,4 +74,14 @@ export class RouteErrorBoundary extends Component<RouteErrorBoundaryProps, Route
       </div>
     );
   }
+}
+
+/** Resets the error UI when the route changes so "Back home" is not stuck. */
+export function RouteErrorBoundary({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  return (
+    <RouteErrorBoundaryInner resetKey={`${location.pathname}${location.search}`}>
+      {children}
+    </RouteErrorBoundaryInner>
+  );
 }

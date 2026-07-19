@@ -59,14 +59,34 @@
       /* Recover from stale deploys where /assets/*.css 404s were rewritten to index.html,
          which leaves the app rendered with zero styles until a hard refresh. */
       (function () {
-        function reloadOnce(key) {
+        var CSS_RELOAD_KEY = "autolens.css_reload_attempted";
+        var CSS_RELOAD_TTL_MS = 30000;
+
+        function canReload() {
           try {
-            if (sessionStorage.getItem(key) === "1") return;
-            sessionStorage.setItem(key, "1");
+            var raw = sessionStorage.getItem(CSS_RELOAD_KEY);
+            if (!raw) return true;
+            var stamped = Number(raw);
+            if (!isFinite(stamped)) return false;
+            return Date.now() - stamped > CSS_RELOAD_TTL_MS;
+          } catch (e) {
+            return true;
+          }
+        }
+
+        function reloadOnce() {
+          if (!canReload()) return;
+          try {
+            sessionStorage.setItem(CSS_RELOAD_KEY, String(Date.now()));
           } catch (e) {
             return;
           }
           location.reload();
+        }
+
+        function looksLikeHtml(text) {
+          var head = String(text || "").slice(0, 200).toLowerCase();
+          return head.indexOf("<!doctype") !== -1 || head.indexOf("<html") !== -1;
         }
 
         window.addEventListener("load", function () {
@@ -74,14 +94,21 @@
           if (!links.length) return;
 
           links.forEach(function (link) {
-            fetch(link.href, { cache: "reload" }).then(function (res) {
-              var type = (res.headers.get("content-type") || "").toLowerCase();
-              if (!res.ok || type.indexOf("text/css") === -1) {
-                reloadOnce("autolens.css_reload_attempted");
-              }
-            }).catch(function () {
-              reloadOnce("autolens.css_reload_attempted");
-            });
+            fetch(link.href, { cache: "reload" })
+              .then(function (res) {
+                if (!res.ok) {
+                  reloadOnce();
+                  return null;
+                }
+                return res.text();
+              })
+              .then(function (body) {
+                if (body == null) return;
+                if (looksLikeHtml(body)) reloadOnce();
+              })
+              .catch(function () {
+                reloadOnce();
+              });
           });
         });
       })();

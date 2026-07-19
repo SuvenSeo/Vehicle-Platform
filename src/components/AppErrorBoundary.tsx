@@ -14,22 +14,40 @@ function isChunkLoadError(error: Error): boolean {
   return CHUNK_ERROR_PATTERNS.some((p) => p.test(msg) || p.test(stack));
 }
 
+const CHUNK_RELOAD_TTL_MS = 30_000;
+
+function canAttemptChunkReload(): boolean {
+  try {
+    const raw = window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+    if (!raw) return true;
+    const stamped = Number(raw);
+    if (!Number.isFinite(stamped)) return false;
+    return Date.now() - stamped > CHUNK_RELOAD_TTL_MS;
+  } catch {
+    return true;
+  }
+}
+
+function markChunkReloadAttempted() {
+  try {
+    window.sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+  } catch {
+    // storage unavailable
+  }
+}
+
 export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundaryState> {
   state: AppErrorBoundaryState = { hasError: false, errorMessage: null };
-
-  componentDidMount() { try { window.sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch { /* storage unavailable */ } }
 
   static getDerivedStateFromError(): AppErrorBoundaryState { return { hasError: true, errorMessage: null }; }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     if (isChunkLoadError(error)) {
-      try {
-        if (window.sessionStorage.getItem(CHUNK_RELOAD_KEY) !== "1") {
-          window.sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
-          window.location.reload();
-          return;
-        }
-      } catch { /* storage unavailable — fall through to error UI */ }
+      if (canAttemptChunkReload()) {
+        markChunkReloadAttempted();
+        window.location.reload();
+        return;
+      }
     }
     this.setState({ errorMessage: error?.message || "Unknown runtime error" });
     console.error("Unhandled frontend error", error, errorInfo);
