@@ -1,9 +1,8 @@
-name: Unified Vehicle Scraper
+name: Midday Top Sources Scraper
 
 on:
   schedule:
-    - cron: "0 2 * * *"    # 07:30 SLT — morning full scrape (all 11 sources)
-    - cron: "40 12 * * *"  # 18:10 SLT — evening full scrape (all 11 sources)
+    - cron: "30 6 * * *"  # 12:00 SLT — midday ikman + riyasewana refresh
   workflow_dispatch:
 
 concurrency:
@@ -13,11 +12,11 @@ concurrency:
 jobs:
   scrape-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # ikman/riyasewana crawl up to 100 pages (90 min cap)
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, saleme, riyahub, dimo]
+        source: [ikman, riyasewana]
 
     defaults:
       run:
@@ -58,19 +57,7 @@ jobs:
           python -m py_compile \
             run_sync.py \
             app/scrapers/ikman.py \
-            app/scrapers/riyasewana.py \
-            app/scrapers/patpat.py \
-            app/scrapers/autolanka.py \
-            app/scrapers/auto_lanka_site.py \
-            app/scrapers/autodirect.py \
-            app/scrapers/autostream.py \
-            app/scrapers/generic_detail.py \
-            app/scrapers/carshop.py \
-            app/scrapers/saleme.py \
-            app/scrapers/riyahub.py \
-            app/scrapers/dimo.py \
-            app/services/market_signals.py \
-            app/services/aggregator.py
+            app/scrapers/riyasewana.py
 
       - name: Ensure schema (idempotent)
         env:
@@ -92,46 +79,21 @@ jobs:
           RUN_SCRAPERS: "true"
           RUN_MARKET_ANALYSIS: "false"
           RUN_MARKET_SIGNALS: "false"
-          # Lifecycle + outlier passes run once in the market-analysis job,
-          # not in each of the 11 parallel scrape jobs.
           RUN_LISTING_LIFECYCLE: "false"
           RUN_OUTLIER_DETECTION: "false"
-          # Rescue-safe manual default. Use a separate full-refresh workflow if
-          # a deeper scan is needed after the Supabase migration.
-          SCRAPE_MAX_PAGES: "20"
-          SCRAPE_MAX_PAGES_ALT: "20"
+          SCRAPE_MAX_PAGES: "100"
           SCRAPE_MAX_PAGES_IKMAN: "100"
           SCRAPE_MAX_PAGES_RIYASEWANA: "100"
-          SCRAPE_MAX_PAGES_PATPAT: "20"
-          SCRAPE_MAX_PAGES_AUTOLANKA: "20"
-          SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "20"
-          SCRAPE_MAX_PAGES_AUTODIRECT: "20"
-          SCRAPE_MAX_PAGES_AUTOSTREAM: "20"
-          SCRAPE_MAX_PAGES_CARSHOP: "20"
-          SCRAPE_MAX_PAGES_SALEME: "20"
-          SCRAPE_MAX_PAGES_RIYAHUB: "20"
-          SCRAPE_MAX_PAGES_DIMO: "20"
-          # 30 minutes timeout per source (1800s)
-          SCRAPE_SOURCE_TIMEOUT_SECONDS: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "5400"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "5400"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "5400"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOLANKA: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTO_LANKA_SITE: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTODIRECT: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOSTREAM: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARSHOP: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "1800"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: scrape-${{ matrix.source }}-failure-${{ github.run_id }}
+          name: midday-scrape-${{ matrix.source }}-failure-${{ github.run_id }}
           path: |
             backend/*.log
             backend/*.db
@@ -224,6 +186,6 @@ jobs:
       - name: Upload manifest artifact
         uses: actions/upload-artifact@v4
         with:
-          name: public-snapshot-manifest-${{ github.run_id }}
+          name: midday-public-snapshot-manifest-${{ github.run_id }}
           path: backend/snapshots/latest/manifest.json
           retention-days: 14

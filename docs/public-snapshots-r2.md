@@ -53,8 +53,10 @@ database transfer for every visitor.
 
 ## Daily operation
 
-`Unified Vehicle Scraper` now runs twice daily at 06:10 and 18:10 Sri Lanka time.
-After the scraper and market analysis jobs, it exports and uploads snapshots.
+`Unified Vehicle Scraper` runs twice daily at 07:30 and 18:10 Sri Lanka time
+(02:00 and 12:40 UTC). `Midday Top Sources Scraper` refreshes ikman and
+riyasewana at 12:00 Sri Lanka time (06:30 UTC). After each scrape and market
+analysis job, workflows export and upload snapshots.
 If R2 secrets are not set yet, upload is skipped without failing the exporter
 script locally; in GitHub, the export step still fails clearly if the database
 itself is unavailable.
