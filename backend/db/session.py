@@ -56,7 +56,17 @@ for url, label in [(HOT_URL, "HOT_DATABASE_URL"), (COLD_URL, "COLD_DATABASE_URL"
 def _make_engine(url: str):
     if url.startswith("sqlite"):
         return create_engine(url, connect_args={"check_same_thread": False})
-    return create_engine(url, poolclass=NullPool, pool_pre_ping=True)
+    # Bounded connect + statement time for remote Postgres (HF Spaces / poolers).
+    # NullPool kept: serverless/Space workers should not hold idle pooled conns.
+    return create_engine(
+        url,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        connect_args={
+            "connect_timeout": 5,
+            "options": "-c statement_timeout=15000",
+        },
+    )
 
 hot_engine  = _make_engine(HOT_URL)
 cold_engine = _make_engine(COLD_URL)

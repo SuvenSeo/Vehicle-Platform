@@ -1,13 +1,17 @@
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-import structlog
 import os
-from .api.v1.api import api_router
-from db.session import init_db, hot_engine
+
+import structlog
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
+from db.session import hot_engine, init_db
+
+from .api.v1.api import api_router
 
 # Setup logging
 structlog.configure(
@@ -85,6 +89,7 @@ else:
         "http://127.0.0.1:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5174",
+        "https://motormila.vercel.app",
         "https://vehicle-platform-one.vercel.app",
         "https://vehicle-platform-one-suvenseoras-projects.vercel.app",
     ]
@@ -98,6 +103,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # Ensure HF proxy + frontend parseApiError always get JSON, not plain text.
+    logger.error(
+        "unhandled_exception",
+        error=str(exc),
+        path=request.url.path,
+        method=request.method,
+    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
 HEALTH_DB_PROBE_TIMEOUT_SECONDS = 5
 
 
@@ -105,8 +123,6 @@ def _probe_db() -> None:
     with hot_engine.connect() as conn:
         conn.execute(text("SELECT 1"))
 
-
-from fastapi.responses import JSONResponse
 
 @app.get("/health")
 async def health_check():
@@ -124,7 +140,7 @@ async def health_check():
         "db": db_status,
         "version": "1.0.0",
     }
-    
+
     if db_status != "ok":
         return JSONResponse(status_code=503, content=content)
     return content
