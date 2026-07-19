@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import stats
+from app.models.schemas import DashboardInsightsResponse
 from db.models import Base, CarListing, PriceAggregate, ScrapeRun
 
 
@@ -125,6 +126,21 @@ def test_dashboard_insights_hot_deals_exclude_non_positive_and_tiny_prices():
 
     assert [item["id"] for item in payload["hot_deals"]] == [2]
     assert all(item["price_lkr"] >= 100_000 for item in payload["hot_deals"])
+
+
+def test_dashboard_insights_null_year_does_not_fail_validation():
+    db = _session()
+    listing = _listing("null-year-deal", 7_500_000, 12.0)
+    listing.year = None
+    db.add(listing)
+    db.commit()
+
+    payload = stats.get_dashboard_insights(db=db)
+    validated = DashboardInsightsResponse.model_validate(payload)
+
+    assert len(validated.hot_deals) == 1
+    assert validated.hot_deals[0].year is None
+    assert validated.hot_deals[0].price_lkr == 7_500_000
 
 
 def test_stats_summary_counts_normalized_districts():
