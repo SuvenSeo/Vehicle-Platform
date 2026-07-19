@@ -35,8 +35,8 @@ SOURCE_ORDER = [
     "dimo",
 ]
 EXPECTED_HOURS = {
-    "ikman": 12,
-    "riyasewana": 12,
+    "ikman": 8,
+    "riyasewana": 8,
     "autolanka": 12,
     "autodirect": 12,
     "patpat": 12,

@@ -204,7 +204,7 @@ This repo now includes `.github/workflows/daily-scrape.yml` to run scraping in G
 
 It supports:
 
-- **Scheduled run**: daily at 02:00 UTC (7:30 AM Sri Lanka time)
+- **Scheduled run**: twice daily at 02:00 UTC (07:30 SLT) and 12:40 UTC (18:10 SLT); midday ikman/riyasewana refresh at 06:30 UTC (12:00 SLT) via `midday-top-sources-scrape.yml`
 - **Manual run**: GitHub -> Actions -> **Unified Vehicle Scraper** -> **Run workflow**
 - **Independent source jobs**: every source runs as its own matrix job so one source cannot stop the others
 
@@ -217,7 +217,7 @@ In GitHub repo -> **Settings** -> **Secrets and variables** -> **Actions**, add 
 Notes:
 
 - Page depth and per-source timeouts are pinned inside the workflow file
-  (`SCRAPE_MAX_PAGES: 20`, 6h timeout per source) — edit
+  (`SCRAPE_MAX_PAGES: 20`, 100 for ikman/riyasewana, 90 min timeout for those two) — edit
   `.github/workflows/daily-scrape.yml` to change them.
 - Workflow forces `ALLOW_SQLITE_FALLBACK=false` so it fails fast if DB config is missing.
 - Playwright dependencies and Chromium are installed inside the runner automatically.
