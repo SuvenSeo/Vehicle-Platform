@@ -929,8 +929,10 @@ export const getListingPriceHistory = async (id: string | number): Promise<Price
     : [];
 
   let cutCount = 0;
+  let raiseCount = 0;
   for (let i = 1; i < points.length; i++) {
     if (points[i].price_lkr < points[i - 1].price_lkr) cutCount++;
+    else if (points[i].price_lkr > points[i - 1].price_lkr) raiseCount++;
   }
 
   return {
@@ -939,7 +941,12 @@ export const getListingPriceHistory = async (id: string | number): Promise<Price
     first_price_lkr: toNumberOrNull(data?.first_price_lkr),
     current_price_lkr: toNumberOrNull(data?.current_price_lkr),
     change_pct: toNumberOrNull(data?.change_pct),
-    cut_count: cutCount,
+    cut_count: toNumberOrNull(data?.cut_count) ?? cutCount,
+    raise_count: toNumberOrNull(data?.raise_count) ?? raiseCount,
+    highest_price_lkr: toNumberOrNull(data?.highest_price_lkr),
+    lowest_price_lkr: toNumberOrNull(data?.lowest_price_lkr),
+    last_change_at: data?.last_change_at ? String(data.last_change_at) : null,
+    tracked_points: toNumberOrNull(data?.tracked_points) ?? points.length,
   };
 };
 

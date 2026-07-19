@@ -116,6 +116,12 @@ export interface PriceHistoryInfo {
   change_pct: number | null;
   /** Number of downward price moves between successive points. */
   cut_count: number;
+  /** Number of upward price moves between successive points. */
+  raise_count: number;
+  highest_price_lkr?: number | null;
+  lowest_price_lkr?: number | null;
+  last_change_at?: string | null;
+  tracked_points?: number;
 }
 
 export interface SellerTrustProfile {

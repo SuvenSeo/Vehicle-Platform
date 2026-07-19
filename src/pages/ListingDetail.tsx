@@ -20,6 +20,7 @@ import { MileageTrustChip } from '@/components/MileageTrustChip';
 import { SellSpeedChip } from '@/components/SellSpeedChip';
 import { AdvertHealthChip } from '@/components/AdvertHealthChip';
 import { ListingHistoryReport } from '@/components/ListingHistoryReport';
+import { ListingPriceTimeline } from '@/components/ListingPriceTimeline';
 import { inferFinanceClass } from '@/lib/cashToOwn';
 import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
@@ -334,6 +335,18 @@ export default function ListingDetail() {
               </div>
             </motion.div>
 
+            {priceHistory && priceHistory.points.length > 0 && (
+              <motion.div variants={revealItem}>
+                <ListingPriceTimeline
+                  history={priceHistory}
+                  marketMedianLkr={listing.market_median_lkr}
+                  listingTitle={`${listing.make} ${listing.model}`}
+                />
+              </motion.div>
+            )}
+
+            {listing.id != null && <ListingHistoryReport listingId={listing.id} />}
+
             {/* Description */}
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
               <h2 className="mb-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Description</h2>
@@ -342,9 +355,6 @@ export default function ListingDetail() {
               </p>
             </motion.div>
 
-            {listing.id != null && <ListingHistoryReport listingId={listing.id} />}
-
-            {/* Finance Dashboard widgets */}
             {hasPrice && (() => {
               // brand_new already covers API-normalized "unregistered"/new imports
               const isUnregistered =

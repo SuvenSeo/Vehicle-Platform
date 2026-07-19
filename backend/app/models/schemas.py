@@ -340,6 +340,12 @@ class PriceHistoryResponse(BaseModel):
     first_price_lkr: Optional[float] = None
     current_price_lkr: Optional[float] = None
     change_pct: Optional[float] = None
+    cut_count: int = 0
+    raise_count: int = 0
+    highest_price_lkr: Optional[float] = None
+    lowest_price_lkr: Optional[float] = None
+    last_change_at: Optional[datetime] = None
+    tracked_points: int = 0
 
 
 class ComparableVehicle(BaseModel):
