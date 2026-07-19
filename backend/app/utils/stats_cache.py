@@ -1,14 +1,16 @@
 """Materialized cache for heavy aggregate stats endpoints.
 
-``refresh_stats_cache(db)`` precomputes both the ``summary`` and
-``district_prices`` payloads and stores them in ``market_stats_cache``.
+``refresh_stats_cache(db)`` precomputes ``summary``, ``district_prices``, and
+``district_velocity`` payloads and stores them in ``market_stats_cache``.
 
-The read helpers (``get_cached_summary``, ``get_cached_district_prices``)
-return ``None`` when the entry is absent or older than ``CACHE_TTL_SECONDS``,
-which signals the caller to fall back to live computation.
+The read helpers (``get_cached_summary``, ``get_cached_district_prices``,
+``get_cached_district_velocity``) return ``None`` when the entry is absent or
+older than ``CACHE_TTL_SECONDS``, which signals the caller to fall back to
+live computation. Pass ``allow_stale=True`` to serve an expired payload when
+live computation fails.
 
-``store_summary_cache`` / ``store_district_prices_cache`` let the endpoint
-persist a result it just computed so the next caller gets a cache hit.
+``store_*_cache`` helpers let endpoints persist a result they just computed
+so the next caller gets a cache hit.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ import structlog
 from sqlalchemy import case, func, and_, desc
 from sqlalchemy.orm import Session
 
-from app.models.schemas import StatsSummary
+from app.models.schemas import DistrictVelocityPoint, DistrictVelocityResponse, StatsSummary
 from app.utils.districts import (
     SL_DISTRICT_COORDS,
     count_canonical_districts,
@@ -95,6 +97,24 @@ def get_cached_district_prices(db: Session) -> Optional[dict]:
     return payload
 
 
+def get_cached_district_velocity(
+    db: Session,
+    *,
+    allow_stale: bool = False,
+) -> Optional[DistrictVelocityResponse]:
+    """Return cached district-velocity payload or ``None`` on miss/staleness."""
+    entry = _get_entry(db, "district_velocity")
+    if entry is None:
+        return None
+    if not allow_stale and not _is_fresh(entry):
+        return None
+    try:
+        return DistrictVelocityResponse.model_validate(entry.payload)
+    except Exception as exc:
+        log.warning("stats_cache_district_velocity_parse_error", error=str(exc))
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Public write helpers (used by endpoints after inline computation)
 # ---------------------------------------------------------------------------
@@ -118,6 +138,18 @@ def store_district_prices_cache(db: Session, result: dict) -> None:
         _upsert(db, "district_prices", result)
     except Exception as exc:
         log.warning("stats_cache_store_district_prices_error", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def store_district_velocity_cache(db: Session, result: DistrictVelocityResponse) -> None:
+    """Persist district-velocity *result* to the cache; swallows all errors."""
+    try:
+        _upsert(db, "district_velocity", result.model_dump(mode="json"))
+    except Exception as exc:
+        log.warning("stats_cache_store_district_velocity_error", error=str(exc))
         try:
             db.rollback()
         except Exception:
@@ -367,8 +399,69 @@ def _compute_district_prices(db: Session) -> dict:
     return {"points": points}
 
 
+def compute_district_velocity(db: Session) -> DistrictVelocityResponse:
+    """Compute district demand velocity in a single grouped query."""
+    now = utc_now()
+    seven_days_ago = now - timedelta(days=7)
+    first_seen_ts = func.coalesce(CarListing.first_seen_at, CarListing.scraped_at)
+
+    rows = (
+        db.query(
+            CarListing.district,
+            func.count(CarListing.id).label("listing_count"),
+            func.sum(case((first_seen_ts >= seven_days_ago, 1), else_=0)).label("new_7d_count"),
+        )
+        .filter(
+            CarListing.district.isnot(None),
+            live_listing_filter(),
+        )
+        .group_by(CarListing.district)
+        .all()
+    )
+
+    agg: dict[str, dict] = {}
+    for row in rows:
+        normalized = normalize_district_name(str(row.district))
+        if not normalized or normalized == "Sri Lanka":
+            continue
+        coords = SL_DISTRICT_COORDS.get(normalized)
+        if not coords:
+            continue
+        total = int(row.listing_count or 0)
+        new_7d = int(row.new_7d_count or 0)
+        velocity = round(new_7d / total, 4) if total > 0 else 0.0
+
+        entry = agg.get(normalized)
+        if entry is None:
+            agg[normalized] = {
+                "district": normalized,
+                "lat": coords[0],
+                "lng": coords[1],
+                "listing_count": total,
+                "new_7d_count": new_7d,
+                "velocity_score": velocity,
+            }
+        else:
+            combined_total = entry["listing_count"] + total
+            combined_new = entry["new_7d_count"] + new_7d
+            agg[normalized] = {
+                **entry,
+                "listing_count": combined_total,
+                "new_7d_count": combined_new,
+                "velocity_score": (
+                    round(combined_new / combined_total, 4) if combined_total > 0 else 0.0
+                ),
+            }
+
+    points = sorted(agg.values(), key=lambda p: p["listing_count"], reverse=True)
+    return DistrictVelocityResponse(
+        points=[DistrictVelocityPoint.model_validate(p) for p in points],
+        generated_at=now,
+    )
+
+
 def refresh_stats_cache(db: Session) -> None:
-    """Precompute and persist both ``summary`` and ``district_prices`` cache entries.
+    """Precompute and persist summary, district_prices, and district_velocity.
 
     Designed to be called from the post-scrape pipeline (``run_sync.py``) so
     that the first API hit after a sync finds warm cache instead of running
@@ -392,6 +485,17 @@ def refresh_stats_cache(db: Session) -> None:
         log.info("stats_cache_district_prices_stored")
     except Exception as exc:
         log.error("stats_cache_district_prices_failed", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    try:
+        velocity = compute_district_velocity(db)
+        _upsert(db, "district_velocity", velocity.model_dump(mode="json"))
+        log.info("stats_cache_district_velocity_stored")
+    except Exception as exc:
+        log.error("stats_cache_district_velocity_failed", error=str(exc))
         try:
             db.rollback()
         except Exception:

@@ -215,6 +215,8 @@ export default function Dashboard() {
     queryKey: ["district-velocity"],
     queryFn: getDistrictVelocity,
     staleTime: 300_000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
@@ -992,10 +994,18 @@ export default function Dashboard() {
                 <ProvinceVelocityStrip
                   data={velocityQuery.data?.points ?? []}
                   isLoading={velocityQuery.isPending}
+                  isError={velocityQuery.isError}
+                  onRetry={() => {
+                    void velocityQuery.refetch();
+                  }}
                 />
                 <DistrictVelocityMap
                   data={velocityQuery.data?.points ?? []}
                   isLoading={velocityQuery.isPending}
+                  isError={velocityQuery.isError}
+                  onRetry={() => {
+                    void velocityQuery.refetch();
+                  }}
                 />
               </div>
             </Suspense>

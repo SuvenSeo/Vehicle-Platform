@@ -17,9 +17,12 @@ from app.utils.districts import (
 from app.utils.import_era import classify_import_era, era_label, FREEZE_BOUNDARY_YEAR
 from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
 from app.utils.stats_cache import (
+    compute_district_velocity,
     get_cached_district_prices,
+    get_cached_district_velocity,
     get_cached_summary,
     store_district_prices_cache,
+    store_district_velocity_cache,
     store_summary_cache,
 )
 from app.utils.time import utc_now
@@ -27,7 +30,7 @@ from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun, live_listing_filter
 from app.models.schemas import StatsSummary, DistrictPrice
 from app.models.schemas import DashboardInsightsResponse, DistrictQuickInsightResponse
-from app.models.schemas import DistrictVelocityResponse, DistrictVelocityPoint
+from app.models.schemas import DistrictVelocityResponse
 from app.models.schemas import PriceIndexResponse
 from app.utils.price_index import build_price_index
 from app.services.rate_limit import RateLimiter
@@ -1352,82 +1355,20 @@ def get_ev_insight(
 
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
 def get_district_velocity(db: Session = Depends(get_db)):
-    now = utc_now()
-    seven_days_ago = now - timedelta(days=7)
+    cached = get_cached_district_velocity(db)
+    if cached is not None:
+        return cached
 
-    first_seen_ts = func.coalesce(CarListing.first_seen_at, CarListing.scraped_at)
+    try:
+        result = compute_district_velocity(db)
+    except Exception:
+        stale = get_cached_district_velocity(db, allow_stale=True)
+        if stale is not None:
+            return stale
+        raise
 
-    total_rows = (
-        db.query(
-            CarListing.district,
-            func.count(CarListing.id).label("listing_count"),
-        )
-        .filter(
-            CarListing.district.isnot(None),
-            live_listing_filter(),
-        )
-        .group_by(CarListing.district)
-        .all()
-    )
-
-    new_rows = (
-        db.query(
-            CarListing.district,
-            func.count(CarListing.id).label("new_7d_count"),
-        )
-        .filter(
-            CarListing.district.isnot(None),
-            live_listing_filter(),
-            first_seen_ts >= seven_days_ago,
-        )
-        .group_by(CarListing.district)
-        .all()
-    )
-
-    new_by_district: dict[str, int] = {
-        normalize_district_name(str(row.district)) or str(row.district): int(row.new_7d_count or 0)
-        for row in new_rows
-        if row.district
-    }
-
-    agg: dict[str, dict] = {}
-    for row in total_rows:
-        normalized = normalize_district_name(str(row.district))
-        if not normalized or normalized == "Sri Lanka":
-            continue
-        coords = SL_DISTRICT_COORDS.get(normalized)
-        if not coords:
-            continue
-        total = int(row.listing_count or 0)
-        new_7d = new_by_district.get(normalized, 0)
-        velocity = round(new_7d / total, 4) if total > 0 else 0.0
-
-        entry = agg.get(normalized)
-        if entry is None:
-            agg[normalized] = {
-                "district": normalized,
-                "lat": coords[0],
-                "lng": coords[1],
-                "listing_count": total,
-                "new_7d_count": new_7d,
-                "velocity_score": velocity,
-            }
-        else:
-            combined_total = entry["listing_count"] + total
-            combined_new = entry["new_7d_count"] + new_7d
-            agg[normalized] = {
-                **entry,
-                "listing_count": combined_total,
-                "new_7d_count": combined_new,
-                "velocity_score": round(combined_new / combined_total, 4) if combined_total > 0 else 0.0,
-            }
-
-    points = sorted(agg.values(), key=lambda p: p["listing_count"], reverse=True)
-
-    return DistrictVelocityResponse(
-        points=[DistrictVelocityPoint(**p) for p in points],
-        generated_at=now,
-    )
+    store_district_velocity_cache(db, result)
+    return result
 
 
 # ---------------------------------------------------------------------------

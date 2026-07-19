@@ -771,9 +771,10 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
   }
 
   const timeoutMs = API_BASE.includes("hf.space") ? HF_COLD_START_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+  const maxAttempts = API_BASE.includes("hf.space") ? 3 : 2;
   let lastError: unknown;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -791,9 +792,14 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
     } catch (error) {
       lastError = error;
       const isAbort = error instanceof DOMException && error.name === "AbortError";
-      if (!isAbort || attempt === 1) {
+      const isServerError = error instanceof APIError && error.status >= 500;
+      const isNetworkError = error instanceof TypeError;
+      const retryable = isAbort || isServerError || isNetworkError;
+      if (!retryable || attempt === maxAttempts - 1) {
         throw error;
       }
+      const backoffMs = Math.min(1000 * 2 ** attempt, 4000);
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
     } finally {
       clearTimeout(timeout);
     }

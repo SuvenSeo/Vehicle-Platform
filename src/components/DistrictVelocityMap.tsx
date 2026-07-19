@@ -7,6 +7,8 @@ import { MapResizeController } from "@/components/leaflet/MapResizeController";
 interface DistrictVelocityMapProps {
   data: DistrictVelocityPoint[];
   isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }
 
 const SL_BOUNDS: [[number, number], [number, number]] = [[5.7, 79.2], [10.35, 82.15]];
@@ -49,6 +51,8 @@ function formatVelocityPct(score: number): string {
 export const DistrictVelocityMap = memo(function DistrictVelocityMap({
   data,
   isLoading,
+  isError,
+  onRetry,
 }: DistrictVelocityMapProps) {
   const points = useMemo(
     () => data.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)),
@@ -78,6 +82,25 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
         <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-4" />
         <p className="text-sm font-bold uppercase tracking-widest text-primary/80">Loading velocity data</p>
         <p className="text-xs text-muted-foreground font-medium">Calculating demand momentum across districts…</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-[420px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          Velocity data temporarily unavailable — market API returned an error.
+        </p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
     );
   }

@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import stats as stats_module
 from app.models.schemas import DistrictVelocityResponse
+from app.utils import stats_cache
 from db.models import Base, CarListing
 
 
@@ -22,6 +23,11 @@ def _session():
 
 
 _FIXED_NOW = datetime(2026, 4, 19, 12, 0, tzinfo=timezone.utc)
+
+
+def _freeze_now(monkeypatch) -> None:
+    monkeypatch.setattr(stats_cache, "utc_now", lambda: _FIXED_NOW)
+    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
 
 
 def _listing(
@@ -57,7 +63,7 @@ def _listing(
 
 
 def test_district_velocity_returns_valid_schema(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     db.add(_listing("l1", district="Colombo"))
@@ -71,7 +77,7 @@ def test_district_velocity_returns_valid_schema(monkeypatch):
 
 
 def test_district_velocity_empty_db_returns_empty_points(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
 
@@ -86,7 +92,7 @@ def test_district_velocity_empty_db_returns_empty_points(monkeypatch):
 
 
 def test_district_velocity_counts_all_non_outlier_listings(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     # 3 non-outlier Colombo listings (old — outside 7d window)
@@ -105,7 +111,7 @@ def test_district_velocity_counts_all_non_outlier_listings(monkeypatch):
 
 
 def test_district_velocity_new_7d_counts_recent_listings(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     # 2 old + 3 fresh within last 7 days
@@ -129,7 +135,7 @@ def test_district_velocity_new_7d_counts_recent_listings(monkeypatch):
 
 
 def test_district_velocity_score_is_new_over_total(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     # 4 old + 1 new → velocity = 1/5 = 0.2
@@ -146,7 +152,7 @@ def test_district_velocity_score_is_new_over_total(monkeypatch):
 
 
 def test_district_velocity_score_is_1_when_all_listings_are_new(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     for i in range(5):
@@ -166,7 +172,7 @@ def test_district_velocity_score_is_1_when_all_listings_are_new(monkeypatch):
 
 
 def test_district_velocity_includes_lat_lng(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     db.add(_listing("c1", district="Colombo"))
@@ -189,7 +195,7 @@ def test_district_velocity_includes_lat_lng(monkeypatch):
 
 
 def test_district_velocity_excludes_unknown_district(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     db.add(_listing("x1", district="UnknownTown"))
@@ -204,7 +210,7 @@ def test_district_velocity_excludes_unknown_district(monkeypatch):
 
 
 def test_district_velocity_excludes_sri_lanka_generic_district(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     db.add(_listing("sl1", district="Sri Lanka"))
@@ -224,7 +230,7 @@ def test_district_velocity_excludes_sri_lanka_generic_district(monkeypatch):
 
 
 def test_district_velocity_sorted_by_listing_count_desc(monkeypatch):
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     for i in range(5):
@@ -246,7 +252,7 @@ def test_district_velocity_sorted_by_listing_count_desc(monkeypatch):
 
 def test_district_velocity_boundary_listing_exactly_7d_ago_is_included(monkeypatch):
     # The query uses >= seven_days_ago, so exactly 7d should be counted.
-    monkeypatch.setattr(stats_module, "utc_now", lambda: _FIXED_NOW)
+    _freeze_now(monkeypatch)
 
     db = _session()
     boundary_ts = _FIXED_NOW - timedelta(days=7)
