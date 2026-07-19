@@ -8,7 +8,8 @@ const CHUNK_ERROR_PATTERNS = [
   /error loading dynamically imported module/i,
 ];
 
-const CHUNK_RELOAD_KEY = "autolens.chunk_reload_attempted";
+const CHUNK_RELOAD_KEY = "motormila.chunk_reload_attempted";
+const CHUNK_RELOAD_KEY_LEGACY = "autolens.chunk_reload_attempted";
 const CHUNK_RELOAD_TTL_MS = 30_000;
 
 export function isChunkLoadError(error: unknown): boolean {
@@ -23,7 +24,9 @@ function sleep(ms: number) {
 
 function canAttemptChunkReload(): boolean {
   try {
-    const raw = window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+    const raw =
+      window.sessionStorage.getItem(CHUNK_RELOAD_KEY) ||
+      window.sessionStorage.getItem(CHUNK_RELOAD_KEY_LEGACY);
     if (!raw) return true;
     const stamped = Number(raw);
     if (!Number.isFinite(stamped)) return false;

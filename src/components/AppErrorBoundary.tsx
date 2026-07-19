@@ -5,7 +5,8 @@ import { springSnappy, springSoft } from "@/lib/motion";
 interface AppErrorBoundaryProps { children: ReactNode; }
 interface AppErrorBoundaryState { hasError: boolean; errorMessage: string | null; }
 
-const CHUNK_RELOAD_KEY = "autolens.chunk_reload_attempted";
+const CHUNK_RELOAD_KEY = "motormila.chunk_reload_attempted";
+const CHUNK_RELOAD_KEY_LEGACY = "autolens.chunk_reload_attempted";
 const CHUNK_ERROR_PATTERNS = [/ChunkLoadError/i, /Loading chunk [\d]+ failed/i, /Failed to fetch dynamically imported module/i, /Importing a module script failed/i];
 
 function isChunkLoadError(error: Error): boolean {
@@ -18,7 +19,9 @@ const CHUNK_RELOAD_TTL_MS = 30_000;
 
 function canAttemptChunkReload(): boolean {
   try {
-    const raw = window.sessionStorage.getItem(CHUNK_RELOAD_KEY);
+    const raw =
+      window.sessionStorage.getItem(CHUNK_RELOAD_KEY) ||
+      window.sessionStorage.getItem(CHUNK_RELOAD_KEY_LEGACY);
     if (!raw) return true;
     const stamped = Number(raw);
     if (!Number.isFinite(stamped)) return false;
@@ -54,7 +57,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   handleReload = () => {
-    try { window.sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch { /* storage unavailable */ }
+    try {
+      window.sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      window.sessionStorage.removeItem(CHUNK_RELOAD_KEY_LEGACY);
+    } catch { /* storage unavailable */ }
     window.location.reload();
   };
 
