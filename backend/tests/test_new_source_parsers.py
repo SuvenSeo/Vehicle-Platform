@@ -85,7 +85,11 @@ def test_dimo_extracts_woocommerce_product_links():
 
 
 def test_multi_category_scrapers_respect_total_page_budget():
-    assert len(RiyahubScraper(db=None)._build_page_urls(5)) == 5
+    # Riyahub now budgets pages per vehicle category (cars full, others secondary).
+    riyahub_urls = RiyahubScraper(db=None)._build_page_urls(5)
+    assert len(riyahub_urls) > 5
+    assert any(url.rstrip("/").endswith("/vehicle/cars") for url in riyahub_urls)
+    assert any("/vehicle/motorcycles" in url for url in riyahub_urls)
     assert len(DimoScraper(db=None)._build_page_urls(5)) == 5
 
 

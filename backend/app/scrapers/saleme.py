@@ -7,14 +7,36 @@ from bs4 import BeautifulSoup
 
 from app.scrapers.cleaner import CarCleaner
 from app.scrapers.generic_detail import GenericDetailScraper
+from app.scrapers.page_budget import page_budget_for_category
 
 
 class SaleMeScraper(GenericDetailScraper):
     SOURCE = "saleme"
     BASE_URL = "https://www.saleme.lk"
-    START_URLS = ("https://www.saleme.lk/ads/sri-lanka/cars",)
+    PRIMARY_CATEGORY = "cars"
+    # Site uses ampersands/commas in category slugs.
+    START_URLS = (
+        "https://www.saleme.lk/ads/sri-lanka/cars",
+        "https://www.saleme.lk/ads/sri-lanka/motorbikes-&-scooters",
+        "https://www.saleme.lk/ads/sri-lanka/three-wheelers",
+        "https://www.saleme.lk/ads/sri-lanka/push-cycles",
+        "https://www.saleme.lk/ads/sri-lanka/vans,-buses-&-lorries",
+    )
     ALLOW_UNAVAILABLE_PRICE = True
     _cleaner = CarCleaner()
+
+    def _build_page_urls(self, max_pages: int) -> list[str]:
+        urls: list[str] = []
+        for start_url in self.START_URLS:
+            slug = start_url.rstrip("/").rsplit("/", 1)[-1]
+            page_limit = page_budget_for_category(
+                is_primary=slug == self.PRIMARY_CATEGORY,
+                max_pages=max_pages,
+            )
+            urls.append(start_url)
+            for page_num in range(2, page_limit + 1):
+                urls.append(f"{start_url.rstrip('/')}?page={page_num}")
+        return urls
 
     def _extract_title(self, soup: BeautifulSoup) -> str:
         candidates: list[str] = []

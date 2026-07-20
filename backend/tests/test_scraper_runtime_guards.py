@@ -276,6 +276,39 @@ def test_autodirect_scraper_uses_direct_api_strategy():
     assert "api.autodirect.lk" in text
 
 
+def test_ikman_scraper_uses_public_json_api_with_playwright_fallback():
+    source = Path(__file__).resolve().parents[1] / "app" / "scrapers" / "ikman.py"
+    text = source.read_text(encoding="utf-8")
+
+    assert "api.ikman.lk" in text
+    assert "CARS_CATEGORY_ID = 392" in text
+    assert "VEHICLE_CATEGORY_IDS" in text
+    assert "402" in text  # Motorbikes
+    assert "911" in text  # Three Wheelers
+    assert "393" not in text  # Auto Parts excluded
+    assert "405" not in text  # Auto Services excluded
+    assert "406" not in text  # Rentals excluded
+    assert "_scrape_via_api" in text
+    assert "_scrape_via_playwright" in text
+    assert "IKMAN_SCRAPE_MODE" in text
+
+
+def test_marketplace_scrapers_are_multi_vehicle():
+    riyasewana = (
+        Path(__file__).resolve().parents[1] / "app" / "scrapers" / "riyasewana.py"
+    ).read_text(encoding="utf-8")
+    patpat = (
+        Path(__file__).resolve().parents[1] / "app" / "scrapers" / "patpat.py"
+    ).read_text(encoding="utf-8")
+    hitad = (
+        Path(__file__).resolve().parents[1] / "app" / "scrapers" / "hitad.py"
+    ).read_text(encoding="utf-8")
+
+    assert "CATEGORY_PATHS" in riyasewana and "motorcycles" in riyasewana
+    assert "CATEGORY_PATHS" in patpat and "threewheeler" in patpat
+    assert "CATEGORY_KEYWORDS" in hitad and "motorbikes" in hitad
+
+
 def test_riyasewana_detects_cloudflare_challenge_pages():
     challenge_soup = BeautifulSoup(
         """

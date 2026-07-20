@@ -11,6 +11,7 @@ from playwright.async_api import async_playwright
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.page_budget import page_budget_for_category
 from app.utils.listing_upsert import upsert_listing
 
 log = structlog.get_logger()
@@ -18,6 +19,24 @@ log = structlog.get_logger()
 
 class RiyasewanaScraper:
     SOURCE = "riyasewana"
+    # For-sale vehicle leaves only (skip rentals/parts via category choice).
+    CATEGORY_PATHS = (
+        "cars",
+        "motorcycles",
+        "three-wheels",
+        "vans",
+        "buses",
+        "lorries",
+        "trucks",
+        "suvs",
+        "pickups",
+        "crew-cabs",
+        "wagons",
+        "tractors",
+        "heavy-duty",
+        "bicycles",
+    )
+    PRIMARY_CATEGORY = "cars"
     BASE_URL = "https://riyasewana.com/search/cars"
     LISTING_SELECTOR = "ul.v-list li.v-card"
     LISTING_SELECTORS = (
@@ -151,12 +170,19 @@ class RiyasewanaScraper:
 
         return last_soup, last_cards
 
+    @classmethod
+    def _category_base_url(cls, category_path: str) -> str:
+        return f"https://riyasewana.com/search/{category_path}"
+
+    @classmethod
+    def _page_budget_for_category(cls, category_path: str, max_pages: int) -> int:
+        return page_budget_for_category(
+            is_primary=category_path == cls.PRIMARY_CATEGORY,
+            max_pages=max_pages,
+        )
+
     async def scrape(self, max_pages: int = 5):
-        page_limit = max_pages if max_pages > 0 else None
         seen_urls: set[str] = set()
-        page_num = 1
-        consecutive_empty_pages = 0
-        consecutive_page_errors = 0
 
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(
@@ -193,139 +219,177 @@ class RiyasewanaScraper:
             page = await context.new_page()
 
             try:
-                while True:
-                    if page_limit is not None and page_num > page_limit:
-                        break
+                for category_path in self.CATEGORY_PATHS:
+                    page_limit = self._page_budget_for_category(category_path, max_pages)
+                    base_url = self._category_base_url(category_path)
+                    page_num = 1
+                    consecutive_empty_pages = 0
+                    consecutive_page_errors = 0
 
-                    page_url = self.BASE_URL if page_num == 1 else f"{self.BASE_URL}?page={page_num}"
-                    log.info("scraping_page", source=self.SOURCE, page=page_num)
+                    while page_num <= page_limit:
+                        page_url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
+                        log.info(
+                            "scraping_page",
+                            source=self.SOURCE,
+                            category=category_path,
+                            page=page_num,
+                            page_limit=page_limit,
+                        )
 
-                    try:
-                        soup, cards = await self._load_page_with_retries(page, page_url, page_num)
-                        if not cards:
-                            consecutive_empty_pages += 1
-                            title = soup.title.get_text(strip=True) if soup.title else "(no title)"
-                            log.info(
-                                "riyasewana_no_cards",
-                                page=page_num,
-                                challenge_page=self._is_challenge_page(soup),
-                                page_title=title,
+                        try:
+                            soup, cards = await self._load_page_with_retries(
+                                page, page_url, page_num
                             )
-                            if consecutive_empty_pages == 1:
-                                # Dump first failure page for debugging
+                            if not cards:
+                                consecutive_empty_pages += 1
+                                title = soup.title.get_text(strip=True) if soup.title else "(no title)"
+                                log.info(
+                                    "riyasewana_no_cards",
+                                    category=category_path,
+                                    page=page_num,
+                                    challenge_page=self._is_challenge_page(soup),
+                                    page_title=title,
+                                )
+                                if consecutive_empty_pages == 1:
+                                    try:
+                                        with open(
+                                            f"debug_riyasewana_{category_path}_p{page_num}.html",
+                                            "w",
+                                            encoding="utf-8",
+                                        ) as f:
+                                            f.write(soup.prettify()[:50_000])
+                                    except Exception:
+                                        pass
+                                if consecutive_empty_pages >= 10:
+                                    break
+                                page_num += 1
+                                continue
+
+                            new_on_page = 0
+
+                            for card in cards:
                                 try:
-                                    with open(f"debug_riyasewana_p{page_num}.html", "w", encoding="utf-8") as f:
-                                        f.write(soup.prettify()[:50_000])
-                                except Exception:
-                                    pass
-                            if consecutive_empty_pages >= 10:
-                                break
+                                    link = card.select_one(
+                                        "div.v-card-title a[href*='/buy/']"
+                                    ) or card.select_one("a[href*='/buy/']")
+                                    if not link:
+                                        continue
+
+                                    listing_url = urljoin(
+                                        "https://riyasewana.com",
+                                        str(link.get("href") or "").strip(),
+                                    )
+                                    if not listing_url or listing_url in seen_urls:
+                                        continue
+
+                                    seen_urls.add(listing_url)
+                                    new_on_page += 1
+
+                                    title = link.get_text(" ", strip=True)
+                                    if not title:
+                                        continue
+
+                                    raw_price = self._text(
+                                        card, ["div.v-card-price", ".price", "[class*='price']"]
+                                    )
+                                    price = self.cleaner.normalize_price_lkr(raw_price)
+                                    if price is None:
+                                        continue
+
+                                    data = self.cleaner.clean_title(title)
+                                    year_text = self._text(
+                                        card, ["div.v-card-year", ".year", "[class*='year']"]
+                                    )
+                                    if not data["year"]:
+                                        year_match = re.search(r"\b(19|20)\d{2}\b", year_text)
+                                        if year_match:
+                                            data["year"] = int(year_match.group(0))
+
+                                    if not data["make"]:
+                                        continue
+
+                                    meta_text = self._text(
+                                        card, ["div.v-card-meta", ".meta", "[class*='meta']"]
+                                    )
+                                    district = (
+                                        meta_text.split("·", 1)[0].strip()
+                                        if meta_text
+                                        else "Sri Lanka"
+                                    )
+
+                                    thumb_url = self._attr(
+                                        card,
+                                        [
+                                            ("div.v-card-img img[src]", "src"),
+                                            ("div.v-card-img img[data-src]", "data-src"),
+                                        ],
+                                    )
+                                    thumb_url = (
+                                        urljoin("https://riyasewana.com", thumb_url)
+                                        if thumb_url
+                                        else ""
+                                    )
+
+                                    payload = {
+                                        "source_id": listing_url,
+                                        "source": self.SOURCE,
+                                        "title": title,
+                                        "make": data["make"],
+                                        "model": data["model"] or "Other",
+                                        "year": data["year"],
+                                        "price_lkr": price,
+                                        "url": listing_url,
+                                        "thumbnail_url": thumb_url,
+                                        "district": district or "Sri Lanka",
+                                        "condition": None,
+                                        "_text_blobs": title,
+                                        "scraped_at": utc_now(),
+                                    }
+
+                                    normalized_payload = self.cleaner.normalize_listing_payload(
+                                        payload
+                                    )
+                                    if not normalized_payload:
+                                        continue
+
+                                    self._upsert_listing(normalized_payload)
+                                    self.db.commit()
+                                except Exception as e:
+                                    log.error(
+                                        "riyasewana_item_error",
+                                        category=category_path,
+                                        page=page_num,
+                                        error=str(e),
+                                    )
+                                    self.db.rollback()
+
+                            if new_on_page == 0:
+                                consecutive_empty_pages += 1
+                                log.info(
+                                    "riyasewana_empty_page",
+                                    category=category_path,
+                                    page=page_num,
+                                    consecutive_empty_pages=consecutive_empty_pages,
+                                )
+                                if consecutive_empty_pages >= 10:
+                                    break
+                                page_num += 1
+                                continue
+
+                            consecutive_empty_pages = 0
                             page_num += 1
-                            continue
-
-                        new_on_page = 0
-
-                        for card in cards:
-                            try:
-                                link = card.select_one("div.v-card-title a[href*='/buy/']") or card.select_one(
-                                    "a[href*='/buy/']"
-                                )
-                                if not link:
-                                    continue
-
-                                listing_url = urljoin(
-                                    "https://riyasewana.com", str(link.get("href") or "").strip()
-                                )
-                                if not listing_url or listing_url in seen_urls:
-                                    continue
-
-                                seen_urls.add(listing_url)
-                                new_on_page += 1
-
-                                title = link.get_text(" ", strip=True)
-                                if not title:
-                                    continue
-
-                                raw_price = self._text(card, ["div.v-card-price", ".price", "[class*='price']"])
-                                price = self.cleaner.normalize_price_lkr(raw_price)
-                                if price is None:
-                                    continue
-
-                                data = self.cleaner.clean_title(title)
-                                year_text = self._text(card, ["div.v-card-year", ".year", "[class*='year']"])
-                                if not data["year"]:
-                                    year_match = re.search(r"\b(19|20)\d{2}\b", year_text)
-                                    if year_match:
-                                        data["year"] = int(year_match.group(0))
-
-                                if not data["make"]:
-                                    continue
-
-                                meta_text = self._text(card, ["div.v-card-meta", ".meta", "[class*='meta']"])
-                                district = meta_text.split("·", 1)[0].strip() if meta_text else "Sri Lanka"
-
-                                thumb_url = self._attr(
-                                    card,
-                                    [
-                                        ("div.v-card-img img[src]", "src"),
-                                        ("div.v-card-img img[data-src]", "data-src"),
-                                    ],
-                                )
-                                thumb_url = (
-                                    urljoin("https://riyasewana.com", thumb_url) if thumb_url else ""
-                                )
-
-                                payload = {
-                                    "source_id": listing_url,
-                                    "source": self.SOURCE,
-                                    "title": title,
-                                    "make": data["make"],
-                                    "model": data["model"] or "Other",
-                                    "year": data["year"],
-                                    "price_lkr": price,
-                                    "url": listing_url,
-                                    "thumbnail_url": thumb_url,
-                                    "district": district or "Sri Lanka",
-                                    "condition": None, "_text_blobs": title,
-                                    "scraped_at": utc_now(),
-                                }
-
-                                normalized_payload = self.cleaner.normalize_listing_payload(payload)
-                                if not normalized_payload:
-                                    continue
-
-                                self._upsert_listing(normalized_payload)
-                                self.db.commit()
-                            except Exception as e:
-                                log.error("riyasewana_item_error", page=page_num, error=str(e))
-                                self.db.rollback()
-
-                        has_next, max_page_hint = self._parse_pagination(soup, page_num)
-
-                        if new_on_page == 0:
-                            consecutive_empty_pages += 1
-                            log.info(
-                                "riyasewana_empty_page",
+                            consecutive_page_errors = 0
+                        except Exception as e:
+                            log.error(
+                                "riyasewana_page_error",
+                                category=category_path,
                                 page=page_num,
-                                consecutive_empty_pages=consecutive_empty_pages,
+                                error=str(e),
                             )
-                            if consecutive_empty_pages >= 10:
+                            consecutive_page_errors += 1
+                            if consecutive_page_errors >= 25:
                                 break
                             page_num += 1
-                            continue
-
-                        if page_limit is None and not has_next and max_page_hint <= page_num:
-                            break
-
-                        consecutive_empty_pages = 0
-                        page_num += 1
-                        consecutive_page_errors = 0
-                    except Exception as e:
-                        log.error("riyasewana_page_error", page=page_num, error=str(e))
-                        consecutive_page_errors += 1
-                        if consecutive_page_errors >= 25:
-                            break
-                        page_num += 1
             finally:
                 await context.close()
                 await browser.close()
