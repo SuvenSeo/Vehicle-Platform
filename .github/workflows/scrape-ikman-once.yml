@@ -1,0 +1,94 @@
+name: One-shot Ikman Multi-Vehicle Scrape
+
+# Temporary/manual volume check after multi-vehicle scraper land.
+# Triggered by touching .github/triggers/scrape-ikman or workflow_dispatch.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/triggers/scrape-ikman"
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "SCRAPE_MAX_PAGES_IKMAN"
+        type: string
+        default: "20"
+
+concurrency:
+  group: scrape-ikman-once
+  cancel-in-progress: false
+
+jobs:
+  scrape-ikman:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ensure schema
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python -c "from db.session import init_db; init_db(); print('Schema ready.')"
+
+      - name: Count listings before
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python - <<'PY'
+          from sqlalchemy import text
+          from db.session import cold_engine
+          with cold_engine.connect() as c:
+              total = c.execute(text("select count(*) from car_listings where source='ikman' and is_active is true")).scalar()
+              print(f"ikman_active_before={total}")
+          PY
+
+      - name: Run ikman multi-vehicle scrape
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          SCRAPE_PROFILE: "all"
+          SCRAPE_ENABLED_SOURCES: "ikman"
+          RUN_SCRAPERS: "true"
+          RUN_MARKET_ANALYSIS: "false"
+          RUN_MARKET_SIGNALS: "false"
+          RUN_LISTING_LIFECYCLE: "false"
+          RUN_OUTLIER_DETECTION: "false"
+          SCRAPE_MAX_PAGES: "20"
+          SCRAPE_MAX_PAGES_IKMAN: ${{ github.event.inputs.max_pages || '20' }}
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "5400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "5400"
+          IKMAN_SCRAPE_MODE: "api"
+        run: python run_sync.py
+
+      - name: Count listings after
+        if: always()
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python - <<'PY'
+          from sqlalchemy import text
+          from db.session import cold_engine
+          with cold_engine.connect() as c:
+              total = c.execute(text("select count(*) from car_listings where source='ikman' and is_active is true")).scalar()
+              recent = c.execute(text("select count(*) from car_listings where source='ikman' and scraped_at > now() - interval '2 hours'")).scalar()
+              print(f"ikman_active_after={total}")
+              print(f"ikman_scraped_last_2h={recent}")
+          PY
