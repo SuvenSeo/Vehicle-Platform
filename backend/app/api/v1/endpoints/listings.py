@@ -1265,7 +1265,9 @@ def search_listings(
         .filter(live_listing_filter())
     )
 
-    browse_category = resolve_browse_category(vehicle_category)
+    browse_category = None
+    if isinstance(vehicle_category, str):
+        browse_category = resolve_browse_category(vehicle_category)
     category_clause = category_sql_filter(CarListing, browse_category)
     if category_clause is not None:
         q = q.filter(category_clause)
