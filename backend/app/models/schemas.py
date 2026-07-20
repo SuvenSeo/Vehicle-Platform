@@ -18,6 +18,7 @@ class CarListingBase(BaseModel):
     engine_capacity: Optional[int] = None
     condition: Optional[str] = None
     body_type: Optional[str] = None
+    vehicle_category: Optional[str] = None
     district: Optional[str] = None
     city: Optional[str] = None
     thumbnail_url: Optional[str] = None

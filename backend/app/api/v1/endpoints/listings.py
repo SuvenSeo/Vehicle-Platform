@@ -19,7 +19,7 @@ from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
 from app.utils.history_report import build_history_report
 from app.utils.price_history import summarize_price_history
-from app.utils.vehicle_category import cars_only_sql_filter, normalize_vehicle_category
+from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -734,27 +734,90 @@ def _canonical_condition(value: Optional[str]) -> Optional[str]:
     return token
 
 
+_BODY_TYPE_ALIASES: dict[str, frozenset[str]] = {
+    "suv": frozenset({"suv", "sportutilityvehicle", "sportsutilityvehicle"}),
+    "hatchback": frozenset({"hatchback", "hatch"}),
+    "sedan": frozenset({"sedan", "saloon"}),
+    "pickup": frozenset({"pickup", "doublecab", "singlecab", "truck"}),
+    "van": frozenset({"van", "minivan"}),
+    "mpv": frozenset({"mpv"}),
+    "crossover": frozenset({"crossover", "cuv"}),
+    "wagon": frozenset({"wagon", "estate"}),
+    "coupe": frozenset({"coupe"}),
+    "convertible": frozenset({"convertible", "cabriolet"}),
+    "jeep": frozenset({"jeep", "4x4", "fourwheel", "fourwheeldrive"}),
+    "mini": frozenset({"mini", "micro", "keicar", "citycar", "compact"}),
+    "luxury": frozenset({"luxury", "premium"}),
+    "motorcycle": frozenset({"motorcycle", "motorbike", "scooter", "bike"}),
+}
+
+_LUXURY_MAKES = frozenset(
+    {
+        "mercedes",
+        "mercedesbenz",
+        "bmw",
+        "audi",
+        "lexus",
+        "landrover",
+        "porsche",
+        "jaguar",
+        "bentley",
+        "maserati",
+        "ferrari",
+        "lamborghini",
+        "rollsroyce",
+        "astonmartin",
+        "cadillac",
+        "infiniti",
+        "genesis",
+    }
+)
+
+
 def _canonical_body_type(value: Optional[str]) -> Optional[str]:
     token = _compact(value)
     if not token:
         return None
-    if token in {"suv", "sportutilityvehicle", "sportsutilityvehicle"}:
-        return "suv"
-    if token in {"hatchback", "hatch"}:
-        return "hatchback"
-    if token in {"sedan", "saloon"}:
-        return "sedan"
-    if token in {"pickup", "doublecab", "singlecab", "truck"}:
-        return "pickup"
-    if token in {"van", "mpv", "minivan"}:
-        return "van"
-    if token in {"wagon", "estate"}:
-        return "wagon"
-    if token in {"coupe"}:
-        return "coupe"
-    if token in {"convertible", "cabriolet"}:
-        return "convertible"
+    for canonical, aliases in _BODY_TYPE_ALIASES.items():
+        if token == canonical or token in aliases:
+            return canonical
     return token
+
+
+def _body_type_clause(body_type: Optional[str]):
+    canonical = _canonical_body_type(body_type)
+    if not canonical:
+        return None
+
+    aliases = sorted(_BODY_TYPE_ALIASES.get(canonical, frozenset({canonical})) | {canonical})
+    body_match = _compact_expr(CarListing.body_type).in_(aliases)
+
+    if canonical == "luxury":
+        return or_(
+            body_match,
+            _compact_expr(CarListing.make).in_(sorted(_LUXURY_MAKES)),
+            CarListing.title.ilike("%luxury%"),
+            CarListing.title.ilike("%premium%"),
+        )
+
+    if canonical == "jeep":
+        return or_(
+            body_match,
+            func.lower(func.coalesce(CarListing.vehicle_category, "")).in_(["jeeps", "jeep"]),
+            CarListing.title.ilike("% jeep %"),
+            CarListing.title.ilike("jeep %"),
+            CarListing.title.ilike("% jeep"),
+        )
+
+    if canonical == "mini":
+        return or_(
+            body_match,
+            func.lower(func.coalesce(CarListing.make, "")).in_(["mini", "micro"]),
+            CarListing.title.ilike("%mini cooper%"),
+            CarListing.title.ilike("% city car%"),
+        )
+
+    return body_match
 
 
 def _is_missing_value(value: Optional[str]) -> bool:
@@ -847,18 +910,28 @@ def _infer_listing_hints_from_text(row: CarListing) -> Dict[str, Any]:
     body_type = None
     if re.search(r"\b(suv|sport\s*utility\s*vehicle)\b", text):
         body_type = "suv"
+    elif re.search(r"\b(crossover|cuv)\b", text):
+        body_type = "crossover"
     elif re.search(r"\bhatch\s*back\b|\bhatchback\b", text):
         body_type = "hatchback"
     elif re.search(r"\b(sedan|saloon)\b", text):
         body_type = "sedan"
     elif re.search(r"\b(pickup|double\s*cab|single\s*cab|truck)\b", text):
         body_type = "pickup"
-    elif re.search(r"\b(van|mpv|minivan)\b", text):
+    elif re.search(r"\b(mpv|minivan)\b", text):
+        body_type = "mpv"
+    elif re.search(r"\bvan\b", text):
         body_type = "van"
     elif re.search(r"\bwagon\b", text):
         body_type = "wagon"
     elif re.search(r"\bcoupe\b", text):
         body_type = "coupe"
+    elif re.search(r"\b(jeep|4[\s\-]?x[\s\-]?4)\b", text):
+        body_type = "jeep"
+    elif re.search(r"\b(luxury|premium)\b", text):
+        body_type = "luxury"
+    elif re.search(r"\b(mini\s*cooper|city\s*car|kei\s*car)\b", text):
+        body_type = "mini"
 
     return {
         "condition": _canonical_condition(condition),
@@ -1134,7 +1207,11 @@ def search_listings(
     district: Optional[str] = None,
     vehicle_category: Optional[str] = Query(
         None,
-        description="Pass 'cars' to keep homepage/browse on passenger cars only.",
+        description=(
+            "Browse category filter: cars (default homepage), motorbikes, "
+            "three-wheelers, vans, buses, lorries, heavy-duty, tractors, "
+            "bicycles, boats, others."
+        ),
         max_length=40,
     ),
     price_availability: str = Query("priced", pattern="^(priced|unavailable)$"),
@@ -1173,6 +1250,7 @@ def search_listings(
                 CarListing.engine_capacity,
                 CarListing.condition,
                 CarListing.body_type,
+                CarListing.vehicle_category,
                 CarListing.district,
                 CarListing.city,
                 CarListing.thumbnail_url,
@@ -1187,16 +1265,23 @@ def search_listings(
         .filter(live_listing_filter())
     )
 
-    category_filter = normalize_vehicle_category(vehicle_category)
-    if category_filter in {"cars", "car"}:
-        q = q.filter(cars_only_sql_filter(CarListing))
+    browse_category = resolve_browse_category(vehicle_category)
+    category_clause = category_sql_filter(CarListing, browse_category)
+    if category_clause is not None:
+        q = q.filter(category_clause)
 
     if price_availability == "unavailable":
         q = q.filter(or_(CarListing.price_lkr.is_(None), CarListing.price_lkr <= 0))
     else:
+        # Cars keep the higher floor; bikes/tuks/etc. can be priced lower.
+        min_price = (
+            MIN_REASONABLE_PRICE_LKR
+            if browse_category in {None, "cars", "car"}
+            else 25_000
+        )
         q = q.filter(
             CarListing.price_lkr.isnot(None),
-            CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+            CarListing.price_lkr >= min_price,
         )
 
     for token in _search_filter_tokens(keyword_text or ""):
@@ -1243,9 +1328,9 @@ def search_listings(
         if normalized_condition:
             q = q.filter(_compact_expr(CarListing.condition) == normalized_condition)
     if body_type:
-        normalized_body_type = _compact(body_type)
-        if normalized_body_type:
-            q = q.filter(_compact_expr(CarListing.body_type) == normalized_body_type)
+        body_clause = _body_type_clause(body_type)
+        if body_clause is not None:
+            q = q.filter(body_clause)
     if district:
         normalized_district = " ".join(district.strip().lower().replace("-", " ").split())
         district_slug = normalized_district.replace(" ", "-")
@@ -1725,9 +1810,9 @@ def _vehicle_filter_query(
         if fuel_filter is not None:
             q = q.filter(fuel_filter)
     if payload.body_type and not ignore_optional:
-        body_key = _compact(payload.body_type)
-        if body_key:
-            q = q.filter(_compact_expr(CarListing.body_type) == body_key)
+        body_clause = _body_type_clause(payload.body_type)
+        if body_clause is not None:
+            q = q.filter(body_clause)
     if payload.district and not ignore_district:
         normalized_district = " ".join(payload.district.strip().lower().replace("-", " ").split())
         district_slug = normalized_district.replace(" ", "-")

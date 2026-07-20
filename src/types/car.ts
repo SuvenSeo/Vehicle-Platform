@@ -1,7 +1,34 @@
 export type Condition = "brand_new" | "reconditioned" | "used";
 export type Transmission = "automatic" | "manual" | "cvt" | "tiptronic";
 export type FuelType = "petrol" | "diesel" | "hybrid" | "electric" | "plugin_hybrid";
-export type BodyType = "sedan" | "suv" | "hatchback" | "van" | "truck" | "motorcycle" | "pickup" | "wagon" | "coupe" | "convertible";
+export type BodyType =
+  | "sedan"
+  | "suv"
+  | "hatchback"
+  | "crossover"
+  | "mpv"
+  | "van"
+  | "truck"
+  | "motorcycle"
+  | "pickup"
+  | "wagon"
+  | "coupe"
+  | "convertible"
+  | "jeep"
+  | "mini"
+  | "luxury";
+export type VehicleCategory =
+  | "cars"
+  | "motorbikes"
+  | "three-wheelers"
+  | "vans"
+  | "buses"
+  | "lorries"
+  | "heavy-duty"
+  | "tractors"
+  | "bicycles"
+  | "boats"
+  | "others";
 export type SortOption = "newest" | "deal_score" | "price_asc" | "price_desc" | "mileage_asc";
 export type PriceAvailability = "priced" | "unavailable";
 
@@ -19,6 +46,7 @@ export interface CarListing {
   fuel_type: FuelType;
   engine_cc?: number;
   body_type: BodyType;
+  vehicle_category?: VehicleCategory | string;
   color?: string;
   price_lkr: number | null;
   deal_score: number;
@@ -453,8 +481,8 @@ export interface FilterState {
   transmission?: Transmission;
   fuel_type?: FuelType;
   district?: string;
-  /** Homepage browse stays cars-only; omit for unfiltered search. */
-  vehicle_category?: "cars";
+  /** Browse category — defaults to cars on the homepage. */
+  vehicle_category?: VehicleCategory;
   price_availability?: PriceAvailability;
   sort: SortOption;
   page: number;

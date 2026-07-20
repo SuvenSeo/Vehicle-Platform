@@ -141,6 +141,20 @@ function normalizeSourceValue(value: string | null | undefined): string | undefi
 function parseFilters(params: URLSearchParams): FilterState {
   const sort = params.get("sort");
   const priceAvailability = params.get("price_availability");
+  const vehicleCategory = params.get("vehicle_category");
+  const allowedCategories = new Set([
+    "cars",
+    "motorbikes",
+    "three-wheelers",
+    "vans",
+    "buses",
+    "lorries",
+    "heavy-duty",
+    "tractors",
+    "bicycles",
+    "boats",
+    "others",
+  ]);
   return {
     q: params.get("q") || undefined,
     source: normalizeSourceValue(params.get("source")),
@@ -156,6 +170,10 @@ function parseFilters(params: URLSearchParams): FilterState {
     transmission: (params.get("transmission") as FilterState["transmission"]) || undefined,
     fuel_type: (params.get("fuel_type") as FilterState["fuel_type"]) || undefined,
     district: params.get("district") || undefined,
+    vehicle_category:
+      vehicleCategory && allowedCategories.has(vehicleCategory)
+        ? (vehicleCategory as FilterState["vehicle_category"])
+        : "cars",
     price_availability: priceAvailability === "unavailable" ? "unavailable" : undefined,
     sort: isSortValue(sort) ? sort : "newest",
     page: Math.max(1, parseOptionalNumber(params.get("page")) || 1),
@@ -228,8 +246,7 @@ export default function Dashboard() {
   }, [velocityQuery.refetch]);
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
-    // Homepage market grid stays cars-only (bikes/tractors/etc. stay in DB for later).
-    queryFn: () => getListings({ ...filters, vehicle_category: "cars" }),
+    queryFn: () => getListings(filters),
   });
   const retryListings = useCallback(() => {
     void listingsQuery.refetch();
@@ -324,6 +341,9 @@ export default function Dashboard() {
     if (filters.transmission) params.set("transmission", filters.transmission);
     if (filters.fuel_type) params.set("fuel_type", filters.fuel_type);
     if (filters.district) params.set("district", filters.district);
+    if (filters.vehicle_category && filters.vehicle_category !== "cars") {
+      params.set("vehicle_category", filters.vehicle_category);
+    }
     if (filters.price_availability === "unavailable") params.set("price_availability", filters.price_availability);
     if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
     if (filters.page > 1) params.set("page", String(filters.page));
@@ -456,7 +476,7 @@ export default function Dashboard() {
   }, [scrollToMarket]);
 
   const browseNewestListings = useCallback(() => {
-    startTransition(() => { setFilters((prev) => ({ ...prev, sort: "newest", page: 1 })); });
+    startTransition(() => { setFilters((prev) => ({ ...prev, sort: "newest", page: 1, vehicle_category: prev.vehicle_category || "cars" })); });
     scrollToMarket();
   }, [scrollToMarket]);
 
@@ -502,6 +522,7 @@ export default function Dashboard() {
   const activeFilterLabels = useMemo(
     () => [
       filters.price_availability === "unavailable" ? "Missing prices" : undefined,
+      filters.vehicle_category && filters.vehicle_category !== "cars" ? filters.vehicle_category : undefined,
       filters.q ? `"${filters.q}"` : undefined,
       filters.source,
       filters.make,
@@ -856,7 +877,7 @@ export default function Dashboard() {
               {activeFilterLabels.map((label) => (
                 <span key={label} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
               ))}
-              <button type="button" onClick={() => setFilters({ sort: "newest", page: 1 })}
+              <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
                 className="rounded-md px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
               >Clear all</button>
             </div>
@@ -908,7 +929,7 @@ export default function Dashboard() {
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">No results</p>
                   <p className="mt-2 text-sm text-muted-foreground">Widen your filters or clear them to browse.</p>
-                  <button type="button" onClick={() => setFilters({ sort: "newest", page: 1 })}
+                  <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
                     className="mt-4 rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
                   >Reset filters</button>
                 </div>

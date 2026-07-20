@@ -1,5 +1,5 @@
 import { memo, startTransition, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { FilterState, Condition, BodyType, Transmission, FuelType, SortOption } from "@/types/car";
+import { FilterState, Condition, BodyType, Transmission, FuelType, SortOption, VehicleCategory } from "@/types/car";
 import { getListingSources, getMakes, getModels, formatPrice, type ListingSourceStat } from "@/services/api";
 import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { Slider } from "@/components/ui/slider";
@@ -24,6 +24,37 @@ const MAX_MILEAGE = 300_000;
 const MILEAGE_STEP = 10_000;
 
 const QUICK_MAKES = ["Toyota", "Suzuki", "Honda", "Nissan"];
+
+const VEHICLE_CATEGORY_OPTIONS: Array<{ value: VehicleCategory; label: string }> = [
+  { value: "cars", label: "Cars" },
+  { value: "motorbikes", label: "Bikes" },
+  { value: "three-wheelers", label: "Tuks" },
+  { value: "vans", label: "Vans" },
+  { value: "buses", label: "Buses" },
+  { value: "lorries", label: "Lorries" },
+  { value: "heavy-duty", label: "Heavy" },
+  { value: "tractors", label: "Tractors" },
+  { value: "boats", label: "Boats" },
+  { value: "bicycles", label: "Cycles" },
+  { value: "others", label: "Other" },
+];
+
+const CAR_BODY_OPTIONS: Array<{ value: BodyType | undefined; label: string }> = [
+  { value: undefined, label: "All" },
+  { value: "sedan", label: "Sedan" },
+  { value: "suv", label: "SUV" },
+  { value: "hatchback", label: "Hatch" },
+  { value: "crossover", label: "Crossover" },
+  { value: "mpv", label: "MPV" },
+  { value: "jeep", label: "Jeep" },
+  { value: "mini", label: "Mini" },
+  { value: "luxury", label: "Luxury" },
+  { value: "van", label: "Van" },
+  { value: "pickup", label: "Pickup" },
+  { value: "wagon", label: "Wagon" },
+  { value: "coupe", label: "Coupe" },
+  { value: "convertible", label: "Cabrio" },
+];
 
 const PRICE_PRESETS: Array<{ label: string; min: number; max: number }> = [
   { label: "Under 3M", min: MIN_PRICE, max: 3_000_000 },
@@ -184,11 +215,25 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     [filters, onFiltersChange],
   );
 
+  const setVehicleCategory = useCallback(
+    (category: VehicleCategory) => {
+      update({
+        vehicle_category: category,
+        // Body styles are car-shaped — clear when leaving cars.
+        body_type: category === "cars" ? filters.body_type : undefined,
+      });
+    },
+    [filters.body_type, update],
+  );
+
   const clear = useCallback(() => {
     startTransition(() => {
-      onFiltersChange({ sort: "newest", page: 1 });
+      onFiltersChange({ sort: "newest", page: 1, vehicle_category: "cars" });
     });
   }, [onFiltersChange]);
+
+  const activeCategory = filters.vehicle_category || "cars";
+  const showCarBodyFilters = activeCategory === "cars";
 
   const setInventoryMode = useCallback(
     (mode: "priced" | "unavailable") => {
@@ -248,6 +293,15 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     const chips: ActiveChip[] = [];
 
     if (filters.q) chips.push({ key: "q", label: filters.q, onRemove: () => update({ q: undefined }) });
+    if (activeCategory !== "cars") {
+      const categoryLabel =
+        VEHICLE_CATEGORY_OPTIONS.find((option) => option.value === activeCategory)?.label || activeCategory;
+      chips.push({
+        key: "category",
+        label: categoryLabel,
+        onRemove: () => setVehicleCategory("cars"),
+      });
+    }
     if (filters.make) chips.push({ key: "make", label: filters.make, onRemove: () => update({ make: undefined, model: undefined }) });
     if (filters.model) chips.push({ key: "model", label: filters.model, onRemove: () => update({ model: undefined }) });
     if (filters.district) chips.push({ key: "district", label: filters.district, onRemove: () => update({ district: undefined }) });
@@ -290,7 +344,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     }
 
     return chips;
-  }, [filters, priceAvailability, setInventoryMode, update]);
+  }, [activeCategory, filters, priceAvailability, setInventoryMode, setVehicleCategory, update]);
 
   const sliderClass =
     "py-1 [&>span:first-child]:h-2 [&>span:first-child]:bg-secondary [&>span:first-child>span]:bg-gradient-to-r [&>span:first-child>span]:from-primary [&>span:first-child>span]:to-primary";
@@ -348,6 +402,20 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           </button>
         </div>
       </div>
+
+      <FilterGroup label="Vehicle">
+        <div className="flex flex-wrap gap-1.5">
+          {VEHICLE_CATEGORY_OPTIONS.map((option) => (
+            <PillButton
+              key={option.value}
+              active={activeCategory === option.value}
+              onClick={() => setVehicleCategory(option.value)}
+            >
+              {option.label}
+            </PillButton>
+          ))}
+        </div>
+      </FilterGroup>
 
       <FilterGroup label="Search">
         <Input
@@ -575,27 +643,21 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </div>
       </FilterGroup>
 
-      <FilterGroup label="Body">
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            { value: undefined, label: "All" },
-            { value: "sedan", label: "Sedan" },
-            { value: "suv", label: "SUV" },
-            { value: "hatchback", label: "Hatch" },
-            { value: "van", label: "Van" },
-            { value: "pickup", label: "Pickup" },
-            { value: "wagon", label: "Wagon" },
-          ].map((option) => (
-            <PillButton
-              key={option.label}
-              active={filters.body_type === option.value}
-              onClick={() => update({ body_type: option.value as BodyType | undefined })}
-            >
-              {option.label}
-            </PillButton>
-          ))}
-        </div>
-      </FilterGroup>
+      {showCarBodyFilters ? (
+        <FilterGroup label="Body / style">
+          <div className="flex flex-wrap gap-1.5">
+            {CAR_BODY_OPTIONS.map((option) => (
+              <PillButton
+                key={option.label}
+                active={filters.body_type === option.value || (!filters.body_type && !option.value)}
+                onClick={() => update({ body_type: option.value })}
+              >
+                {option.label}
+              </PillButton>
+            ))}
+          </div>
+        </FilterGroup>
+      ) : null}
 
       <FilterGroup label="Mileage">
         <div className="space-y-2">

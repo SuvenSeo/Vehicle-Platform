@@ -297,16 +297,144 @@ function normalizeFuelValue(value: unknown): string | undefined {
 function normalizeBodyTypeValue(value: unknown): string | undefined {
   const compact = String(value || "").trim().toLowerCase().replace(/[-_\s]/g, "");
   if (!compact) return undefined;
-  if (compact.includes("hatchback")) return "hatchback";
-  if (compact.includes("suv")) return "suv";
-  if (compact.includes("pickup")) return "pickup";
-  if (compact.includes("truck")) return "truck";
-  if (compact.includes("van") || compact.includes("mpv")) return "van";
-  if (compact.includes("wagon")) return "wagon";
+  if (compact.includes("hatchback") || compact === "hatch") return "hatchback";
+  if (compact.includes("crossover") || compact === "cuv") return "crossover";
+  if (compact.includes("suv") || compact.includes("sportutility")) return "suv";
+  if (compact.includes("pickup") || compact.includes("doublecab") || compact.includes("singlecab")) return "pickup";
+  if (compact.includes("truck") && !compact.includes("pickup")) return "truck";
+  if (compact === "mpv" || compact.includes("minivan")) return "mpv";
+  if (compact.includes("van")) return "van";
+  if (compact.includes("wagon") || compact.includes("estate")) return "wagon";
   if (compact.includes("coupe")) return "coupe";
   if (compact.includes("convertible") || compact.includes("cabriolet")) return "convertible";
   if (compact.includes("sedan") || compact.includes("saloon")) return "sedan";
+  if (compact.includes("jeep") || compact === "4x4" || compact.includes("fourwheel")) return "jeep";
+  if (compact.includes("luxury") || compact === "premium") return "luxury";
+  if (
+    compact === "mini" ||
+    compact.includes("minicooper") ||
+    compact.includes("keicar") ||
+    compact.includes("citycar") ||
+    compact.includes("microcar")
+  ) {
+    return "mini";
+  }
+  if (compact.includes("motorcycl") || compact.includes("motorbike") || compact.includes("scooter")) {
+    return "motorcycle";
+  }
   return undefined;
+}
+
+const NON_CAR_CATEGORIES = new Set([
+  "motorbikes",
+  "motorcycles",
+  "bike",
+  "bikes",
+  "three-wheelers",
+  "three-wheels",
+  "threewheeler",
+  "vans",
+  "van",
+  "buses",
+  "bus",
+  "lorries",
+  "lorries-trucks",
+  "trucks",
+  "truck",
+  "tipper",
+  "heavy-duty",
+  "heavy-duties",
+  "heavy",
+  "tractors",
+  "tractor",
+  "bicycles",
+  "bicycle",
+  "push-cycles",
+  "boats",
+  "boats-water-transport",
+  "others",
+]);
+
+const BROWSE_CATEGORY_ALIASES: Record<string, Set<string>> = {
+  cars: new Set(["cars", "car", "suvs", "suv", "jeeps", "wagons", "pickups", "pickup", "crew-cabs", "crew-cab", "sports"]),
+  motorbikes: new Set(["motorbikes", "motorcycles", "bike", "bikes"]),
+  "three-wheelers": new Set(["three-wheelers", "three-wheels", "threewheeler"]),
+  vans: new Set(["vans", "van"]),
+  buses: new Set(["buses", "bus"]),
+  lorries: new Set(["lorries", "lorries-trucks", "trucks", "truck", "tipper"]),
+  "heavy-duty": new Set(["heavy-duty", "heavy-duties", "heavy"]),
+  tractors: new Set(["tractors", "tractor"]),
+  bicycles: new Set(["bicycles", "bicycle", "push-cycles"]),
+  boats: new Set(["boats", "boats-water-transport"]),
+  others: new Set(["others"]),
+};
+
+const LUXURY_MAKES = new Set([
+  "mercedes",
+  "mercedesbenz",
+  "bmw",
+  "audi",
+  "lexus",
+  "landrover",
+  "porsche",
+  "jaguar",
+  "bentley",
+  "maserati",
+  "ferrari",
+  "lamborghini",
+  "rollsroyce",
+  "astonmartin",
+  "cadillac",
+  "infiniti",
+  "genesis",
+]);
+
+function normalizeVehicleCategoryValue(value: unknown): string | undefined {
+  const token = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]+/g, "");
+  return token || undefined;
+}
+
+function matchesBrowseCategory(listingCategory: string | undefined, browse: string): boolean {
+  if (browse === "cars") {
+    if (listingCategory && NON_CAR_CATEGORIES.has(listingCategory)) return false;
+    return true;
+  }
+  const aliases = BROWSE_CATEGORY_ALIASES[browse];
+  if (!aliases) return listingCategory === browse;
+  return Boolean(listingCategory && aliases.has(listingCategory));
+}
+
+function matchesBodyTypeFilter(listing: CarListing, bodyType: string): boolean {
+  const wanted = normalizeBodyTypeValue(bodyType) || bodyType;
+  const listingBody = normalizeBodyTypeValue(listing.body_type);
+  if (listingBody && listingBody === wanted) return true;
+
+  if (wanted === "luxury") {
+    const make = String(listing.make || "")
+      .toLowerCase()
+      .replace(/[-_\s.]/g, "");
+    if (LUXURY_MAKES.has(make)) return true;
+    const hay = `${listing.title || ""}`.toLowerCase();
+    return /luxury|premium/.test(hay);
+  }
+  if (wanted === "jeep") {
+    const category = normalizeVehicleCategoryValue(
+      (listing as CarListing & { vehicle_category?: string }).vehicle_category,
+    );
+    if (category === "jeeps" || category === "jeep") return true;
+    return /\bjeep\b|4[\s-]?x[\s-]?4/i.test(`${listing.title || ""}`);
+  }
+  if (wanted === "mini") {
+    const make = String(listing.make || "").toLowerCase();
+    if (make === "mini" || make === "micro") return true;
+    return /mini\s*cooper|city\s*car|kei\s*car/i.test(`${listing.title || ""}`);
+  }
+  return false;
 }
 
 function normalizeListing(raw: JsonRecord): CarListing {
@@ -590,31 +718,29 @@ function matchesSnapshotFilters(listing: CarListing, filters: FilterState): bool
   if (filters.mileage_max && Number(listing.mileage_km || 0) > filters.mileage_max) return false;
 
   if (filters.condition && normalizeConditionValue(listing.condition) !== filters.condition) return false;
-  if (filters.body_type && normalizeBodyTypeValue(listing.body_type) !== filters.body_type) return false;
+  if (filters.body_type && !matchesBodyTypeFilter(listing, filters.body_type)) return false;
   if (filters.transmission && normalizeTransmissionValue(listing.transmission) !== filters.transmission) return false;
   if (filters.fuel_type && normalizeFuelValue(listing.fuel_type) !== filters.fuel_type) return false;
 
-  if (filters.vehicle_category === "cars") {
-    const category = String((listing as CarListing & { vehicle_category?: string }).vehicle_category || "")
-      .trim()
-      .toLowerCase();
-    const nonCar = new Set([
-      "motorbikes", "motorcycles", "bike", "bikes", "three-wheelers", "three-wheels",
-      "threewheeler", "vans", "van", "buses", "bus", "lorries", "lorries-trucks",
-      "trucks", "truck", "tipper", "heavy-duty", "heavy-duties", "heavy", "tractors",
-      "tractor", "bicycles", "bicycle", "push-cycles", "boats", "boats-water-transport", "others",
-    ]);
-    if (category && nonCar.has(category)) return false;
-    if (!category) {
+  const browseCategory = filters.vehicle_category || "cars";
+  const listingCategory = normalizeVehicleCategoryValue(
+    (listing as CarListing & { vehicle_category?: string }).vehicle_category,
+  );
+  if (browseCategory === "cars") {
+    if (listingCategory && NON_CAR_CATEGORIES.has(listingCategory)) return false;
+    if (!listingCategory) {
       const hay = `${listing.title || ""} ${listing.make || ""} ${listing.model || ""}`.toLowerCase();
       if (/(motorbike|motorcycle|scooter|three[\s-]?wheel|tractor|bicycle|lorry|ntorq|bajaj\s+re|tvs\s+king)/i.test(hay)) {
         return false;
       }
     }
+  } else if (!matchesBrowseCategory(listingCategory, browseCategory)) {
+    return false;
   }
 
   const price = toNumberOrNull(listing.price_lkr);
-  if (filters.price_availability === "priced" && !isPricedListing(listing)) return false;
+  const minReasonablePrice = browseCategory === "cars" ? MIN_REASONABLE_PRICE_LKR : 25_000;
+  if (filters.price_availability === "priced" && (price === null || price < minReasonablePrice)) return false;
   if (filters.price_availability === "unavailable" && isPricedListing(listing)) return false;
   if (filters.price_min !== undefined && filters.price_min !== null && (price === null || price < filters.price_min)) return false;
   if (filters.price_max !== undefined && filters.price_max !== null && (price === null || price > filters.price_max)) return false;
@@ -872,11 +998,15 @@ export const getLiveMarketStreamUrl = (): string => {
 };
 
 export const getListings = async (filters: FilterState): Promise<{ listings: CarListing[]; total: number }> => {
+  const effectiveFilters: FilterState = {
+    ...filters,
+    vehicle_category: filters.vehicle_category || "cars",
+  };
   const catalog = await getSnapshotListingCatalog();
-  if (catalog) return filterSnapshotListings(catalog, filters);
+  if (catalog) return filterSnapshotListings(catalog, effectiveFilters);
 
   const data = await fetchJSON<JsonRecord>("/listings", {
-    ...filters,
+    ...effectiveFilters,
     size: LISTINGS_PAGE_SIZE,
   });
   const items = Array.isArray(data.items) ? data.items : [];

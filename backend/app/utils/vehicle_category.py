@@ -57,6 +57,21 @@ NON_CAR_CATEGORIES = frozenset(
     }
 )
 
+# Browse UI groups → stored vehicle_category tokens (and close aliases).
+BROWSE_CATEGORY_ALIASES: dict[str, frozenset[str]] = {
+    "cars": CAR_CATEGORIES,
+    "motorbikes": frozenset({"motorbikes", "motorcycles", "bike", "bikes"}),
+    "three-wheelers": frozenset({"three-wheelers", "three-wheels", "threewheeler"}),
+    "vans": frozenset({"vans", "van"}),
+    "buses": frozenset({"buses", "bus"}),
+    "lorries": frozenset({"lorries", "lorries-trucks", "trucks", "truck", "tipper"}),
+    "heavy-duty": frozenset({"heavy-duty", "heavy-duties", "heavy"}),
+    "tractors": frozenset({"tractors", "tractor"}),
+    "bicycles": frozenset({"bicycles", "bicycle", "push-cycles"}),
+    "boats": frozenset({"boats", "boats-water-transport"}),
+    "others": frozenset({"others"}),
+}
+
 _NON_CAR_TITLE_RE = re.compile(
     r"(?i)\b("
     r"motorbike|motorcycle|scooter|"
@@ -96,6 +111,19 @@ def looks_like_non_car_text(*parts: object) -> bool:
     return bool(_NON_CAR_TITLE_RE.search(text))
 
 
+def resolve_browse_category(value: object) -> Optional[str]:
+    """Map a UI / query category token onto a browse group key."""
+    token = normalize_vehicle_category(value)
+    if not token:
+        return None
+    if token in BROWSE_CATEGORY_ALIASES:
+        return token
+    for browse_key, aliases in BROWSE_CATEGORY_ALIASES.items():
+        if token in aliases:
+            return browse_key
+    return token
+
+
 def cars_only_sql_filter(listing_model) -> ColumnElement[bool]:
     """Keep passenger cars + legacy untagged rows that do not look like non-cars."""
     category = listing_model.vehicle_category
@@ -126,3 +154,21 @@ def cars_only_sql_filter(listing_model) -> ColumnElement[bool]:
 
     untagged_car_like = and_(category.is_(None), not_(non_car_title))
     return or_(tagged_car, untagged_car_like)
+
+
+def category_sql_filter(listing_model, browse_category: object) -> Optional[ColumnElement[bool]]:
+    """SQL filter for a browse UI category. Returns None when no filter should apply."""
+    browse_key = resolve_browse_category(browse_category)
+    if not browse_key:
+        return None
+    if browse_key in {"cars", "car"}:
+        return cars_only_sql_filter(listing_model)
+
+    aliases = BROWSE_CATEGORY_ALIASES.get(browse_key)
+    if aliases:
+        return listing_model.vehicle_category.in_(sorted(aliases))
+
+    token = normalize_vehicle_category(browse_category)
+    if token:
+        return listing_model.vehicle_category == token
+    return None
