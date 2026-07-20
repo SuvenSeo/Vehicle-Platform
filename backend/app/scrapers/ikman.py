@@ -1,17 +1,23 @@
-import random
-import json
-from datetime import datetime
-from app.utils.time import utc_now
-from urllib.parse import urljoin
+from __future__ import annotations
 
+import asyncio
+import json
+import os
+import random
+import re
+from urllib.parse import urljoin, urlparse
+
+import httpx
+import structlog
 from bs4 import BeautifulSoup
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
-import structlog
 from sqlalchemy.orm import Session
+
 from app.scrapers.cleaner import CarCleaner
 from app.utils.listing_upsert import upsert_listing
+from app.utils.time import utc_now
 
 log = structlog.get_logger()
 
@@ -20,9 +26,30 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 ]
 
+API_HEADERS = {
+    "Accept": "application/json",
+    "Application": "web",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+
+class IkmanApiUnavailable(RuntimeError):
+    """Raised when the public api.ikman.lk path cannot serve listings."""
+
+
 class IkmanCarScraper:
     SOURCE = "ikman"
     BASE_URL = "https://ikman.lk/en/ads/sri-lanka/cars?sort=date&order=desc&page="
+    API_BASE_URL = "https://api.ikman.lk"
+    CARS_CATEGORY_ID = 392
+    API_PAGE_DELAY_SECONDS = 0.35
+    API_EMPTY_PAGE_LIMIT = 10
+    API_PAGE_ERROR_LIMIT = 25
 
     def __init__(self, db: Session):
         self.db = db
@@ -30,6 +57,27 @@ class IkmanCarScraper:
 
     def _upsert_listing(self, payload: dict):
         return upsert_listing(self.db, self.SOURCE, payload)
+
+    @staticmethod
+    def _normalize_public_url(raw_url: str, slug: str | None = None) -> str:
+        value = str(raw_url or "").strip()
+        if value:
+            parsed = urlparse(value)
+            path = parsed.path or ""
+            if path.startswith("/en/ad/") or path.startswith("/ad/"):
+                return f"https://ikman.lk{path}"
+            if value.startswith("//"):
+                return f"https:{value}"
+            if value.startswith("/"):
+                return urljoin("https://ikman.lk", value)
+            if value.startswith("http://"):
+                return "https://" + value[len("http://") :]
+            if value.startswith("https://"):
+                return value
+        slug_token = str(slug or "").strip().strip("/")
+        if slug_token:
+            return f"https://ikman.lk/en/ad/{slug_token}"
+        return ""
 
     @staticmethod
     def _normalize_thumbnail_url(candidate: str) -> str:
@@ -50,6 +98,19 @@ class IkmanCarScraper:
         if not token:
             return True
         return any(marker in token for marker in ("placeholder", "no-image", "noimage", "default"))
+
+    @classmethod
+    def _thumbnail_from_api_images(cls, row: dict) -> str:
+        slug = str(row.get("slug") or "").strip()
+        images = row.get("images") if isinstance(row.get("images"), dict) else {}
+        image_ids = images.get("ids") if isinstance(images, dict) else None
+        if not slug or not isinstance(image_ids, list) or not image_ids:
+            return ""
+        image_id = str(image_ids[0] or "").strip()
+        if not image_id:
+            return ""
+        base_uri = str(images.get("base_uri") or "https://i.ikman-st.com").rstrip("/")
+        return f"{base_uri}/{slug}/{image_id}/142/107/cropped.jpg"
 
     @classmethod
     def _extract_thumbnail_from_detail_html(cls, html: str) -> str:
@@ -114,7 +175,285 @@ class IkmanCarScraper:
             log.debug("ikman_detail_thumbnail_failed", url=listing_url, error=str(exc))
             return ""
 
-    async def scrape(self, max_pages: int = 5):
+    @staticmethod
+    def _properties_map(row: dict) -> dict[str, str]:
+        props = row.get("properties")
+        if not isinstance(props, list):
+            return {}
+        mapped: dict[str, str] = {}
+        for item in props:
+            if not isinstance(item, dict):
+                continue
+            key = str(item.get("key") or "").strip().lower()
+            value = str(item.get("value") or "").strip()
+            if key and value:
+                mapped[key] = value
+        return mapped
+
+    @staticmethod
+    def _parse_mileage(value: str | None) -> int | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        match = re.search(r"([0-9][0-9,]*)\s*(?:km|kms)?\b", text, flags=re.IGNORECASE)
+        if not match:
+            return None
+        digits = re.sub(r"\D", "", match.group(1))
+        if not digits:
+            return None
+        try:
+            return int(digits)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_engine_cc(value: str | None) -> int | None:
+        text = str(value or "").strip().lower().replace(",", "")
+        if not text:
+            return None
+        match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*(?:cc|c\.c\.)?\b", text)
+        if not match:
+            return None
+        try:
+            numeric = float(match.group(1))
+        except ValueError:
+            return None
+        # Values like "1.5" are litres in some feeds; ikman cars use "1,000 cc".
+        if numeric < 20:
+            numeric *= 1000
+        value_int = int(numeric)
+        return value_int if 300 <= value_int <= 10000 else None
+
+    def _build_payload_from_api_ad(self, row: dict) -> dict | None:
+        if not isinstance(row, dict):
+            return None
+
+        listing_url = self._normalize_public_url(str(row.get("url") or ""), str(row.get("slug") or ""))
+        if not listing_url:
+            return None
+
+        title = str(row.get("title") or "").strip()
+        if not title:
+            return None
+
+        money = row.get("money") if isinstance(row.get("money"), dict) else {}
+        raw_price = str(money.get("amount") or row.get("info") or "").strip()
+        price = self.cleaner.normalize_price_lkr(raw_price)
+        if not price:
+            return None
+
+        props = self._properties_map(row)
+        title_data = self.cleaner.clean_title(title)
+        make = str(props.get("brand") or title_data.get("make") or "").strip()
+        model = str(props.get("model") or title_data.get("model") or "Other").strip() or "Other"
+        year_raw = props.get("model_year") or title_data.get("year")
+        try:
+            year = int(year_raw) if year_raw not in (None, "") else None
+        except (TypeError, ValueError):
+            year = title_data.get("year")
+
+        if not make:
+            return None
+
+        area = row.get("area") if isinstance(row.get("area"), dict) else {}
+        location = row.get("location") if isinstance(row.get("location"), dict) else {}
+        district = str(area.get("name") or location.get("name") or "Sri Lanka").strip() or "Sri Lanka"
+        city = str(location.get("name") or "").strip() or None
+
+        details = row.get("details") if isinstance(row.get("details"), list) else []
+        detail_text = " | ".join(str(item).strip() for item in details if str(item).strip())
+        text_blobs = " ".join(
+            part
+            for part in (
+                title,
+                detail_text,
+                str(props.get("fuel_type") or ""),
+                str(props.get("transmission") or ""),
+                str(props.get("body") or ""),
+                str(props.get("condition") or ""),
+                str(props.get("mileage") or ""),
+                str(props.get("engine_capacity") or ""),
+            )
+            if part
+        )
+
+        mileage = self._parse_mileage(props.get("mileage"))
+        if mileage is None:
+            for item in details:
+                mileage = self._parse_mileage(str(item))
+                if mileage is not None:
+                    break
+
+        payload = {
+            "source_id": listing_url,
+            "source": self.SOURCE,
+            "title": title,
+            "make": make,
+            "model": model,
+            "year": year,
+            "price_lkr": price,
+            "url": listing_url,
+            "thumbnail_url": self._thumbnail_from_api_images(row),
+            "district": district,
+            "city": city,
+            "mileage": mileage,
+            "engine_capacity": self._parse_engine_cc(props.get("engine_capacity")),
+            "fuel_type": props.get("fuel_type"),
+            "transmission": props.get("transmission"),
+            "body_type": props.get("body"),
+            "condition": props.get("condition"),
+            "_text_blobs": text_blobs,
+            "scraped_at": utc_now(),
+        }
+        return self.cleaner.normalize_listing_payload(payload)
+
+    async def _fetch_api_ad_detail(self, client: httpx.AsyncClient, ad_id: str) -> dict | None:
+        ad_id = str(ad_id or "").strip()
+        if not ad_id:
+            return None
+        try:
+            response = await client.get(f"{self.API_BASE_URL}/v1/ads/{ad_id}", timeout=30)
+            response.raise_for_status()
+            payload = response.json()
+            ad = payload.get("ad") if isinstance(payload, dict) else None
+            return ad if isinstance(ad, dict) else None
+        except Exception as exc:
+            log.debug("ikman_api_detail_failed", ad_id=ad_id, error=str(exc))
+            return None
+
+    async def _fetch_serp_page(
+        self,
+        client: httpx.AsyncClient,
+        *,
+        page_num: int,
+        next_page_token: str | None,
+    ) -> tuple[list[dict], str | None, dict]:
+        params: dict[str, str | int] = {
+            "category": self.CARS_CATEGORY_ID,
+            "page": page_num,
+            "sort": "date",
+            "order": "desc",
+        }
+        if next_page_token:
+            params["next_page_token"] = next_page_token
+
+        response = await client.get(f"{self.API_BASE_URL}/v1/serp", params=params, timeout=45)
+        response.raise_for_status()
+        payload = response.json() if response.content else {}
+        if not isinstance(payload, dict):
+            raise IkmanApiUnavailable("ikman serp payload is not an object")
+
+        serp = payload.get("serp") if isinstance(payload.get("serp"), dict) else {}
+        results = serp.get("results") if isinstance(serp, dict) else None
+        if not isinstance(results, list):
+            results = []
+
+        pagination = payload.get("pagination") if isinstance(payload.get("pagination"), dict) else {}
+        token = str(pagination.get("next_page_token") or "").strip() or None
+        return [row for row in results if isinstance(row, dict)], token, pagination
+
+    async def _scrape_via_api(self, max_pages: int = 5) -> int:
+        page_limit = max(1, int(max_pages or 1))
+        seen_urls: set[str] = set()
+        consecutive_empty_pages = 0
+        consecutive_page_errors = 0
+        next_page_token: str | None = None
+        upserted = 0
+
+        async with httpx.AsyncClient(headers=API_HEADERS, follow_redirects=True) as client:
+            for page_num in range(1, page_limit + 1):
+                log.info("scraping_page", source=self.SOURCE, mode="api", page=page_num)
+                try:
+                    rows, next_page_token, pagination = await self._fetch_serp_page(
+                        client,
+                        page_num=page_num,
+                        next_page_token=next_page_token if page_num > 1 else None,
+                    )
+                except Exception as exc:
+                    consecutive_page_errors += 1
+                    log.error(
+                        "ikman_api_page_error",
+                        page=page_num,
+                        error=str(exc),
+                        consecutive_page_errors=consecutive_page_errors,
+                    )
+                    if page_num == 1:
+                        raise IkmanApiUnavailable(str(exc)) from exc
+                    if consecutive_page_errors >= self.API_PAGE_ERROR_LIMIT:
+                        break
+                    continue
+
+                if not rows:
+                    consecutive_empty_pages += 1
+                    log.info(
+                        "ikman_api_no_results",
+                        page=page_num,
+                        consecutive_empty_pages=consecutive_empty_pages,
+                        pagination=pagination,
+                    )
+                    if page_num == 1:
+                        raise IkmanApiUnavailable("ikman api returned zero results on page 1")
+                    if consecutive_empty_pages >= self.API_EMPTY_PAGE_LIMIT:
+                        break
+                    continue
+
+                consecutive_empty_pages = 0
+                consecutive_page_errors = 0
+                new_on_page = 0
+
+                for row in rows:
+                    try:
+                        payload = self._build_payload_from_api_ad(row)
+                        if payload is None:
+                            # Title parse miss: enrich once from detail properties.
+                            detail = await self._fetch_api_ad_detail(client, str(row.get("id") or ""))
+                            if detail:
+                                merged = dict(row)
+                                merged.update(
+                                    {
+                                        "title": detail.get("title") or row.get("title"),
+                                        "url": detail.get("url") or row.get("url"),
+                                        "slug": detail.get("slug") or row.get("slug"),
+                                        "money": detail.get("money") or row.get("money"),
+                                        "properties": detail.get("properties") or row.get("properties"),
+                                        "details": detail.get("details") or row.get("details"),
+                                        "images": detail.get("images") or row.get("images"),
+                                        "area": detail.get("area") or row.get("area"),
+                                        "location": detail.get("location") or row.get("location"),
+                                    }
+                                )
+                                payload = self._build_payload_from_api_ad(merged)
+
+                        if not payload:
+                            continue
+
+                        listing_url = str(payload.get("url") or "")
+                        if not listing_url or listing_url in seen_urls:
+                            continue
+                        seen_urls.add(listing_url)
+                        new_on_page += 1
+                        self._upsert_listing(payload)
+                        self.db.commit()
+                        upserted += 1
+                    except Exception as exc:
+                        log.error("ikman_api_item_error", error=str(exc))
+                        self.db.rollback()
+
+                log.info(
+                    "ikman_api_page_complete",
+                    page=page_num,
+                    rows=len(rows),
+                    upserted_on_page=new_on_page,
+                    total_upserted=upserted,
+                    pagination_total=pagination.get("total"),
+                )
+
+                if page_num < page_limit:
+                    await asyncio.sleep(self.API_PAGE_DELAY_SECONDS)
+
+        return upserted
+
+    async def _scrape_via_playwright(self, max_pages: int = 5):
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(user_agent=random.choice(USER_AGENTS))
@@ -122,7 +461,6 @@ class IkmanCarScraper:
             consecutive_empty_pages = 0
             consecutive_page_errors = 0
 
-            # Performance: block media
             async def route_handler(route):
                 try:
                     if route.request.resource_type in {"image", "media", "font"}:
@@ -137,7 +475,7 @@ class IkmanCarScraper:
             try:
                 for page_num in range(1, max_pages + 1):
                     url = f"{self.BASE_URL}{page_num}"
-                    log.info("scraping_page", source=self.SOURCE, page=page_num)
+                    log.info("scraping_page", source=self.SOURCE, mode="playwright", page=page_num)
 
                     try:
                         await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
@@ -163,7 +501,6 @@ class IkmanCarScraper:
 
                         for listing in listings:
                             try:
-                                # 1. Basic Metadata
                                 url_attr = await listing.get_attribute("href")
                                 listing_url = f"https://ikman.lk{url_attr}" if url_attr else ""
 
@@ -181,7 +518,6 @@ class IkmanCarScraper:
                                     if loc_elem
                                     else "Sri Lanka"
                                 )
-                                # Extract district from "City, District"
                                 district = (
                                     location_text.split(",")[-1].strip()
                                     if "," in location_text
@@ -203,28 +539,24 @@ class IkmanCarScraper:
                                             "srcset"
                                         ) or await img_elem.get_attribute("data-srcset")
                                         if srcset:
-                                            first_image = srcset.split(",")[0].strip().split(
-                                                " "
-                                            )[0]
+                                            first_image = srcset.split(",")[0].strip().split(" ")[0]
                                             normalized = self._normalize_thumbnail_url(first_image)
                                             if normalized:
                                                 thumb_url = normalized
 
                                 if not thumb_url or self._is_placeholder_thumbnail(thumb_url):
-                                    thumb_url = await self._fetch_detail_thumbnail(context, listing_url)
+                                    thumb_url = await self._fetch_detail_thumbnail(
+                                        context, listing_url
+                                    )
 
-                                # 2. Cleaning
                                 data = self.cleaner.clean_title(title)
                                 price = self.cleaner.clean_price(raw_price)
 
                                 if not data["make"] or not price:
                                     continue
 
-                                source_id = listing_url
-
-                                # 3. DB Save
                                 listing_payload = {
-                                    "source_id": source_id,
+                                    "source_id": listing_url,
                                     "source": self.SOURCE,
                                     "title": title,
                                     "make": data["make"],
@@ -234,7 +566,8 @@ class IkmanCarScraper:
                                     "url": listing_url,
                                     "thumbnail_url": thumb_url,
                                     "district": district,
-                                    "condition": None, "_text_blobs": (await listing.inner_text()),
+                                    "condition": None,
+                                    "_text_blobs": (await listing.inner_text()),
                                     "scraped_at": utc_now(),
                                 }
 
@@ -261,3 +594,26 @@ class IkmanCarScraper:
                     log.debug("ikman_unroute_cleanup_skipped")
                 await browser.close()
 
+    async def scrape(self, max_pages: int = 5):
+        mode = str(os.getenv("IKMAN_SCRAPE_MODE", "auto") or "auto").strip().lower()
+        if mode not in {"auto", "api", "playwright"}:
+            log.warning("ikman_scrape_mode_unknown", mode=mode, fallback="auto")
+            mode = "auto"
+
+        if mode == "playwright":
+            await self._scrape_via_playwright(max_pages)
+            return
+
+        try:
+            upserted = await self._scrape_via_api(max_pages)
+            log.info("ikman_api_scrape_complete", upserted=upserted, max_pages=max_pages)
+            return
+        except IkmanApiUnavailable as exc:
+            if mode == "api":
+                raise
+            log.warning(
+                "ikman_api_fallback_to_playwright",
+                error=str(exc),
+                max_pages=max_pages,
+            )
+            await self._scrape_via_playwright(max_pages)

@@ -276,6 +276,17 @@ def test_autodirect_scraper_uses_direct_api_strategy():
     assert "api.autodirect.lk" in text
 
 
+def test_ikman_scraper_uses_public_json_api_with_playwright_fallback():
+    source = Path(__file__).resolve().parents[1] / "app" / "scrapers" / "ikman.py"
+    text = source.read_text(encoding="utf-8")
+
+    assert "api.ikman.lk" in text
+    assert "CARS_CATEGORY_ID = 392" in text
+    assert "_scrape_via_api" in text
+    assert "_scrape_via_playwright" in text
+    assert "IKMAN_SCRAPE_MODE" in text
+
+
 def test_riyasewana_detects_cloudflare_challenge_pages():
     challenge_soup = BeautifulSoup(
         """

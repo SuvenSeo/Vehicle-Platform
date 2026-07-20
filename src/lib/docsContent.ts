@@ -34,7 +34,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     title: "Data sources",
     summary: "Listings sync from major Sri Lankan marketplaces — ikman, riyasewana, and other high-volume boards.",
     body: [
-      "Motormila scrapes and normalizes vehicle ads from the boards Sri Lankans already use. Primary coverage includes ikman and riyasewana, with additional volume from AutoLanka, Patpat, AutoDirect, HitAd, Cartivate, and related classified or dealer sources as the pipeline expands.",
+      "Motormila scrapes and normalizes vehicle ads from the boards Sri Lankans already use. Primary coverage includes ikman (via its public JSON API with a Playwright safety net) and riyasewana, with additional volume from AutoLanka, Patpat, AutoDirect, HitAd, Cartivate, and related classified or dealer sources as the pipeline expands.",
       "Each listing is deduplicated where possible, mapped to a shared make/model schema, and tagged with district, fuel type, year, mileage, and asking price. Incomplete ads still appear, but deal confidence drops when peer samples are thin or fields are missing.",
       "Source mix matters for interpretation: one board may skew newer stock; another may skew older private sellers. Pro views expose source coverage so you can see whether a lane is dominated by a single site.",
     ],
