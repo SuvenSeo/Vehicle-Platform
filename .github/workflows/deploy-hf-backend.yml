@@ -1,0 +1,116 @@
+name: Deploy Backend → HuggingFace Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+    inputs:
+      factory:
+        description: "Factory rebuild (clears the build cache — use to unstick a wedged build)"
+        type: boolean
+        default: false
+      logs_only:
+        description: "Fetch the current build/run logs without syncing or restarting"
+        type: boolean
+        default: false
+
+jobs:
+  sync-to-hf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push backend to HuggingFace Space
+        if: ${{ github.event.inputs.logs_only != 'true' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Clone the HF Space repo
+          git clone https://Seo292:${HF_TOKEN}@huggingface.co/spaces/Seo292/vehicle-platform-backend hf-space
+
+          # Wipe and replace with current backend folder (exclude local dev artifacts)
+          rm -rf hf-space/*
+          rsync -a backend/. hf-space/ \
+            --exclude=venv/ \
+            --exclude=__pycache__/ \
+            --exclude="*.pyc" \
+            --exclude="*.pyo" \
+            --exclude="*.db" \
+            --exclude="autolens.db" \
+            --exclude=".env" \
+            --exclude=".env.local" \
+            --exclude="rescue_exports/" \
+            --exclude="snapshots/" \
+            --exclude="tmp-snapshots/" \
+            --exclude="debug_*.html" \
+            --exclude="*.log"
+
+          # HuggingFace requires a README.md with SDK metadata to recognise Docker spaces
+          printf '%s\n' '---' 'title: Vehicle Platform Backend' 'emoji: 🚗' 'colorFrom: blue' 'colorTo: green' 'sdk: docker' 'pinned: false' 'app_port: 7860' '---' > hf-space/README.md
+
+          cd hf-space
+          git add -A
+
+          # Only commit if there are actual changes
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+          else
+            git commit -m "deploy: sync from GitHub $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+            echo "Deployed to HuggingFace."
+          fi
+
+      # HuggingFace normally auto-detects the new commit and rebuilds, but its
+      # free-tier build watcher can wedge (commit lands, build never advances).
+      # Calling the restart API explicitly makes the deploy authoritative: we
+      # tell HF to (re)build rather than hoping it notices. `factory: true`
+      # (manual dispatch only) forces a clean, cache-free rebuild to break a wedge.
+      - name: Trigger HuggingFace Space rebuild
+        if: ${{ always() && github.event.inputs.logs_only != 'true' }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          FACTORY: ${{ github.event.inputs.factory || 'false' }}
+        run: |
+          repo="Seo292/vehicle-platform-backend"
+          if [ "${FACTORY}" = "true" ]; then
+            echo "Requesting FACTORY rebuild of ${repo}…"
+            url="https://huggingface.co/api/spaces/${repo}/restart?factory=true"
+          else
+            echo "Requesting rebuild of ${repo}…"
+            url="https://huggingface.co/api/spaces/${repo}/restart"
+          fi
+          code=$(curl -s -o restart_resp.json -w "%{http_code}" -X POST "$url" \
+            -H "Authorization: Bearer ${HF_TOKEN}")
+          echo "HF restart HTTP ${code}"
+          cat restart_resp.json 2>/dev/null || true
+          echo
+          if [ "$code" -ge 400 ]; then
+            echo "::warning::HF restart API returned ${code} — the Space may need a manual Factory rebuild from the dashboard."
+          fi
+
+      # Best-effort: dump the Space's build log tail so a stuck/slow build is
+      # diagnosable from the Actions run instead of needing dashboard access.
+      # The build-log endpoint is an SSE stream, so we time-box the read.
+      - name: Fetch HuggingFace build logs
+        if: always()
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          repo="Seo292/vehicle-platform-backend"
+          echo "=== runtime status ==="
+          curl -s --max-time 20 "https://huggingface.co/api/spaces/${repo}" \
+            -H "Authorization: Bearer ${HF_TOKEN}" | head -c 2000; echo
+          echo "=== build log tail (time-boxed 40s) ==="
+          curl -s --max-time 40 -N "https://huggingface.co/api/spaces/${repo}/logs/build" \
+            -H "Authorization: Bearer ${HF_TOKEN}" 2>/dev/null | tail -n 60 || echo "(build log stream unavailable)"

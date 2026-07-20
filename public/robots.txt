@@ -1,0 +1,17 @@
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: *
+Allow: /
+
+Sitemap: https://vehicle-platform-one.vercel.app/sitemap.xml
+Sitemap: https://vehicle-platform-one.vercel.app/api/sitemap-listings

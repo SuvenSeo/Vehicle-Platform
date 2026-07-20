@@ -1,0 +1,57 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment
+.env
+.env.*
+!.env.example
+backend/.env
+backend/venv
+backend/__pycache__
+**/__pycache__
+*.pyc
+
+# Local databases & caches
+*.db
+*.sqlite
+.pytest_cache/
+
+# Local agent/session config
+.claude/
+
+# Test
+coverage
+
+# Build
+*.tsbuildinfo
+.vercel
+
+# Local agent session scratch
+.agents/
+.codex/
+.ruff_cache/
+/PROJECT.md
+/ORIGINAL_REQUEST.md
+.env*
