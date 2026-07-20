@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.page_budget import page_budget_for_category
 from app.utils.listing_upsert import upsert_listing
 from app.utils.time import utc_now
 
@@ -27,6 +28,20 @@ DEFAULT_HEADERS = {
 
 class HitadScraper:
     SOURCE = "hitad"
+    # Leaf vehicle keywords only — skip broad "vehicles" and parts/services.
+    CATEGORY_KEYWORDS = (
+        "cars",
+        "motorbikes",
+        "three-wheelers",
+        "vans",
+        "buses",
+        "lorries-trucks",
+        "tractors",
+        "heavy-duty",
+        "bicycles",
+        "boats-water-transport",
+    )
+    PRIMARY_CATEGORY = "cars"
     BASE_URL = "https://www.hitad.lk/search-sl?keyword=cars"
 
     def __init__(self, db: Session):
@@ -37,10 +52,18 @@ class HitadScraper:
         return upsert_listing(self.db, self.SOURCE, payload)
 
     @staticmethod
-    def _page_url(page_num: int) -> str:
+    def _page_url(keyword: str, page_num: int) -> str:
+        base = f"https://www.hitad.lk/search-sl?keyword={keyword}"
         if page_num <= 1:
-            return HitadScraper.BASE_URL
-        return f"{HitadScraper.BASE_URL}&page={page_num}"
+            return base
+        return f"{base}&page={page_num}"
+
+    @classmethod
+    def _page_budget_for_category(cls, keyword: str, max_pages: int) -> int:
+        return page_budget_for_category(
+            is_primary=keyword == cls.PRIMARY_CATEGORY,
+            max_pages=max_pages,
+        )
 
     @staticmethod
     def _extract_max_page(soup: BeautifulSoup) -> int | None:
@@ -60,7 +83,19 @@ class HitadScraper:
         spans = [span.get_text(" ", strip=True) for span in cat.select("span")]
         for span_text in spans:
             token = span_text.strip()
-            if token and token.lower() not in {"cars", "vehicles", "motorbikes"}:
+            if token and token.lower() not in {
+                "cars",
+                "vehicles",
+                "motorbikes",
+                "three-wheelers",
+                "vans",
+                "buses",
+                "lorries-trucks",
+                "tractors",
+                "heavy-duty",
+                "bicycles",
+                "boats-water-transport",
+            }:
                 return token
         return ""
 
@@ -128,74 +163,84 @@ class HitadScraper:
         return self.cleaner.normalize_listing_payload(payload)
 
     async def scrape(self, max_pages: int = 5):
-        page_limit = max_pages if max_pages > 0 else None
-        page_num = 1
         seen_urls: set[str] = set()
-        consecutive_empty_pages = 0
-        consecutive_page_errors = 0
 
         async with httpx.AsyncClient(headers=DEFAULT_HEADERS, follow_redirects=True) as client:
-            while True:
-                if page_limit is not None and page_num > page_limit:
-                    break
+            for keyword in self.CATEGORY_KEYWORDS:
+                page_limit = self._page_budget_for_category(keyword, max_pages)
+                page_num = 1
+                consecutive_empty_pages = 0
+                consecutive_page_errors = 0
 
-                url = self._page_url(page_num)
-                log.info("scraping_page", source=self.SOURCE, page=page_num)
+                while page_num <= page_limit:
+                    url = self._page_url(keyword, page_num)
+                    log.info(
+                        "scraping_page",
+                        source=self.SOURCE,
+                        category=keyword,
+                        page=page_num,
+                        page_limit=page_limit,
+                    )
 
-                try:
-                    response = await client.get(url, timeout=30)
-                    response.raise_for_status()
-                    soup = BeautifulSoup(response.text, "lxml")
-                    cards = soup.select("div.listing-card")
+                    try:
+                        response = await client.get(url, timeout=30)
+                        response.raise_for_status()
+                        soup = BeautifulSoup(response.text, "lxml")
+                        cards = soup.select("div.listing-card")
 
-                    if not cards:
-                        consecutive_empty_pages += 1
-                        log.info(
-                            "hitad_no_cards",
+                        if not cards:
+                            consecutive_empty_pages += 1
+                            log.info(
+                                "hitad_no_cards",
+                                category=keyword,
+                                page=page_num,
+                                consecutive_empty_pages=consecutive_empty_pages,
+                            )
+                            if consecutive_empty_pages >= 10:
+                                break
+                            page_num += 1
+                            continue
+
+                        new_on_page = 0
+
+                        for card in cards:
+                            try:
+                                payload = self._build_payload_from_card(card)
+                                if not payload:
+                                    continue
+                                listing_url = str(payload.get("url") or "")
+                                if not listing_url or listing_url in seen_urls:
+                                    continue
+                                seen_urls.add(listing_url)
+                                new_on_page += 1
+                                self._upsert_listing(payload)
+                                self.db.commit()
+                            except Exception as exc:
+                                log.error(
+                                    "hitad_item_error",
+                                    category=keyword,
+                                    error=str(exc),
+                                )
+                                self.db.rollback()
+
+                        if new_on_page == 0:
+                            consecutive_empty_pages += 1
+                            if consecutive_empty_pages >= 10:
+                                break
+                            page_num += 1
+                            continue
+
+                        consecutive_empty_pages = 0
+                        consecutive_page_errors = 0
+                        page_num += 1
+                    except Exception as exc:
+                        log.error(
+                            "hitad_page_error",
+                            category=keyword,
                             page=page_num,
-                            consecutive_empty_pages=consecutive_empty_pages,
+                            error=str(exc),
                         )
-                        if consecutive_empty_pages >= 10:
+                        consecutive_page_errors += 1
+                        if consecutive_page_errors >= 25:
                             break
                         page_num += 1
-                        continue
-
-                    max_page_hint = self._extract_max_page(soup)
-                    new_on_page = 0
-
-                    for card in cards:
-                        try:
-                            payload = self._build_payload_from_card(card)
-                            if not payload:
-                                continue
-                            listing_url = str(payload.get("url") or "")
-                            if not listing_url or listing_url in seen_urls:
-                                continue
-                            seen_urls.add(listing_url)
-                            new_on_page += 1
-                            self._upsert_listing(payload)
-                            self.db.commit()
-                        except Exception as exc:
-                            log.error("hitad_item_error", error=str(exc))
-                            self.db.rollback()
-
-                    if new_on_page == 0:
-                        consecutive_empty_pages += 1
-                        if consecutive_empty_pages >= 10:
-                            break
-                        page_num += 1
-                        continue
-
-                    consecutive_empty_pages = 0
-                    consecutive_page_errors = 0
-                    if page_limit is not None and page_num >= page_limit:
-                        break
-                    if page_limit is None and max_page_hint is not None and page_num >= max_page_hint:
-                        break
-                    page_num += 1
-                except Exception as exc:
-                    log.error("hitad_page_error", page=page_num, error=str(exc))
-                    consecutive_page_errors += 1
-                    if consecutive_page_errors >= 25:
-                        break
-                    page_num += 1

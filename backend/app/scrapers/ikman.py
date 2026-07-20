@@ -16,6 +16,7 @@ from playwright.async_api import async_playwright
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
 from app.utils.listing_upsert import upsert_listing
 from app.utils.time import utc_now
 
@@ -80,10 +81,6 @@ class IkmanCarScraper:
     API_PAGE_DELAY_SECONDS = 0.35
     API_EMPTY_PAGE_LIMIT = 10
     API_PAGE_ERROR_LIMIT = 25
-    # Non-car leaves get a smaller page budget so cars keep full depth.
-    NON_CAR_PAGE_BUDGET_DIVISOR = 4
-    NON_CAR_PAGE_BUDGET_MIN = 5
-    NON_CAR_PAGE_BUDGET_MAX = 25
 
     def __init__(self, db: Session):
         self.db = db
@@ -358,21 +355,14 @@ class IkmanCarScraper:
 
     @classmethod
     def _secondary_page_budget(cls, max_pages: int) -> int:
-        page_limit = max(1, int(max_pages or 1))
-        desired = max(
-            cls.NON_CAR_PAGE_BUDGET_MIN,
-            page_limit // cls.NON_CAR_PAGE_BUDGET_DIVISOR,
-        )
-        desired = min(cls.NON_CAR_PAGE_BUDGET_MAX, desired)
-        # Never scrape more pages than the caller asked for.
-        return max(1, min(page_limit, desired))
+        return secondary_page_budget(max_pages)
 
     @classmethod
     def _page_budget_for_category(cls, category_id: int, max_pages: int) -> int:
-        page_limit = max(1, int(max_pages or 1))
-        if int(category_id) == cls.CARS_CATEGORY_ID:
-            return page_limit
-        return cls._secondary_page_budget(page_limit)
+        return page_budget_for_category(
+            is_primary=int(category_id) == cls.CARS_CATEGORY_ID,
+            max_pages=max_pages,
+        )
 
     async def _fetch_serp_page(
         self,

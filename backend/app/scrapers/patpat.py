@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.page_budget import page_budget_for_category
 from app.utils.listing_upsert import upsert_listing
 
 log = structlog.get_logger()
@@ -16,6 +17,21 @@ log = structlog.get_logger()
 
 class PatpatScraper:
     SOURCE = "patpat"
+    # For-sale vehicle type leaves (skip rentals/parts).
+    CATEGORY_PATHS = (
+        "car",
+        "bike",
+        "threewheeler",
+        "van",
+        "bus",
+        "truck",
+        "suv",
+        "pickup",
+        "tractor",
+        "heavy",
+        "tipper",
+    )
+    PRIMARY_CATEGORY = "car"
     BASE_URL = "https://patpat.lk/en/sri-lanka/vehicle/car"
 
     def __init__(self, db: Session):
@@ -93,6 +109,17 @@ class PatpatScraper:
             return ""
         return match.group(1).strip()
 
+    @classmethod
+    def _category_base_url(cls, category_path: str) -> str:
+        return f"https://patpat.lk/en/sri-lanka/vehicle/{category_path}"
+
+    @classmethod
+    def _page_budget_for_category(cls, category_path: str, max_pages: int) -> int:
+        return page_budget_for_category(
+            is_primary=category_path == cls.PRIMARY_CATEGORY,
+            max_pages=max_pages,
+        )
+
     async def scrape(self, max_pages: int = 5):
         headers = {
             "User-Agent": (
@@ -102,134 +129,153 @@ class PatpatScraper:
             )
         }
 
-        page_limit = max_pages if max_pages > 0 else None
-        page_num = 1
         seen_urls: set[str] = set()
-        consecutive_empty_pages = 0
-        consecutive_page_errors = 0
 
         async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
-            while True:
-                if page_limit is not None and page_num > page_limit:
-                    break
+            for category_path in self.CATEGORY_PATHS:
+                page_limit = self._page_budget_for_category(category_path, max_pages)
+                base_url = self._category_base_url(category_path)
+                page_num = 1
+                consecutive_empty_pages = 0
+                consecutive_page_errors = 0
 
-                url = self.BASE_URL if page_num == 1 else f"{self.BASE_URL}?page={page_num}"
-                log.info("scraping_page", source=self.SOURCE, page=page_num)
+                while page_num <= page_limit:
+                    url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
+                    log.info(
+                        "scraping_page",
+                        source=self.SOURCE,
+                        category=category_path,
+                        page=page_num,
+                        page_limit=page_limit,
+                    )
 
-                try:
-                    res = await client.get(url, timeout=30)
-                    res.raise_for_status()
-                    soup = BeautifulSoup(res.text, "lxml")
+                    try:
+                        res = await client.get(url, timeout=30)
+                        res.raise_for_status()
+                        soup = BeautifulSoup(res.text, "lxml")
 
-                    cards = soup.select("div.listing-card")
-                    if not cards:
-                        cards = soup.select("li.card-item")
+                        cards = soup.select("div.listing-card")
+                        if not cards:
+                            cards = soup.select("li.card-item")
 
-                    if not cards:
-                        consecutive_empty_pages += 1
-                        log.info(
-                            "patpat_no_cards",
-                            page=page_num,
-                            consecutive_empty_pages=consecutive_empty_pages,
-                        )
-                        if consecutive_empty_pages >= 10:
-                            break
-                        page_num += 1
-                        continue
-
-                    max_page_hint = self._extract_max_page(soup)
-                    new_on_page = 0
-
-                    for card in cards:
-                        try:
-                            link = card.select_one("a[href*='/en/ad/vehicle/']")
-                            if not link:
-                                continue
-
-                            listing_url = str(link.get("href") or "").strip()
-                            if not listing_url:
-                                continue
-
-                            listing_url = urljoin("https://patpat.lk", listing_url)
-                            if listing_url in seen_urls:
-                                continue
-
-                            seen_urls.add(listing_url)
-                            new_on_page += 1
-
-                            title = self._text(card, [".line-clamp-2", "h2", "h3"])
-                            if not title:
-                                title = str(link.get("title") or "").strip()
-                            if not title:
-                                title = link.get_text(" ", strip=True)
-                            if not title:
-                                continue
-
-                            raw_price = self._extract_price_text(card)
-                            card_text = card.get_text(" ", strip=True)
-                            district = self._extract_district(card_text)
-
-                            img = card.select_one("img[src]") or card.select_one("img[data-src]")
-                            thumb_url = (
-                                str(img.get("src") or img.get("data-src") or "").strip() if img else ""
+                        if not cards:
+                            consecutive_empty_pages += 1
+                            log.info(
+                                "patpat_no_cards",
+                                category=category_path,
+                                page=page_num,
+                                consecutive_empty_pages=consecutive_empty_pages,
                             )
-                            thumb_url = urljoin("https://patpat.lk", thumb_url) if thumb_url else ""
+                            if consecutive_empty_pages >= 10:
+                                break
+                            page_num += 1
+                            continue
 
-                            data = self.cleaner.clean_title(title)
-                            price = self.cleaner.normalize_price_lkr(raw_price)
-                            if not data["make"] or not price:
-                                continue
+                        new_on_page = 0
 
-                            payload = {
-                                "source_id": listing_url,
-                                "source": self.SOURCE,
-                                "title": title,
-                                "make": data["make"],
-                                "model": data["model"] or "Other",
-                                "year": data["year"],
-                                "price_lkr": price,
-                                "url": listing_url,
-                                "thumbnail_url": thumb_url,
-                                "district": district or "Sri Lanka",
-                                "condition": None, "_text_blobs": card_text,
-                                "scraped_at": utc_now(),
-                            }
+                        for card in cards:
+                            try:
+                                link = card.select_one("a[href*='/en/ad/vehicle/']")
+                                if not link:
+                                    continue
 
-                            normalized_payload = self.cleaner.normalize_listing_payload(payload)
-                            if not normalized_payload:
-                                continue
+                                listing_url = str(link.get("href") or "").strip()
+                                if not listing_url:
+                                    continue
 
-                            self._upsert_listing(normalized_payload)
-                            self.db.commit()
-                        except Exception as e:
-                            log.error("patpat_item_error", error=str(e))
-                            self.db.rollback()
+                                listing_url = urljoin("https://patpat.lk", listing_url)
+                                if listing_url in seen_urls:
+                                    continue
 
-                    if new_on_page == 0:
-                        consecutive_empty_pages += 1
-                        log.info(
-                            "patpat_empty_page",
+                                seen_urls.add(listing_url)
+                                new_on_page += 1
+
+                                title = self._text(card, [".line-clamp-2", "h2", "h3"])
+                                if not title:
+                                    title = str(link.get("title") or "").strip()
+                                if not title:
+                                    title = link.get_text(" ", strip=True)
+                                if not title:
+                                    continue
+
+                                raw_price = self._extract_price_text(card)
+                                card_text = card.get_text(" ", strip=True)
+                                district = self._extract_district(card_text)
+
+                                img = card.select_one("img[src]") or card.select_one(
+                                    "img[data-src]"
+                                )
+                                thumb_url = (
+                                    str(img.get("src") or img.get("data-src") or "").strip()
+                                    if img
+                                    else ""
+                                )
+                                thumb_url = (
+                                    urljoin("https://patpat.lk", thumb_url) if thumb_url else ""
+                                )
+
+                                data = self.cleaner.clean_title(title)
+                                price = self.cleaner.normalize_price_lkr(raw_price)
+                                if not data["make"] or not price:
+                                    continue
+
+                                payload = {
+                                    "source_id": listing_url,
+                                    "source": self.SOURCE,
+                                    "title": title,
+                                    "make": data["make"],
+                                    "model": data["model"] or "Other",
+                                    "year": data["year"],
+                                    "price_lkr": price,
+                                    "url": listing_url,
+                                    "thumbnail_url": thumb_url,
+                                    "district": district or "Sri Lanka",
+                                    "condition": None,
+                                    "_text_blobs": card_text,
+                                    "scraped_at": utc_now(),
+                                }
+
+                                normalized_payload = self.cleaner.normalize_listing_payload(
+                                    payload
+                                )
+                                if not normalized_payload:
+                                    continue
+
+                                self._upsert_listing(normalized_payload)
+                                self.db.commit()
+                            except Exception as e:
+                                log.error(
+                                    "patpat_item_error",
+                                    category=category_path,
+                                    error=str(e),
+                                )
+                                self.db.rollback()
+
+                        if new_on_page == 0:
+                            consecutive_empty_pages += 1
+                            log.info(
+                                "patpat_empty_page",
+                                category=category_path,
+                                page=page_num,
+                                consecutive_empty_pages=consecutive_empty_pages,
+                            )
+                            if consecutive_empty_pages >= 10:
+                                break
+                            page_num += 1
+                            continue
+
+                        consecutive_empty_pages = 0
+                        consecutive_page_errors = 0
+                        page_num += 1
+                    except Exception as e:
+                        log.error(
+                            "patpat_page_error",
+                            category=category_path,
                             page=page_num,
-                            consecutive_empty_pages=consecutive_empty_pages,
+                            error=str(e),
                         )
-                        if consecutive_empty_pages >= 10:
+                        consecutive_page_errors += 1
+                        if consecutive_page_errors >= 25:
                             break
                         page_num += 1
-                        continue
-
-                    consecutive_empty_pages = 0
-                    if page_limit is not None and page_num >= page_limit:
-                        break
-
-                    if page_limit is None and max_page_hint is not None and page_num >= max_page_hint:
-                        break
-
-                    page_num += 1
-                    consecutive_page_errors = 0
-                except Exception as e:
-                    log.error("patpat_page_error", page=page_num, error=str(e))
-                    consecutive_page_errors += 1
-                    if consecutive_page_errors >= 25:
-                        break
-                    page_num += 1
 
