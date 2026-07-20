@@ -44,12 +44,46 @@ class IkmanApiUnavailable(RuntimeError):
 
 class IkmanCarScraper:
     SOURCE = "ikman"
-    BASE_URL = "https://ikman.lk/en/ads/sri-lanka/cars?sort=date&order=desc&page="
+    # Playwright fallback: for-sale vehicle leaves only (skip parts/services/rentals).
+    PLAYWRIGHT_CATEGORY_PATHS = (
+        "cars",
+        "motorbikes-scooters",
+        "three-wheelers",
+        "vans",
+        "buses",
+        "lorries",
+        "heavy-duty",
+        "tractors",
+        "bicycles",
+        "boats-water-transport",
+    )
+    BASE_URL_TEMPLATE = (
+        "https://ikman.lk/en/ads/sri-lanka/{category}?sort=date&order=desc&page="
+    )
+    # Kept for older call sites / docs that still reference a single cars URL.
+    BASE_URL = BASE_URL_TEMPLATE.format(category="cars")
     API_BASE_URL = "https://api.ikman.lk"
+    # Leaf vehicle categories for sale — not parent 391 (mixes parts/services/rentals).
     CARS_CATEGORY_ID = 392
+    VEHICLE_CATEGORY_IDS = (
+        392,  # Cars
+        402,  # Motorbikes
+        911,  # Three Wheelers
+        424,  # Vans
+        425,  # Buses
+        426,  # Lorries & Trucks
+        918,  # Heavy Duty
+        919,  # Tractors
+        603,  # Bicycles
+        925,  # Boats & Water Transport
+    )
     API_PAGE_DELAY_SECONDS = 0.35
     API_EMPTY_PAGE_LIMIT = 10
     API_PAGE_ERROR_LIMIT = 25
+    # Non-car leaves get a smaller page budget so cars keep full depth.
+    NON_CAR_PAGE_BUDGET_DIVISOR = 4
+    NON_CAR_PAGE_BUDGET_MIN = 5
+    NON_CAR_PAGE_BUDGET_MAX = 25
 
     def __init__(self, db: Session):
         self.db = db
@@ -222,7 +256,8 @@ class IkmanCarScraper:
         if numeric < 20:
             numeric *= 1000
         value_int = int(numeric)
-        return value_int if 300 <= value_int <= 10000 else None
+        # Include motorcycle / three-wheeler capacities (e.g. 125 cc).
+        return value_int if 50 <= value_int <= 10000 else None
 
     def _build_payload_from_api_ad(self, row: dict) -> dict | None:
         if not isinstance(row, dict):
@@ -321,15 +356,34 @@ class IkmanCarScraper:
             log.debug("ikman_api_detail_failed", ad_id=ad_id, error=str(exc))
             return None
 
+    @classmethod
+    def _secondary_page_budget(cls, max_pages: int) -> int:
+        page_limit = max(1, int(max_pages or 1))
+        desired = max(
+            cls.NON_CAR_PAGE_BUDGET_MIN,
+            page_limit // cls.NON_CAR_PAGE_BUDGET_DIVISOR,
+        )
+        desired = min(cls.NON_CAR_PAGE_BUDGET_MAX, desired)
+        # Never scrape more pages than the caller asked for.
+        return max(1, min(page_limit, desired))
+
+    @classmethod
+    def _page_budget_for_category(cls, category_id: int, max_pages: int) -> int:
+        page_limit = max(1, int(max_pages or 1))
+        if int(category_id) == cls.CARS_CATEGORY_ID:
+            return page_limit
+        return cls._secondary_page_budget(page_limit)
+
     async def _fetch_serp_page(
         self,
         client: httpx.AsyncClient,
         *,
+        category_id: int,
         page_num: int,
         next_page_token: str | None,
     ) -> tuple[list[dict], str | None, dict]:
         params: dict[str, str | int] = {
-            "category": self.CARS_CATEGORY_ID,
+            "category": int(category_id),
             "page": page_num,
             "sort": "date",
             "order": "desc",
@@ -352,105 +406,165 @@ class IkmanCarScraper:
         token = str(pagination.get("next_page_token") or "").strip() or None
         return [row for row in results if isinstance(row, dict)], token, pagination
 
-    async def _scrape_via_api(self, max_pages: int = 5) -> int:
-        page_limit = max(1, int(max_pages or 1))
-        seen_urls: set[str] = set()
+    async def _scrape_category_via_api(
+        self,
+        client: httpx.AsyncClient,
+        *,
+        category_id: int,
+        max_pages: int,
+        seen_urls: set[str],
+    ) -> int:
+        page_limit = self._page_budget_for_category(category_id, max_pages)
         consecutive_empty_pages = 0
         consecutive_page_errors = 0
         next_page_token: str | None = None
         upserted = 0
 
-        async with httpx.AsyncClient(headers=API_HEADERS, follow_redirects=True) as client:
-            for page_num in range(1, page_limit + 1):
-                log.info("scraping_page", source=self.SOURCE, mode="api", page=page_num)
-                try:
-                    rows, next_page_token, pagination = await self._fetch_serp_page(
-                        client,
-                        page_num=page_num,
-                        next_page_token=next_page_token if page_num > 1 else None,
-                    )
-                except Exception as exc:
-                    consecutive_page_errors += 1
-                    log.error(
-                        "ikman_api_page_error",
-                        page=page_num,
-                        error=str(exc),
-                        consecutive_page_errors=consecutive_page_errors,
-                    )
-                    if page_num == 1:
-                        raise IkmanApiUnavailable(str(exc)) from exc
-                    if consecutive_page_errors >= self.API_PAGE_ERROR_LIMIT:
-                        break
-                    continue
-
-                if not rows:
-                    consecutive_empty_pages += 1
-                    log.info(
-                        "ikman_api_no_results",
-                        page=page_num,
-                        consecutive_empty_pages=consecutive_empty_pages,
-                        pagination=pagination,
-                    )
-                    if page_num == 1:
-                        raise IkmanApiUnavailable("ikman api returned zero results on page 1")
-                    if consecutive_empty_pages >= self.API_EMPTY_PAGE_LIMIT:
-                        break
-                    continue
-
-                consecutive_empty_pages = 0
-                consecutive_page_errors = 0
-                new_on_page = 0
-
-                for row in rows:
-                    try:
-                        payload = self._build_payload_from_api_ad(row)
-                        if payload is None:
-                            # Title parse miss: enrich once from detail properties.
-                            detail = await self._fetch_api_ad_detail(client, str(row.get("id") or ""))
-                            if detail:
-                                merged = dict(row)
-                                merged.update(
-                                    {
-                                        "title": detail.get("title") or row.get("title"),
-                                        "url": detail.get("url") or row.get("url"),
-                                        "slug": detail.get("slug") or row.get("slug"),
-                                        "money": detail.get("money") or row.get("money"),
-                                        "properties": detail.get("properties") or row.get("properties"),
-                                        "details": detail.get("details") or row.get("details"),
-                                        "images": detail.get("images") or row.get("images"),
-                                        "area": detail.get("area") or row.get("area"),
-                                        "location": detail.get("location") or row.get("location"),
-                                    }
-                                )
-                                payload = self._build_payload_from_api_ad(merged)
-
-                        if not payload:
-                            continue
-
-                        listing_url = str(payload.get("url") or "")
-                        if not listing_url or listing_url in seen_urls:
-                            continue
-                        seen_urls.add(listing_url)
-                        new_on_page += 1
-                        self._upsert_listing(payload)
-                        self.db.commit()
-                        upserted += 1
-                    except Exception as exc:
-                        log.error("ikman_api_item_error", error=str(exc))
-                        self.db.rollback()
-
-                log.info(
-                    "ikman_api_page_complete",
-                    page=page_num,
-                    rows=len(rows),
-                    upserted_on_page=new_on_page,
-                    total_upserted=upserted,
-                    pagination_total=pagination.get("total"),
+        for page_num in range(1, page_limit + 1):
+            log.info(
+                "scraping_page",
+                source=self.SOURCE,
+                mode="api",
+                category_id=category_id,
+                page=page_num,
+                page_limit=page_limit,
+            )
+            try:
+                rows, next_page_token, pagination = await self._fetch_serp_page(
+                    client,
+                    category_id=category_id,
+                    page_num=page_num,
+                    next_page_token=next_page_token if page_num > 1 else None,
                 )
+            except Exception as exc:
+                consecutive_page_errors += 1
+                log.error(
+                    "ikman_api_page_error",
+                    category_id=category_id,
+                    page=page_num,
+                    error=str(exc),
+                    consecutive_page_errors=consecutive_page_errors,
+                )
+                if page_num == 1:
+                    raise IkmanApiUnavailable(str(exc)) from exc
+                if consecutive_page_errors >= self.API_PAGE_ERROR_LIMIT:
+                    break
+                continue
 
-                if page_num < page_limit:
-                    await asyncio.sleep(self.API_PAGE_DELAY_SECONDS)
+            if not rows:
+                consecutive_empty_pages += 1
+                log.info(
+                    "ikman_api_no_results",
+                    category_id=category_id,
+                    page=page_num,
+                    consecutive_empty_pages=consecutive_empty_pages,
+                    pagination=pagination,
+                )
+                if page_num == 1:
+                    raise IkmanApiUnavailable(
+                        f"ikman api returned zero results on page 1 for category {category_id}"
+                    )
+                if consecutive_empty_pages >= self.API_EMPTY_PAGE_LIMIT:
+                    break
+                continue
 
+            consecutive_empty_pages = 0
+            consecutive_page_errors = 0
+            new_on_page = 0
+
+            for row in rows:
+                try:
+                    payload = self._build_payload_from_api_ad(row)
+                    if payload is None:
+                        # Title parse miss: enrich once from detail properties.
+                        detail = await self._fetch_api_ad_detail(client, str(row.get("id") or ""))
+                        if detail:
+                            merged = dict(row)
+                            merged.update(
+                                {
+                                    "title": detail.get("title") or row.get("title"),
+                                    "url": detail.get("url") or row.get("url"),
+                                    "slug": detail.get("slug") or row.get("slug"),
+                                    "money": detail.get("money") or row.get("money"),
+                                    "properties": detail.get("properties") or row.get("properties"),
+                                    "details": detail.get("details") or row.get("details"),
+                                    "images": detail.get("images") or row.get("images"),
+                                    "area": detail.get("area") or row.get("area"),
+                                    "location": detail.get("location") or row.get("location"),
+                                }
+                            )
+                            payload = self._build_payload_from_api_ad(merged)
+
+                    if not payload:
+                        continue
+
+                    listing_url = str(payload.get("url") or "")
+                    if not listing_url or listing_url in seen_urls:
+                        continue
+                    seen_urls.add(listing_url)
+                    new_on_page += 1
+                    self._upsert_listing(payload)
+                    self.db.commit()
+                    upserted += 1
+                except Exception as exc:
+                    log.error(
+                        "ikman_api_item_error",
+                        category_id=category_id,
+                        error=str(exc),
+                    )
+                    self.db.rollback()
+
+            log.info(
+                "ikman_api_page_complete",
+                category_id=category_id,
+                page=page_num,
+                rows=len(rows),
+                upserted_on_page=new_on_page,
+                total_upserted=upserted,
+                pagination_total=pagination.get("total"),
+            )
+
+            if page_num < page_limit:
+                await asyncio.sleep(self.API_PAGE_DELAY_SECONDS)
+
+        return upserted
+
+    async def _scrape_via_api(self, max_pages: int = 5) -> int:
+        seen_urls: set[str] = set()
+        upserted = 0
+        category_failures = 0
+
+        async with httpx.AsyncClient(headers=API_HEADERS, follow_redirects=True) as client:
+            for category_id in self.VEHICLE_CATEGORY_IDS:
+                try:
+                    category_upserted = await self._scrape_category_via_api(
+                        client,
+                        category_id=category_id,
+                        max_pages=max_pages,
+                        seen_urls=seen_urls,
+                    )
+                    upserted += category_upserted
+                    log.info(
+                        "ikman_api_category_complete",
+                        category_id=category_id,
+                        upserted=category_upserted,
+                        total_upserted=upserted,
+                    )
+                except IkmanApiUnavailable as exc:
+                    category_failures += 1
+                    log.error(
+                        "ikman_api_category_unavailable",
+                        category_id=category_id,
+                        error=str(exc),
+                        category_failures=category_failures,
+                    )
+                    # Cars is the primary volume source; its failure should trip fallback.
+                    if category_id == self.CARS_CATEGORY_ID:
+                        raise
+                    continue
+
+        if upserted == 0 and category_failures:
+            raise IkmanApiUnavailable("ikman api returned no vehicle listings across categories")
         return upserted
 
     async def _scrape_via_playwright(self, max_pages: int = 5):
@@ -458,8 +572,6 @@ class IkmanCarScraper:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(user_agent=random.choice(USER_AGENTS))
             page = await context.new_page()
-            consecutive_empty_pages = 0
-            consecutive_page_errors = 0
 
             async def route_handler(route):
                 try:
@@ -473,120 +585,152 @@ class IkmanCarScraper:
             await page.route("**/*", route_handler)
 
             try:
-                for page_num in range(1, max_pages + 1):
-                    url = f"{self.BASE_URL}{page_num}"
-                    log.info("scraping_page", source=self.SOURCE, mode="playwright", page=page_num)
+                for category_path in self.PLAYWRIGHT_CATEGORY_PATHS:
+                    category_page_limit = (
+                        max(1, int(max_pages or 1))
+                        if category_path == "cars"
+                        else self._secondary_page_budget(max_pages)
+                    )
+                    consecutive_empty_pages = 0
+                    consecutive_page_errors = 0
+                    base_url = self.BASE_URL_TEMPLATE.format(category=category_path)
 
-                    try:
-                        await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
+                    for page_num in range(1, category_page_limit + 1):
+                        url = f"{base_url}{page_num}"
+                        log.info(
+                            "scraping_page",
+                            source=self.SOURCE,
+                            mode="playwright",
+                            category=category_path,
+                            page=page_num,
+                        )
+
                         try:
-                            await page.wait_for_selector("a.gtm-ad-item", timeout=8_000)
-                        except PlaywrightTimeoutError:
-                            log.info("ikman_selector_timeout", page=page_num)
-
-                        listings = await page.query_selector_all("a.gtm-ad-item")
-                        if not listings:
-                            consecutive_empty_pages += 1
-                            log.info(
-                                "ikman_no_cards",
-                                page=page_num,
-                                consecutive_empty_pages=consecutive_empty_pages,
-                            )
-                            if consecutive_empty_pages >= 10:
-                                break
-                            continue
-
-                        consecutive_empty_pages = 0
-                        consecutive_page_errors = 0
-
-                        for listing in listings:
+                            await page.goto(url, wait_until="domcontentloaded", timeout=45_000)
                             try:
-                                url_attr = await listing.get_attribute("href")
-                                listing_url = f"https://ikman.lk{url_attr}" if url_attr else ""
-
-                                title_elem = await listing.query_selector("h2")
-                                title = (await title_elem.inner_text()).strip() if title_elem else ""
-
-                                price_elem = await listing.query_selector("[class*='price']")
-                                raw_price = (
-                                    (await price_elem.inner_text()).strip() if price_elem else ""
+                                await page.wait_for_selector("a.gtm-ad-item", timeout=8_000)
+                            except PlaywrightTimeoutError:
+                                log.info(
+                                    "ikman_selector_timeout",
+                                    category=category_path,
+                                    page=page_num,
                                 )
 
-                                loc_elem = await listing.query_selector("[class*='location']")
-                                location_text = (
-                                    (await loc_elem.inner_text()).strip()
-                                    if loc_elem
-                                    else "Sri Lanka"
+                            listings = await page.query_selector_all("a.gtm-ad-item")
+                            if not listings:
+                                consecutive_empty_pages += 1
+                                log.info(
+                                    "ikman_no_cards",
+                                    category=category_path,
+                                    page=page_num,
+                                    consecutive_empty_pages=consecutive_empty_pages,
                                 )
-                                district = (
-                                    location_text.split(",")[-1].strip()
-                                    if "," in location_text
-                                    else location_text
-                                )
+                                if consecutive_empty_pages >= 10:
+                                    break
+                                continue
 
-                                img_elem = await listing.query_selector("img")
-                                thumb_url = ""
-                                if img_elem:
-                                    for attr in ("src", "data-src", "data-lazy-src"):
-                                        candidate = await img_elem.get_attribute(attr)
-                                        normalized = self._normalize_thumbnail_url(candidate)
-                                        if normalized:
-                                            thumb_url = normalized
-                                            break
+                            consecutive_empty_pages = 0
+                            consecutive_page_errors = 0
 
-                                    if not thumb_url:
-                                        srcset = await img_elem.get_attribute(
-                                            "srcset"
-                                        ) or await img_elem.get_attribute("data-srcset")
-                                        if srcset:
-                                            first_image = srcset.split(",")[0].strip().split(" ")[0]
-                                            normalized = self._normalize_thumbnail_url(first_image)
-                                            if normalized:
-                                                thumb_url = normalized
+                            for listing in listings:
+                                try:
+                                    url_attr = await listing.get_attribute("href")
+                                    listing_url = f"https://ikman.lk{url_attr}" if url_attr else ""
 
-                                if not thumb_url or self._is_placeholder_thumbnail(thumb_url):
-                                    thumb_url = await self._fetch_detail_thumbnail(
-                                        context, listing_url
+                                    title_elem = await listing.query_selector("h2")
+                                    title = (
+                                        (await title_elem.inner_text()).strip() if title_elem else ""
                                     )
 
-                                data = self.cleaner.clean_title(title)
-                                price = self.cleaner.clean_price(raw_price)
+                                    price_elem = await listing.query_selector("[class*='price']")
+                                    raw_price = (
+                                        (await price_elem.inner_text()).strip() if price_elem else ""
+                                    )
 
-                                if not data["make"] or not price:
-                                    continue
+                                    loc_elem = await listing.query_selector("[class*='location']")
+                                    location_text = (
+                                        (await loc_elem.inner_text()).strip()
+                                        if loc_elem
+                                        else "Sri Lanka"
+                                    )
+                                    district = (
+                                        location_text.split(",")[-1].strip()
+                                        if "," in location_text
+                                        else location_text
+                                    )
 
-                                listing_payload = {
-                                    "source_id": listing_url,
-                                    "source": self.SOURCE,
-                                    "title": title,
-                                    "make": data["make"],
-                                    "model": data["model"] or "Other",
-                                    "year": data["year"],
-                                    "price_lkr": price,
-                                    "url": listing_url,
-                                    "thumbnail_url": thumb_url,
-                                    "district": district,
-                                    "condition": None,
-                                    "_text_blobs": (await listing.inner_text()),
-                                    "scraped_at": utc_now(),
-                                }
+                                    img_elem = await listing.query_selector("img")
+                                    thumb_url = ""
+                                    if img_elem:
+                                        for attr in ("src", "data-src", "data-lazy-src"):
+                                            candidate = await img_elem.get_attribute(attr)
+                                            normalized = self._normalize_thumbnail_url(candidate)
+                                            if normalized:
+                                                thumb_url = normalized
+                                                break
 
-                                normalized_payload = self.cleaner.normalize_listing_payload(
-                                    listing_payload
-                                )
-                                if not normalized_payload:
-                                    continue
-                                self._upsert_listing(normalized_payload)
-                                self.db.commit()
-                            except Exception as e:
-                                log.error("listing_save_error", error=str(e))
-                                self.db.rollback()
-                    except Exception as e:
-                        log.error("page_scrape_error", page=page_num, error=str(e))
-                        consecutive_page_errors += 1
-                        if consecutive_page_errors >= 25:
-                            break
-                        continue
+                                        if not thumb_url:
+                                            srcset = await img_elem.get_attribute(
+                                                "srcset"
+                                            ) or await img_elem.get_attribute("data-srcset")
+                                            if srcset:
+                                                first_image = (
+                                                    srcset.split(",")[0].strip().split(" ")[0]
+                                                )
+                                                normalized = self._normalize_thumbnail_url(
+                                                    first_image
+                                                )
+                                                if normalized:
+                                                    thumb_url = normalized
+
+                                    if not thumb_url or self._is_placeholder_thumbnail(thumb_url):
+                                        thumb_url = await self._fetch_detail_thumbnail(
+                                            context, listing_url
+                                        )
+
+                                    data = self.cleaner.clean_title(title)
+                                    price = self.cleaner.clean_price(raw_price)
+
+                                    if not data["make"] or not price:
+                                        continue
+
+                                    listing_payload = {
+                                        "source_id": listing_url,
+                                        "source": self.SOURCE,
+                                        "title": title,
+                                        "make": data["make"],
+                                        "model": data["model"] or "Other",
+                                        "year": data["year"],
+                                        "price_lkr": price,
+                                        "url": listing_url,
+                                        "thumbnail_url": thumb_url,
+                                        "district": district,
+                                        "condition": None,
+                                        "_text_blobs": (await listing.inner_text()),
+                                        "scraped_at": utc_now(),
+                                    }
+
+                                    normalized_payload = self.cleaner.normalize_listing_payload(
+                                        listing_payload
+                                    )
+                                    if not normalized_payload:
+                                        continue
+                                    self._upsert_listing(normalized_payload)
+                                    self.db.commit()
+                                except Exception as e:
+                                    log.error("listing_save_error", error=str(e))
+                                    self.db.rollback()
+                        except Exception as e:
+                            log.error(
+                                "page_scrape_error",
+                                category=category_path,
+                                page=page_num,
+                                error=str(e),
+                            )
+                            consecutive_page_errors += 1
+                            if consecutive_page_errors >= 25:
+                                break
+                            continue
             finally:
                 try:
                     await page.unroute_all(behavior="ignoreErrors")

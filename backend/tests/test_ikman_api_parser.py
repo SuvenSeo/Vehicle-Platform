@@ -114,3 +114,25 @@ def test_ikman_scrape_defaults_to_api_mode_auto(monkeypatch):
 
     asyncio.run(IkmanCarScraper(db=None).scrape(max_pages=2))
     assert calls == ["api:2"]
+
+
+def test_ikman_vehicle_categories_cover_all_for_sale_leaves():
+    ids = set(IkmanCarScraper.VEHICLE_CATEGORY_IDS)
+    assert IkmanCarScraper.CARS_CATEGORY_ID in ids
+    # Core non-car vehicle leaves
+    assert {402, 911, 424, 425, 426, 918, 919, 603, 925}.issubset(ids)
+    # Parent vehicles + parts/services/rentals must stay out
+    assert 391 not in ids
+    assert not ids.intersection({393, 394, 405, 406})
+
+
+def test_ikman_page_budget_keeps_full_depth_for_cars():
+    assert IkmanCarScraper._page_budget_for_category(392, 40) == 40
+    assert IkmanCarScraper._page_budget_for_category(402, 40) == 10
+    assert IkmanCarScraper._page_budget_for_category(911, 8) == 5
+    assert IkmanCarScraper._page_budget_for_category(402, 1) == 1
+
+
+def test_ikman_parses_motorcycle_engine_cc():
+    assert IkmanCarScraper._parse_engine_cc("125 cc") == 125
+    assert IkmanCarScraper._parse_engine_cc("1,000 cc") == 1000
