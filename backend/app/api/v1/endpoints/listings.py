@@ -19,6 +19,7 @@ from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
 from app.utils.history_report import build_history_report
 from app.utils.price_history import summarize_price_history
+from app.utils.vehicle_category import cars_only_sql_filter, normalize_vehicle_category
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -1131,6 +1132,11 @@ def search_listings(
     condition: Optional[str] = None,
     body_type: Optional[str] = None,
     district: Optional[str] = None,
+    vehicle_category: Optional[str] = Query(
+        None,
+        description="Pass 'cars' to keep homepage/browse on passenger cars only.",
+        max_length=40,
+    ),
     price_availability: str = Query("priced", pattern="^(priced|unavailable)$"),
     sort: str = Query("newest", pattern="^(newest|deal_score|price_asc|price_desc|mileage_asc)$"),
     page: int = Query(1, ge=1),
@@ -1180,6 +1186,10 @@ def search_listings(
         )
         .filter(live_listing_filter())
     )
+
+    category_filter = normalize_vehicle_category(vehicle_category)
+    if category_filter in {"cars", "car"}:
+        q = q.filter(cars_only_sql_filter(CarListing))
 
     if price_availability == "unavailable":
         q = q.filter(or_(CarListing.price_lkr.is_(None), CarListing.price_lkr <= 0))

@@ -78,6 +78,18 @@ class IkmanCarScraper:
         603,  # Bicycles
         925,  # Boats & Water Transport
     )
+    CATEGORY_SLUGS = {
+        392: "cars",
+        402: "motorbikes",
+        911: "three-wheelers",
+        424: "vans",
+        425: "buses",
+        426: "lorries",
+        918: "heavy-duty",
+        919: "tractors",
+        603: "bicycles",
+        925: "boats",
+    }
     API_PAGE_DELAY_SECONDS = 0.35
     API_EMPTY_PAGE_LIMIT = 10
     API_PAGE_ERROR_LIMIT = 25
@@ -256,7 +268,9 @@ class IkmanCarScraper:
         # Include motorcycle / three-wheeler capacities (e.g. 125 cc).
         return value_int if 50 <= value_int <= 10000 else None
 
-    def _build_payload_from_api_ad(self, row: dict) -> dict | None:
+    def _build_payload_from_api_ad(
+        self, row: dict, *, vehicle_category: str | None = None
+    ) -> dict | None:
         if not isinstance(row, dict):
             return None
 
@@ -316,6 +330,14 @@ class IkmanCarScraper:
                 if mileage is not None:
                     break
 
+        category_from_row = None
+        cat_obj = row.get("category") if isinstance(row.get("category"), dict) else {}
+        if cat_obj.get("id") is not None:
+            try:
+                category_from_row = self.CATEGORY_SLUGS.get(int(cat_obj.get("id")))
+            except (TypeError, ValueError):
+                category_from_row = None
+
         payload = {
             "source_id": listing_url,
             "source": self.SOURCE,
@@ -334,6 +356,7 @@ class IkmanCarScraper:
             "transmission": props.get("transmission"),
             "body_type": props.get("body"),
             "condition": props.get("condition"),
+            "vehicle_category": vehicle_category or category_from_row or "cars",
             "_text_blobs": text_blobs,
             "scraped_at": utc_now(),
         }
@@ -464,7 +487,10 @@ class IkmanCarScraper:
 
             for row in rows:
                 try:
-                    payload = self._build_payload_from_api_ad(row)
+                    category_slug = self.CATEGORY_SLUGS.get(int(category_id), "cars")
+                    payload = self._build_payload_from_api_ad(
+                        row, vehicle_category=category_slug
+                    )
                     if payload is None:
                         # Title parse miss: enrich once from detail properties.
                         detail = await self._fetch_api_ad_detail(client, str(row.get("id") or ""))
@@ -483,7 +509,9 @@ class IkmanCarScraper:
                                     "location": detail.get("location") or row.get("location"),
                                 }
                             )
-                            payload = self._build_payload_from_api_ad(merged)
+                            payload = self._build_payload_from_api_ad(
+                                merged, vehicle_category=category_slug
+                            )
 
                     if not payload:
                         continue
@@ -696,6 +724,15 @@ class IkmanCarScraper:
                                         "thumbnail_url": thumb_url,
                                         "district": district,
                                         "condition": None,
+                                        "vehicle_category": (
+                                            "motorbikes"
+                                            if category_path == "motorbikes-scooters"
+                                            else (
+                                                "boats"
+                                                if category_path == "boats-water-transport"
+                                                else category_path
+                                            )
+                                        ),
                                         "_text_blobs": (await listing.inner_text()),
                                         "scraped_at": utc_now(),
                                     }

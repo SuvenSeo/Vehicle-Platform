@@ -342,6 +342,15 @@ class RiyasewanaScraper:
                                         "thumbnail_url": thumb_url,
                                         "district": district or "Sri Lanka",
                                         "condition": None,
+                                        "vehicle_category": (
+                                            "motorbikes"
+                                            if category_path == "motorcycles"
+                                            else (
+                                                "three-wheelers"
+                                                if category_path == "three-wheels"
+                                                else category_path
+                                            )
+                                        ),
                                         "_text_blobs": title,
                                         "scraped_at": utc_now(),
                                     }

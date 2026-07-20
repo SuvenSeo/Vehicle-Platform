@@ -228,7 +228,8 @@ export default function Dashboard() {
   }, [velocityQuery.refetch]);
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
-    queryFn: () => getListings(filters),
+    // Homepage market grid stays cars-only (bikes/tractors/etc. stay in DB for later).
+    queryFn: () => getListings({ ...filters, vehicle_category: "cars" }),
   });
   const retryListings = useCallback(() => {
     void listingsQuery.refetch();

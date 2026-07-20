@@ -76,7 +76,7 @@ export default function BestPicks() {
     (async () => {
       setLoading(true); setError(null);
       try {
-        const base: FilterState = { sort: "deal_score", page: 1 };
+        const base: FilterState = { sort: "deal_score", page: 1, vehicle_category: "cars" };
         const responses = await Promise.all(Array.from({ length: PICKS_PAGES }, (_, i) => getListings({ ...base, page: i + 1 })));
         if (cancelled) return;
         const unique = new Map<number, CarListing>();

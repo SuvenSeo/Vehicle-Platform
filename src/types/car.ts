@@ -453,6 +453,8 @@ export interface FilterState {
   transmission?: Transmission;
   fuel_type?: FuelType;
   district?: string;
+  /** Homepage browse stays cars-only; omit for unfiltered search. */
+  vehicle_category?: "cars";
   price_availability?: PriceAvailability;
   sort: SortOption;
   page: number;

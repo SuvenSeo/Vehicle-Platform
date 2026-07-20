@@ -273,7 +273,7 @@ class GenericDetailScraper:
             data["model"] = match.group(1).title()
         return data
 
-    def _build_payload(self, detail_url: str, html: str) -> dict | None:
+    def _build_payload(self, detail_url: str, html: str, *, vehicle_category: str | None = None) -> dict | None:
         soup = BeautifulSoup(html, "lxml")
         visible_text = self._visible_text(soup)
         title = self._extract_title(soup)
@@ -303,11 +303,53 @@ class GenericDetailScraper:
             "mileage": self._extract_mileage(visible_text),
             "engine_capacity": self._extract_engine_capacity(visible_text),
             "district": district or "Sri Lanka",
+            "vehicle_category": vehicle_category or "cars",
             "_text_blobs": visible_text,
             "_allow_missing_price": has_unavailable_price,
             "scraped_at": utc_now(),
         }
         return self.cleaner.normalize_listing_payload(payload)
+
+    @staticmethod
+    def _category_from_page_url(page_url: str) -> str:
+        path = str(urlparse(page_url).path or "").lower()
+        if "vans,-buses" in path or "vans-buses" in path:
+            return "vans"
+        if "motorbikes" in path:
+            return "motorbikes"
+        for token in (
+            "motorcycles",
+            "three-wheels",
+            "three-wheelers",
+            "vans",
+            "buses",
+            "lorries",
+            "trucks",
+            "tractors",
+            "heavy-duties",
+            "heavy-duty",
+            "bicycles",
+            "push-cycles",
+            "boats",
+            "suvs",
+            "wagons",
+            "pickups",
+            "crew-cabs",
+            "sports",
+            "others",
+            "cars",
+        ):
+            if f"/{token}" in path or path.rstrip("/").endswith(token):
+                if token == "motorcycles":
+                    return "motorbikes"
+                if token == "three-wheels":
+                    return "three-wheelers"
+                if token == "heavy-duties":
+                    return "heavy-duty"
+                if token == "push-cycles":
+                    return "bicycles"
+                return token
+        return "cars"
 
     async def scrape(self, max_pages: int = 5):
         if max_pages <= 0:
@@ -336,6 +378,7 @@ class GenericDetailScraper:
 
                 consecutive_empty_pages = 0
                 new_on_page = 0
+                page_category = self._category_from_page_url(page_url)
                 for detail_url in listing_urls:
                     if detail_url in seen_urls:
                         continue
@@ -343,7 +386,11 @@ class GenericDetailScraper:
                     try:
                         detail = await client.get(detail_url, timeout=30)
                         detail.raise_for_status()
-                        payload = self._build_payload(str(detail.url), detail.text)
+                        payload = self._build_payload(
+                            str(detail.url),
+                            detail.text,
+                            vehicle_category=page_category,
+                        )
                         if not payload:
                             continue
                         self._upsert_listing(payload)

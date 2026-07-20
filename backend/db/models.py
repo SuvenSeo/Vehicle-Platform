@@ -32,6 +32,8 @@ class CarListing(Base):
     engine_capacity = Column(Integer)  # in cc
     condition = Column(String(20))
     body_type = Column(String(30))
+    # cars | motorbikes | vans | ... — set by multi-category scrapers; null = legacy
+    vehicle_category = Column(String(40), nullable=True)
 
     # Location
     raw_location = Column(Text)

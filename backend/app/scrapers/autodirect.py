@@ -304,6 +304,7 @@ class AutoDirectScraper:
                                     "body_type": body_type or None,
                                     "mileage": mileage,
                                     "engine_capacity": engine_capacity,
+                                    "vehicle_category": "cars",
                                     "scraped_at": utc_now(),
                                 }
 
