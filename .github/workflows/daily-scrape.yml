@@ -2,8 +2,8 @@ name: Unified Vehicle Scraper
 
 on:
   schedule:
-    - cron: "0 2 * * *"    # 07:30 SLT — morning full scrape (all 11 sources)
-    - cron: "40 12 * * *"  # 18:10 SLT — evening full scrape (all 11 sources)
+    - cron: "0 2 * * *"    # 07:30 SLT — morning full scrape (all 13 sources)
+    - cron: "40 12 * * *"  # 18:10 SLT — evening full scrape (all 13 sources)
   workflow_dispatch:
 
 concurrency:
@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, saleme, riyahub, dimo]
+        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, saleme, riyahub, dimo, hitad, cartivate]
 
     defaults:
       run:
@@ -69,6 +69,8 @@ jobs:
             app/scrapers/saleme.py \
             app/scrapers/riyahub.py \
             app/scrapers/dimo.py \
+            app/scrapers/hitad.py \
+            app/scrapers/cartivate.py \
             app/services/market_signals.py \
             app/services/aggregator.py
 
@@ -93,7 +95,7 @@ jobs:
           RUN_MARKET_ANALYSIS: "false"
           RUN_MARKET_SIGNALS: "false"
           # Lifecycle + outlier passes run once in the market-analysis job,
-          # not in each of the 11 parallel scrape jobs.
+          # not in each of the parallel scrape jobs.
           RUN_LISTING_LIFECYCLE: "false"
           RUN_OUTLIER_DETECTION: "false"
           # Rescue-safe manual default. Use a separate full-refresh workflow if
@@ -111,6 +113,8 @@ jobs:
           SCRAPE_MAX_PAGES_SALEME: "20"
           SCRAPE_MAX_PAGES_RIYAHUB: "20"
           SCRAPE_MAX_PAGES_DIMO: "20"
+          SCRAPE_MAX_PAGES_HITAD: "20"
+          SCRAPE_MAX_PAGES_CARTIVATE: "20"
           # 30 minutes timeout per source (1800s)
           SCRAPE_SOURCE_TIMEOUT_SECONDS: "1800"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "1800"
@@ -125,6 +129,8 @@ jobs:
           SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "1800"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "1800"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_HITAD: "1800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARTIVATE: "1800"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure

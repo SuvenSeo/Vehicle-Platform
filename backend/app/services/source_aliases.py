@@ -19,6 +19,8 @@ ALIAS_GROUPS: dict[str, set[str]] = {
     "saleme": {"saleme", "salemelk"},
     "riyahub": {"riyahub", "riyahublk"},
     "dimo": {"dimo", "carsatdimo", "dimoautomobiles"},
+    "hitad": {"hitad", "hitadlk"},
+    "cartivate": {"cartivate", "cartivatemotors", "cartivatemotorslk"},
     "dmt": {"dmt", "departmentofmotortraffic"},
     "customs": {"customs", "srilankacustoms"},
     "import_parity": {"importparity", "landedcost", "cardreams", "providecars"},
@@ -62,6 +64,12 @@ def canonical_source_key(value: Optional[str]) -> Optional[str]:
         return "riyahub"
     if token in {"dimo", "carsatdimo", "carsatdimolk", "dimoautomobiles"}:
         return "dimo"
+    if token in {"hitad", "hitadlk"} or token.startswith("hitad"):
+        return "hitad"
+    if token in {"cartivate", "cartivatemotors", "cartivatemotorslk"} or token.startswith(
+        "cartivate"
+    ):
+        return "cartivate"
     if token in {"dmt", "departmentofmotortraffic", "motortraffic"}:
         return "dmt"
     if token in {"customs", "srilankacustoms"}:
