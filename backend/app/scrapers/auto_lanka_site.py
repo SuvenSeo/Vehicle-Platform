@@ -237,6 +237,27 @@ class AutoLankaSiteScraper:
                                     "thumbnail_url": thumb_url,
                                     "district": district or "Sri Lanka",
                                     "condition": None,
+                                    "vehicle_category": (
+                                        "motorbikes"
+                                        if vehicle_type == "Motorbikes"
+                                        else (
+                                            "three-wheelers"
+                                            if vehicle_type == "Three Wheelers"
+                                            else (
+                                                "trucks"
+                                                if vehicle_type == "Trucks"
+                                                else (
+                                                    "jeeps"
+                                                    if vehicle_type == "Jeeps"
+                                                    else (
+                                                        "vans"
+                                                        if vehicle_type == "Vans"
+                                                        else "cars"
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    ),
                                     "_text_blobs": title,
                                     "scraped_at": utc_now(),
                                 }

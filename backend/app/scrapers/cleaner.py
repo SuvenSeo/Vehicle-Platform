@@ -1,10 +1,12 @@
 import hashlib
 import re
 from datetime import datetime
-from app.utils.time import utc_now
-from app.utils.districts import resolve_canonical_district
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
+
+from app.utils.districts import resolve_canonical_district
+from app.utils.time import utc_now
+from app.utils.vehicle_category import normalize_vehicle_category
 
 class CarCleaner:
     MIN_REASONABLE_PRICE_LKR = 100_000
@@ -353,12 +355,18 @@ class CarCleaner:
             ("transmission", 20),
             ("condition", 20),
             ("body_type", 30),
+            ("vehicle_category", 40),
             ("district", 50),
             ("city", 100),
         ):
             if key in normalized and normalized[key] is not None:
                 trimmed = self._truncate_text(normalized[key], max_len)
                 normalized[key] = trimmed if trimmed else None
+
+        if normalized.get("vehicle_category"):
+            normalized["vehicle_category"] = normalize_vehicle_category(
+                normalized.get("vehicle_category")
+            )
 
         listing_url = normalized.get("url")
         canonical_district = resolve_canonical_district(normalized.get("district"), listing_url)

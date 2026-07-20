@@ -594,6 +594,25 @@ function matchesSnapshotFilters(listing: CarListing, filters: FilterState): bool
   if (filters.transmission && normalizeTransmissionValue(listing.transmission) !== filters.transmission) return false;
   if (filters.fuel_type && normalizeFuelValue(listing.fuel_type) !== filters.fuel_type) return false;
 
+  if (filters.vehicle_category === "cars") {
+    const category = String((listing as CarListing & { vehicle_category?: string }).vehicle_category || "")
+      .trim()
+      .toLowerCase();
+    const nonCar = new Set([
+      "motorbikes", "motorcycles", "bike", "bikes", "three-wheelers", "three-wheels",
+      "threewheeler", "vans", "van", "buses", "bus", "lorries", "lorries-trucks",
+      "trucks", "truck", "tipper", "heavy-duty", "heavy-duties", "heavy", "tractors",
+      "tractor", "bicycles", "bicycle", "push-cycles", "boats", "boats-water-transport", "others",
+    ]);
+    if (category && nonCar.has(category)) return false;
+    if (!category) {
+      const hay = `${listing.title || ""} ${listing.make || ""} ${listing.model || ""}`.toLowerCase();
+      if (/(motorbike|motorcycle|scooter|three[\s-]?wheel|tractor|bicycle|lorry|ntorq|bajaj\s+re|tvs\s+king)/i.test(hay)) {
+        return false;
+      }
+    }
+  }
+
   const price = toNumberOrNull(listing.price_lkr);
   if (filters.price_availability === "priced" && !isPricedListing(listing)) return false;
   if (filters.price_availability === "unavailable" && isPricedListing(listing)) return false;

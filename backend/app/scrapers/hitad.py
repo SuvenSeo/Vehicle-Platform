@@ -109,7 +109,9 @@ class HitadScraper:
             return ""
         return urljoin("https://www.hitad.lk", candidate)
 
-    def _build_payload_from_card(self, card: BeautifulSoup) -> dict | None:
+    def _build_payload_from_card(
+        self, card: BeautifulSoup, *, vehicle_category: str | None = None
+    ) -> dict | None:
         link = card.select_one("a[href*='/details/']")
         if not link:
             return None
@@ -156,6 +158,7 @@ class HitadScraper:
             "thumbnail_url": self._extract_thumbnail(card),
             "district": district or "Sri Lanka",
             "condition": None,
+            "vehicle_category": vehicle_category or "cars",
             "_text_blobs": card_text,
             "_allow_missing_price": has_unavailable_price and price is None,
             "scraped_at": utc_now(),
@@ -205,7 +208,9 @@ class HitadScraper:
 
                         for card in cards:
                             try:
-                                payload = self._build_payload_from_card(card)
+                                payload = self._build_payload_from_card(
+                                card, vehicle_category=keyword
+                            )
                                 if not payload:
                                     continue
                                 listing_url = str(payload.get("url") or "")

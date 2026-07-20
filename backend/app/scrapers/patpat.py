@@ -231,6 +231,23 @@ class PatpatScraper:
                                     "thumbnail_url": thumb_url,
                                     "district": district or "Sri Lanka",
                                     "condition": None,
+                                    "vehicle_category": (
+                                        "motorbikes"
+                                        if category_path == "bike"
+                                        else (
+                                            "three-wheelers"
+                                            if category_path == "threewheeler"
+                                            else (
+                                                "trucks"
+                                                if category_path in {"truck", "tipper"}
+                                                else (
+                                                    "heavy-duty"
+                                                    if category_path == "heavy"
+                                                    else category_path
+                                                )
+                                            )
+                                        )
+                                    ),
                                     "_text_blobs": card_text,
                                     "scraped_at": utc_now(),
                                 }
