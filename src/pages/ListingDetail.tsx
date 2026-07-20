@@ -224,7 +224,7 @@ export default function ListingDetail() {
       <div aria-hidden className="pointer-events-none absolute bottom-[20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-primary/5 blur-[150px]" />
 
       {/* Header — the editorial hero: eyebrow, towering title, ask + verdict */}
-      <motion.section variants={revealItem} className="relative z-10 border-b border-border bg-card/30 backdrop-blur-md">
+      <motion.section variants={revealItem} className="relative z-10 -mt-16 border-b border-border bg-card/30 pt-16 backdrop-blur-md">
         <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 sm:py-10">
           <button type="button" onClick={handleBack} className="group mb-5 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground">
             <ArrowLeft aria-hidden className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /> Back
