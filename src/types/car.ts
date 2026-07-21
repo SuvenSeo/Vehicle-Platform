@@ -86,8 +86,7 @@ export interface PriceHistoryPoint {
   scraped_at: string;
 }
 
-// ── History report (additive — supports the in-progress listing history feature;
-//    not wired into the routed UI, kept so the WIP component compiles) ──
+// ── History report (used by ListingHistoryReport on listing detail) ──
 export interface HistoryReportFlag {
   kind: string;
   severity: "high" | "medium" | "info" | string;

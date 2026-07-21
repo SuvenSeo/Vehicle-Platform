@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { getListing, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
+import { summarizeFmv } from '@/lib/fmv';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
 import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
@@ -190,6 +191,10 @@ export default function ListingDetail() {
   // null = rating suppressed server-side (thin cohort / old vehicle / extreme price)
   const hasDealScore = listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = listing.deal_score || 0;
+  const fmvSummary =
+    hasPrice && Number.isFinite(Number(listing.market_median_lkr)) && Number(listing.market_median_lkr) > 0
+      ? summarizeFmv(listingPrice, Number(listing.market_median_lkr))
+      : null;
   const dealTone = dealScore >= 5
     ? 'text-emerald-600 dark:text-emerald-400'
     : dealScore <= -6
@@ -454,6 +459,28 @@ export default function ListingDetail() {
                 <p className="mt-5 text-[11px] font-semibold text-muted-foreground">
                   No price rating — not enough comparable listings for a confident call on this vehicle.
                 </p>
+              )}
+
+              {fmvSummary && (
+                <div className="mt-3 rounded-xl border border-border bg-surface px-3.5 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    Fair market value
+                  </p>
+                  <p
+                    className={`mt-1 text-[13px] font-bold ${
+                      fmvSummary.band === "below"
+                        ? "text-emerald-700 dark:text-emerald-400"
+                        : fmvSummary.band === "above"
+                          ? "text-rose-700 dark:text-rose-400"
+                          : "text-foreground"
+                    }`}
+                  >
+                    {fmvSummary.label}
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground num">
+                    FMV {formatPrice(fmvSummary.fmv_lkr)}
+                  </p>
+                </div>
               )}
 
               {hasPrice &&
