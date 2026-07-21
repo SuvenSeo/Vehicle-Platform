@@ -79,6 +79,25 @@ const DICTIONARIES: Record<Language, Dictionary> = {
 
     "hero.explore": "Explore Market",
     "hero.value": "Value my car",
+    "hero.eyebrow": "Vehicle Intelligence · Sri Lanka",
+    "hero.title": "Sri Lanka's entire vehicle market,",
+    "hero.titleAccent": "decoded.",
+    "hero.body": "live listings from {sources} sources across {districts} districts — real-time pricing, deal scores, and the market intelligence dealers keep to themselves.",
+
+    "alerts.title": "Market Alerts",
+    "alerts.description": "Get notified when vehicles matching your criteria appear on the market.",
+    "alerts.active": "Active alerts",
+    "alerts.notifyWhatsapp": "WhatsApp (optional)",
+
+    "calc.title": "Mobility & Tax Calculators",
+    "calc.tab.landed": "Landed Cost",
+    "calc.notifySurcharge": "Notify me when the surcharge drops",
+    "calc.reminderOn": "Reminder on — tap to clear",
+
+    "makeHub.eyebrow": "Make hub",
+    "makeHub.liveListings": "Live listings",
+    "makeHub.avgPrice": "Average price",
+    "makeHub.medianPrice": "Median price",
 
     "valuation.title": "Custom Vehicle Valuation.",
     "valuation.subtitle": "Enter your vehicle details and compare against live listings.",
@@ -211,6 +230,25 @@ const DICTIONARIES: Record<Language, Dictionary> = {
 
     "hero.explore": "වෙළඳපොළ බලන්න",
     "hero.value": "මගේ කාර් වටිනාකම",
+    "hero.eyebrow": "වාහන බුද්ධිය · ශ්‍රී ලංකාව",
+    "hero.title": "ශ්‍රී ලංකාවේ සමස්ත වාහන වෙළඳපොළ,",
+    "hero.titleAccent": "විකේතනය කළා.",
+    "hero.body": "මූලාශ්‍ර {sources} කින් දිස්ත්‍රික්ක {districts} ක පුරා සජීවී ලැයිස්තු — තත්කාලීන මිල, ගනුදෙනු ලකුණු සහ වෙළඳපොළ බුද්ධිය.",
+
+    "alerts.title": "වෙළඳපොළ ඇඟවීම්",
+    "alerts.description": "ඔබේ නිර්ණායකවලට ගැලපෙන වාහන පෙනෙන විට දැනුම් දෙන්න.",
+    "alerts.active": "සක්‍රීය ඇඟවීම්",
+    "alerts.notifyWhatsapp": "WhatsApp (විකල්ප)",
+
+    "calc.title": "ගමනාගමන සහ බදු ගණක යන්ත්‍ර",
+    "calc.tab.landed": "ගොඩබෑමේ පිරිවැය",
+    "calc.notifySurcharge": "අධිභාරය අඩු වූ විට දැනුම් දෙන්න",
+    "calc.reminderOn": "මතක් කිරීම සක්‍රීයයි — ඉවත් කිරීමට තට්ටු කරන්න",
+
+    "makeHub.eyebrow": "වෙළඳ නාම කේන්ද්‍රය",
+    "makeHub.liveListings": "සජීවී ලැයිස්තු",
+    "makeHub.avgPrice": "සාමාන්‍ය මිල",
+    "makeHub.medianPrice": "මධ්‍ය මිල",
 
     "valuation.title": "අභිරුචි වාහන වටිනාකම.",
     "valuation.subtitle": "ඔබේ වාහනය ඇතුල් කර සජීවී ලැයිස්තු සමඟ සසඳන්න.",
@@ -343,6 +381,25 @@ const DICTIONARIES: Record<Language, Dictionary> = {
 
     "hero.explore": "சந்தையை பார்க்க",
     "hero.value": "என் காரை மதிப்பிடு",
+    "hero.eyebrow": "வாகன நுண்ணறிவு · இலங்கை",
+    "hero.title": "இலங்கையின் முழு வாகன சந்தை,",
+    "hero.titleAccent": "விளக்கப்பட்டது.",
+    "hero.body": "{sources} மூலங்களிலிருந்து {districts} மாவட்டங்களில் நேரடி பட்டியல்கள் — நேரடி விலை, ஒப்பந்த மதிப்பெண்கள், சந்தை நுண்ணறிவு.",
+
+    "alerts.title": "சந்தை விழிப்பூட்டல்கள்",
+    "alerts.description": "உங்கள் நிபந்தனைகளுக்கு பொருந்தும் வாகனங்கள் வரும்போது அறிவிப்பு பெறுங்கள்.",
+    "alerts.active": "செயலில் உள்ள விழிப்பூட்டல்கள்",
+    "alerts.notifyWhatsapp": "WhatsApp (விருப்பம்)",
+
+    "calc.title": "போக்குவரத்து & வரி கணிப்பான்கள்",
+    "calc.tab.landed": "இறக்குமதி செலவு",
+    "calc.notifySurcharge": "கூடுதல் வரி குறையும்போது அறிவி",
+    "calc.reminderOn": "நினைவூட்டல் இயக்கம் — அகற்ற தட்டவும்",
+
+    "makeHub.eyebrow": "பிராண்ட் மையம்",
+    "makeHub.liveListings": "நேரடி பட்டியல்கள்",
+    "makeHub.avgPrice": "சராசரி விலை",
+    "makeHub.medianPrice": "மத்திய விலை",
 
     "valuation.title": "தனிப்பயன் வாகன மதிப்பீடு.",
     "valuation.subtitle": "உங்கள் வாகன விவரங்களை உள்ளிட்டு live listings-ஐ ஒப்பிடுங்கள்.",

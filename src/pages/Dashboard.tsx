@@ -596,21 +596,21 @@ export default function Dashboard() {
                   <span aria-hidden className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
                 </span>
                 <p className="section-eyebrow text-[10px] tracking-[0.2em]">
-                  Vehicle Intelligence · Sri Lanka
+                  {t("hero.eyebrow", "Vehicle Intelligence · Sri Lanka")}
                 </p>
               </div>
             </motion.div>
 
             <motion.h1 variants={heroItemVariants} className="display-hero mx-auto mt-6 max-w-5xl text-foreground">
-              Sri Lanka&rsquo;s entire vehicle market,
-              <span className="text-sheen"> decoded.</span>
+              {t("hero.title", "Sri Lanka's entire vehicle market,")}
+              <span className="text-sheen"> {t("hero.titleAccent", "decoded.")}</span>
             </motion.h1>
 
             <motion.p variants={heroItemVariants} className="text-body-lg mx-auto mt-6 max-w-xl">
-              <span className="font-bold text-foreground num">{marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}</span> live listings from{" "}
-              <span className="font-bold text-foreground num">{marketPulseSources || 10}</span> sources across{" "}
-              <span className="font-bold text-foreground num">{marketPulseDistricts || 25}</span> districts — real-time pricing,
-              deal scores, and the market intelligence dealers keep to themselves.
+              <span className="font-bold text-foreground num">{marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}</span>{" "}
+              {t("hero.body", "live listings from {sources} sources across {districts} districts — real-time pricing, deal scores, and the market intelligence dealers keep to themselves.")
+                .replace("{sources}", String(marketPulseSources || 10))
+                .replace("{districts}", String(marketPulseDistricts || 25))}
             </motion.p>
 
             <motion.div variants={heroItemVariants} className="mx-auto mt-4 flex justify-center">

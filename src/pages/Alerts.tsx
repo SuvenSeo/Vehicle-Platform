@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Bell, BellOff, ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { loadMarketAlerts } from "@/lib/marketAlerts";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { matchAlerts, formatPrice, type AlertMatchResponse, type ServerMarketAlert } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -328,6 +329,7 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
 }
 
 export default function Alerts() {
+  const { t } = useAppPreferences();
   const { alerts, loading, error, token, refresh, create, remove } = useServerMarketAlerts();
 
   const localAlerts = loadMarketAlerts();
@@ -340,8 +342,8 @@ export default function Alerts() {
         eyebrow="Market watch"
         eyebrowIcon={Bell}
         watermarkIcon={Bell}
-        title={<>Market Alerts</>}
-        description="Get notified when vehicles matching your criteria appear on the market."
+        title={<>{t("alerts.title", "Market Alerts")}</>}
+        description={t("alerts.description", "Get notified when vehicles matching your criteria appear on the market.")}
         highlights={[
           { label: "Active", value: String(alerts.length), hint: "Saved alert rules" },
           { label: "Matches", value: "Live", hint: "Scan against inventory" },
