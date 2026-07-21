@@ -17,6 +17,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { AuthProvider } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
 
@@ -35,6 +36,8 @@ const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
 const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
 const ProPreview = lazyWithRetry(() => import("./pages/ProPreview"));
 const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
+const MakeHub = lazyWithRetry(() => import("./pages/MakeHub"));
+const DistrictHub = lazyWithRetry(() => import("./pages/DistrictHub"));
 const Alerts = lazyWithRetry(() => import("./pages/Alerts"));
 const PriceIndex = lazyWithRetry(() => import("./pages/PriceIndex"));
 const Docs = lazyWithRetry(() => import("./pages/Docs"));
@@ -46,8 +49,10 @@ const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuid
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
-      gcTime: 300_000,
+      // Default leans toward market-style freshness; live listing queries
+      // override with QUERY_STALE.listings (10s) at the call site.
+      staleTime: QUERY_STALE.stats,
+      gcTime: QUERY_STALE.market,
       retry: 1,
       refetchOnWindowFocus: false,
     },
@@ -127,6 +132,8 @@ const App = () => {
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
+                  <Route path="/cars/:make" element={<MakeHub />} />
+                  <Route path="/locations/:district" element={<DistrictHub />} />
                   <Route path="/alerts" element={<Alerts />} />
                   <Route path="/price-index" element={<PriceIndex />} />
                   <Route path="/official-pulse" element={<OfficialPulse />} />

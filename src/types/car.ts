@@ -383,6 +383,21 @@ export interface MakeModelInsight {
   top_districts: MakeModelDistrictEntry[];
 }
 
+export interface MakeInsightModelEntry {
+  model: string;
+  count: number;
+  avg_price_lkr: number | null;
+}
+
+export interface MakeInsight {
+  make: string;
+  total: number;
+  avg_price_lkr: number | null;
+  median_price_lkr: number | null;
+  top_models: MakeInsightModelEntry[];
+  top_districts: MakeModelDistrictEntry[];
+}
+
 export interface FuelMixBucket {
   fuel_type: string;
   count: number;

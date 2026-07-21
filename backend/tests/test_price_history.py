@@ -95,6 +95,26 @@ def test_price_change_appends_history_row():
     assert float(listing.price_lkr) == 9_200_000
 
 
+def test_content_updated_at_set_on_insert_and_price_change_only():
+    db = _session()
+    upsert_listing(db, "ikman", _payload(price_lkr=10_000_000))
+    db.commit()
+    listing = db.query(CarListing).one()
+    assert listing.content_updated_at is not None
+    first_stamp = listing.content_updated_at
+
+    upsert_listing(db, "ikman", _payload(price_lkr=10_000_000))
+    db.commit()
+    db.refresh(listing)
+    assert listing.content_updated_at == first_stamp
+
+    upsert_listing(db, "ikman", _payload(price_lkr=9_000_000))
+    db.commit()
+    db.refresh(listing)
+    assert listing.content_updated_at is not None
+    assert listing.content_updated_at >= first_stamp
+
+
 def test_insert_without_price_records_no_history():
     db = _session()
     upsert_listing(db, "ikman", _payload(price_lkr=None))

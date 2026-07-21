@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { SectionHeader } from "@/components/SectionHeader";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 import {
   PULSE_SOURCE_GUIDES,
   formatPulsePeriod,
@@ -88,7 +89,7 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
   const signalsQuery = useQuery({
     queryKey: ["market-signals", 48, guide.source, guide.signalType],
     queryFn: () => getMarketSignals(48),
-    staleTime: 5 * 60_000,
+    staleTime: QUERY_STALE.market,
     retry: 1,
   });
 

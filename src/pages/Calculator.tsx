@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Link2,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
@@ -21,6 +23,12 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
+import {
+  consumeSurchargeLapseNotification,
+  isSurchargeNotifySubscribed,
+  subscribeSurchargeLapseNotify,
+  unsubscribeSurchargeLapseNotify,
+} from "@/lib/surchargeAlert";
 
 type TabType = "landed-cost" | "lease" | "tco" | "permits" | "depreciation";
 type FuelType = "petrol" | "diesel" | "hybrid" | "electric";

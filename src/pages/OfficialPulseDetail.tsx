@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { revealContainer, revealItem } from "@/lib/motion";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 import {
   formatPulsePeriod,
   formatPulseValue,
@@ -84,7 +85,7 @@ export default function OfficialPulseDetail() {
     queryKey: ["market-signal", signalId],
     queryFn: () => getMarketSignal(signalId),
     enabled: idIsValid,
-    staleTime: 5 * 60_000,
+    staleTime: QUERY_STALE.market,
     retry: false,
   });
 

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { getMarketSignals } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
 import { formatPulseValue, labelPulseSource } from "@/lib/officialPulseContent";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 function SignalCard({ signal }: { signal: MarketSignal }) {
   const title = signal.category || signal.metric;
@@ -47,7 +48,7 @@ export function MarketSignalsStrip() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["market-signals", 6],
     queryFn: () => getMarketSignals(6),
-    staleTime: 5 * 60_000,
+    staleTime: QUERY_STALE.market,
     retry: 1,
   });
 

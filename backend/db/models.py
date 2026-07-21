@@ -18,6 +18,8 @@ class CarListing(Base):
     scraped_at = Column(DateTime(timezone=True), nullable=False)
     first_seen_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     last_seen_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    # Bumped only when price or live-status meaningfully changes — drives sitemap lastmod.
+    content_updated_at = Column(DateTime(timezone=True), nullable=True)
     title = Column(Text)
     url = Column(Text)
 
@@ -72,6 +74,7 @@ class CarListing(Base):
         Index('idx_car_listings_scraped_at', 'scraped_at'),
         Index('idx_car_listings_first_seen_at', 'first_seen_at'),
         Index('idx_car_listings_last_seen_at', 'last_seen_at'),
+        Index('idx_car_listings_content_updated_at', 'content_updated_at'),
         Index('idx_car_listings_deal_score', 'deal_score'),
         Index('idx_car_listings_source', 'source'),
         Index(

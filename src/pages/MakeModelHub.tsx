@@ -12,6 +12,7 @@ import { ListingCard } from "@/components/ListingCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const SITE = BRAND.siteName;
 const ORIGIN = BRAND.origin;
@@ -37,7 +38,7 @@ export default function MakeModelHub() {
     queryKey: ["make-model-insight", makeParam, modelParam],
     queryFn: () => getMakeModelInsight(makeParam, modelParam),
     enabled: Boolean(makeParam && modelParam),
-    staleTime: 120_000,
+    staleTime: QUERY_STALE.hub,
   });
 
   const listingsQuery = useQuery({
@@ -45,7 +46,7 @@ export default function MakeModelHub() {
     queryFn: () =>
       getListings({ make: makeParam, model: modelParam, sort: "newest", page: 1 }),
     enabled: Boolean(makeParam && modelParam),
-    staleTime: 60_000,
+    staleTime: QUERY_STALE.listings,
   });
 
   const insight = insightQuery.data;
@@ -150,7 +151,17 @@ export default function MakeModelHub() {
         eyebrowIcon={Car}
         watermarkIcon={BarChart2}
         title={isPending ? vehicleLabel : `${canonicalMake} ${canonicalModel}`}
-        description="Prices, district breakdown, and live listings for the Sri Lankan market."
+        description={
+          <>
+            Prices, district breakdown, and live listings for the Sri Lankan market.{" "}
+            <Link
+              to={`/cars/${encodeURIComponent(makeParam)}`}
+              className="font-semibold text-primary underline-offset-2 hover:underline"
+            >
+              All {canonicalMake} models
+            </Link>
+          </>
+        }
         highlights={[
           { label: "Market hub", value: "Live", hint: "Sri Lanka inventory lane" },
           { label: "Districts", value: "25+", hint: "Geographic breakdown" },
@@ -215,25 +226,26 @@ export default function MakeModelHub() {
                 className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {insight!.top_districts.map((entry) => (
-                  <motion.div
-                    key={entry.district}
-                    variants={revealItem}
-                    className="group rounded-2xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[14px] font-bold tracking-tight text-foreground">
-                        {entry.district}
+                  <motion.div key={entry.district} variants={revealItem}>
+                    <Link
+                      to={`/locations/${encodeURIComponent(entry.district)}`}
+                      className="group block rounded-2xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg no-underline"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[14px] font-bold tracking-tight text-foreground">
+                          {entry.district}
+                        </p>
+                        <span className="num shrink-0 rounded-full border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                          {entry.count} listing{entry.count !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <p className="num mt-3 text-lg font-bold tracking-tight text-foreground">
+                        {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
+                        {entry.avg_price_lkr != null && (
+                          <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">avg</span>
+                        )}
                       </p>
-                      <span className="num shrink-0 rounded-full border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                        {entry.count} listing{entry.count !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <p className="num mt-3 text-lg font-bold tracking-tight text-foreground">
-                      {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
-                      {entry.avg_price_lkr != null && (
-                        <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">avg</span>
-                      )}
-                    </p>
+                    </Link>
                   </motion.div>
                 ))}
               </motion.div>
