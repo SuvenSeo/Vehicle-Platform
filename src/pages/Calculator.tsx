@@ -98,6 +98,29 @@ export default function Calculator() {
   const [lcLapseSavings, setLcLapseSavings] = useState<number | null>(null);
   const [lcLoading, setLcLoading] = useState(false);
   const surchargeCountdown = getSurchargeCountdown();
+  const [surchargeNotifyOn, setSurchargeNotifyOn] = useState(() => isSurchargeNotifySubscribed());
+
+  useEffect(() => {
+    const message = consumeSurchargeLapseNotification();
+    if (message) {
+      toast.success(message, { duration: 10_000 });
+      setSurchargeNotifyOn(false);
+    }
+  }, []);
+
+  const toggleSurchargeNotify = () => {
+    if (surchargeNotifyOn) {
+      unsubscribeSurchargeLapseNotify();
+      setSurchargeNotifyOn(false);
+      toast.message("Surcharge lapse reminder cleared");
+      return;
+    }
+    subscribeSurchargeLapseNotify();
+    setSurchargeNotifyOn(true);
+    toast.success(
+      `We'll remind you here when the 50% CID surcharge lapses (gazetted ${surchargeCountdown.expiryLabel}).`,
+    );
+  };
 
   // Lease / Cash-to-own state (original logic wrapper)
   const [leasePrice, setLeasePrice] = useState(() => numParam(searchParams, "price", 15000000));
@@ -352,6 +375,26 @@ export default function Calculator() {
                       ? "No extension has been gazetted as of our last review — verify current customs rates before committing an import."
                       : `Gazetted expiry ${surchargeCountdown.expiryLabel} · no extension decision announced · LCs opened on or before 15 May 2026 are exempt`}
                   </span>
+                  {!surchargeCountdown.expired && (
+                    <button
+                      type="button"
+                      onClick={toggleSurchargeNotify}
+                      aria-pressed={surchargeNotifyOn}
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-400/20 dark:text-amber-200"
+                    >
+                      {surchargeNotifyOn ? (
+                        <>
+                          <BellOff className="h-3.5 w-3.5" aria-hidden />
+                          Reminder on — tap to clear
+                        </>
+                      ) : (
+                        <>
+                          <Bell className="h-3.5 w-3.5" aria-hidden />
+                          Notify me when the surcharge drops
+                        </>
+                      )}
+                    </button>
+                  )}
                   <AnimatePresence initial={false}>
                     {!surchargeCountdown.expired && applySurcharge && lcLapseSavings !== null && lcLapseSavings > 0 && (
                       <motion.span
