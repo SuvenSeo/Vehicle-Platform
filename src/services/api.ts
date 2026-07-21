@@ -1947,6 +1947,11 @@ export interface DealerClaimProfile {
   claimed_url: string | null;
   status: string;
   matched_listings: number;
+  verified_at?: string | null;
+  plan?: string;
+  subscription_status?: string;
+  billing_email?: string | null;
+  current_period_end?: string | null;
 }
 
 const DEALER_CLAIM_TOKEN_KEY = "motormila.dealer_claim_token.v1";

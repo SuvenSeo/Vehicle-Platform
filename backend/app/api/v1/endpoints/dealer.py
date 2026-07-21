@@ -1,3 +1,5 @@
+import hmac
+import os
 import re
 import secrets
 from datetime import datetime, timezone
@@ -273,6 +275,30 @@ class DealerClaimResponse(BaseModel):
     claimed_url: Optional[str] = None
     status: str
     matched_listings: int = 0
+    verified_at: Optional[datetime] = None
+    plan: str = "dealer"
+    subscription_status: str = "none"
+    billing_email: Optional[str] = None
+    current_period_end: Optional[datetime] = None
+
+
+def _profile_response(profile: DealerProfile, matched: int) -> DealerClaimResponse:
+    return DealerClaimResponse(
+        id=int(profile.id),
+        claim_token=str(profile.claim_token),
+        display_name=str(profile.display_name),
+        contact_phone=profile.contact_phone,
+        contact_email=profile.contact_email,
+        seller_name_pattern=profile.seller_name_pattern,
+        claimed_url=profile.claimed_url,
+        status=str(profile.status),
+        matched_listings=matched,
+        verified_at=profile.verified_at,
+        plan=str(getattr(profile, "plan", None) or "dealer"),
+        subscription_status=str(getattr(profile, "subscription_status", None) or "none"),
+        billing_email=getattr(profile, "billing_email", None),
+        current_period_end=getattr(profile, "current_period_end", None),
+    )
 
 
 def _match_claimed_listings(db: Session, profile: DealerProfile) -> int:
@@ -324,17 +350,7 @@ def claim_dealer_profile(
     db.commit()
     db.refresh(profile)
     matched = _match_claimed_listings(db, profile)
-    return DealerClaimResponse(
-        id=int(profile.id),
-        claim_token=str(profile.claim_token),
-        display_name=str(profile.display_name),
-        contact_phone=profile.contact_phone,
-        contact_email=profile.contact_email,
-        seller_name_pattern=profile.seller_name_pattern,
-        claimed_url=profile.claimed_url,
-        status=str(profile.status),
-        matched_listings=matched,
-    )
+    return _profile_response(profile, matched)
 
 
 @router.get("/me", response_model=DealerClaimResponse)
@@ -349,14 +365,53 @@ def get_dealer_profile(
     if profile is None:
         raise HTTPException(status_code=404, detail="Dealer profile not found")
     matched = _match_claimed_listings(db, profile)
-    return DealerClaimResponse(
-        id=int(profile.id),
-        claim_token=str(profile.claim_token),
-        display_name=str(profile.display_name),
-        contact_phone=profile.contact_phone,
-        contact_email=profile.contact_email,
-        seller_name_pattern=profile.seller_name_pattern,
-        claimed_url=profile.claimed_url,
-        status=str(profile.status),
-        matched_listings=matched,
-    )
+    return _profile_response(profile, matched)
+
+
+class DealerVerifyRequest(BaseModel):
+    claim_token: str
+    plan: Optional[str] = None
+    subscription_status: Optional[str] = None
+    billing_email: Optional[str] = None
+    admin_token: Optional[str] = None
+
+
+def _require_dealer_admin(admin_token: Optional[str]) -> None:
+    expected = os.getenv("DEALER_ADMIN_TOKEN", "").strip()
+    provided = (admin_token or "").strip()
+    if not expected or not provided or not hmac.compare_digest(expected, provided):
+        raise HTTPException(status_code=403, detail="Dealer admin token required.")
+
+
+@router.post("/verify", response_model=DealerClaimResponse)
+def verify_dealer_profile(
+    payload: DealerVerifyRequest,
+    db: Session = Depends(get_db),
+) -> DealerClaimResponse:
+    """Mark a claimed yard as verified and optionally set billing fields.
+
+    Protected by DEALER_ADMIN_TOKEN (env). Manual ops step until PayHere/Stripe.
+    """
+    _require_dealer_admin(payload.admin_token)
+    token = (payload.claim_token or "").strip()
+    profile = db.query(DealerProfile).filter(DealerProfile.claim_token == token).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Dealer profile not found")
+
+    profile.status = "verified"
+    profile.verified_at = datetime.now(timezone.utc)
+    if payload.plan:
+        plan = payload.plan.strip().lower()
+        if plan in {"free", "dealer", "enterprise"}:
+            profile.plan = plan
+    if payload.subscription_status:
+        status = payload.subscription_status.strip().lower()
+        if status in {"none", "trialing", "active", "past_due", "canceled"}:
+            profile.subscription_status = status
+    if payload.billing_email is not None:
+        profile.billing_email = payload.billing_email.strip() or None
+    profile.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(profile)
+    matched = _match_claimed_listings(db, profile)
+    return _profile_response(profile, matched)

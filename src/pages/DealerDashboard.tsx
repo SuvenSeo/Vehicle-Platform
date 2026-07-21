@@ -173,9 +173,20 @@ function ClaimYardCard() {
           </p>
         </div>
         {profile && (
-          <span className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-            {profile.status} · {profile.matched_listings} matched
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {profile.status === "verified" && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-400">
+                <ShieldCheck className="h-3 w-3" aria-hidden />
+                Verified dealer
+              </span>
+            )}
+            <span className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              {profile.status} · {profile.matched_listings} matched
+              {profile.subscription_status && profile.subscription_status !== "none"
+                ? ` · ${profile.plan || "dealer"}/${profile.subscription_status}`
+                : ""}
+            </span>
+          </div>
         )}
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
