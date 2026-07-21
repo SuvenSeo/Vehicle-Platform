@@ -33,6 +33,7 @@ import {
   getProMarketSnapshot,
   getStats,
 } from "@/services/api";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 
 function renderDealerDashboard() {
   const queryClient = new QueryClient({
@@ -40,11 +41,13 @@ function renderDealerDashboard() {
   });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <DealerDashboard />
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <AppPreferencesProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <DealerDashboard />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </AppPreferencesProvider>,
   );
 }
 

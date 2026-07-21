@@ -19,6 +19,7 @@ import {
 } from "@/services/api";
 import type { UrlBenchmarkResult } from "@/services/api";
 import { getStoredAuthToken } from "@/lib/authToken";
+import { useAppPreferences } from "@/lib/appPreferences";
 import type { ProMarketSnapshot } from "@/types/pro";
 import { revealItem, springSoft } from "@/lib/motion";
 import { PageBody } from "@/components/PageBody";
@@ -114,6 +115,7 @@ function gapTone(pct: number | null): string {
 }
 
 function ClaimYardCard() {
+  const { t } = useAppPreferences();
   const [profile, setProfile] = useState<DealerClaimProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [pattern, setPattern] = useState("");
@@ -166,10 +168,10 @@ function ClaimYardCard() {
     <section className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Claim your yard</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Dealer profile</h2>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">{t("dealer.claimYard", "Claim your yard")}</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">{t("dealer.profile", "Dealer profile")}</h2>
           <p className="mt-1 max-w-xl text-[12px] text-muted-foreground">
-            Claim a seller name so Motormila can match your live inventory and show pricing vs market.
+            {t("dealer.claimHint", "Claim a seller name so Motormila can match your live inventory and show pricing vs market.")}
           </p>
         </div>
         {profile && (
@@ -177,7 +179,7 @@ function ClaimYardCard() {
             {profile.status === "verified" && (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-400">
                 <ShieldCheck className="h-3 w-3" aria-hidden />
-                Verified dealer
+                {t("dealer.verified", "Verified dealer")}
               </span>
             )}
             <span className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
@@ -494,6 +496,7 @@ export default function DealerDashboard() {
     notifications[0] ??
     "Market intelligence syncs from live listing data when available.";
   const toggle = (k: WidgetKey) => setCollapsed((p) => ({ ...p, [k]: !p[k] }));
+  const { t } = useAppPreferences();
 
   const retryAll = () => {
     void statsQuery.refetch();
@@ -508,7 +511,7 @@ export default function DealerDashboard() {
         theme="dealer"
         eyebrow="Dealer workspace"
         watermarkIcon={BarChart3}
-        title={<>Dealer command center<span className="text-sheen">.</span></>}
+        title={<>{t("dealer.commandCenter", "Dealer command center")}<span className="text-sheen">.</span></>}
         description="Arbitrage, demand mapping, and lead flow intelligence."
         highlights={[
           { label: "Inventory", value: "Live", hint: "Public market browse" },
@@ -549,11 +552,11 @@ export default function DealerDashboard() {
               <h2 className="mt-2 font-display text-lg font-bold tracking-tight text-foreground">Command stack</h2>
               <nav className="mt-4 space-y-1" aria-label="Dealer command stack">
                 {[
-                  { label: "Inventory Turnover", meta: turnoverData.length ? `${turnoverData.length} models` : "—" },
+                  { label: t("dealer.turnover", "Inventory Turnover"), meta: turnoverData.length ? `${turnoverData.length} models` : "—" },
                   { label: "Price Gap Scanner", meta: priceGaps.length ? `${priceGaps.length} districts` : "—" },
-                  { label: "District Demand", meta: districtDemand.length ? `${districtDemand.length} zones` : "—" },
+                  { label: t("dealer.districtDemand", "District Demand"), meta: districtDemand.length ? `${districtDemand.length} zones` : "—" },
                   { label: "Lead Notifications", meta: notifications.length > 1 ? "live" : "standby" },
-                  { label: "Inventory Benchmark", meta: "URL upload" },
+                  { label: t("dealer.benchmark", "Inventory Benchmark"), meta: "URL upload" },
                 ].map((i) => (
                   <div key={i.label} className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 transition-all hover:border-primary/40 hover:bg-card">
                     <span className="text-[11px] text-foreground font-medium">{i.label}</span>
@@ -667,7 +670,7 @@ export default function DealerDashboard() {
 
               <div className="space-y-5">
                 <WidgetShell
-                  title="Inventory Turnover"
+                  title={t("dealer.turnover", "Inventory Turnover")}
                   subtitle={turnoverData.length ? "Trending model momentum and listing volume" : "Trending model momentum from market insights"}
                   collapsed={collapsed.turnover}
                   onToggle={() => toggle("turnover")}
@@ -691,7 +694,7 @@ export default function DealerDashboard() {
                 </WidgetShell>
 
                 <WidgetShell
-                  title="Price Gaps"
+                  title={t("dealer.priceGaps", "Price Gaps")}
                   subtitle="District spread vs national median"
                   collapsed={collapsed.priceGap}
                   onToggle={() => toggle("priceGap")}
@@ -714,7 +717,7 @@ export default function DealerDashboard() {
                 </WidgetShell>
 
                 <WidgetShell
-                  title="District Demand"
+                  title={t("dealer.districtDemand", "District Demand")}
                   subtitle="Supply concentration and average deal floor"
                   collapsed={collapsed.districtDemand}
                   onToggle={() => toggle("districtDemand")}
@@ -742,7 +745,7 @@ export default function DealerDashboard() {
 
                 <div id="benchmark">
                   <WidgetShell
-                    title="Inventory Benchmark"
+                    title={t("dealer.benchmark", "Inventory Benchmark")}
                     subtitle="Paste listing URLs to benchmark against the current market"
                     collapsed={collapsed.inventoryBenchmark}
                     onToggle={() => toggle("inventoryBenchmark")}

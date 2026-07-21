@@ -20,6 +20,13 @@ Last updated: 2026-07-21. Live inventory across **13 sources**.
 - SI/TA i18n for hero, alerts, calculator, make hub
 - Ops activation docs in `.env.example` / `backend/.env.example`
 
+### Optional-later (this wave)
+- Multi-feature OLS FMV (`method: ols_comps|adjusted_median|cohort_median`)
+- pHash background job queue (`image_phash_jobs` + threaded drain)
+- Dealer verified badge + billing fields + `POST /dealer/verify`
+- Pro write CSRF: Bearer required + trusted Origin/Referer
+- Expanded SI/TA coverage: nav, sign-in, Pro gate, dealer, listing, pricing, home pulse
+
 ### Hotfixes
 - `require_pro_access(request: Request)` — Optional[Request] broke FastAPI startup / B2B CI
 
@@ -31,22 +38,13 @@ Last updated: 2026-07-21. Live inventory across **13 sources**.
 | `SENTRY_DSN` / `VITE_SENTRY_DSN` | HF + Vercel |
 | `SLACK_WEBHOOK_URL` | GitHub Actions secret |
 | `TWILIO_ACCOUNT_SID` / `AUTH_TOKEN` / `WHATSAPP_FROM` | HF (WhatsApp alerts) |
+| `DEALER_ADMIN_TOKEN` | HF (verify yards) |
 | `SCRAPE_PROXY_*` / `SCRAPE_STEALTH` | HF / GHA when banned |
 | `SENDGRID_API_KEY` + `DIGEST_RECIPIENTS` | Weekly Pro digest |
-
-## Optional later
-
-| Item | Notes |
-|------|-------|
-| True ML FMV (XGBoost) | Heuristic FMV badges already ship via cohort median |
-| Full SI/TA page coverage | High-visibility surfaces done; extend page-by-page |
-| pHash background queue | Sync `RUN_IMAGE_PHASH` fine until bottleneck |
-| Dealer verified badge / billing | Claim flow is the foundation |
-| Cookie-only Pro CSRF hardening | Bearer still required for Pro UI writes; SameSite=none for HF↔Vercel |
 
 ## Verification
 
 1. `npm run typecheck && npm run lint && npm run test`
 2. `npm run build`
 3. `cd backend && ALLOW_SQLITE_FALLBACK=true pytest tests/ -q`
-4. Spot-check `/health`, `/cars/toyota`, `/dealer`, `/alerts`, Calculator notify
+4. Spot-check `/health`, `/cars/toyota`, `/dealer`, `/alerts`, Calculator notify, language switch SI/TA

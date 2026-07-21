@@ -8,11 +8,11 @@ import { Eye, EyeOff, ArrowRight, Lock, ShieldCheck, BarChart3, TrendingUp, MapP
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEMO_ACCOUNT_SUMMARY, DEMO_AUTH_ENABLED, useAuth } from "@/lib/authContext";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 import { sanitizeSignInRedirect } from "@/lib/signIn";
 
-const schema = z.object({ email: z.string().email("Invalid email"), password: z.string().min(1, "Required") });
-type FormValues = z.infer<typeof schema>;
+type FormValues = { email: string; password: string };
 
 const FEATURES = [
   { icon: BarChart3, text: "Market analytics dashboard" },
@@ -25,6 +25,7 @@ const FEATURES = [
 
 export default function SignIn() {
   const { login, isAuthenticated, previewAccessEnabled } = useAuth();
+  const { t } = useAppPreferences();
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +35,11 @@ export default function SignIn() {
     (location.state as { from?: { pathname: string } } | null)?.from?.pathname,
   );
 
+  const schema = z.object({
+    email: z.string().email(t("signin.invalidEmail", "Invalid email")),
+    password: z.string().min(1, t("signin.required", "Required")),
+  });
+
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (values: FormValues) => {
@@ -41,7 +47,7 @@ export default function SignIn() {
     const result = await login(values.email, values.password);
     setLoading(false);
     if (result.success) navigate(from, { replace: true });
-    else setServerError(result.error || "Login failed");
+    else setServerError(result.error || t("signin.failed", "Login failed"));
   };
 
   if (isAuthenticated) return <Navigate to={from} replace />;
@@ -75,9 +81,9 @@ export default function SignIn() {
             </Link>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 mb-5">
               <Lock className="w-3 h-3 text-primary" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Pro Access</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("signin.eyebrow", "Pro Access")}</span>
             </div>
-            <h1 className="display-1 text-foreground">Sign in</h1>
+            <h1 className="display-1 text-foreground">{t("signin.title", "Sign in")}</h1>
             <p className="text-body-lg mt-3">Access the vehicle intelligence dashboard.</p>
           </div>
 
@@ -141,7 +147,7 @@ export default function SignIn() {
               transition={springSoft}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground transition-all hover:bg-primary/95 disabled:opacity-50 shadow-soft"
             >
-              {loading ? "Signing in..." : <><span>Sign in</span><ArrowRight className="h-3.5 w-3.5" aria-hidden /></>}
+              {loading ? t("signin.loading", "Signing in...") : <><span>{t("signin.submit", "Sign in")}</span><ArrowRight className="h-3.5 w-3.5" aria-hidden /></>}
             </motion.button>
           </form>
 

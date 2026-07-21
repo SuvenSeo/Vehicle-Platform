@@ -103,6 +103,7 @@ def test_pro_gate_accepts_session_cookie(monkeypatch):
     token, _ = auth.issue_token("owner@example.com", "enterprise")
 
     class CookieRequest:
+        method = "GET"
         headers = {"user-agent": "pytest"}
         client = type("Client", (), {"host": "127.0.0.1"})()
         cookies = {auth.SESSION_COOKIE_NAME: token}

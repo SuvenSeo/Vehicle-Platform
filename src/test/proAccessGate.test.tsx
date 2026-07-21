@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/lib/authContext";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 
 function installLocalStorage(seed?: Record<string, unknown>, token?: string) {
   const store = new Map<string, string>();
@@ -30,22 +31,24 @@ function installLocalStorage(seed?: Record<string, unknown>, token?: string) {
 
 function renderProtected() {
   render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={["/pro"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/sign-in" element={<div>Sign in page</div>} />
-          <Route path="/pro-preview" element={<div>Preview page</div>} />
-          <Route
-            path="/pro"
-            element={(
-              <ProtectedRoute>
-                <div>Full Pro Dashboard</div>
-              </ProtectedRoute>
-            )}
-          />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>,
+    <AppPreferencesProvider>
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/pro"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route path="/sign-in" element={<div>Sign in page</div>} />
+            <Route path="/pro-preview" element={<div>Preview page</div>} />
+            <Route
+              path="/pro"
+              element={(
+                <ProtectedRoute>
+                  <div>Full Pro Dashboard</div>
+                </ProtectedRoute>
+              )}
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>
+    </AppPreferencesProvider>,
   );
 }
 
@@ -90,6 +93,7 @@ describe("Pro access gate", () => {
     vi.resetModules();
 
     const { AuthProvider: FreshAuthProvider } = await import("@/lib/authContext");
+    const { AppPreferencesProvider: FreshPrefs } = await import("@/lib/appPreferences");
     const { ProtectedRoute: FreshProtectedRoute } = await import("@/components/ProtectedRoute");
 
     installLocalStorage({
@@ -101,22 +105,24 @@ describe("Pro access gate", () => {
     });
 
     render(
-      <FreshAuthProvider>
-        <MemoryRouter initialEntries={["/pro"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Routes>
-            <Route path="/sign-in" element={<div>Sign in page</div>} />
-            <Route path="/pro-preview" element={<div>Preview page</div>} />
-            <Route
-              path="/pro"
-              element={(
-                <FreshProtectedRoute>
-                  <div>Full Pro Dashboard</div>
-                </FreshProtectedRoute>
-              )}
-            />
-          </Routes>
-        </MemoryRouter>
-      </FreshAuthProvider>,
+      <FreshPrefs>
+        <FreshAuthProvider>
+          <MemoryRouter initialEntries={["/pro"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/sign-in" element={<div>Sign in page</div>} />
+              <Route path="/pro-preview" element={<div>Preview page</div>} />
+              <Route
+                path="/pro"
+                element={(
+                  <FreshProtectedRoute>
+                    <div>Full Pro Dashboard</div>
+                  </FreshProtectedRoute>
+                )}
+              />
+            </Routes>
+          </MemoryRouter>
+        </FreshAuthProvider>
+      </FreshPrefs>,
     );
 
     expect(screen.getByText(/subscription required/i)).toBeInTheDocument();
@@ -131,6 +137,7 @@ describe("Pro access gate", () => {
     vi.resetModules();
 
     const { AuthProvider: FreshAuthProvider } = await import("@/lib/authContext");
+    const { AppPreferencesProvider: FreshPrefs } = await import("@/lib/appPreferences");
     const { ProtectedRoute: FreshProtectedRoute } = await import("@/components/ProtectedRoute");
 
     installLocalStorage(
@@ -145,22 +152,24 @@ describe("Pro access gate", () => {
     );
 
     render(
-      <FreshAuthProvider>
-        <MemoryRouter initialEntries={["/pro"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Routes>
-            <Route path="/sign-in" element={<div>Sign in page</div>} />
-            <Route path="/pro-preview" element={<div>Preview page</div>} />
-            <Route
-              path="/pro"
-              element={(
-                <FreshProtectedRoute>
-                  <div>Full Pro Dashboard</div>
-                </FreshProtectedRoute>
-              )}
-            />
-          </Routes>
-        </MemoryRouter>
-      </FreshAuthProvider>,
+      <FreshPrefs>
+        <FreshAuthProvider>
+          <MemoryRouter initialEntries={["/pro"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/sign-in" element={<div>Sign in page</div>} />
+              <Route path="/pro-preview" element={<div>Preview page</div>} />
+              <Route
+                path="/pro"
+                element={(
+                  <FreshProtectedRoute>
+                    <div>Full Pro Dashboard</div>
+                  </FreshProtectedRoute>
+                )}
+              />
+            </Routes>
+          </MemoryRouter>
+        </FreshAuthProvider>
+      </FreshPrefs>,
     );
 
     expect(screen.getByText(/full pro dashboard/i)).toBeInTheDocument();

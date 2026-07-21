@@ -7,6 +7,7 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const COMPARE_ROWS: { label: string; free: string; pro: string; dealer: string; enterprise: string }[] = [
   { label: "Dashboard browse", free: "Yes", pro: "Yes", dealer: "Yes", enterprise: "Yes" },
@@ -28,15 +29,16 @@ const CTA_CLASS = (highlight?: boolean) =>
 
 
 export default function Pricing() {
+  const { t } = useAppPreferences();
   return (
     <PageCanvas>
       <PageHero
         theme="default"
-        eyebrow="Access tiers"
+        eyebrow={t("pricing.eyebrow", "Plans")}
         eyebrowIcon={Sparkles}
         watermarkIcon={Users}
-        title={<>Pricing<span className="text-sheen">.</span></>}
-        description="Built for Sri Lanka dealers and decision-makers — months of scraping shouldn't be free forever."
+        title={<>{t("pricing.title", "Pricing that funds the pipeline")}<span className="text-sheen">.</span></>}
+        description={t("pricing.body", "Free browse stays free. Pro and Dealer fund scrapes, scores, and workspaces.")}
         highlights={[
           { label: "Workspaces", value: "4", hint: "Free through enterprise tiers" },
           { label: "Dealer lane", value: "Pro", hint: "Command center + exports" },
