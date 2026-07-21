@@ -19,6 +19,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const evModules = [
   { icon: Battery, step: "01", title: "Battery health", desc: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
@@ -40,7 +41,7 @@ export default function EVHub() {
   const insightQuery = useQuery({
     queryKey: ["ev-insight"],
     queryFn: getEvInsight,
-    staleTime: 5 * 60 * 1000,
+    staleTime: QUERY_STALE.market,
   });
 
   const insight = insightQuery.data;

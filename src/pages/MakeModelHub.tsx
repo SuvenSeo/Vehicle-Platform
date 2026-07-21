@@ -12,6 +12,7 @@ import { ListingCard } from "@/components/ListingCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const SITE = BRAND.siteName;
 const ORIGIN = BRAND.origin;
@@ -37,7 +38,7 @@ export default function MakeModelHub() {
     queryKey: ["make-model-insight", makeParam, modelParam],
     queryFn: () => getMakeModelInsight(makeParam, modelParam),
     enabled: Boolean(makeParam && modelParam),
-    staleTime: 120_000,
+    staleTime: QUERY_STALE.hub,
   });
 
   const listingsQuery = useQuery({
@@ -45,7 +46,7 @@ export default function MakeModelHub() {
     queryFn: () =>
       getListings({ make: makeParam, model: modelParam, sort: "newest", page: 1 }),
     enabled: Boolean(makeParam && modelParam),
-    staleTime: 60_000,
+    staleTime: QUERY_STALE.listings,
   });
 
   const insight = insightQuery.data;

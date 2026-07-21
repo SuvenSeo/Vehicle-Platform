@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getMarketSignals } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 type SourceFilter = "all" | string;
 
@@ -86,7 +87,7 @@ export default function OfficialPulse() {
   const signalsQuery = useQuery({
     queryKey: ["market-signals", 48],
     queryFn: () => getMarketSignals(48),
-    staleTime: 5 * 60_000,
+    staleTime: QUERY_STALE.market,
     retry: 1,
   });
 

@@ -51,6 +51,7 @@ import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
 import { loadMarketAlerts, patchMarketAlertServerId, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 import { MobileFilterSheet } from "@/components/MobileFilterSheet";
 
 const heroContainerVariants = {
@@ -220,22 +221,31 @@ export default function Dashboard() {
 
   // ── Data fetching (React Query owns caching/retries/refetching) ──
 
-  const statsQuery = useQuery({ queryKey: ["stats"], queryFn: getStats });
-  const makesQuery = useQuery({ queryKey: ["makes"], queryFn: getMakes });
+  const statsQuery = useQuery({
+    queryKey: ["stats"],
+    queryFn: getStats,
+    staleTime: QUERY_STALE.stats,
+  });
+  const makesQuery = useQuery({
+    queryKey: ["makes"],
+    queryFn: getMakes,
+    staleTime: QUERY_STALE.market,
+  });
   const insightsQuery = useQuery({
     queryKey: ["dashboard-insights"],
     queryFn: getDashboardInsights,
+    staleTime: QUERY_STALE.hub,
     refetchInterval: 120_000,
   });
   const dropsQuery = useQuery({
     queryKey: ["price-drops"],
     queryFn: () => getPriceDrops(7, 4),
-    staleTime: 300_000,
+    staleTime: QUERY_STALE.market,
   });
   const velocityQuery = useQuery({
     queryKey: ["district-velocity"],
     queryFn: getDistrictVelocity,
-    staleTime: 300_000,
+    staleTime: QUERY_STALE.market,
     // fetchJSON already retries transient 5xx — keep RQ retries low to avoid stampede.
     retry: 1,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
@@ -248,6 +258,7 @@ export default function Dashboard() {
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
     queryFn: () => getListings(filters),
+    staleTime: QUERY_STALE.listings,
   });
   const { refetch: refetchListings } = listingsQuery;
   const retryListings = useCallback(() => {

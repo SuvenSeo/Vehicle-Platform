@@ -17,6 +17,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { AuthProvider } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
 
@@ -46,8 +47,10 @@ const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuid
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
-      gcTime: 300_000,
+      // Default leans toward market-style freshness; live listing queries
+      // override with QUERY_STALE.listings (10s) at the call site.
+      staleTime: QUERY_STALE.stats,
+      gcTime: QUERY_STALE.market,
       retry: 1,
       refetchOnWindowFocus: false,
     },
