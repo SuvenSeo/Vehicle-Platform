@@ -74,6 +74,18 @@ class CarListing(Base):
         Index('idx_car_listings_last_seen_at', 'last_seen_at'),
         Index('idx_car_listings_deal_score', 'deal_score'),
         Index('idx_car_listings_source', 'source'),
+        Index(
+            'idx_car_listings_live_category_price',
+            'is_active',
+            'is_outlier',
+            'vehicle_category',
+            'price_lkr',
+        ),
+        Index(
+            'idx_car_listings_category_first_seen',
+            'vehicle_category',
+            'first_seen_at',
+        ),
     )
 
 

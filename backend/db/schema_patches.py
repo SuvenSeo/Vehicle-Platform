@@ -31,8 +31,36 @@ _INDEX_PATCHES = (
         "car_listings",
         "is_active, is_outlier, district",
     ),
+    (
+        "idx_car_listings_live_category_price",
+        "car_listings",
+        "is_active, is_outlier, vehicle_category, price_lkr",
+    ),
+    (
+        "idx_car_listings_category_first_seen",
+        "car_listings",
+        "vehicle_category, first_seen_at",
+    ),
     ("idx_scrape_runs_started_at", "scrape_runs", "started_at"),
     ("idx_scrape_runs_source_started_at", "scrape_runs", "source, started_at"),
+)
+
+_POSTGRES_TRGM_INDEX_PATCHES = (
+    (
+        "idx_car_listings_make_trgm",
+        "car_listings",
+        "make",
+    ),
+    (
+        "idx_car_listings_model_trgm",
+        "car_listings",
+        "model",
+    ),
+    (
+        "idx_car_listings_title_trgm",
+        "car_listings",
+        "title",
+    ),
 )
 
 
@@ -102,6 +130,31 @@ def apply_schema_patches(engine: Engine) -> None:
         except Exception as exc:
             # Best-effort optimization: the nightly scrape run retries it in a
             # quieter window; never block API startup on an index build.
+            log.warning(
+                "schema_index_patch_failed",
+                index=index_name,
+                error=str(exc),
+            )
+
+    if dialect != "postgresql":
+        return
+
+    try:
+        _bounded_ddl("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+    except Exception as exc:
+        log.warning(
+            "schema_extension_patch_failed",
+            extension="pg_trgm",
+            error=str(exc),
+        )
+
+    for index_name, table_name, column in _POSTGRES_TRGM_INDEX_PATCHES:
+        try:
+            _bounded_ddl(
+                f"CREATE INDEX IF NOT EXISTS {index_name} "
+                f"ON {table_name} USING gin ({column} gin_trgm_ops)"
+            )
+        except Exception as exc:
             log.warning(
                 "schema_index_patch_failed",
                 index=index_name,
