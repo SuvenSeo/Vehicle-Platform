@@ -11,6 +11,11 @@ from playwright.async_api import async_playwright
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.net import (
+    playwright_context_kwargs,
+    playwright_launch_proxy,
+    stealth_init_script,
+)
 from app.scrapers.page_budget import page_budget_for_category
 from app.utils.listing_upsert import upsert_listing
 
@@ -183,24 +188,30 @@ class RiyasewanaScraper:
 
     async def scrape(self, max_pages: int = 5):
         seen_urls: set[str] = set()
+        default_user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        )
+        context_opts = playwright_context_kwargs(default_user_agent)
 
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(
-                headless=True,
-                args=[
+            launch_kwargs = {
+                "headless": True,
+                "args": [
                     "--disable-blink-features=AutomationControlled",
                     "--no-sandbox",
                     "--disable-setuid-sandbox",
                     "--disable-dev-shm-usage",
                 ],
-            )
+            }
+            launch_proxy = playwright_launch_proxy()
+            if launch_proxy:
+                launch_kwargs["proxy"] = launch_proxy
+            browser = await playwright.chromium.launch(**launch_kwargs)
             context = await browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/131.0.0.0 Safari/537.36"
-                ),
-                viewport={"width": 1920, "height": 1080},
+                user_agent=context_opts["user_agent"],
+                viewport=context_opts["viewport"],
                 locale="en-US",
                 timezone_id="Asia/Colombo",
                 extra_http_headers={
@@ -213,9 +224,9 @@ class RiyasewanaScraper:
                     "Sec-Fetch-Site": "none",
                 },
             )
-            await context.add_init_script(
-                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-            )
+            stealth_script = stealth_init_script()
+            if stealth_script:
+                await context.add_init_script(stealth_script)
             page = await context.new_page()
 
             try:

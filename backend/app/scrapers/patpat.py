@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.net import httpx_client_kwargs
 from app.scrapers.page_budget import page_budget_for_category
 from app.utils.listing_upsert import upsert_listing
 
@@ -131,7 +132,9 @@ class PatpatScraper:
 
         seen_urls: set[str] = set()
 
-        async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            follow_redirects=True, **httpx_client_kwargs(headers)
+        ) as client:
             for category_path in self.CATEGORY_PATHS:
                 page_limit = self._page_budget_for_category(category_path, max_pages)
                 base_url = self._category_base_url(category_path)

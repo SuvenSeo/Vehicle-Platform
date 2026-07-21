@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.net import httpx_client_kwargs
 from app.scrapers.page_budget import page_budget_for_category
 from app.utils.listing_upsert import upsert_listing
 from app.utils.time import utc_now
@@ -168,7 +169,9 @@ class HitadScraper:
     async def scrape(self, max_pages: int = 5):
         seen_urls: set[str] = set()
 
-        async with httpx.AsyncClient(headers=DEFAULT_HEADERS, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            follow_redirects=True, **httpx_client_kwargs(DEFAULT_HEADERS)
+        ) as client:
             for keyword in self.CATEGORY_KEYWORDS:
                 page_limit = self._page_budget_for_category(keyword, max_pages)
                 page_num = 1

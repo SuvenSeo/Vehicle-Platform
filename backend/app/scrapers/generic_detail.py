@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.net import httpx_client_kwargs
 from app.utils.listing_upsert import upsert_listing
 
 log = structlog.get_logger()
@@ -358,7 +359,9 @@ class GenericDetailScraper:
         seen_urls: set[str] = set()
         consecutive_empty_pages = 0
 
-        async with httpx.AsyncClient(headers=DEFAULT_HEADERS, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            follow_redirects=True, **httpx_client_kwargs(DEFAULT_HEADERS)
+        ) as client:
             for page_url in self._build_page_urls(max_pages):
                 log.info("scraping_page", source=self.SOURCE, url=page_url)
                 try:

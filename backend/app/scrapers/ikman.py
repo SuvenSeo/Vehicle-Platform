@@ -16,6 +16,12 @@ from playwright.async_api import async_playwright
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.net import (
+    httpx_client_kwargs,
+    playwright_context_kwargs,
+    playwright_launch_proxy,
+    stealth_init_script,
+)
 from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
 from app.utils.listing_upsert import upsert_listing
 from app.utils.time import utc_now
@@ -552,7 +558,9 @@ class IkmanCarScraper:
         upserted = 0
         category_failures = 0
 
-        async with httpx.AsyncClient(headers=API_HEADERS, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            follow_redirects=True, **httpx_client_kwargs(API_HEADERS)
+        ) as client:
             for category_id in self.VEHICLE_CATEGORY_IDS:
                 try:
                     category_upserted = await self._scrape_category_via_api(
@@ -587,8 +595,17 @@ class IkmanCarScraper:
 
     async def _scrape_via_playwright(self, max_pages: int = 5):
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(user_agent=random.choice(USER_AGENTS))
+            launch_kwargs = {"headless": True}
+            launch_proxy = playwright_launch_proxy()
+            if launch_proxy:
+                launch_kwargs["proxy"] = launch_proxy
+            browser = await p.chromium.launch(**launch_kwargs)
+
+            context_opts = playwright_context_kwargs(random.choice(USER_AGENTS))
+            context = await browser.new_context(user_agent=context_opts["user_agent"])
+            stealth_script = stealth_init_script()
+            if stealth_script:
+                await context.add_init_script(stealth_script)
             page = await context.new_page()
 
             async def route_handler(route):
