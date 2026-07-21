@@ -4,6 +4,8 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,12 +13,17 @@ from sqlalchemy.pool import StaticPool
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+from app.api.v1.endpoints import b2b
 from app.main import app
 from db.models import Base, CarListing
 from db.session import get_db
 
 
 _NOW = datetime(2026, 7, 16, 10, 0)
+
+
+def setup_function():
+    b2b._b2b_rate_limiter._buckets.clear()
 
 
 def _client_with_data(rows):
@@ -50,6 +57,23 @@ def test_requires_key(monkeypatch):
         ).status_code == 401
     finally:
         app.dependency_overrides.clear()
+
+
+def test_requires_key_uses_compare_digest(monkeypatch):
+    monkeypatch.setenv("B2B_API_KEYS", "secret-key-1,secret-key-2")
+    compare_calls: list[tuple[str, str]] = []
+
+    def fake_compare_digest(provided: str, configured: str) -> bool:
+        compare_calls.append((provided, configured))
+        return provided == configured
+
+    monkeypatch.setattr(b2b.secrets, "compare_digest", fake_compare_digest)
+
+    with pytest.raises(HTTPException) as excinfo:
+        b2b.require_b2b_key("wrong-key")
+
+    assert excinfo.value.status_code == 401
+    assert len(compare_calls) == 2
 
 
 def test_503_when_unconfigured(monkeypatch):
@@ -96,4 +120,26 @@ def test_no_comparables(monkeypatch):
         assert body["confidence"] == "none"
         assert body["market_median_lkr"] is None
     finally:
+        app.dependency_overrides.clear()
+
+
+def test_rate_limit_isolated_per_api_key(monkeypatch):
+    monkeypatch.setenv("B2B_API_KEYS", "k1,k2")
+    client, _ = _client_with_data([_car("a", price=9_000_000)])
+    original_max_requests = b2b._b2b_rate_limiter.max_requests
+    original_window_seconds = b2b._b2b_rate_limiter.window_seconds
+    b2b._b2b_rate_limiter.max_requests = 2
+    b2b._b2b_rate_limiter.window_seconds = 60
+
+    try:
+        endpoint = "/api/v1/b2b/collateral-value?make=Toyota&model=Premio"
+        assert client.get(endpoint, headers={"X-API-Key": "k1"}).status_code == 200
+        assert client.get(endpoint, headers={"X-API-Key": "k1"}).status_code == 200
+        assert client.get(endpoint, headers={"X-API-Key": "k1"}).status_code == 429
+
+        # A different API key gets an independent bucket.
+        assert client.get(endpoint, headers={"X-API-Key": "k2"}).status_code == 200
+    finally:
+        b2b._b2b_rate_limiter.max_requests = original_max_requests
+        b2b._b2b_rate_limiter.window_seconds = original_window_seconds
         app.dependency_overrides.clear()

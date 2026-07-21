@@ -94,14 +94,33 @@ else:
         "https://vehicle-platform-one-suvenseoras-projects.vercel.app",
     ]
 
+allow_credentials = True
+if any(origin == "*" for origin in allow_origins):
+    allow_credentials = False
+    logger.warning(
+        "cors_wildcard_disables_credentials",
+        allow_origins=allow_origins,
+    )
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "0"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 
 @app.exception_handler(Exception)

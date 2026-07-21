@@ -1,5 +1,8 @@
 import json
+import hashlib
+import hmac
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -18,7 +21,7 @@ class DummyRequest:
     client = type("Client", (), {"host": "127.0.0.1"})()
 
 
-def _configure(monkeypatch, *, plan: str = "enterprise"):
+def _configure(monkeypatch, *, plan: str = "enterprise", subscription_status: str = "active"):
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
     monkeypatch.setenv(
         "AUTH_USERS",
@@ -29,7 +32,7 @@ def _configure(monkeypatch, *, plan: str = "enterprise"):
                     "password_hash": _BCRYPT_HASH,
                     "name": "Owner Person",
                     "plan": plan,
-                    "subscription_status": "active",
+                    "subscription_status": subscription_status,
                 }
             ]
         ),
@@ -38,6 +41,7 @@ def _configure(monkeypatch, *, plan: str = "enterprise"):
 
 def setup_function():
     auth._login_rate_limiter._buckets.clear()
+    auth._me_rate_limiter._buckets.clear()
 
 
 def test_login_rejected_when_not_configured(monkeypatch):
@@ -62,6 +66,7 @@ def test_login_success_returns_signed_token_and_user(monkeypatch):
     payload = auth.verify_token(result["token"])
     assert payload is not None
     assert payload["email"] == "owner@example.com"
+    assert payload["subscription_status"] == "active"
 
 
 def test_login_rejects_wrong_password(monkeypatch):
@@ -101,8 +106,6 @@ def test_pro_gate_can_be_disabled_for_local_dev(monkeypatch):
 
 def test_sha256_credentials_are_rejected(monkeypatch):
     """Legacy unsalted SHA-256 entries must no longer authenticate."""
-    import hashlib
-
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
     monkeypatch.setenv(
         "AUTH_USERS",
@@ -142,3 +145,55 @@ def test_pro_gate_enforced_requires_pro_plan(monkeypatch):
     with pytest.raises(HTTPException) as wrong_plan:
         auth.require_pro_access(authorization=f"Bearer {free_token}")
     assert wrong_plan.value.status_code == 403
+
+
+def test_pro_gate_rejects_inactive_subscription(monkeypatch):
+    _configure(monkeypatch, plan="enterprise", subscription_status="past_due")
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+
+    result = auth.login(auth.LoginRequest(email="owner@example.com", password="correct-horse"), DummyRequest())
+
+    with pytest.raises(HTTPException) as inactive_subscription:
+        auth.require_pro_access(authorization=f"Bearer {result['token']}")
+    assert inactive_subscription.value.status_code == 403
+
+
+def test_pro_gate_allows_trialing_subscription(monkeypatch):
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+
+    token, _ = auth.issue_token("trial@example.com", "pro", "trialing")
+    assert auth.require_pro_access(authorization=f"Bearer {token}") is None
+
+
+def test_pro_gate_allows_legacy_token_without_subscription_status(monkeypatch):
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+
+    expires_at = int(time.time() + auth._token_ttl_seconds())
+    payload_part = auth._b64url_encode(
+        json.dumps(
+            {"email": "legacy@example.com", "plan": "enterprise", "exp": expires_at},
+            separators=(",", ":"),
+        ).encode()
+    )
+    signature = hmac.new(
+        auth._token_secret().encode(),
+        payload_part.encode(),
+        hashlib.sha256,
+    ).hexdigest()
+    legacy_token = f"{payload_part}.{signature}"
+
+    assert auth.require_pro_access(authorization=f"Bearer {legacy_token}") is None
+
+
+def test_me_endpoint_rate_limited(monkeypatch):
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    token, _ = auth.issue_token("owner@example.com", "enterprise", "active")
+
+    for _ in range(60):
+        auth.me(DummyRequest(), authorization=f"Bearer {token}")
+
+    with pytest.raises(HTTPException) as excinfo:
+        auth.me(DummyRequest(), authorization=f"Bearer {token}")
+    assert excinfo.value.status_code == 429

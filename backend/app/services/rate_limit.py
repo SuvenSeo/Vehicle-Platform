@@ -1,4 +1,5 @@
 import time
+from collections.abc import Callable
 
 from fastapi import HTTPException, Request
 
@@ -22,16 +23,24 @@ class RateLimiter:
     Fine for basic abuse/cost protection on a single-instance deployment.
     """
 
-    def __init__(self, *, max_requests: int, window_seconds: int, message: str = "Too many requests. Try again shortly."):
+    def __init__(
+        self,
+        *,
+        max_requests: int,
+        window_seconds: int,
+        message: str = "Too many requests. Try again shortly.",
+        key_func: Callable[[Request], str] | None = None,
+    ):
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.message = message
+        self._key_func = key_func or _client_key
         self._buckets: dict[str, list[float]] = {}
 
     def __call__(self, request: Request, *, now: float | None = None) -> None:
         current = time.time() if now is None else now
         cutoff = current - self.window_seconds
-        key = _client_key(request)
+        key = self._key_func(request)
 
         hits = [item for item in self._buckets.get(key, []) if item >= cutoff]
         if len(hits) >= self.max_requests:
