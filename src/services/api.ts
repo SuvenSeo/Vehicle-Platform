@@ -927,7 +927,7 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
     try {
       const response = await fetch(url.toString(), {
         headers: { 'Accept': 'application/json', ...(headers || {}) },
-        credentials: headers && "Authorization" in headers ? "include" : "same-origin",
+        credentials: "include",
         signal: controller.signal,
       });
 
@@ -963,7 +963,7 @@ async function postJSON<T>(path: string, body: Record<string, unknown>, headers?
 
   const response = await fetch(new URL(`${API_BASE}${path}`, window.location.origin).toString(), {
     method: "POST",
-    credentials: headers && "Authorization" in headers ? "include" : "same-origin",
+    credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",

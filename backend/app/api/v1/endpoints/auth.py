@@ -279,7 +279,27 @@ def me(request: Request, authorization: Optional[str] = Header(default=None)):
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
-    return {"email": payload.get("email"), "plan": payload.get("plan"), "exp": payload.get("exp")}
+
+    email = str(payload.get("email") or "").strip().lower()
+    record = _configured_users().get(email)
+    if record:
+        return _user_response(record)
+
+    plan = str(payload.get("plan") or "free").strip().lower()
+    subscription_status = str(
+        payload.get("subscription_status") or payload.get("subscriptionStatus") or "active"
+    ).strip().lower()
+    name = email.split("@")[0] if email else "Motormila User"
+    return {
+        "email": email,
+        "name": name,
+        "plan": plan if plan in ALLOWED_PLANS else "free",
+        "subscriptionStatus": subscription_status
+        if subscription_status in ALLOWED_SUBSCRIPTION_STATUSES
+        else "none",
+        "avatarInitials": (name[:2] or "AU").upper(),
+        "exp": payload.get("exp"),
+    }
 
 
 def pro_access_enforced() -> bool:
