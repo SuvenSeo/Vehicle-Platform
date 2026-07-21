@@ -4,10 +4,13 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import Docs from "@/pages/Docs";
 import Pricing from "@/pages/Pricing";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 
 function wrap(ui: ReactElement) {
   return render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>,
+    <AppPreferencesProvider>
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>
+    </AppPreferencesProvider>,
   );
 }
 
@@ -21,7 +24,7 @@ describe("Docs and Pricing pages", () => {
 
   it("renders pricing tiers and ICP personas", () => {
     wrap(<Pricing />);
-    expect(screen.getByRole("heading", { name: /Pricing/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Pricing that funds the pipeline/i })).toBeInTheDocument();
     expect(screen.getByText("LKR 999")).toBeInTheDocument();
     expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     expect(screen.getByText("Dealers")).toBeInTheDocument();

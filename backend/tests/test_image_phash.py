@@ -15,10 +15,12 @@ from app.utils.image_phash import (
     PHASH_MATCH_THRESHOLD,
     backfill_image_phash,
     compute_phash,
+    enqueue_missing_phash_listings,
     hamming_distance,
     is_same_photo,
+    process_phash_queue,
 )
-from db.models import Base, CarListing
+from db.models import Base, CarListing, ImagePhashJob
 
 
 _NOW = datetime(2026, 7, 16, 10, 0)
@@ -94,3 +96,25 @@ def test_backfill_image_phash_leaves_hash_null_on_fetch_failure():
     updated = backfill_image_phash(db)
     assert updated == 0
     assert listing.image_phash is None
+
+
+def test_phash_queue_marks_job_done_when_hash_computed(monkeypatch):
+    db = _session()
+    listing = CarListing(
+        source="ikman", source_id="q1", scraped_at=_NOW,
+        first_seen_at=_NOW, last_seen_at=_NOW,
+        make="Toyota", model="Aqua", thumbnail_url="http://example.test/a.jpg",
+    )
+    db.add(listing)
+    db.commit()
+    db.refresh(listing)
+
+    monkeypatch.setattr("app.utils.image_phash.compute_phash", lambda url, timeout=5.0: "abcdef0123456789")
+    queued = enqueue_missing_phash_listings(db)
+    assert queued == 1
+    result = process_phash_queue(db, workers=1)
+    assert result["done"] == 1
+    db.refresh(listing)
+    assert listing.image_phash == "abcdef0123456789"
+    job = db.query(ImagePhashJob).filter(ImagePhashJob.listing_id == listing.id).one()
+    assert job.status == "done"

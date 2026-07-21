@@ -1,4 +1,4 @@
-"""Perceptual-hash (pHash) image dedup.
+"""Perceptual-hash (pHash) image dedup + background job queue.
 
 Reverses the earlier "do not build" call on photo AI: full inspection-grade
 photo AI is still out of scope, but a 64-bit perceptual hash of each
@@ -9,11 +9,18 @@ the cases spec-based heuristic matching misses entirely.
 ``compute_phash`` never raises: a fetch/decode failure just means that
 listing has no hash yet and is skipped by hash-based matching, which
 degrades gracefully to the existing heuristic.
+
+Queue model: ``image_phash_jobs`` holds pending listing IDs. Sync enqueues
+rows that still need a hash, then ``process_phash_queue`` drains them with
+a thread pool so scrape latency is not blocked on image I/O.
 """
 
 from __future__ import annotations
 
 import io
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from typing import Iterable, Optional
 
 import httpx
 import imagehash
@@ -21,13 +28,15 @@ import structlog
 from PIL import Image
 from sqlalchemy.orm import Session
 
-from db.models import CarListing
+from db.models import CarListing, ImagePhashJob
 
 log = structlog.get_logger()
 
 _FETCH_TIMEOUT_SECONDS = 5.0
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB guard against oversized/hostile responses
 _DEFAULT_BATCH_LIMIT = 200
+_DEFAULT_WORKERS = 4
+_MAX_ATTEMPTS = 3
 
 # Two 64-bit pHashes differing by this many bits or fewer are treated as the
 # same photo. 10 is a widely used near-duplicate threshold (out of 64 bits).
@@ -67,15 +76,36 @@ def is_same_photo(hash_a: str | None, hash_b: str | None, threshold: int = PHASH
     return distance is not None and distance <= threshold
 
 
-def backfill_image_phash(db: Session, batch_limit: int = _DEFAULT_BATCH_LIMIT) -> int:
-    """Compute and store ``image_phash`` for listings that have a thumbnail but no hash yet.
+def enqueue_phash_jobs(db: Session, listing_ids: Iterable[int]) -> int:
+    """Insert pending jobs for listing IDs that are not already queued/done."""
+    ids = sorted({int(i) for i in listing_ids if i is not None})
+    if not ids:
+        return 0
 
-    Mirrors :func:`app.utils.thumbnail_cache.backfill_thumbnail_cache`'s batch
-    shape. Best-effort: a per-listing fetch/decode failure is logged and
-    skipped rather than aborting the batch.
-    """
+    existing = {
+        int(row.listing_id)
+        for row in db.query(ImagePhashJob.listing_id)
+        .filter(
+            ImagePhashJob.listing_id.in_(ids),
+            ImagePhashJob.status.in_(("pending", "processing", "done")),
+        )
+        .all()
+    }
+    created = 0
+    for listing_id in ids:
+        if listing_id in existing:
+            continue
+        db.add(ImagePhashJob(listing_id=listing_id, status="pending", attempts=0))
+        created += 1
+    if created:
+        db.commit()
+    return created
+
+
+def enqueue_missing_phash_listings(db: Session, batch_limit: int = _DEFAULT_BATCH_LIMIT) -> int:
+    """Queue listings that have a thumbnail but no hash yet."""
     rows = (
-        db.query(CarListing)
+        db.query(CarListing.id)
         .filter(
             CarListing.thumbnail_url.isnot(None),
             CarListing.image_phash.is_(None),
@@ -83,15 +113,97 @@ def backfill_image_phash(db: Session, batch_limit: int = _DEFAULT_BATCH_LIMIT) -
         .limit(batch_limit)
         .all()
     )
+    return enqueue_phash_jobs(db, [int(r.id) for r in rows])
 
-    updated = 0
-    for listing in rows:
-        phash = compute_phash(listing.thumbnail_url)
-        if phash:
-            listing.image_phash = phash
-            updated += 1
 
-    if updated:
+def _claim_pending_jobs(db: Session, batch_limit: int) -> list[ImagePhashJob]:
+    jobs = (
+        db.query(ImagePhashJob)
+        .filter(ImagePhashJob.status == "pending")
+        .order_by(ImagePhashJob.id.asc())
+        .limit(batch_limit)
+        .all()
+    )
+    now = datetime.now(timezone.utc)
+    for job in jobs:
+        job.status = "processing"
+        job.attempts = int(job.attempts or 0) + 1
+        job.updated_at = now
+    if jobs:
         db.commit()
+        for job in jobs:
+            db.refresh(job)
+    return jobs
 
-    return updated
+
+def process_phash_queue(
+    db: Session,
+    batch_limit: int = _DEFAULT_BATCH_LIMIT,
+    workers: int = _DEFAULT_WORKERS,
+) -> dict[str, int]:
+    """Drain pending pHash jobs with a thread pool. Fail-open per job."""
+    jobs = _claim_pending_jobs(db, batch_limit)
+    if not jobs:
+        return {"claimed": 0, "done": 0, "failed": 0}
+
+    listing_ids = [int(j.listing_id) for j in jobs]
+    listings = {
+        int(row.id): row
+        for row in db.query(CarListing).filter(CarListing.id.in_(listing_ids)).all()
+    }
+
+    work: list[tuple[int, Optional[str]]] = []
+    for job in jobs:
+        listing = listings.get(int(job.listing_id))
+        url = listing.thumbnail_url if listing is not None else None
+        work.append((int(job.id), url))
+
+    results: dict[int, tuple[Optional[str], Optional[str]]] = {}
+
+    def _run(job_id: int, url: Optional[str]) -> tuple[int, Optional[str], Optional[str]]:
+        if not url:
+            return job_id, None, "missing_thumbnail"
+        try:
+            return job_id, compute_phash(url), None
+        except Exception as exc:  # noqa: BLE001
+            return job_id, None, str(exc)[:300]
+
+    worker_count = max(1, min(workers, len(work)))
+    with ThreadPoolExecutor(max_workers=worker_count) as pool:
+        futures = [pool.submit(_run, job_id, url) for job_id, url in work]
+        for fut in as_completed(futures):
+            job_id, phash, err = fut.result()
+            results[job_id] = (phash, err)
+
+    done = 0
+    failed = 0
+    now = datetime.now(timezone.utc)
+    for job in jobs:
+        phash, err = results.get(int(job.id), (None, "no_result"))
+        listing = listings.get(int(job.listing_id))
+        if phash and listing is not None:
+            listing.image_phash = phash
+            job.status = "done"
+            job.last_error = None
+            job.updated_at = now
+            done += 1
+        else:
+            attempts = int(job.attempts or 0)
+            job.last_error = err or "compute_failed"
+            job.updated_at = now
+            if attempts >= _MAX_ATTEMPTS:
+                job.status = "failed"
+                failed += 1
+            else:
+                job.status = "pending"
+                failed += 1
+
+    db.commit()
+    return {"claimed": len(jobs), "done": done, "failed": failed}
+
+
+def backfill_image_phash(db: Session, batch_limit: int = _DEFAULT_BATCH_LIMIT) -> int:
+    """Enqueue missing hashes then drain the queue (sync-compatible entrypoint)."""
+    enqueue_missing_phash_listings(db, batch_limit=batch_limit)
+    result = process_phash_queue(db, batch_limit=batch_limit)
+    return int(result.get("done") or 0)

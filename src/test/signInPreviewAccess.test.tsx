@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import SignIn from "@/pages/SignIn";
 import { sanitizeSignInRedirect } from "@/lib/signIn";
 import { AuthProvider } from "@/lib/authContext";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 
 function installLocalStorage() {
   const store = new Map<string, string>();
@@ -29,13 +30,15 @@ describe("SignIn preview access", () => {
 
   it("shows the login form and locked preview entry without any baked-in credentials", () => {
     render(
+      <AppPreferencesProvider>
       <AuthProvider>
         <MemoryRouter initialEntries={["/sign-in"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/sign-in" element={<SignIn />} />
           </Routes>
         </MemoryRouter>
-      </AuthProvider>,
+      </AuthProvider>
+    </AppPreferencesProvider>,
     );
 
     expect(screen.getByText(/preview the pro workspace/i)).toBeInTheDocument();
@@ -49,6 +52,7 @@ describe("SignIn preview access", () => {
 
   it("routes to the public preview without creating a Pro session", () => {
     render(
+      <AppPreferencesProvider>
       <AuthProvider>
         <MemoryRouter initialEntries={["/sign-in"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
@@ -56,7 +60,8 @@ describe("SignIn preview access", () => {
             <Route path="/pro-preview" element={<div>Pro preview teaser</div>} />
           </Routes>
         </MemoryRouter>
-      </AuthProvider>,
+      </AuthProvider>
+    </AppPreferencesProvider>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /preview pro/i }));
@@ -83,20 +88,23 @@ describe("SignIn preview access", () => {
     vi.resetModules();
 
     const { AuthProvider: FreshAuthProvider, DEMO_ACCOUNT_SUMMARY } = await import("@/lib/authContext");
+    const { AppPreferencesProvider: FreshPrefs } = await import("@/lib/appPreferences");
     const FreshSignIn = (await import("@/pages/SignIn")).default;
 
     expect(DEMO_ACCOUNT_SUMMARY).toHaveLength(1);
     expect(Object.keys(DEMO_ACCOUNT_SUMMARY[0])).not.toContain("password");
 
     render(
-      <FreshAuthProvider>
-        <MemoryRouter initialEntries={["/sign-in"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Routes>
-            <Route path="/sign-in" element={<FreshSignIn />} />
-            <Route path="/pro" element={<div>Full Pro Workspace</div>} />
-          </Routes>
-        </MemoryRouter>
-      </FreshAuthProvider>,
+      <FreshPrefs>
+        <FreshAuthProvider>
+          <MemoryRouter initialEntries={["/sign-in"]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/sign-in" element={<FreshSignIn />} />
+              <Route path="/pro" element={<div>Full Pro Workspace</div>} />
+            </Routes>
+          </MemoryRouter>
+        </FreshAuthProvider>
+      </FreshPrefs>,
     );
 
     expect(screen.getByText(/review accounts/i)).toBeInTheDocument();
@@ -139,21 +147,24 @@ describe("SignIn preview access", () => {
     vi.resetModules();
 
     const { AuthProvider: FreshAuthProvider } = await import("@/lib/authContext");
+    const { AppPreferencesProvider: FreshPrefs } = await import("@/lib/appPreferences");
     const FreshSignIn = (await import("@/pages/SignIn")).default;
 
     render(
-      <FreshAuthProvider>
-        <MemoryRouter
-          initialEntries={[{ pathname: "/sign-in", state: { from: { pathname: "//evil.example/phish" } } }]}
-          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-        >
-          <Routes>
-            <Route path="/sign-in" element={<FreshSignIn />} />
-            <Route path="/pro" element={<div>Safe Pro Landing</div>} />
-            <Route path="*" element={<div>Unexpected redirect</div>} />
-          </Routes>
-        </MemoryRouter>
-      </FreshAuthProvider>,
+      <FreshPrefs>
+        <FreshAuthProvider>
+          <MemoryRouter
+            initialEntries={[{ pathname: "/sign-in", state: { from: { pathname: "//evil.example/phish" } } }]}
+            future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+          >
+            <Routes>
+              <Route path="/sign-in" element={<FreshSignIn />} />
+              <Route path="/pro" element={<div>Safe Pro Landing</div>} />
+              <Route path="*" element={<div>Unexpected redirect</div>} />
+            </Routes>
+          </MemoryRouter>
+        </FreshAuthProvider>
+      </FreshPrefs>,
     );
 
     fireEvent.change(screen.getByLabelText(/^email$/i), { target: { value: "reviewer@example.com" } });

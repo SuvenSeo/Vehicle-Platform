@@ -3,10 +3,12 @@ import { Link, Navigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Crown, Lock, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { revealContainer, revealItem, springSnappy } from "@/lib/motion";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { hasProAccess, isAuthenticated, logout, user } = useAuth();
+  const { t } = useAppPreferences();
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -27,18 +29,17 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
               <Lock className="h-3 w-3" /> Subscription required
             </span>
             <h1 className="mt-5 font-display text-[2rem] font-semibold tracking-tight text-foreground md:text-[2.5rem]">
-              Pro is locked.
+              {t("proGate.title", "Pro is locked.")}
             </h1>
             <p className="mt-3 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
-              {user?.name || "This account"} is on the {user?.plan || "free"} plan. Vehicle lane drill-downs,
-              district intelligence, and exports unlock with an active Pro subscription.
+              {user?.name || "This account"} is on the {user?.plan || "free"} plan. {t("proGate.body", "Lane intelligence, district profiles, and exports unlock with an active Pro subscription.")}
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <Link
                 to="/pro-preview"
                 className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-[10px] font-semibold text-foreground no-underline transition-colors hover:bg-foreground/[0.03] active:bg-foreground/[0.06]"
               >
-                <Sparkles className="h-3 w-3" /> Preview Pro
+                <Sparkles className="h-3 w-3" /> {t("proGate.preview", "Preview Pro")}
               </Link>
               <Link
                 to="/sign-in"
@@ -52,7 +53,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
                 onClick={logout}
                 className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:text-foreground"
               >
-                <LogOut className="h-3 w-3" /> Sign out
+                <LogOut className="h-3 w-3" /> {t("nav.signOut", "Sign out")}
               </button>
             </div>
           </motion.div>
@@ -72,7 +73,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary/60" />
                 <div>
                   <p className="text-[13px] font-semibold text-foreground">{item}</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">Locked until Pro subscription is active.</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{t("proGate.lockedHint", "Locked until Pro subscription is active.")}</p>
                 </div>
               </motion.div>
             ))}

@@ -727,7 +727,7 @@ export default function Dashboard() {
       {/* Market pulse showcase: curated proof-of-inventory above the grid */}
       <RevealSection className="border-t border-border">
         <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
-          <SectionHeader eyebrow="Market pulse" title={"What’s moving right now"} />
+          <SectionHeader eyebrow={t("home.marketPulse", "Market pulse")} title={t("home.whatsMoving", "What's moving right now")} />
           <div className="grid gap-10 lg:grid-cols-3">
 
             {/* Trending models */}
@@ -1021,7 +1021,7 @@ export default function Dashboard() {
       {/* ── MARKET PULSE ────────────────────────────────────────── */}
       <RevealSection className="border-t border-border">
         <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
-          <SectionHeader eyebrow="Deeper intelligence" title="Fuel mix, market signals & regional momentum" />
+          <SectionHeader eyebrow={t("home.deeperIntel", "Deeper intelligence")} title="Fuel mix, market signals & regional momentum" />
           <div className="space-y-6">
             <FuelMixStrip />
             <MarketSignalsStrip />

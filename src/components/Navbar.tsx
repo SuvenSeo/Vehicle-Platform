@@ -56,17 +56,17 @@ export function Navbar() {
 
   const moreSections = useMemo(
     () => [
-      { label: "Best Picks", href: "/best-picks", detail: "Strict deal-score shortlist" },
+      { label: t("nav.bestPicks", "Best Picks"), href: "/best-picks", detail: "Strict deal-score shortlist" },
       { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
       { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
-      { label: "Alerts", href: "/alerts", detail: "Saved listing watches" },
-      { label: "Settings", href: "/settings", detail: "Language and theme" },
+      { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: "Saved listing watches" },
+      { label: t("nav.settings", "Settings"), href: "/settings", detail: t("nav.settingsDetail", "Language and theme") },
       isAuthenticated
-        ? { label: "Pro Dashboard", href: "/pro", detail: "Paid market terminal" }
-        : { label: "Pro Preview", href: "/pro-preview", detail: "Locked analytics teaser" },
+        ? { label: t("nav.proDashboard", "Pro Dashboard"), href: "/pro", detail: t("nav.proDetail", "Paid market terminal") }
+        : { label: t("nav.proPreview", "Pro Preview"), href: "/pro-preview", detail: t("nav.proPreviewDetail", "Locked terminal layout") },
     ],
-    [isAuthenticated],
+    [isAuthenticated, t],
   );
 
   useEffect(() => {
@@ -334,7 +334,7 @@ export function Navbar() {
                     type="button"
                     onClick={handleLogout}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
-                    aria-label="Sign out"
+                    aria-label={t("nav.signOut", "Sign out")}
                   >
                     <LogOut className="h-3 w-3" />
                   </button>
@@ -433,7 +433,7 @@ export function Navbar() {
                   >
                     <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                       <Crown className="h-3 w-3" />
-                      Pro Dashboard
+                      {t("nav.proDashboard", "Pro Dashboard")}
                     </span>
                     <span className="text-[11px] font-medium text-primary/70">{user.name}</span>
                   </button>
@@ -443,7 +443,7 @@ export function Navbar() {
                     className="col-span-2 flex items-center gap-2 rounded-2xl border border-border px-3 py-2.5 text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
                   >
                     <LogOut className="h-3 w-3" />
-                    <span className="text-[12px] font-medium tracking-tight">Sign Out</span>
+                    <span className="text-[12px] font-medium tracking-tight">{t("nav.signOut", "Sign out")}</span>
                   </button>
                 </>
               ) : (

@@ -320,10 +320,34 @@ class DealerProfile(Base):
     seller_name_pattern = Column(String(120), nullable=True)
     claimed_url = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="pending")  # pending | verified
+    verified_at = Column(DateTime(timezone=True), nullable=True)
+    plan = Column(String(20), nullable=False, default="dealer")  # free | dealer | enterprise
+    subscription_status = Column(String(20), nullable=False, default="none")  # none|trialing|active|past_due|canceled
+    billing_email = Column(String(255), nullable=True)
+    current_period_end = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     __table_args__ = (
         Index("idx_dealer_profiles_claim_token", "claim_token"),
         Index("idx_dealer_profiles_status", "status"),
+    )
+
+
+class ImagePhashJob(Base):
+    """Background queue for perceptual-hash computation on listing thumbnails."""
+
+    __tablename__ = "image_phash_jobs"
+
+    id = Column(Integer, primary_key=True)
+    listing_id = Column(Integer, ForeignKey("car_listings.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")  # pending | processing | done | failed
+    attempts = Column(Integer, nullable=False, default=0)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_image_phash_jobs_status", "status", "id"),
+        Index("idx_image_phash_jobs_listing", "listing_id"),
     )

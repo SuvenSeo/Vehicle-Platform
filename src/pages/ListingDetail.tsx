@@ -24,6 +24,7 @@ import { AdvertHealthChip } from '@/components/AdvertHealthChip';
 import { ListingHistoryReport } from '@/components/ListingHistoryReport';
 import { ListingPriceTimeline } from '@/components/ListingPriceTimeline';
 import { inferFinanceClass } from '@/lib/cashToOwn';
+import { useAppPreferences } from '@/lib/appPreferences';
 import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
 import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
@@ -36,6 +37,7 @@ function formatToken(value: string | null | undefined): string {
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useAppPreferences();
   const [listing, setListing] = useState<CarListing | null>(null);
   const [similar, setSimilar] = useState<CarListing[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerTrustProfile | null>(null);
@@ -464,7 +466,7 @@ export default function ListingDetail() {
               {fmvSummary && (
                 <div className="mt-3 rounded-xl border border-border bg-surface px-3.5 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                    Fair market value
+                    {t("listing.fmv", "Fair market value")}
                   </p>
                   <p
                     className={`mt-1 text-[13px] font-bold ${
@@ -496,7 +498,7 @@ export default function ListingDetail() {
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
               <div className="mb-3.5 flex items-center gap-2 border-b border-border pb-2.5">
                 <ShieldCheck aria-hidden className="h-4 w-4 text-primary" />
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Seller information</h2>
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.sellerInfo", "Seller information")}</h2>
               </div>
 
               <div className="flex items-start justify-between gap-3">
@@ -543,7 +545,7 @@ export default function ListingDetail() {
             {/* Peers */}
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
               <div className="mb-3.5 flex items-center justify-between border-b border-border pb-2.5">
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Market peers</h2>
+                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.marketPeers", "Market peers")}</h2>
                 <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
               </div>
 

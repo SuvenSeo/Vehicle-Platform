@@ -50,3 +50,35 @@ def test_claim_dealer_profile_creates_token_and_matches():
     assert result.claim_token
     assert result.matched_listings == 1
     assert db.query(DealerProfile).count() == 1
+
+
+def test_verify_dealer_requires_admin_token(monkeypatch):
+    db = _session()
+    monkeypatch.setenv("DEALER_ADMIN_TOKEN", "ops-secret")
+    claimed = dealer.claim_dealer_profile(
+        dealer.DealerClaimRequest(display_name="Yard One", seller_name_pattern="Yard"),
+        db=db,
+    )
+    try:
+        dealer.verify_dealer_profile(
+            dealer.DealerVerifyRequest(claim_token=claimed.claim_token, admin_token="wrong"),
+            db=db,
+        )
+        assert False, "expected 403"
+    except Exception as exc:
+        assert getattr(exc, "status_code", None) == 403
+
+    verified = dealer.verify_dealer_profile(
+        dealer.DealerVerifyRequest(
+            claim_token=claimed.claim_token,
+            admin_token="ops-secret",
+            plan="dealer",
+            subscription_status="active",
+            billing_email="billing@yard.lk",
+        ),
+        db=db,
+    )
+    assert verified.status == "verified"
+    assert verified.subscription_status == "active"
+    assert verified.billing_email == "billing@yard.lk"
+    assert verified.verified_at is not None
