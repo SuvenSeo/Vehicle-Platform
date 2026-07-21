@@ -13,6 +13,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const SITE = BRAND.siteName;
 const ORIGIN = BRAND.origin;
@@ -25,6 +26,7 @@ function toTitleCase(str: string): string {
 }
 
 export default function MakeHub() {
+  const { t } = useAppPreferences();
   const { make: makeParam = "" } = useParams<{ make: string }>();
   const makeDisplay = toTitleCase(decodeURIComponent(makeParam));
 
@@ -93,7 +95,7 @@ export default function MakeHub() {
     <PageCanvas>
       <PageHero
         theme="default"
-        eyebrow="Make hub"
+        eyebrow={t("makeHub.eyebrow", "Make hub")}
         eyebrowIcon={Car}
         watermarkIcon={BarChart2}
         title={isPending ? makeDisplay : canonicalMake}
@@ -105,15 +107,15 @@ export default function MakeHub() {
           <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft sm:grid-cols-3">
             {[
               {
-                label: "Live listings",
+                label: t("makeHub.liveListings", "Live listings"),
                 value: isPending ? "…" : insight ? insight.total.toLocaleString() : "N/A",
               },
               {
-                label: "Average price",
+                label: t("makeHub.avgPrice", "Average price"),
                 value: isPending ? "…" : formatPrice(insight?.avg_price_lkr ?? null),
               },
               {
-                label: "Median price",
+                label: t("makeHub.medianPrice", "Median price"),
                 value: isPending ? "…" : formatPrice(insight?.median_price_lkr ?? null),
               },
             ].map((card) => (

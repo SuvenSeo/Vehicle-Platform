@@ -163,6 +163,7 @@ interface CreateAlertFormProps {
 }
 
 function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
+  const { t } = useAppPreferences();
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [district, setDistrict] = useState("");
@@ -248,7 +249,7 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
         </div>
         <div className="col-span-2">
           <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
-            WhatsApp (optional)
+            {t("alerts.notifyWhatsapp", "WhatsApp (optional)")}
           </label>
           <Input
             id="alert-whatsapp"
@@ -365,7 +366,7 @@ export default function Alerts() {
               Your watchlist
             </p>
             <h2 id="active-alerts-heading" className="display-2 text-foreground">
-              Active alerts
+              {t("alerts.active", "Active alerts")}
             </h2>
           </div>
           {!loading && (
