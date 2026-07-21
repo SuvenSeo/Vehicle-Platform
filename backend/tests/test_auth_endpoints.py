@@ -49,7 +49,7 @@ def test_login_rejected_when_not_configured(monkeypatch):
     monkeypatch.delenv("AUTH_USERS", raising=False)
 
     with pytest.raises(HTTPException) as excinfo:
-        auth.login(auth.LoginRequest(email="a@b.com", password="x"), DummyRequest())
+        auth.login(auth.LoginRequest(email="a@b.com", password="x"), DummyRequest(), __import__("fastapi").Response())
 
     assert excinfo.value.status_code == 503
 
@@ -57,7 +57,14 @@ def test_login_rejected_when_not_configured(monkeypatch):
 def test_login_success_returns_signed_token_and_user(monkeypatch):
     _configure(monkeypatch)
 
-    result = auth.login(auth.LoginRequest(email="OWNER@example.com", password="correct-horse"), DummyRequest())
+    from fastapi import Response
+
+    response = Response()
+    result = auth.login(
+        auth.LoginRequest(email="OWNER@example.com", password="correct-horse"),
+        DummyRequest(),
+        response,
+    )
 
     assert result["user"]["email"] == "owner@example.com"
     assert result["user"]["plan"] == "enterprise"
@@ -67,16 +74,49 @@ def test_login_success_returns_signed_token_and_user(monkeypatch):
     assert payload is not None
     assert payload["email"] == "owner@example.com"
     assert payload["subscription_status"] == "active"
+    # HttpOnly session cookie mirrors the token for XSS-resistant auth.
+    set_cookie = response.headers.get("set-cookie", "")
+    assert auth.SESSION_COOKIE_NAME in set_cookie
+    assert "HttpOnly" in set_cookie
 
 
 def test_login_rejects_wrong_password(monkeypatch):
     _configure(monkeypatch)
 
+    from fastapi import Response
+
     with pytest.raises(HTTPException) as excinfo:
-        auth.login(auth.LoginRequest(email="owner@example.com", password="wrong"), DummyRequest())
+        auth.login(
+            auth.LoginRequest(email="owner@example.com", password="wrong"),
+            DummyRequest(),
+            Response(),
+        )
 
     assert excinfo.value.status_code == 401
 
+
+def test_pro_gate_accepts_session_cookie(monkeypatch):
+    _configure(monkeypatch, plan="enterprise")
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+
+    token, _ = auth.issue_token("owner@example.com", "enterprise")
+
+    class CookieRequest:
+        headers = {"user-agent": "pytest"}
+        client = type("Client", (), {"host": "127.0.0.1"})()
+        cookies = {auth.SESSION_COOKIE_NAME: token}
+
+    assert auth.require_pro_access(request=CookieRequest(), authorization=None) is None
+
+
+def test_logout_clears_session_cookie(monkeypatch):
+    from fastapi import Response
+
+    response = Response()
+    auth.logout(response)
+    set_cookie = response.headers.get("set-cookie", "")
+    assert auth.SESSION_COOKIE_NAME in set_cookie
+    assert "Max-Age=0" in set_cookie or "max-age=0" in set_cookie.lower()
 
 def test_verify_token_rejects_tampered_and_expired_tokens(monkeypatch):
     _configure(monkeypatch)
@@ -124,6 +164,7 @@ def test_sha256_credentials_are_rejected(monkeypatch):
         auth.login(
             auth.LoginRequest(email="legacy@example.com", password="correct-horse"),
             DummyRequest(),
+            __import__("fastapi").Response(),
         )
     # The legacy entry has no usable hash, so auth reports not-configured (503)
     # rather than accepting the weak credential.
@@ -151,7 +192,11 @@ def test_pro_gate_rejects_inactive_subscription(monkeypatch):
     _configure(monkeypatch, plan="enterprise", subscription_status="past_due")
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
 
-    result = auth.login(auth.LoginRequest(email="owner@example.com", password="correct-horse"), DummyRequest())
+    result = auth.login(
+        auth.LoginRequest(email="owner@example.com", password="correct-horse"),
+        DummyRequest(),
+        __import__("fastapi").Response(),
+    )
 
     with pytest.raises(HTTPException) as inactive_subscription:
         auth.require_pro_access(authorization=f"Bearer {result['token']}")

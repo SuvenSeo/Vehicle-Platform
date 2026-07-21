@@ -129,6 +129,7 @@ async function loginWithBackend(email: string, password: string): Promise<AuthUs
 
   const response = await fetch(new URL(`${API_BASE}/auth/login`, window.location.origin).toString(), {
     method: "POST",
+    credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -141,6 +142,7 @@ async function loginWithBackend(email: string, password: string): Promise<AuthUs
   }
 
   const data = (await response.json().catch(() => ({}))) as LoginResponse;
+  // Bearer remains for CSRF-safe Pro writes; HttpOnly cookie is also set by the API.
   storeAuthToken(data.token || null);
   return normalizeServerUser(data.user, email);
 }
@@ -192,6 +194,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
     storeAuthToken(null);
+    if (BACKEND_AUTH_ENABLED) {
+      void fetch(new URL(`${API_BASE}/auth/logout`, window.location.origin).toString(), {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      }).catch(() => {
+        // Cookie clear is best-effort — local state is already wiped.
+      });
+    }
   }, []);
 
   return (
