@@ -117,6 +117,7 @@ function ClaimYardCard() {
   const [profile, setProfile] = useState<DealerClaimProfile | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [pattern, setPattern] = useState("");
+  const [claimedUrl, setClaimedUrl] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +130,7 @@ function ClaimYardCard() {
         setProfile(data);
         setDisplayName(data.display_name);
         setPattern(data.seller_name_pattern || "");
+        setClaimedUrl(data.claimed_url || "");
         setPhone(data.contact_phone || "");
       })
       .catch(() => {
@@ -147,6 +149,7 @@ function ClaimYardCard() {
       const data = await claimDealerProfile({
         display_name: displayName.trim(),
         seller_name_pattern: pattern.trim() || undefined,
+        claimed_url: claimedUrl.trim() || undefined,
         contact_phone: phone.trim() || undefined,
         claim_token: getStoredDealerClaimToken() || undefined,
       });
@@ -175,7 +178,7 @@ function ClaimYardCard() {
           </span>
         )}
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="dealer-name" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
             Yard / brand name
@@ -198,6 +201,19 @@ function ClaimYardCard() {
             onChange={(e) => setPattern(e.target.value)}
             className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground"
             placeholder="Auto Hub LK"
+          />
+        </div>
+        <div>
+          <label htmlFor="dealer-url" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+            Listing / yard URL
+          </label>
+          <input
+            id="dealer-url"
+            value={claimedUrl}
+            onChange={(e) => setClaimedUrl(e.target.value)}
+            className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground"
+            placeholder="https://ikman.lk/en/shops/..."
+            inputMode="url"
           />
         </div>
         <div>
