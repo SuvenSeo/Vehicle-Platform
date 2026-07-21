@@ -2,6 +2,9 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Scraping is owned by GitHub Actions in production. Keep the API container
+# from starting a second in-process scheduler unless explicitly overridden.
+ENV DAILY_SYNC_ENABLED=false
 
 WORKDIR /app
 
