@@ -54,6 +54,7 @@ def create_alert(
         model=(payload.model or "").strip() or None,
         max_price=payload.max_price if payload.max_price and payload.max_price > 0 else None,
         district=(payload.district or "").strip() or None,
+        notify_phone=(payload.notify_phone or "").strip() or None,
     )
     db.add(alert)
     db.commit()

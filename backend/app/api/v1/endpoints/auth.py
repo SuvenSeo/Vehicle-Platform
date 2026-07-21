@@ -24,7 +24,7 @@ import time
 from typing import Optional
 import bcrypt
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from app.services.rate_limit import RateLimiter
@@ -32,6 +32,7 @@ from app.services.rate_limit import RateLimiter
 router = APIRouter()
 
 TOKEN_TTL_SECONDS_DEFAULT = 7 * 24 * 3600
+SESSION_COOKIE_NAME = "mm_session"
 ALLOWED_PLANS = {"free", "pro", "enterprise"}
 ALLOWED_SUBSCRIPTION_STATUSES = {"none", "trialing", "active", "past_due", "canceled"}
 PRO_PLANS = {"pro", "enterprise"}
@@ -194,8 +195,57 @@ def _user_response(record: dict) -> dict:
     }
 
 
+def _cookie_secure() -> bool:
+    return os.getenv("AUTH_COOKIE_SECURE", "true").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _cookie_samesite() -> str:
+    raw = os.getenv("AUTH_COOKIE_SAMESITE", "none").strip().lower()
+    if raw in {"lax", "strict", "none"}:
+        return raw
+    return "none"
+
+
+def _extract_token(
+    authorization: Optional[str] = None,
+    request: Optional[Request] = None,
+) -> str:
+    """Prefer Authorization Bearer, then fall back to the HttpOnly session cookie."""
+    bearer = (authorization or "").removeprefix("Bearer ").strip()
+    if bearer:
+        return bearer
+    if request is not None:
+        cookie = str(request.cookies.get(SESSION_COOKIE_NAME) or "").strip()
+        if cookie:
+            return cookie
+    return ""
+
+
+def _set_session_cookie(response: Response, token: str, expires_at: int) -> None:
+    max_age = max(60, int(expires_at - time.time()))
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite=_cookie_samesite(),
+        max_age=max_age,
+        path="/",
+    )
+
+
+def _clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        secure=_cookie_secure(),
+        httponly=True,
+        samesite=_cookie_samesite(),
+    )
+
+
 @router.post("/login", response_model=dict)
-def login(payload: LoginRequest, request: Request):
+def login(payload: LoginRequest, request: Request, response: Response):
     _login_rate_limiter(request)
 
     if not auth_is_configured():
@@ -208,6 +258,7 @@ def login(payload: LoginRequest, request: Request):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     token, expires_at = issue_token(record["email"], record["plan"], record["subscription_status"])
+    _set_session_cookie(response, token, expires_at)
     return {
         "user": _user_response(record),
         "token": token,
@@ -215,11 +266,16 @@ def login(payload: LoginRequest, request: Request):
     }
 
 
+@router.post("/logout", response_model=dict)
+def logout(response: Response):
+    _clear_session_cookie(response)
+    return {"ok": True}
+
 
 @router.get("/me", response_model=dict)
 def me(request: Request, authorization: Optional[str] = Header(default=None)):
     _me_rate_limiter(request)
-    token = (authorization or "").removeprefix("Bearer ").strip()
+    token = _extract_token(authorization, request)
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
@@ -235,13 +291,21 @@ def pro_access_enforced() -> bool:
     return os.getenv("PRO_ACCESS_ENFORCED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
-def require_pro_access(authorization: Optional[str] = Header(default=None)) -> None:
+def require_pro_access(
+    request: Optional[Request] = None,
+    authorization: Optional[str] = Header(default=None),
+) -> None:
     """Gate for /pro/* — requires a valid pro/enterprise token unless
-    PRO_ACCESS_ENFORCED=false explicitly opts out (local dev only)."""
+    PRO_ACCESS_ENFORCED=false explicitly opts out (local dev only).
+
+    Accepts Authorization Bearer *or* the HttpOnly ``mm_session`` cookie.
+    Mutating clients should still send Bearer (or another custom header) so
+    cross-site cookie CSRF cannot alone unlock Pro writes.
+    """
     if not pro_access_enforced():
         return
 
-    token = (authorization or "").removeprefix("Bearer ").strip()
+    token = _extract_token(authorization, request)
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Pro access requires a valid session token.")

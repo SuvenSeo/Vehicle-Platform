@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Bell, BellOff, ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { loadMarketAlerts } from "@/lib/marketAlerts";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { matchAlerts, formatPrice, type AlertMatchResponse, type ServerMarketAlert } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,14 +153,22 @@ function AlertMatchSection({ token }: { token: string }) {
 interface CreateAlertFormProps {
   onCreated: () => void;
   token: string;
-  onCreate: (data: { make?: string; model?: string; district?: string; max_price?: number }) => Promise<unknown>;
+  onCreate: (data: {
+    make?: string;
+    model?: string;
+    district?: string;
+    max_price?: number;
+    notify_phone?: string;
+  }) => Promise<unknown>;
 }
 
 function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
+  const { t } = useAppPreferences();
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [district, setDistrict] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -179,8 +188,9 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
         model: model.trim() || undefined,
         district: district.trim() || undefined,
         max_price: Number.isFinite(price) && price > 0 ? price : undefined,
+        notify_phone: notifyPhone.trim() || undefined,
       });
-      setMake(""); setModel(""); setDistrict(""); setMaxPrice("");
+      setMake(""); setModel(""); setDistrict(""); setMaxPrice(""); setNotifyPhone("");
       setOpen(false);
       onCreated();
     } catch (err) {
@@ -188,7 +198,7 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
     } finally {
       setSaving(false);
     }
-  }, [make, model, district, maxPrice, onCreate, onCreated]);
+  }, [make, model, district, maxPrice, notifyPhone, onCreate, onCreated]);
 
   if (!open) {
     return (
@@ -236,6 +246,22 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
             placeholder="5000000"
             className="num h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
           />
+        </div>
+        <div className="col-span-2">
+          <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+            {t("alerts.notifyWhatsapp", "WhatsApp (optional)")}
+          </label>
+          <Input
+            id="alert-whatsapp"
+            value={notifyPhone}
+            onChange={(e) => setNotifyPhone(e.target.value)}
+            placeholder="0771234567"
+            inputMode="tel"
+            className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
+          />
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Get a WhatsApp ping when new matches appear (requires Twilio on the server).
+          </p>
         </div>
       </div>
       {formError && (
@@ -304,6 +330,7 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
 }
 
 export default function Alerts() {
+  const { t } = useAppPreferences();
   const { alerts, loading, error, token, refresh, create, remove } = useServerMarketAlerts();
 
   const localAlerts = loadMarketAlerts();
@@ -316,8 +343,8 @@ export default function Alerts() {
         eyebrow="Market watch"
         eyebrowIcon={Bell}
         watermarkIcon={Bell}
-        title={<>Market Alerts</>}
-        description="Get notified when vehicles matching your criteria appear on the market."
+        title={<>{t("alerts.title", "Market Alerts")}</>}
+        description={t("alerts.description", "Get notified when vehicles matching your criteria appear on the market.")}
         highlights={[
           { label: "Active", value: String(alerts.length), hint: "Saved alert rules" },
           { label: "Matches", value: "Live", hint: "Scan against inventory" },
@@ -339,7 +366,7 @@ export default function Alerts() {
               Your watchlist
             </p>
             <h2 id="active-alerts-heading" className="display-2 text-foreground">
-              Active alerts
+              {t("alerts.active", "Active alerts")}
             </h2>
           </div>
           {!loading && (

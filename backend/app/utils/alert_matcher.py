@@ -18,6 +18,11 @@ import structlog
 from sqlalchemy.orm import Session
 
 from db.models import CarListing, MarketAlert, MarketAlertMatch, live_listing_filter
+from app.utils.notify_whatsapp import (
+    build_alert_match_message,
+    send_whatsapp_alert,
+    whatsapp_notify_configured,
+)
 
 log = structlog.get_logger()
 
@@ -64,6 +69,8 @@ def run_alert_match_pass(db: Session) -> dict:
     now = datetime.now(timezone.utc)
     total_matches = 0
     errors = 0
+    whatsapp_sent = 0
+    notify_enabled = whatsapp_notify_configured()
 
     for alert in alerts:
         try:
@@ -75,6 +82,7 @@ def run_alert_match_pass(db: Session) -> dict:
                 .filter(MarketAlertMatch.alert_id == alert.id)
                 .first()
             )
+            previous_count = int(existing.match_count) if existing is not None else 0
             if existing is None:
                 db.add(
                     MarketAlertMatch(
@@ -86,6 +94,23 @@ def run_alert_match_pass(db: Session) -> dict:
             else:
                 existing.match_count = count
                 existing.last_matched_at = now
+
+            # Fire WhatsApp only when the match count increases (new inventory).
+            if (
+                notify_enabled
+                and alert.notify_phone
+                and count > previous_count
+            ):
+                delta = count - previous_count
+                body = build_alert_match_message(
+                    make=alert.make,
+                    model=alert.model,
+                    district=alert.district,
+                    max_price=float(alert.max_price) if alert.max_price is not None else None,
+                    match_count=delta,
+                )
+                if send_whatsapp_alert(to_phone=str(alert.notify_phone), body=body):
+                    whatsapp_sent += 1
 
             log.debug(
                 "alert_match",
@@ -105,6 +130,7 @@ def run_alert_match_pass(db: Session) -> dict:
     summary = {
         "alerts_checked": len(alerts),
         "total_matches": total_matches,
+        "whatsapp_sent": whatsapp_sent,
         "errors": errors,
         "elapsed_seconds": elapsed,
     }

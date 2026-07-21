@@ -6,11 +6,16 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 import { AlertTriangle, BarChart3, Bell, ChevronDown, ChevronUp, RefreshCw, ShieldCheck, Upload } from "lucide-react";
 import {
   benchmarkDealerUrls,
+  claimDealerProfile,
   formatPrice,
   getDashboardInsights,
+  getDealerProfile,
   getDistrictPrices,
   getProMarketSnapshot,
   getStats,
+  getStoredDealerClaimToken,
+  storeDealerClaimToken,
+  type DealerClaimProfile,
 } from "@/services/api";
 import type { UrlBenchmarkResult } from "@/services/api";
 import { getStoredAuthToken } from "@/lib/authToken";
@@ -106,6 +111,119 @@ function gapTone(pct: number | null): string {
   if (pct <= -5) return "text-emerald-600 dark:text-emerald-400";
   if (pct >= 5) return "text-rose-600 dark:text-rose-400";
   return "text-amber-600 dark:text-amber-400";
+}
+
+function ClaimYardCard() {
+  const [profile, setProfile] = useState<DealerClaimProfile | null>(null);
+  const [displayName, setDisplayName] = useState("");
+  const [pattern, setPattern] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = getStoredDealerClaimToken();
+    if (!token) return;
+    void getDealerProfile(token)
+      .then((data) => {
+        setProfile(data);
+        setDisplayName(data.display_name);
+        setPattern(data.seller_name_pattern || "");
+        setPhone(data.contact_phone || "");
+      })
+      .catch(() => {
+        storeDealerClaimToken(null);
+      });
+  }, []);
+
+  const handleClaim = async () => {
+    if (!displayName.trim()) {
+      setError("Yard / seller name is required.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const data = await claimDealerProfile({
+        display_name: displayName.trim(),
+        seller_name_pattern: pattern.trim() || undefined,
+        contact_phone: phone.trim() || undefined,
+        claim_token: getStoredDealerClaimToken() || undefined,
+      });
+      storeDealerClaimToken(data.claim_token);
+      setProfile(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Claim failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Claim your yard</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-tight text-foreground">Dealer profile</h2>
+          <p className="mt-1 max-w-xl text-[12px] text-muted-foreground">
+            Claim a seller name so Motormila can match your live inventory and show pricing vs market.
+          </p>
+        </div>
+        {profile && (
+          <span className="rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+            {profile.status} · {profile.matched_listings} matched
+          </span>
+        )}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div>
+          <label htmlFor="dealer-name" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+            Yard / brand name
+          </label>
+          <input
+            id="dealer-name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground"
+            placeholder="Colombo Auto Hub"
+          />
+        </div>
+        <div>
+          <label htmlFor="dealer-pattern" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+            Seller name on ads
+          </label>
+          <input
+            id="dealer-pattern"
+            value={pattern}
+            onChange={(e) => setPattern(e.target.value)}
+            className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground"
+            placeholder="Auto Hub LK"
+          />
+        </div>
+        <div>
+          <label htmlFor="dealer-phone" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+            WhatsApp / phone
+          </label>
+          <input
+            id="dealer-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground"
+            placeholder="0771234567"
+          />
+        </div>
+      </div>
+      {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
+      <button
+        type="button"
+        onClick={() => void handleClaim()}
+        disabled={saving}
+        className="mt-4 inline-flex h-9 items-center rounded-full bg-primary px-4 text-[11px] font-bold text-white disabled:opacity-40"
+      >
+        {saving ? "Saving…" : profile ? "Update claim" : "Claim profile"}
+      </button>
+    </section>
+  );
 }
 
 function InventoryBenchmark() {
@@ -392,6 +510,10 @@ export default function DealerDashboard() {
             </div>
           </div>
         ) : null}
+
+        <div className="mb-6">
+          <ClaimYardCard />
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-[268px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">

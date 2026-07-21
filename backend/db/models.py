@@ -239,6 +239,8 @@ class MarketAlert(Base):
     model = Column(String(100), nullable=True)
     max_price = Column(Numeric(15, 2), nullable=True)
     district = Column(String(50), nullable=True)
+    # Optional E.164 / local mobile for Twilio WhatsApp match notifications.
+    notify_phone = Column(String(32), nullable=True)
     active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -302,4 +304,26 @@ class VehiclePriceHistory(Base):
 
     __table_args__ = (
         Index('idx_vehicle_price_history_lookup', 'vehicle_id', 'scraped_at'),
+    )
+
+
+class DealerProfile(Base):
+    """Lightweight claimed dealer yard / seller identity."""
+
+    __tablename__ = "dealer_profiles"
+
+    id = Column(Integer, primary_key=True)
+    claim_token = Column(String(64), nullable=False, unique=True)
+    display_name = Column(String(120), nullable=False)
+    contact_phone = Column(String(32), nullable=True)
+    contact_email = Column(String(255), nullable=True)
+    seller_name_pattern = Column(String(120), nullable=True)
+    claimed_url = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending | verified
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_dealer_profiles_claim_token", "claim_token"),
+        Index("idx_dealer_profiles_status", "status"),
     )

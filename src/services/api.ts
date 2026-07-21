@@ -927,6 +927,7 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
     try {
       const response = await fetch(url.toString(), {
         headers: { 'Accept': 'application/json', ...(headers || {}) },
+        credentials: headers && "Authorization" in headers ? "include" : "same-origin",
         signal: controller.signal,
       });
 
@@ -962,6 +963,7 @@ async function postJSON<T>(path: string, body: Record<string, unknown>, headers?
 
   const response = await fetch(new URL(`${API_BASE}${path}`, window.location.origin).toString(), {
     method: "POST",
+    credentials: headers && "Authorization" in headers ? "include" : "same-origin",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -1753,6 +1755,7 @@ export interface AlertCreateInput {
   model?: string;
   max_price?: number;
   district?: string;
+  notify_phone?: string;
 }
 
 export interface ServerMarketAlert {
@@ -1762,6 +1765,7 @@ export interface ServerMarketAlert {
   model: string | null;
   max_price: number | null;
   district: string | null;
+  notify_phone?: string | null;
   active: boolean;
   created_at: string;
 }
@@ -1931,6 +1935,52 @@ export const benchmarkDealerUrls = async (
 ): Promise<UrlBenchmarkResult[]> => {
   const data = await postJSON<UrlBenchmarkResult[]>("/dealer/benchmark-urls", { urls });
   return Array.isArray(data) ? data : [];
+};
+
+export interface DealerClaimProfile {
+  id: number;
+  claim_token: string;
+  display_name: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+  seller_name_pattern: string | null;
+  claimed_url: string | null;
+  status: string;
+  matched_listings: number;
+}
+
+const DEALER_CLAIM_TOKEN_KEY = "motormila.dealer_claim_token.v1";
+
+export function getStoredDealerClaimToken(): string | null {
+  try {
+    return window.localStorage.getItem(DEALER_CLAIM_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function storeDealerClaimToken(token: string | null): void {
+  try {
+    if (token) window.localStorage.setItem(DEALER_CLAIM_TOKEN_KEY, token);
+    else window.localStorage.removeItem(DEALER_CLAIM_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export const claimDealerProfile = async (payload: {
+  display_name: string;
+  contact_phone?: string;
+  contact_email?: string;
+  seller_name_pattern?: string;
+  claimed_url?: string;
+  claim_token?: string;
+}): Promise<DealerClaimProfile> => {
+  return postJSON<DealerClaimProfile>("/dealer/claim", payload);
+};
+
+export const getDealerProfile = async (claimToken: string): Promise<DealerClaimProfile> => {
+  return fetchJSON<DealerClaimProfile>("/dealer/me", { claim_token: claimToken });
 };
 
 export const sendChatMessage = async (

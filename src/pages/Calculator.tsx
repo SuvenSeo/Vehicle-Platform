@@ -23,6 +23,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
+import { useAppPreferences } from "@/lib/appPreferences";
 import {
   consumeSurchargeLapseNotification,
   isSurchargeNotifySubscribed,
@@ -79,6 +80,7 @@ const itemVariants = {
 } as const;
 
 export default function Calculator() {
+  const { t } = useAppPreferences();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const raw = searchParams.get("tab") as TabType | null;
@@ -294,7 +296,7 @@ export default function Calculator() {
         eyebrow="Motormila Intelligence Hub"
         eyebrowIcon={Compass}
         watermarkIcon={Banknote}
-        title={<>Mobility &amp; Tax Calculators<span className="text-sheen">.</span></>}
+        title={<>{t("calc.title", "Mobility & Tax Calculators")}<span className="text-sheen">.</span></>}
         description="Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves."
         highlights={[
           { label: "Import duty", value: "Live", hint: "Gazette-aligned landed cost" },
@@ -307,7 +309,7 @@ export default function Calculator() {
       <motion.div variants={itemVariants} className="flex max-w-[1320px] flex-nowrap items-center gap-3 pb-6">
         <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-full border border-border bg-card p-1.5 shadow-soft snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
           {[
-            { id: "landed-cost", label: "Landed Cost", icon: Banknote },
+            { id: "landed-cost", label: t("calc.tab.landed", "Landed Cost"), icon: Banknote },
             { id: "lease", label: "Lease Scenario", icon: WalletCards },
             { id: "tco", label: "Ownership TCO", icon: Gauge },
             { id: "permits", label: "Permit Tracker", icon: FileText },
@@ -385,12 +387,12 @@ export default function Calculator() {
                       {surchargeNotifyOn ? (
                         <>
                           <BellOff className="h-3.5 w-3.5" aria-hidden />
-                          Reminder on — tap to clear
+                          {t("calc.reminderOn", "Reminder on — tap to clear")}
                         </>
                       ) : (
                         <>
                           <Bell className="h-3.5 w-3.5" aria-hidden />
-                          Notify me when the surcharge drops
+                          {t("calc.notifySurcharge", "Notify me when the surcharge drops")}
                         </>
                       )}
                     </button>

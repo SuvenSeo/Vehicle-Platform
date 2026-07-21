@@ -2025,6 +2025,43 @@ def get_listing_thumbnail_proxy(listing_id: int, db: Session = Depends(get_db)):
         headers={"Cache-Control": "public, max-age=1800"},
     )
 
+@router.get("/{listing_id}/fmv")
+def get_listing_fmv(listing_id: int, db: Session = Depends(get_db)):
+    """Fair Market Value snapshot for a listing (cohort median + ask delta)."""
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+
+    asking = float(listing.price_lkr) if listing.price_lkr is not None else None
+    fmv = float(listing.market_median_lkr) if listing.market_median_lkr is not None else None
+    deal_score = float(listing.deal_score) if listing.deal_score is not None else None
+
+    band = None
+    delta_pct = None
+    label = None
+    if asking is not None and fmv is not None and asking > 0 and fmv > 0:
+        delta_pct = round(((asking - fmv) / fmv) * 100, 2)
+        if delta_pct <= -5:
+            band = "below"
+            label = f"Priced {abs(delta_pct):.0f}% below FMV"
+        elif delta_pct >= 8:
+            band = "above"
+            label = f"Overpriced {abs(delta_pct):.0f}% vs FMV"
+        else:
+            band = "fair"
+            label = "Near fair market value"
+
+    return {
+        "listing_id": listing_id,
+        "asking_lkr": asking,
+        "fmv_lkr": fmv,
+        "deal_score": deal_score,
+        "delta_pct": delta_pct,
+        "band": band,
+        "label": label,
+    }
+
+
 @router.get("/{listing_id}/price-history", response_model=PriceHistoryResponse)
 def get_listing_price_history(listing_id: int, db: Session = Depends(get_db)):
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()

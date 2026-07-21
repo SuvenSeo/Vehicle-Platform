@@ -443,6 +443,7 @@ class MarketAlertCreate(BaseModel):
     model: Optional[str] = Field(default=None, max_length=100)
     max_price: Optional[float] = Field(default=None, gt=0)
     district: Optional[str] = Field(default=None, max_length=50)
+    notify_phone: Optional[str] = Field(default=None, max_length=32)
 
 
 class MarketAlertRead(BaseModel):
@@ -452,6 +453,7 @@ class MarketAlertRead(BaseModel):
     model: Optional[str] = None
     max_price: Optional[Decimal] = None
     district: Optional[str] = None
+    notify_phone: Optional[str] = None
     active: bool
     created_at: datetime
 

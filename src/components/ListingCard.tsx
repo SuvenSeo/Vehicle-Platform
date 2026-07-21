@@ -13,6 +13,7 @@ import {
 } from "@/lib/listing-card-meta";
 import { HybridCliffBadge } from "@/components/HybridCliffBadge";
 import { MileageTrustChip } from "@/components/MileageTrustChip";
+import { summarizeFmv } from "@/lib/fmv";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -78,6 +79,9 @@ export const ListingCard = memo(function ListingCard({
     hasKnownPrice && Number.isFinite(listing.market_median_lkr) && Number(listing.market_median_lkr) > 0
       ? (((priceValue - Number(listing.market_median_lkr)) / Number(listing.market_median_lkr)) * 100)
       : null;
+  const fmv = hasKnownPrice
+    ? summarizeFmv(priceValue, Number(listing.market_median_lkr || 0))
+    : null;
   const marketPosition = marketDeltaPct === null ? 50 : clamp(50 - marketDeltaPct, 8, 92);
   const listingTitle = `${listing.make} ${listing.model} ${listing.variant || ""}`.trim();
 
@@ -197,20 +201,37 @@ export const ListingCard = memo(function ListingCard({
 
           {/* Market position bar */}
           <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Market position</p>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                Fair market value
+              </p>
               <p className={`text-[11px] font-semibold num ${
-                marketDeltaPct === null ? "text-muted-foreground" : marketDeltaPct <= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                fmv == null
+                  ? "text-muted-foreground"
+                  : fmv.band === "below"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : fmv.band === "above"
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-foreground"
               }`}>
-                {marketDeltaPct === null
-                  ? "Pending"
-                  : `${Math.abs(marketDeltaPct).toFixed(1)}% ${marketDeltaPct <= 0 ? "below" : "above"}`}
+                {fmv == null ? "Pending" : fmv.label}
               </p>
             </div>
+            {fmv != null && (
+              <p className="mb-2 text-[10px] font-medium text-muted-foreground num">
+                FMV {formatPrice(fmv.fmv_lkr)}
+              </p>
+            )}
             <div className="relative h-1.5 overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
                 className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
-                  marketDeltaPct === null ? "bg-muted-foreground/50" : marketDeltaPct <= 0 ? "bg-emerald-500" : "bg-rose-500"
+                  fmv == null
+                    ? "bg-muted-foreground/50"
+                    : fmv.band === "below"
+                      ? "bg-emerald-500"
+                      : fmv.band === "above"
+                        ? "bg-rose-500"
+                        : "bg-primary"
                 }`}
                 style={{ width: `${marketPosition}%` }}
               />

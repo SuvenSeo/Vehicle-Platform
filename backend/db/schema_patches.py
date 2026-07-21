@@ -17,6 +17,11 @@ _CAR_LISTING_COLUMN_PATCHES = (
     ("content_updated_at", "TIMESTAMPTZ", "DATETIME"),
 )
 
+# (table, column, postgres type, sqlite type) — non-car_listings additive columns
+_TABLE_COLUMN_PATCHES = (
+    ("market_alerts", "notify_phone", "VARCHAR(32)", "VARCHAR(32)"),
+)
+
 # (index_name, table_name, columns SQL fragment)
 # Best-effort only: bounded timeouts + fail-open. Never use CONCURRENTLY here —
 # these run inside a transaction with SET LOCAL, and CONCURRENTLY is not used
@@ -119,6 +124,30 @@ def apply_schema_patches(engine: Engine) -> None:
             log.warning(
                 "schema_patch_failed",
                 table="car_listings",
+                column=column_name,
+                error=str(exc),
+            )
+
+    for table_name, column_name, pg_type, sqlite_type in _TABLE_COLUMN_PATCHES:
+        if _column_exists(engine, table_name, column_name):
+            continue
+        if dialect == "postgresql":
+            sql = (
+                f"ALTER TABLE {table_name} "
+                f"ADD COLUMN IF NOT EXISTS {column_name} {pg_type}"
+            )
+        else:
+            # SQLite cannot ADD COLUMN IF NOT EXISTS on older versions — fail open.
+            sql = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {sqlite_type}"
+        try:
+            _bounded_ddl(sql)
+            log.info("schema_patch_applied", table=table_name, column=column_name)
+        except Exception as exc:
+            if "duplicate column" in str(exc).lower() or "no such table" in str(exc).lower():
+                continue
+            log.warning(
+                "schema_patch_failed",
+                table=table_name,
                 column=column_name,
                 error=str(exc),
             )

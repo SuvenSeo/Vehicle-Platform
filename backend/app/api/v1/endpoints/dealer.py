@@ -1,15 +1,17 @@
 import re
+import secrets
+from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.services.rate_limit import RateLimiter
 from app.utils.sql_median import median_price_expr, python_median
-from db.models import CarListing, live_listing_filter
+from db.models import CarListing, DealerProfile, live_listing_filter
 from db.session import get_db
 
 _dealer_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
@@ -242,3 +244,119 @@ def benchmark_urls(
             ))
 
     return results
+
+
+class DealerClaimRequest(BaseModel):
+    display_name: str
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    seller_name_pattern: Optional[str] = None
+    claimed_url: Optional[str] = None
+    claim_token: Optional[str] = None
+
+    @field_validator("display_name")
+    @classmethod
+    def _name_ok(cls, value: str) -> str:
+        cleaned = (value or "").strip()
+        if len(cleaned) < 2:
+            raise ValueError("display_name is required")
+        return cleaned[:120]
+
+
+class DealerClaimResponse(BaseModel):
+    id: int
+    claim_token: str
+    display_name: str
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    seller_name_pattern: Optional[str] = None
+    claimed_url: Optional[str] = None
+    status: str
+    matched_listings: int = 0
+
+
+def _match_claimed_listings(db: Session, profile: DealerProfile) -> int:
+    q = db.query(func.count(CarListing.id)).filter(live_listing_filter())
+    pattern = (profile.seller_name_pattern or "").strip()
+    url = (profile.claimed_url or "").strip()
+    if pattern:
+        q = q.filter(CarListing.title.ilike(f"%{pattern}%"))
+    elif url:
+        q = q.filter(CarListing.url == url)
+    else:
+        return 0
+    return int(q.scalar() or 0)
+
+
+@router.post("/claim", response_model=DealerClaimResponse)
+def claim_dealer_profile(
+    payload: DealerClaimRequest,
+    db: Session = Depends(get_db),
+) -> DealerClaimResponse:
+    """Create or update a claimed dealer profile (anonymous claim_token)."""
+    token = (payload.claim_token or "").strip() or secrets.token_urlsafe(24)
+    existing = (
+        db.query(DealerProfile).filter(DealerProfile.claim_token == token).first()
+        if payload.claim_token
+        else None
+    )
+
+    if existing:
+        existing.display_name = payload.display_name
+        existing.contact_phone = (payload.contact_phone or "").strip() or None
+        existing.contact_email = (payload.contact_email or "").strip() or None
+        existing.seller_name_pattern = (payload.seller_name_pattern or "").strip() or None
+        existing.claimed_url = (payload.claimed_url or "").strip() or None
+        existing.updated_at = datetime.now(timezone.utc)
+        profile = existing
+    else:
+        profile = DealerProfile(
+            claim_token=token,
+            display_name=payload.display_name,
+            contact_phone=(payload.contact_phone or "").strip() or None,
+            contact_email=(payload.contact_email or "").strip() or None,
+            seller_name_pattern=(payload.seller_name_pattern or "").strip() or None,
+            claimed_url=(payload.claimed_url or "").strip() or None,
+            status="pending",
+        )
+        db.add(profile)
+
+    db.commit()
+    db.refresh(profile)
+    matched = _match_claimed_listings(db, profile)
+    return DealerClaimResponse(
+        id=int(profile.id),
+        claim_token=str(profile.claim_token),
+        display_name=str(profile.display_name),
+        contact_phone=profile.contact_phone,
+        contact_email=profile.contact_email,
+        seller_name_pattern=profile.seller_name_pattern,
+        claimed_url=profile.claimed_url,
+        status=str(profile.status),
+        matched_listings=matched,
+    )
+
+
+@router.get("/me", response_model=DealerClaimResponse)
+def get_dealer_profile(
+    claim_token: str,
+    db: Session = Depends(get_db),
+) -> DealerClaimResponse:
+    token = (claim_token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="claim_token required")
+    profile = db.query(DealerProfile).filter(DealerProfile.claim_token == token).first()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Dealer profile not found")
+    matched = _match_claimed_listings(db, profile)
+    return DealerClaimResponse(
+        id=int(profile.id),
+        claim_token=str(profile.claim_token),
+        display_name=str(profile.display_name),
+        contact_phone=profile.contact_phone,
+        contact_email=profile.contact_email,
+        seller_name_pattern=profile.seller_name_pattern,
+        claimed_url=profile.claimed_url,
+        status=str(profile.status),
+        matched_listings=matched,
+    )
