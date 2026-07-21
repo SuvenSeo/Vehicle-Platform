@@ -445,6 +445,26 @@ class MarketAlertCreate(BaseModel):
     district: Optional[str] = Field(default=None, max_length=50)
     notify_phone: Optional[str] = Field(default=None, max_length=32)
 
+    @field_validator("notify_phone")
+    @classmethod
+    def validate_notify_phone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        if not trimmed:
+            return None
+        digits = re.sub(r"[^\d+]", "", trimmed)
+        if digits.startswith("+"):
+            body = digits[1:]
+            ok = bool(re.fullmatch(r"\d{10,15}", body))
+        elif re.fullmatch(r"0\d{9}", digits) or re.fullmatch(r"94\d{9}", digits):
+            ok = True
+        else:
+            ok = bool(re.fullmatch(r"\d{10,15}", digits))
+        if not ok:
+            raise ValueError("notify_phone must be a valid mobile (e.g. 0771234567 or +94771234567)")
+        return trimmed
+
 
 class MarketAlertRead(BaseModel):
     id: int
