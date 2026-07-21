@@ -202,6 +202,13 @@ const DICTIONARIES: Record<Language, Dictionary> = {
     "district.badulla": "බදුල්ල",
     "district.anuradhapura": "අනුරාධපුරය",
 
+    "settings.title": "Motormila ඔබට ගැලපෙන ලෙස සකසන්න",
+    "settings.subtitle": "ඩෑෂ්බෝඩ් එක පැහැදිලි සහ අවධානයෙන් තබාගැනීමට භාෂා සහ තේමා පාලන ප්‍රධාන නාවිකයෙන් වෙන් කර ඇත.",
+    "settings.backToDashboard": "ඩෑෂ්බෝඩ් වෙත ආපසු",
+    "settings.languageHint": "නාවිකරණය සහ ලේබල් සඳහා පෙන්වන භාෂාව තෝරන්න",
+    "settings.themeHint": "සම්පූර්ණ යෙදුම සඳහා දෘශ්‍ය රටාව තෝරන්න",
+    "settings.activeTheme": "සක්‍රීය තේමාව",
+
     "hero.explore": "වෙළඳපොළ බලන්න",
     "hero.value": "මගේ කාර් වටිනාකම",
 
@@ -326,6 +333,13 @@ const DICTIONARIES: Record<Language, Dictionary> = {
     "district.ratnapura": "இரத்தினபுரி",
     "district.badulla": "பதுளை",
     "district.anuradhapura": "அனுராதபுரம்",
+
+    "settings.title": "Motormila-வை தனிப்பயனாக்குங்கள்",
+    "settings.subtitle": "டாஷ்போர்டு சுத்தமாகவும் கவனச்சிதறலின்றியும் இருக்க, மொழி மற்றும் தீம் கட்டுப்பாடுகள் பிரதான வழிசெலுத்தலிலிருந்து மாற்றப்பட்டுள்ளன.",
+    "settings.backToDashboard": "டாஷ்போர்டுக்கு திரும்பு",
+    "settings.languageHint": "வழிசெலுத்தலும் லேபிள்களும் காட்டும் மொழியை அமைக்கவும்",
+    "settings.themeHint": "முழு பயன்பாட்டிற்கான காட்சி பாணியை தேர்வு செய்யவும்",
+    "settings.activeTheme": "செயலில் உள்ள தீம்",
 
     "hero.explore": "சந்தையை பார்க்க",
     "hero.value": "என் காரை மதிப்பிடு",

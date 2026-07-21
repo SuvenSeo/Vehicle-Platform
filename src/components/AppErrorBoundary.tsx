@@ -54,6 +54,19 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
     }
     this.setState({ errorMessage: error?.message || "Unknown runtime error" });
     console.error("Unhandled frontend error", error, errorInfo);
+    if (!import.meta.env.VITE_SENTRY_DSN) return;
+
+    void import("@sentry/react")
+      .then((Sentry) => {
+        Sentry.captureException(error, {
+          extra: {
+            componentStack: errorInfo.componentStack,
+          },
+        });
+      })
+      .catch(() => {
+        // Ignore reporting failures so the fallback UI never crashes.
+      });
   }
 
   handleReload = () => {
