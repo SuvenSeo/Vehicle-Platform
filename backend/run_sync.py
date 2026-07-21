@@ -707,9 +707,9 @@ async def main(profile_override: str | None = None):
         if run_image_phash:
             db = SessionLocal()
             try:
-                log.info("running_image_phash_backfill")
+                log.info("running_image_phash_queue")
                 updated = backfill_image_phash(db)
-                log.info("image_phash_backfill_complete", listings_updated=updated)
+                log.info("image_phash_queue_complete", listings_updated=updated)
             except Exception as exc:
                 db.rollback()
                 log.error("image_phash_backfill_failed", error=str(exc))

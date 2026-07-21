@@ -20,6 +20,16 @@ _CAR_LISTING_COLUMN_PATCHES = (
 # (table, column, postgres type, sqlite type) — non-car_listings additive columns
 _TABLE_COLUMN_PATCHES = (
     ("market_alerts", "notify_phone", "VARCHAR(32)", "VARCHAR(32)"),
+    ("dealer_profiles", "verified_at", "TIMESTAMPTZ", "DATETIME"),
+    ("dealer_profiles", "plan", "VARCHAR(20) NOT NULL DEFAULT 'dealer'", "VARCHAR(20) NOT NULL DEFAULT 'dealer'"),
+    (
+        "dealer_profiles",
+        "subscription_status",
+        "VARCHAR(20) NOT NULL DEFAULT 'none'",
+        "VARCHAR(20) NOT NULL DEFAULT 'none'",
+    ),
+    ("dealer_profiles", "billing_email", "VARCHAR(255)", "VARCHAR(255)"),
+    ("dealer_profiles", "current_period_end", "TIMESTAMPTZ", "DATETIME"),
 )
 
 # (index_name, table_name, columns SQL fragment)
