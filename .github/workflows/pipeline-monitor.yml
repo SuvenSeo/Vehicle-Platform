@@ -1,0 +1,42 @@
+name: Monitor Vehicle Pipeline
+
+on:
+  schedule:
+    - cron: "20 * * * *"
+  workflow_dispatch:
+
+jobs:
+  pipeline-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check backend health and scrape freshness
+        env:
+          BACKEND_URL: https://seo292-vehicle-platform-backend.hf.space
+        run: |
+          set -euo pipefail
+
+          health_code=$(curl -sS -o health.json -w "%{http_code}" --max-time 20 "$BACKEND_URL/health")
+          echo "Backend health HTTP ${health_code}"
+          cat health.json
+          echo
+          if [ "$health_code" -ge 500 ]; then
+            echo "::error::Motormila backend is unavailable or degraded."
+            exit 1
+          fi
+
+          pipeline_code=$(curl -sS -o pipeline.json -w "%{http_code}" --max-time 20 "$BACKEND_URL/api/v1/pipeline/status")
+          echo "Pipeline status HTTP ${pipeline_code}"
+          cat pipeline.json
+          echo
+          if [ "$pipeline_code" -ge 400 ]; then
+            echo "::error::Pipeline status endpoint failed."
+            exit 1
+          fi
+
+          overall=$(jq -r '.overall_status // "unknown"' pipeline.json)
+          delayed=$(jq '[.jobs[]? | select(.status == "delayed")] | length' pipeline.json)
+          echo "Pipeline overall status: ${overall}; delayed sources: ${delayed}"
+          if [ "$overall" != "ok" ]; then
+            echo "::error::Scrape pipeline is ${overall}; ${delayed} source(s) are delayed."
+            exit 1
+          fi
