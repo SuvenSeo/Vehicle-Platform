@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPin } from "lucide-react";
-import { getDistrictInsight, getListings, formatPrice } from "@/services/api";
+import { getDistrictQuickInsight, getListings, formatPrice } from "@/services/api";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
@@ -30,7 +30,7 @@ export default function DistrictHub() {
 
   const insightQuery = useQuery({
     queryKey: ["district-insight", districtParam],
-    queryFn: () => getDistrictInsight(districtParam),
+    queryFn: () => getDistrictQuickInsight(districtParam),
     enabled: Boolean(districtParam),
     staleTime: QUERY_STALE.hub,
   });
