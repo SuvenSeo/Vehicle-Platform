@@ -1,7 +1,8 @@
 """Materialized cache for heavy aggregate stats endpoints.
 
-``refresh_stats_cache(db)`` precomputes ``summary``, ``district_prices``, and
-``district_velocity`` payloads and stores them in ``market_stats_cache``.
+``refresh_stats_cache(db)`` precomputes ``summary``, ``district_prices``,
+``district_velocity``, ``trends`` (default params), ``insights``, and
+``price_index`` payloads and stores them in ``market_stats_cache``.
 
 The read helpers (``get_cached_summary``, ``get_cached_district_prices``,
 ``get_cached_district_velocity``) return ``None`` when the entry is absent or
@@ -15,6 +16,8 @@ so the next caller gets a cache hit.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -37,6 +40,9 @@ log = structlog.get_logger()
 
 CACHE_TTL_SECONDS = 3600
 _MIN_PRICE_LKR = 100_000
+_TRENDS_CACHE_PREFIX = "trends:"
+_INSIGHTS_CACHE_KEY = "insights"
+_PRICE_INDEX_CACHE_KEY = "price_index"
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -67,6 +73,29 @@ def _upsert(db: Session, key: str, payload: dict) -> None:
         entry.payload = payload
         entry.refreshed_at = now
     db.commit()
+
+
+def _stable_hash(payload: dict) -> str:
+    serialized = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:16]
+
+
+def build_trends_cache_key(
+    *,
+    make: Optional[str],
+    model: Optional[str],
+    condition: Optional[str],
+    district: Optional[str],
+    months: int,
+) -> str:
+    normalized_payload = {
+        "make": (make or "").strip().lower() or None,
+        "model": (model or "").strip().lower() or None,
+        "condition": (condition or "").strip().lower() or None,
+        "district": (district or "").strip().lower() or None,
+        "months": int(months),
+    }
+    return f"{_TRENDS_CACHE_PREFIX}{_stable_hash(normalized_payload)}"
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +156,55 @@ def get_cached_district_velocity(
         return None
 
 
+def get_cached_trends(
+    db: Session,
+    cache_key: str,
+    *,
+    allow_stale: bool = False,
+) -> Optional[dict]:
+    entry = _get_entry(db, cache_key)
+    if entry is None:
+        return None
+    if not allow_stale and not _is_fresh(entry):
+        return None
+    payload = entry.payload
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def get_cached_insights(
+    db: Session,
+    *,
+    allow_stale: bool = False,
+) -> Optional[dict]:
+    entry = _get_entry(db, _INSIGHTS_CACHE_KEY)
+    if entry is None:
+        return None
+    if not allow_stale and not _is_fresh(entry):
+        return None
+    payload = entry.payload
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
+def get_cached_price_index(
+    db: Session,
+    *,
+    allow_stale: bool = False,
+) -> Optional[dict]:
+    entry = _get_entry(db, _PRICE_INDEX_CACHE_KEY)
+    if entry is None:
+        return None
+    if not allow_stale and not _is_fresh(entry):
+        return None
+    payload = entry.payload
+    if not isinstance(payload, dict):
+        return None
+    return payload
+
+
 # ---------------------------------------------------------------------------
 # Public write helpers (used by endpoints after inline computation)
 # ---------------------------------------------------------------------------
@@ -162,6 +240,39 @@ def store_district_velocity_cache(db: Session, result: DistrictVelocityResponse)
         _upsert(db, "district_velocity", result.model_dump(mode="json"))
     except Exception as exc:
         log.warning("stats_cache_store_district_velocity_error", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def store_trends_cache(db: Session, cache_key: str, result: dict) -> None:
+    try:
+        _upsert(db, cache_key, result)
+    except Exception as exc:
+        log.warning("stats_cache_store_trends_error", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def store_insights_cache(db: Session, result: dict) -> None:
+    try:
+        _upsert(db, _INSIGHTS_CACHE_KEY, result)
+    except Exception as exc:
+        log.warning("stats_cache_store_insights_error", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+
+def store_price_index_cache(db: Session, result: dict) -> None:
+    try:
+        _upsert(db, _PRICE_INDEX_CACHE_KEY, result)
+    except Exception as exc:
+        log.warning("stats_cache_store_price_index_error", error=str(exc))
         try:
             db.rollback()
         except Exception:
@@ -476,12 +587,14 @@ def compute_district_velocity(db: Session) -> DistrictVelocityResponse:
 
 
 def refresh_stats_cache(db: Session) -> None:
-    """Precompute and persist summary, district_prices, and district_velocity.
+    """Precompute and persist default heavy-stat payloads.
 
     Designed to be called from the post-scrape pipeline (``run_sync.py``) so
     that the first API hit after a sync finds warm cache instead of running
     expensive aggregates on demand.
     """
+    from app.api.v1.endpoints import stats as stats_module
+
     log.info("stats_cache_refresh_started")
     try:
         summary_payload = _compute_summary(db)
@@ -511,6 +624,53 @@ def refresh_stats_cache(db: Session) -> None:
         log.info("stats_cache_district_velocity_stored")
     except Exception as exc:
         log.error("stats_cache_district_velocity_failed", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    try:
+        trends_payload = stats_module._compute_price_trends_payload(
+            make=None,
+            model=None,
+            condition=None,
+            district=None,
+            months=12,
+            db=db,
+        )
+        trends_key = build_trends_cache_key(
+            make=None,
+            model=None,
+            condition=None,
+            district=None,
+            months=12,
+        )
+        _upsert(db, trends_key, trends_payload)
+        log.info("stats_cache_trends_default_stored")
+    except Exception as exc:
+        log.error("stats_cache_trends_default_failed", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    try:
+        insights_payload = stats_module._compute_dashboard_insights_payload(db)
+        _upsert(db, _INSIGHTS_CACHE_KEY, insights_payload)
+        log.info("stats_cache_insights_stored")
+    except Exception as exc:
+        log.error("stats_cache_insights_failed", error=str(exc))
+        try:
+            db.rollback()
+        except Exception:
+            pass
+
+    try:
+        price_index_payload = stats_module._compute_price_index_payload(db)
+        _upsert(db, _PRICE_INDEX_CACHE_KEY, price_index_payload)
+        log.info("stats_cache_price_index_stored")
+    except Exception as exc:
+        log.error("stats_cache_price_index_failed", error=str(exc))
         try:
             db.rollback()
         except Exception:

@@ -17,13 +17,20 @@ from app.utils.districts import (
 from app.utils.import_era import classify_import_era, era_label, FREEZE_BOUNDARY_YEAR
 from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
 from app.utils.stats_cache import (
+    build_trends_cache_key,
     compute_district_velocity,
     get_cached_district_prices,
     get_cached_district_velocity,
+    get_cached_insights,
+    get_cached_price_index,
     get_cached_summary,
+    get_cached_trends,
     store_district_prices_cache,
     store_district_velocity_cache,
+    store_insights_cache,
+    store_price_index_cache,
     store_summary_cache,
+    store_trends_cache,
 )
 from app.utils.time import utc_now
 from db.session import SessionLocal, get_db
@@ -157,6 +164,23 @@ def build_live_market_snapshot(db: Session) -> dict:
 @router.get("/price-index", response_model=PriceIndexResponse)
 def get_price_index(db: Session = Depends(get_db)):
     """Mix-adjusted monthly used-vehicle price index (overall + top makes)."""
+    cached = get_cached_price_index(db)
+    if cached is not None:
+        return cached
+
+    try:
+        result = _compute_price_index_payload(db)
+    except Exception:
+        stale = get_cached_price_index(db, allow_stale=True)
+        if stale is not None:
+            return stale
+        raise
+
+    store_price_index_cache(db, result)
+    return result
+
+
+def _compute_price_index_payload(db: Session) -> dict:
     return build_price_index(db)
 
 
@@ -593,15 +617,16 @@ def _current_snapshot_point(
     ]
 
 
-@router.get("/trends")
-def get_price_trends(
+def _compute_price_trends_payload(
     make: Optional[str] = None,
     model: Optional[str] = None,
     condition: Optional[str] = None,
     district: Optional[str] = None,
-    months: int = Query(12, ge=3, le=24),
-    db: Session = Depends(get_db),
+    months: int = 12,
+    db: Session | None = None,
 ):
+    if db is None:
+        raise ValueError("db session is required")
     try:
         months_value = int(months)
     except (TypeError, ValueError):
@@ -733,8 +758,51 @@ def get_price_trends(
     return _trend_response([], "none", "Trend samples are still being collected for this vehicle lane.")
 
 
-@router.get("/insights", response_model=DashboardInsightsResponse)
-def get_dashboard_insights(db: Session = Depends(get_db)):
+@router.get("/trends")
+def get_price_trends(
+    make: Optional[str] = None,
+    model: Optional[str] = None,
+    condition: Optional[str] = None,
+    district: Optional[str] = None,
+    months: int = Query(12, ge=3, le=24),
+    db: Session = Depends(get_db),
+):
+    try:
+        months_value = int(months)
+    except (TypeError, ValueError):
+        months_value = 12
+
+    cache_key = build_trends_cache_key(
+        make=make,
+        model=model,
+        condition=condition,
+        district=district,
+        months=months_value,
+    )
+    cached = get_cached_trends(db, cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        result = _compute_price_trends_payload(
+            make=make,
+            model=model,
+            condition=condition,
+            district=district,
+            months=months_value,
+            db=db,
+        )
+    except Exception:
+        stale = get_cached_trends(db, cache_key, allow_stale=True)
+        if stale is not None:
+            return stale
+        raise
+
+    store_trends_cache(db, cache_key, result)
+    return result
+
+
+def _compute_dashboard_insights_payload(db: Session) -> dict:
     now = utc_now()
     day_ago = now - timedelta(hours=24)
     current_30d = now - timedelta(days=30)
@@ -912,6 +980,24 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
         "trending_models": trending_payload,
         "hot_deals": hot_deal_payload,
     }
+
+
+@router.get("/insights", response_model=DashboardInsightsResponse)
+def get_dashboard_insights(db: Session = Depends(get_db)):
+    cached = get_cached_insights(db)
+    if cached is not None:
+        return cached
+
+    try:
+        result = _compute_dashboard_insights_payload(db)
+    except Exception:
+        stale = get_cached_insights(db, allow_stale=True)
+        if stale is not None:
+            return stale
+        raise
+
+    store_insights_cache(db, result)
+    return result
 
 
 @router.get("/make-model-insight")
@@ -1258,6 +1344,16 @@ def get_district_quick_insight(
 _EV_FUEL_TYPES = {"electric", "ev"}
 
 
+def _median_price(values: list[float]) -> Optional[float]:
+    if not values:
+        return None
+    sorted_values = sorted(values)
+    count = len(sorted_values)
+    if count % 2 == 1:
+        return round(sorted_values[count // 2], 2)
+    return round((sorted_values[count // 2 - 1] + sorted_values[count // 2]) / 2.0, 2)
+
+
 @router.get("/ev-insight")
 def get_ev_insight(
     top_n: int = Query(5, ge=1, le=20),
@@ -1291,14 +1387,8 @@ def get_ev_insight(
         .filter(ev_priced_clause)
         .all()
     )
-    ev_prices = sorted(float(row.price_lkr) for row in ev_price_rows)
-    n = len(ev_prices)
-    if n == 0:
-        median_ev_price = None
-    elif n % 2 == 1:
-        median_ev_price = round(ev_prices[n // 2], 2)
-    else:
-        median_ev_price = round((ev_prices[n // 2 - 1] + ev_prices[n // 2]) / 2.0, 2)
+    ev_prices = [float(row.price_lkr) for row in ev_price_rows]
+    median_ev_price = _median_price(ev_prices)
 
     top_models_rows = (
         db.query(
@@ -1313,26 +1403,55 @@ def get_ev_insight(
         .all()
     )
 
+    model_median_by_key: dict[tuple[str, str], Optional[float]] = {}
+    model_keys = [
+        (str(row.make).strip().lower(), str(row.model).strip().lower())
+        for row in top_models_rows
+    ]
+    model_filters = [
+        and_(
+            func.lower(CarListing.make) == make_key,
+            func.lower(CarListing.model) == model_key,
+        )
+        for make_key, model_key in model_keys
+    ]
+    if model_filters:
+        dialect_name = db.bind.dialect.name if db.bind and db.bind.dialect else ""
+        if dialect_name == "sqlite":
+            grouped_price_rows = (
+                db.query(
+                    func.lower(CarListing.make).label("make_key"),
+                    func.lower(CarListing.model).label("model_key"),
+                    func.group_concat(CarListing.price_lkr, ",").label("prices_blob"),
+                )
+                .filter(ev_priced_clause, or_(*model_filters))
+                .group_by(func.lower(CarListing.make), func.lower(CarListing.model))
+                .all()
+            )
+            for grouped_row in grouped_price_rows:
+                prices_blob = str(grouped_row.prices_blob or "")
+                prices = [float(value) for value in prices_blob.split(",") if value]
+                model_median_by_key[(str(grouped_row.make_key), str(grouped_row.model_key))] = _median_price(prices)
+        else:
+            grouped_price_rows = (
+                db.query(
+                    func.lower(CarListing.make).label("make_key"),
+                    func.lower(CarListing.model).label("model_key"),
+                    func.array_agg(CarListing.price_lkr).label("prices_array"),
+                )
+                .filter(ev_priced_clause, or_(*model_filters))
+                .group_by(func.lower(CarListing.make), func.lower(CarListing.model))
+                .all()
+            )
+            for grouped_row in grouped_price_rows:
+                prices = [float(value) for value in (grouped_row.prices_array or []) if value is not None]
+                model_median_by_key[(str(grouped_row.make_key), str(grouped_row.model_key))] = _median_price(prices)
+
     top_ev_models = []
     for row in top_models_rows:
-        model_priced = (
-            db.query(CarListing.price_lkr)
-            .filter(
-                ev_priced_clause,
-                func.lower(CarListing.make) == str(row.make).lower(),
-                func.lower(CarListing.model) == str(row.model).lower(),
-            )
-            .all()
+        model_median = model_median_by_key.get(
+            (str(row.make).strip().lower(), str(row.model).strip().lower())
         )
-        model_prices = sorted(float(r.price_lkr) for r in model_priced)
-        mn = len(model_prices)
-        if mn == 0:
-            model_median = None
-        elif mn % 2 == 1:
-            model_median = round(model_prices[mn // 2], 2)
-        else:
-            model_median = round((model_prices[mn // 2 - 1] + model_prices[mn // 2]) / 2.0, 2)
-
         top_ev_models.append(
             {
                 "make": str(row.make),
@@ -1350,14 +1469,9 @@ def get_ev_insight(
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
     )
     aqua_price_rows = db.query(CarListing.price_lkr).filter(aqua_clause).all()
-    aqua_prices = sorted(float(row.price_lkr) for row in aqua_price_rows)
+    aqua_prices = [float(row.price_lkr) for row in aqua_price_rows]
     an = len(aqua_prices)
-    if an == 0:
-        aqua_median = None
-    elif an % 2 == 1:
-        aqua_median = round(aqua_prices[an // 2], 2)
-    else:
-        aqua_median = round((aqua_prices[an // 2 - 1] + aqua_prices[an // 2]) / 2.0, 2)
+    aqua_median = _median_price(aqua_prices)
 
     return {
         "ev_count": int(ev_count),
