@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import SignIn, { sanitizeSignInRedirect } from "@/pages/SignIn";
+import SignIn from "@/pages/SignIn";
+import { sanitizeSignInRedirect } from "@/lib/signIn";
 import { AuthProvider } from "@/lib/authContext";
 
 function installLocalStorage() {

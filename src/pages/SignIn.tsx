@@ -9,16 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEMO_ACCOUNT_SUMMARY, DEMO_AUTH_ENABLED, useAuth } from "@/lib/authContext";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
+import { sanitizeSignInRedirect } from "@/lib/signIn";
 
 const schema = z.object({ email: z.string().email("Invalid email"), password: z.string().min(1, "Required") });
 type FormValues = z.infer<typeof schema>;
-
-/** Only same-origin relative paths (leading `/`, not `//`) are allowed as post-login redirects. */
-export function sanitizeSignInRedirect(pathname: unknown): string {
-  if (typeof pathname !== "string") return "/pro";
-  if (!pathname.startsWith("/") || pathname.startsWith("//")) return "/pro";
-  return pathname;
-}
 
 const FEATURES = [
   { icon: BarChart3, text: "Market analytics dashboard" },
