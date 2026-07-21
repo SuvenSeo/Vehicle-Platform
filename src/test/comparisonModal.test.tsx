@@ -61,6 +61,9 @@ describe("ComparisonModal", () => {
     expect(screen.getByText("Value")).toBeInTheDocument();
     expect(screen.getByText("Specs")).toBeInTheDocument();
     expect(screen.getByText("Listing")).toBeInTheDocument();
+    expect(screen.getByText("Price signal and deal strength")).toBeInTheDocument();
+    expect(screen.getByText("Mechanical and body details")).toBeInTheDocument();
+    expect(screen.getByText("Source and market presence")).toBeInTheDocument();
     expect(screen.getAllByText("Toyota Aqua").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Honda Fit").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Open listing/i })).toHaveLength(2);
