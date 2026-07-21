@@ -72,7 +72,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "URL benchmark against live comps",
       "Aging and price-gap views",
       "Team seats for sales staff",
-      "WhatsApp onboarding after sign-in",
+      "Claim-profile yard matching on /dealer",
     ],
     ctaLabel: "Open dealer workspace",
     ctaTo: "/dealer",
@@ -140,7 +140,7 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How does Dealer onboarding work?",
-    a: "Open /dealer after sign-in. WhatsApp onboarding for yard setup and seats happens once the account is active.",
+    a: "Open /dealer after sign-in. Use Claim your yard to match inventory by seller name or listing URL, then run URL benchmarks against live comps.",
   },
   {
     q: "Is annual billing cheaper?",

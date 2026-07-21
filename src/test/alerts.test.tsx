@@ -1,5 +1,6 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { TestRouter } from "@/test/testUtils";
 import type { ServerMarketAlert, AlertMatchResponse } from "@/services/api";
 
@@ -44,9 +45,11 @@ const EMPTY_MATCH: AlertMatchResponse = {
 
 function renderAlerts() {
   return render(
-    <TestRouter>
-      <Alerts />
-    </TestRouter>,
+    <AppPreferencesProvider>
+      <TestRouter>
+        <Alerts />
+      </TestRouter>
+    </AppPreferencesProvider>,
   );
 }
 

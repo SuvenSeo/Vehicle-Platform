@@ -15,6 +15,11 @@ vi.mock("@/services/api", () => ({
   getDashboardInsights: vi.fn(),
   getDistrictPrices: vi.fn(),
   getProMarketSnapshot: vi.fn(),
+  benchmarkDealerUrls: vi.fn(),
+  claimDealerProfile: vi.fn(),
+  getDealerProfile: vi.fn(),
+  getStoredDealerClaimToken: vi.fn(() => null),
+  storeDealerClaimToken: vi.fn(),
   formatPrice: (value: number | null) => (value == null ? "N/A" : `Rs. ${value.toLocaleString()}`),
 }));
 

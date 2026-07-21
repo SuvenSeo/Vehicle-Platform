@@ -5,6 +5,7 @@ import { Bell, BellOff, ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-rea
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { loadMarketAlerts } from "@/lib/marketAlerts";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { isValidNotifyPhone } from "@/lib/notifyPhone";
 import { matchAlerts, formatPrice, type AlertMatchResponse, type ServerMarketAlert } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -179,6 +180,10 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
       setFormError("Provide at least one filter.");
       return;
     }
+    if (!isValidNotifyPhone(notifyPhone)) {
+      setFormError("Enter a valid WhatsApp number (e.g. 0771234567 or +94771234567).");
+      return;
+    }
     setSaving(true);
     setFormError(null);
     try {
@@ -305,7 +310,14 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-muted-foreground">
           {alert.district && <span>{alert.district}</span>}
           {alert.max_price && <span className="num">Under {formatPrice(alert.max_price)}</span>}
-          {!alert.district && !alert.max_price && <span>Any price · All districts</span>}
+          {alert.notify_phone && (
+            <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+              WA {alert.notify_phone}
+            </span>
+          )}
+          {!alert.district && !alert.max_price && !alert.notify_phone && (
+            <span>Any price · All districts</span>
+          )}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">

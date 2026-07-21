@@ -99,7 +99,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     body: [
       "The Dealer workspace at /dealer is built for yard operators who need turnover and pricing discipline, not just browsing. It surfaces inventory that is aging, asks that sit above or below peer medians, and demand cues by lane and district.",
       "URL benchmark lets you paste a public listing link and see how that ask compares to Motormila comps — useful when a walk-in buyer quotes another yard’s ad. Team seats (Dealer plan) keep sales staff on the same read of the market.",
-      "Dealer access is a paid tier. Start from /dealer after sign-in; WhatsApp onboarding for yard setup happens after the account is live.",
+      "Dealer access is a paid tier. Start from /dealer after sign-in and claim your yard with a seller name and/or listing URL so Motormila can match live inventory.",
     ],
     bullets: [
       "Aging and price-gap views on your stock",

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { API_BASE } from "@/services/api";
 import { getStoredAuthToken, storeAuthToken } from "@/lib/authToken";
 
@@ -159,6 +159,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasProAccess = BACKEND_AUTH_ENABLED
     ? planAllowsPro && Boolean(getStoredAuthToken())
     : planAllowsPro;
+
+  useEffect(() => {
+    if (!BACKEND_AUTH_ENABLED) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const headers: Record<string, string> = { Accept: "application/json" };
+        const token = getStoredAuthToken();
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const response = await fetch(new URL(`${API_BASE}/auth/me`, window.location.origin).toString(), {
+          credentials: "include",
+          headers,
+        });
+        if (cancelled) return;
+
+        if (!response.ok) {
+          // Cookie/Bearer expired — clear forgeable local session so Pro gates stay honest.
+          if (response.status === 401) {
+            setUser(null);
+            localStorage.removeItem(STORAGE_KEY);
+            storeAuthToken(null);
+          }
+          return;
+        }
+
+        const data = (await response.json().catch(() => ({}))) as Partial<AuthUser>;
+        const restored = normalizeServerUser(data, data.email || "");
+        if (!restored) return;
+        setUser(restored);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+      } catch {
+        // Soft-fail: keep local session for offline / cold-start flakiness.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const normalizedEmail = email.toLowerCase().trim();
