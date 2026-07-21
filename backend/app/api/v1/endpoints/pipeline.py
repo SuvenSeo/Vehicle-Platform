@@ -11,11 +11,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc, func
 
+from app.services.rate_limit import RateLimiter
 from app.services.source_aliases import canonical_source_key
 from db.models import ScrapeRun
 from db.session import get_db
 
 router = APIRouter()
+_pipeline_read_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
 
 JOB_SCRIPT_MAP = {
     "sync": "run_sync.py",
@@ -283,7 +285,7 @@ def _derive_overall_status(jobs: list[dict]) -> str:
     return "ok"
 
 
-@router.get("/runs", response_model=dict)
+@router.get("/runs", response_model=dict, dependencies=[Depends(_pipeline_read_rate_limiter)])
 def pipeline_runs(
     limit: int = Query(25, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -331,7 +333,7 @@ def trigger_pipeline_job(payload: PipelineTriggerRequest, _admin: None = Depends
     }
 
 
-@router.get("/status", response_model=dict)
+@router.get("/status", response_model=dict, dependencies=[Depends(_pipeline_read_rate_limiter)])
 def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_valid_admin_key)):
     now = datetime.now(timezone.utc)
     reconcile_orphan_running_runs(db, now=now)
@@ -360,6 +362,8 @@ def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_
 
         if active_run is not None:
             status = "running"
+        elif last_status == "DEGRADED":
+            status = "delayed"
         elif success_at and now - success_at <= timedelta(hours=expected_hours * 1.5):
             status = "ok"
         else:

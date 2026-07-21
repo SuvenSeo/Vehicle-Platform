@@ -2,11 +2,15 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
+import run_sync
 from app.api.v1.endpoints import pipeline
 from db.models import Base, ScrapeRun
 
@@ -16,6 +20,28 @@ def _session():
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
     return Session()
+
+
+def _pipeline_client():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def _get_db_override():
+        db = Session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app = FastAPI()
+    app.include_router(pipeline.router, prefix="/api/v1/pipeline")
+    app.dependency_overrides[pipeline.get_db] = _get_db_override
+    return TestClient(app)
 
 
 def test_build_trigger_command_uses_python_executable_and_known_script():
@@ -173,3 +199,129 @@ def test_pipeline_status_redacts_last_error_for_anonymous_callers():
 
     assert anon_job["last_error"] == pipeline.REDACTED_ERROR_MESSAGE
     assert admin_job["last_error"] == "Playwright timeout: /home/runner/secrets.txt not found"
+
+
+def test_finalize_scrape_run_marks_zero_yield_success_as_degraded():
+    db = _session()
+    run = ScrapeRun(
+        source="ikman",
+        started_at=datetime(2026, 4, 1, 3, 0, tzinfo=timezone.utc),
+        status="RUNNING",
+        listings_found=0,
+        listings_new=0,
+    )
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+
+    run_sync._finalize_scrape_run(
+        db,
+        run,
+        status="SUCCESS",
+        listings_found=0,
+        listings_new=0,
+    )
+    db.refresh(run)
+
+    assert run.status == "DEGRADED"
+
+
+def test_finalize_scrape_run_keeps_failed_status_for_exceptions():
+    db = _session()
+    run = ScrapeRun(
+        source="ikman",
+        started_at=datetime(2026, 4, 1, 3, 0, tzinfo=timezone.utc),
+        status="RUNNING",
+        listings_found=0,
+        listings_new=0,
+    )
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+
+    run_sync._finalize_scrape_run(
+        db,
+        run,
+        status="FAILED",
+        listings_found=0,
+        listings_new=0,
+        error_message="timeout",
+    )
+    db.refresh(run)
+
+    assert run.status == "FAILED"
+
+
+def test_pipeline_status_maps_latest_degraded_run_to_delayed():
+    db = _session()
+    db.add_all(
+        [
+            ScrapeRun(
+                source="ikman",
+                started_at=datetime(2026, 4, 1, 2, 0, tzinfo=timezone.utc),
+                finished_at=datetime(2026, 4, 1, 2, 10, tzinfo=timezone.utc),
+                status="SUCCESS",
+                listings_found=100,
+                listings_new=5,
+            ),
+            ScrapeRun(
+                source="ikman",
+                started_at=datetime(2026, 4, 1, 3, 0, tzinfo=timezone.utc),
+                finished_at=datetime(2026, 4, 1, 3, 5, tzinfo=timezone.utc),
+                status="DEGRADED",
+                listings_found=0,
+                listings_new=0,
+            ),
+        ]
+    )
+    db.commit()
+
+    payload = pipeline.pipeline_status(db=db, is_admin=False)
+    job = next(item for item in payload["jobs"] if item["name"] == "scrape_ikman")
+
+    assert job["last_status"] == "DEGRADED"
+    assert job["status"] == "delayed"
+
+
+def test_pipeline_runs_endpoint_is_rate_limited():
+    client = _pipeline_client()
+    limiter = pipeline._pipeline_read_rate_limiter
+    original_max_requests = limiter.max_requests
+    original_window_seconds = limiter.window_seconds
+    limiter._buckets.clear()
+    limiter.max_requests = 1
+    limiter.window_seconds = 60
+
+    try:
+        first = client.get("/api/v1/pipeline/runs")
+        second = client.get("/api/v1/pipeline/runs")
+    finally:
+        limiter.max_requests = original_max_requests
+        limiter.window_seconds = original_window_seconds
+        limiter._buckets.clear()
+        client.close()
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+
+
+def test_pipeline_status_endpoint_is_rate_limited():
+    client = _pipeline_client()
+    limiter = pipeline._pipeline_read_rate_limiter
+    original_max_requests = limiter.max_requests
+    original_window_seconds = limiter.window_seconds
+    limiter._buckets.clear()
+    limiter.max_requests = 1
+    limiter.window_seconds = 60
+
+    try:
+        first = client.get("/api/v1/pipeline/status")
+        second = client.get("/api/v1/pipeline/status")
+    finally:
+        limiter.max_requests = original_max_requests
+        limiter.window_seconds = original_window_seconds
+        limiter._buckets.clear()
+        client.close()
+
+    assert first.status_code == 200
+    assert second.status_code == 429
