@@ -152,7 +152,13 @@ function AlertMatchSection({ token }: { token: string }) {
 interface CreateAlertFormProps {
   onCreated: () => void;
   token: string;
-  onCreate: (data: { make?: string; model?: string; district?: string; max_price?: number }) => Promise<unknown>;
+  onCreate: (data: {
+    make?: string;
+    model?: string;
+    district?: string;
+    max_price?: number;
+    notify_phone?: string;
+  }) => Promise<unknown>;
 }
 
 function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
@@ -160,6 +166,7 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
   const [model, setModel] = useState("");
   const [district, setDistrict] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [notifyPhone, setNotifyPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -179,8 +186,9 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
         model: model.trim() || undefined,
         district: district.trim() || undefined,
         max_price: Number.isFinite(price) && price > 0 ? price : undefined,
+        notify_phone: notifyPhone.trim() || undefined,
       });
-      setMake(""); setModel(""); setDistrict(""); setMaxPrice("");
+      setMake(""); setModel(""); setDistrict(""); setMaxPrice(""); setNotifyPhone("");
       setOpen(false);
       onCreated();
     } catch (err) {
@@ -188,7 +196,7 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
     } finally {
       setSaving(false);
     }
-  }, [make, model, district, maxPrice, onCreate, onCreated]);
+  }, [make, model, district, maxPrice, notifyPhone, onCreate, onCreated]);
 
   if (!open) {
     return (
@@ -236,6 +244,22 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
             placeholder="5000000"
             className="num h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
           />
+        </div>
+        <div className="col-span-2">
+          <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+            WhatsApp (optional)
+          </label>
+          <Input
+            id="alert-whatsapp"
+            value={notifyPhone}
+            onChange={(e) => setNotifyPhone(e.target.value)}
+            placeholder="0771234567"
+            inputMode="tel"
+            className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
+          />
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Get a WhatsApp ping when new matches appear (requires Twilio on the server).
+          </p>
         </div>
       </div>
       {formError && (

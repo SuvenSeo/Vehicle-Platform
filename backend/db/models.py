@@ -239,6 +239,8 @@ class MarketAlert(Base):
     model = Column(String(100), nullable=True)
     max_price = Column(Numeric(15, 2), nullable=True)
     district = Column(String(50), nullable=True)
+    # Optional E.164 / local mobile for Twilio WhatsApp match notifications.
+    notify_phone = Column(String(32), nullable=True)
     active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

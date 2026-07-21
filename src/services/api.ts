@@ -1755,6 +1755,7 @@ export interface AlertCreateInput {
   model?: string;
   max_price?: number;
   district?: string;
+  notify_phone?: string;
 }
 
 export interface ServerMarketAlert {
@@ -1764,6 +1765,7 @@ export interface ServerMarketAlert {
   model: string | null;
   max_price: number | null;
   district: string | null;
+  notify_phone?: string | null;
   active: boolean;
   created_at: string;
 }
