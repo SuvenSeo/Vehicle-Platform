@@ -553,7 +553,7 @@ export default function Dashboard() {
     <div className="min-h-screen">
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section id="overview" className="relative overflow-hidden border-b border-border bg-surface">
+      <section id="overview" className="relative -mt-16 overflow-hidden border-b border-border bg-surface pt-16">
         <div aria-hidden className="pointer-events-none absolute left-[20%] top-[-20%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[130px]" />
         <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
 
