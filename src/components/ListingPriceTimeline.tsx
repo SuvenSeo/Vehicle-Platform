@@ -45,7 +45,7 @@ export function ListingPriceTimeline({
   listingTitle,
   isLoading = false,
 }: ListingPriceTimelineProps) {
-  const points = history?.points ?? [];
+  const points = useMemo(() => history?.points ?? [], [history?.points]);
   const hasChart = points.length >= 2;
 
   const chartData = useMemo(() => {

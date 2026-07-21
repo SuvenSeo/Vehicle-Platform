@@ -240,17 +240,19 @@ export default function Dashboard() {
     retry: 1,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
-  const velocityPoints = velocityQuery.data?.points ?? EMPTY_VELOCITY_POINTS;
+  const { refetch: refetchVelocity, data: velocityData } = velocityQuery;
+  const velocityPoints = velocityData?.points ?? EMPTY_VELOCITY_POINTS;
   const retryVelocity = useCallback(() => {
-    void velocityQuery.refetch();
-  }, [velocityQuery.refetch]);
+    void refetchVelocity();
+  }, [refetchVelocity]);
   const listingsQuery = useQuery({
     queryKey: ["listings", filters],
     queryFn: () => getListings(filters),
   });
+  const { refetch: refetchListings } = listingsQuery;
   const retryListings = useCallback(() => {
-    void listingsQuery.refetch();
-  }, [listingsQuery.refetch]);
+    void refetchListings();
+  }, [refetchListings]);
 
   const stats: StatsOverview | null = statsQuery.data ?? null;
   const makes = useMemo(() => makesQuery.data ?? [], [makesQuery.data]);
