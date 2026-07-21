@@ -9,6 +9,7 @@ Covers:
 - require_pro_access() passes silently when enforcement is on and the token is a valid Pro token
 """
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -31,7 +32,6 @@ from app.api.v1.endpoints.auth import (
 
 
 def _make_token(plan: str, *, secret: str = "test-secret") -> str:
-    import os
     os.environ["AUTH_TOKEN_SECRET"] = secret
     token, _ = issue_token("user@example.com", plan, now=time.time())
     return token

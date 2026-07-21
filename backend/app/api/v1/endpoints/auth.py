@@ -33,13 +33,19 @@ router = APIRouter()
 
 TOKEN_TTL_SECONDS_DEFAULT = 7 * 24 * 3600
 ALLOWED_PLANS = {"free", "pro", "enterprise"}
-ALLOWED_SUBSCRIPTION_STATUSES = {"none", "trialing", "active", "past_due"}
+ALLOWED_SUBSCRIPTION_STATUSES = {"none", "trialing", "active", "past_due", "canceled"}
 PRO_PLANS = {"pro", "enterprise"}
+ACTIVE_PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 
 _login_rate_limiter = RateLimiter(
     max_requests=10,
     window_seconds=60,
     message="Too many sign-in attempts. Try again shortly.",
+)
+_me_rate_limiter = RateLimiter(
+    max_requests=60,
+    window_seconds=60,
+    message="Too many account lookups. Try again shortly.",
 )
 
 
@@ -129,11 +135,26 @@ def _b64url_decode(value: str) -> bytes:
     return base64.urlsafe_b64decode(value + padding)
 
 
-def issue_token(email: str, plan: str, *, now: Optional[float] = None) -> tuple[str, int]:
+def issue_token(
+    email: str,
+    plan: str,
+    subscription_status: str = "active",
+    *,
+    now: Optional[float] = None,
+) -> tuple[str, int]:
     secret = _token_secret()
     expires_at = int((time.time() if now is None else now) + _token_ttl_seconds())
+    normalized_subscription_status = str(subscription_status or "active").strip().lower()
     payload = _b64url_encode(
-        json.dumps({"email": email, "plan": plan, "exp": expires_at}, separators=(",", ":")).encode()
+        json.dumps(
+            {
+                "email": email,
+                "plan": plan,
+                "subscription_status": normalized_subscription_status,
+                "exp": expires_at,
+            },
+            separators=(",", ":"),
+        ).encode()
     )
     signature = hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
     return f"{payload}.{signature}", expires_at
@@ -186,7 +207,7 @@ def login(payload: LoginRequest, request: Request):
     if not record or not _verify_password(payload.password, record["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    token, expires_at = issue_token(record["email"], record["plan"])
+    token, expires_at = issue_token(record["email"], record["plan"], record["subscription_status"])
     return {
         "user": _user_response(record),
         "token": token,
@@ -196,7 +217,8 @@ def login(payload: LoginRequest, request: Request):
 
 
 @router.get("/me", response_model=dict)
-def me(authorization: Optional[str] = Header(default=None)):
+def me(request: Request, authorization: Optional[str] = Header(default=None)):
+    _me_rate_limiter(request)
     token = (authorization or "").removeprefix("Bearer ").strip()
     payload = verify_token(token)
     if payload is None:
@@ -225,3 +247,8 @@ def require_pro_access(authorization: Optional[str] = Header(default=None)) -> N
         raise HTTPException(status_code=401, detail="Pro access requires a valid session token.")
     if str(payload.get("plan") or "").lower() not in PRO_PLANS:
         raise HTTPException(status_code=403, detail="Pro subscription required.")
+    subscription_status = str(
+        payload.get("subscription_status") or payload.get("subscriptionStatus") or "active"
+    ).lower()
+    if subscription_status not in ACTIVE_PRO_SUBSCRIPTION_STATUSES:
+        raise HTTPException(status_code=403, detail="Active Pro subscription required.")

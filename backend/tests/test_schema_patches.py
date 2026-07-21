@@ -16,6 +16,13 @@ from db.schema_patches import (
 )
 
 
+def _sqlite_index_columns(conn, index_name):
+    return [
+        row[2]
+        for row in conn.exec_driver_sql(f"PRAGMA index_info('{index_name}')")
+    ]
+
+
 def test_apply_schema_patches_adds_thumbnail_column_to_legacy_table():
     engine = create_engine("sqlite:///:memory:")
     metadata = MetaData()
@@ -60,21 +67,51 @@ def test_index_patches_are_idempotent_on_sqlite():
     Base.metadata.create_all(bind=engine)
 
     apply_schema_patches(engine)
-    apply_schema_patches(engine)  # second pass must not raise
 
     with engine.connect() as conn:
-        listing_indexes = {
+        listing_indexes_first = {
             row[1]
             for row in conn.exec_driver_sql("PRAGMA index_list('car_listings')")
         }
-        scrape_indexes = {
+        scrape_indexes_first = {
+            row[1]
+            for row in conn.exec_driver_sql("PRAGMA index_list('scrape_runs')")
+        }
+        live_category_price_columns = _sqlite_index_columns(
+            conn,
+            "idx_car_listings_live_category_price",
+        )
+        category_first_seen_columns = _sqlite_index_columns(
+            conn,
+            "idx_car_listings_category_first_seen",
+        )
+
+    apply_schema_patches(engine)  # second pass must not raise
+
+    with engine.connect() as conn:
+        listing_indexes_second = {
+            row[1]
+            for row in conn.exec_driver_sql("PRAGMA index_list('car_listings')")
+        }
+        scrape_indexes_second = {
             row[1]
             for row in conn.exec_driver_sql("PRAGMA index_list('scrape_runs')")
         }
 
-    assert "idx_car_listings_active_outlier_district" in listing_indexes
-    assert "idx_scrape_runs_started_at" in scrape_indexes
-    assert "idx_scrape_runs_source_started_at" in scrape_indexes
+    assert "idx_car_listings_active_outlier_district" in listing_indexes_first
+    assert "idx_car_listings_live_category_price" in listing_indexes_first
+    assert "idx_car_listings_category_first_seen" in listing_indexes_first
+    assert "idx_scrape_runs_started_at" in scrape_indexes_first
+    assert "idx_scrape_runs_source_started_at" in scrape_indexes_first
+    assert live_category_price_columns == [
+        "is_active",
+        "is_outlier",
+        "vehicle_category",
+        "price_lkr",
+    ]
+    assert category_first_seen_columns == ["vehicle_category", "first_seen_at"]
+    assert listing_indexes_second == listing_indexes_first
+    assert scrape_indexes_second == scrape_indexes_first
 
 
 def test_search_listings_count_uses_id_only_subquery():

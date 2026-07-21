@@ -29,6 +29,19 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ message: error?.message || "Unknown page error" });
     console.error("Route render error", error, errorInfo);
+    if (!import.meta.env.VITE_SENTRY_DSN) return;
+
+    void import("@sentry/react")
+      .then((Sentry) => {
+        Sentry.captureException(error, {
+          extra: {
+            componentStack: errorInfo.componentStack,
+          },
+        });
+      })
+      .catch(() => {
+        // Ignore reporting failures so the fallback UI never crashes.
+      });
   }
 
   private handleRetry = () => {

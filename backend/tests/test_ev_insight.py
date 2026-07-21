@@ -2,7 +2,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -155,6 +155,42 @@ class TestGetEvInsight:
 
         leaf = next(m for m in result["top_ev_models"] if m["model"] == "Leaf")
         assert leaf["median_price_lkr"] == 7_000_000
+
+    def test_top_ev_models_payload_unchanged_and_query_count_not_n_plus_one(self):
+        db = _session()
+        db.add_all(
+            [
+                _listing("leaf-1", "electric", price_lkr=5_000_000, make="Nissan", model="Leaf"),
+                _listing("leaf-2", "electric", price_lkr=7_000_000, make="Nissan", model="Leaf"),
+                _listing("leaf-3", "electric", price_lkr=9_000_000, make="Nissan", model="Leaf"),
+                _listing("atto-1", "electric", price_lkr=11_000_000, make="BYD", model="Atto3"),
+                _listing("atto-2", "electric", price_lkr=13_000_000, make="BYD", model="Atto3"),
+                _listing("zs-1", "electric", price_lkr=10_000_000, make="MG", model="ZS"),
+                _listing("aqua-1", "hybrid", price_lkr=6_000_000, make="Toyota", model="Aqua"),
+                _listing("aqua-2", "hybrid", price_lkr=8_000_000, make="Toyota", model="Aqua"),
+            ]
+        )
+        db.commit()
+
+        select_count = 0
+
+        def _before_cursor_execute(_conn, _cursor, statement, _parameters, _context, _executemany):
+            nonlocal select_count
+            if statement.lstrip().upper().startswith("SELECT"):
+                select_count += 1
+
+        event.listen(db.bind, "before_cursor_execute", _before_cursor_execute)
+        try:
+            result = stats.get_ev_insight(top_n=3, db=db)
+        finally:
+            event.remove(db.bind, "before_cursor_execute", _before_cursor_execute)
+
+        assert result["top_ev_models"] == [
+            {"make": "Nissan", "model": "Leaf", "listing_count": 3, "median_price_lkr": 7_000_000.0},
+            {"make": "BYD", "model": "Atto3", "listing_count": 2, "median_price_lkr": 12_000_000.0},
+            {"make": "MG", "model": "ZS", "listing_count": 1, "median_price_lkr": 10_000_000.0},
+        ]
+        assert select_count <= 6
 
     def test_hybrid_benchmark_toyota_aqua(self):
         db = _session()

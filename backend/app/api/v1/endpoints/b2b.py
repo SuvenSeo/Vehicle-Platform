@@ -13,15 +13,16 @@ limited per key. Keys are issued out-of-band, one per institution.
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import datetime, timedelta
 
 import structlog
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.schemas import CollateralValueResponse
-from app.services.rate_limit import RateLimiter
+from app.services.rate_limit import RateLimiter, _client_key
 from app.utils.sql_median import median_price_expr, python_median
 from app.utils.time import utc_now
 from db.models import CarListing, live_listing_filter
@@ -30,7 +31,14 @@ from db.session import get_db
 log = structlog.get_logger()
 
 MIN_REASONABLE_PRICE_LKR = 100_000
-_b2b_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+
+
+def _b2b_rate_limit_key(request: Request) -> str:
+    api_key = str(request.headers.get("x-api-key") or "").strip()
+    return api_key or _client_key(request)
+
+
+_b2b_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, key_func=_b2b_rate_limit_key)
 
 router = APIRouter(dependencies=[Depends(_b2b_rate_limiter)])
 
@@ -44,7 +52,8 @@ def require_b2b_key(x_api_key: str | None = Header(default=None, alias="X-API-Ke
     keys = _configured_keys()
     if not keys:
         raise HTTPException(status_code=503, detail="B2B API is not configured on this deployment.")
-    if not x_api_key or x_api_key not in keys:
+    is_valid_key = bool(x_api_key) and any(secrets.compare_digest(x_api_key, configured_key) for configured_key in keys)
+    if not is_valid_key:
         raise HTTPException(status_code=401, detail="Invalid or missing API key.")
     return x_api_key
 

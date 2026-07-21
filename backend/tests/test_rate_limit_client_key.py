@@ -55,3 +55,22 @@ def test_rate_limiter_blocks_spoofed_header_rotation():
         assert getattr(exc, "status_code", None) == 429
     else:
         raise AssertionError("spoofed XFF rotation should not bypass the limiter")
+
+
+def test_rate_limiter_supports_custom_key_function():
+    limiter = RateLimiter(
+        max_requests=2,
+        window_seconds=60,
+        key_func=lambda request: str(request.headers.get("x-api-key") or "missing"),
+    )
+    request = DummyRequest(headers={"x-api-key": "k1", "user-agent": "ua"})
+
+    limiter(request, now=1000)
+    limiter(request, now=1001)
+
+    try:
+        limiter(request, now=1002)
+    except Exception as exc:
+        assert getattr(exc, "status_code", None) == 429
+    else:
+        raise AssertionError("custom key function should drive limiter buckets")

@@ -2,6 +2,7 @@ import asyncio
 import os
 from datetime import datetime, timezone
 
+import sentry_sdk
 import structlog
 from sqlalchemy import func, text
 from sqlalchemy.exc import OperationalError
@@ -346,7 +347,15 @@ def _finalize_scrape_run(
     listings_new: int,
     error_message: str | None = None,
 ):
-    run.status = status
+    resolved_status = status
+    if (
+        status == "SUCCESS"
+        and max(0, int(listings_found)) == 0
+        and max(0, int(listings_new)) == 0
+    ):
+        resolved_status = "DEGRADED"
+
+    run.status = resolved_status
     run.finished_at = _utcnow()
     run.listings_found = max(0, int(listings_found))
     run.listings_new = max(0, int(listings_new))
@@ -383,6 +392,17 @@ def _finalize_scrape_run_safe(
         log.error("scrape_run_finalize_failed", run_id=run_id, error=str(exc))
     finally:
         _close_db_session(db, context="finalize_scrape_run")
+
+
+def _capture_exception_safely(exc: Exception):
+    try:
+        hub = getattr(sentry_sdk, "Hub", None)
+        client = getattr(getattr(hub, "current", None), "client", None) if hub else None
+        if client is None:
+            return
+        sentry_sdk.capture_exception(exc)
+    except Exception:
+        return
 
 
 def _is_statement_timeout_error(exc: Exception) -> bool:
@@ -458,7 +478,7 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
             listings_new=max(0, listings_after - listings_before),
         )
         log.info("scraping_source_completed", source=source_name)
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as exc:
         listings_after = _count_source_listings_safe(source_name)
         _finalize_scrape_run_safe(
             run_id,
@@ -472,6 +492,7 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
             source=source_name,
             timeout_seconds=source_timeout_seconds,
         )
+        _capture_exception_safely(exc)
     except Exception as exc:
         listings_after = _count_source_listings_safe(source_name)
         _finalize_scrape_run_safe(
@@ -482,6 +503,7 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
             error_message=str(exc),
         )
         log.error("scraping_source_failed", source=source_name, error=str(exc))
+        _capture_exception_safely(exc)
     finally:
         _close_db_session(db, context="run_source", source=source_name)
 

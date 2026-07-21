@@ -3,13 +3,15 @@
 Covers:
   - MarketStatsCache model round-trip
   - _is_fresh TTL logic
-  - refresh_stats_cache populates summary, district_prices, and district_velocity
+  - refresh_stats_cache populates summary, district_prices, district_velocity, trends, insights, price_index
   - get_cached_summary / get_cached_district_prices / get_cached_district_velocity honour staleness
   - allow_stale=True serves expired summary / district_prices / district_velocity payloads
   - store_summary_cache / store_district_prices_cache / store_district_velocity_cache helpers
   - stats summary endpoint uses cache on hit, stores on miss, stale fallback on compute failure
   - district-prices endpoint uses cache on hit, stores on miss, stale fallback on compute failure
   - district-velocity endpoint uses cache on hit and stale fallback on compute failure
+  - trends/insights/price-index endpoints use cache on hit, store on miss, stale fallback on failure
+  - trends cache keys vary by significant query params
 """
 
 import sys
@@ -27,13 +29,20 @@ from app.utils import stats_cache
 from app.utils.stats_cache import (
     CACHE_TTL_SECONDS,
     _is_fresh,
+    build_trends_cache_key,
     get_cached_district_prices,
     get_cached_district_velocity,
+    get_cached_insights,
+    get_cached_price_index,
     get_cached_summary,
+    get_cached_trends,
     refresh_stats_cache,
     store_district_prices_cache,
     store_district_velocity_cache,
+    store_insights_cache,
+    store_price_index_cache,
     store_summary_cache,
+    store_trends_cache,
 )
 from db.models import Base, CarListing, MarketStatsCache, PriceAggregate
 
@@ -324,11 +333,126 @@ def test_store_summary_cache_is_nonfatal_on_db_error(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# trends / insights / price-index cache helpers
+# ---------------------------------------------------------------------------
+
+
+def test_build_trends_cache_key_is_stable_for_equivalent_args():
+    key_a = build_trends_cache_key(
+        make=" Toyota ",
+        model="Vitz",
+        condition=" Used ",
+        district=" Colombo ",
+        months=12,
+    )
+    key_b = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition="used",
+        district="colombo",
+        months=12,
+    )
+    assert key_a == key_b
+
+
+def test_build_trends_cache_key_changes_when_significant_args_change():
+    baseline = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition="used",
+        district="colombo",
+        months=12,
+    )
+    different_months = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition="used",
+        district="colombo",
+        months=18,
+    )
+    different_district = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition="used",
+        district="kandy",
+        months=12,
+    )
+    assert baseline != different_months
+    assert baseline != different_district
+
+
+def test_trends_cache_ttl_and_allow_stale():
+    db = _session()
+    cache_key = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition=None,
+        district=None,
+        months=12,
+    )
+    payload = {"points": [{"year": 2026, "month": 4}], "coverage_scope": "exact", "coverage_note": None}
+    db.add(
+        MarketStatsCache(
+            cache_key=cache_key,
+            payload=payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 5),
+        )
+    )
+    db.commit()
+
+    assert get_cached_trends(db, cache_key) is None
+    stale = get_cached_trends(db, cache_key, allow_stale=True)
+    assert stale is not None
+    assert stale["coverage_scope"] == "exact"
+
+
+def test_store_and_get_insights_and_price_index_cache_round_trip():
+    db = _session()
+    insights_payload = {
+        "new_listings_24h": 1,
+        "segment_performance": [],
+        "trending_models": [],
+        "hot_deals": [],
+    }
+    price_index_payload = {
+        "series": [],
+        "top_makes": [],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    store_insights_cache(db, insights_payload)
+    store_price_index_cache(db, price_index_payload)
+
+    insights = get_cached_insights(db)
+    price_index = get_cached_price_index(db)
+    assert insights is not None
+    assert insights["new_listings_24h"] == 1
+    assert price_index is not None
+    assert "series" in price_index
+
+
+def test_store_trends_cache_round_trip():
+    db = _session()
+    cache_key = build_trends_cache_key(
+        make=None,
+        model=None,
+        condition=None,
+        district=None,
+        months=12,
+    )
+    payload = {"points": [], "coverage_scope": "none", "coverage_note": "no data"}
+    store_trends_cache(db, cache_key, payload)
+    cached = get_cached_trends(db, cache_key)
+    assert cached is not None
+    assert cached["coverage_scope"] == "none"
+
+
+# ---------------------------------------------------------------------------
 # refresh_stats_cache (end-to-end)
 # ---------------------------------------------------------------------------
 
 
-def test_refresh_stats_cache_creates_both_keys():
+def test_refresh_stats_cache_creates_expected_keys():
     db = _session()
     db.add_all(
         [
@@ -343,10 +467,23 @@ def test_refresh_stats_cache_creates_both_keys():
     summary_entry = db.query(MarketStatsCache).filter_by(cache_key="summary").first()
     dp_entry = db.query(MarketStatsCache).filter_by(cache_key="district_prices").first()
     velocity_entry = db.query(MarketStatsCache).filter_by(cache_key="district_velocity").first()
+    trends_key = build_trends_cache_key(
+        make=None,
+        model=None,
+        condition=None,
+        district=None,
+        months=12,
+    )
+    trends_entry = db.query(MarketStatsCache).filter_by(cache_key=trends_key).first()
+    insights_entry = db.query(MarketStatsCache).filter_by(cache_key="insights").first()
+    price_index_entry = db.query(MarketStatsCache).filter_by(cache_key="price_index").first()
 
     assert summary_entry is not None
     assert dp_entry is not None
     assert velocity_entry is not None
+    assert trends_entry is not None
+    assert insights_entry is not None
+    assert price_index_entry is not None
     assert isinstance(velocity_entry.payload, dict)
     assert "points" in velocity_entry.payload
 
@@ -520,6 +657,212 @@ def test_district_prices_endpoint_serves_stale_cache_on_compute_failure(monkeypa
     result = stats_module.get_district_prices(db=db)
     assert result["points"][0]["district"] == "Colombo"
     assert result["points"][0]["count"] == 42
+
+
+# ---------------------------------------------------------------------------
+# Endpoint integration: trends / insights / price-index
+# ---------------------------------------------------------------------------
+
+
+def test_trends_endpoint_returns_cached_on_hit(monkeypatch):
+    db = _session()
+    cache_key = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition=None,
+        district=None,
+        months=12,
+    )
+    expected = {"points": [{"year": 2026, "month": 4}], "coverage_scope": "exact", "coverage_note": None}
+    db.add(
+        MarketStatsCache(
+            cache_key=cache_key,
+            payload=expected,
+            refreshed_at=datetime.now(timezone.utc),
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_price_trends_payload",
+        lambda **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute trends")),
+    )
+    result = stats_module.get_price_trends(make="Toyota", model="Vitz", months=12, db=db)
+    assert result["coverage_scope"] == "exact"
+
+
+def test_trends_endpoint_stores_on_miss():
+    db = _session()
+    cache_key = build_trends_cache_key(
+        make="toyota",
+        model="vitz",
+        condition=None,
+        district=None,
+        months=12,
+    )
+    assert get_cached_trends(db, cache_key) is None
+
+    result = stats_module.get_price_trends(make="toyota", model="vitz", months=12, db=db)
+    cached = get_cached_trends(db, cache_key)
+    assert isinstance(result, dict)
+    assert cached is not None
+    assert cached["coverage_scope"] == result["coverage_scope"]
+
+
+def test_trends_endpoint_serves_stale_on_compute_failure(monkeypatch):
+    db = _session()
+    cache_key = build_trends_cache_key(
+        make=None,
+        model=None,
+        condition=None,
+        district=None,
+        months=12,
+    )
+    stale_payload = {"points": [], "coverage_scope": "none", "coverage_note": "cached stale"}
+    db.add(
+        MarketStatsCache(
+            cache_key=cache_key,
+            payload=stale_payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 10),
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_price_trends_payload",
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+    result = stats_module.get_price_trends(months=12, db=db)
+    assert result["coverage_note"] == "cached stale"
+
+
+def test_insights_endpoint_returns_cached_on_hit(monkeypatch):
+    db = _session()
+    expected = {
+        "new_listings_24h": 7,
+        "segment_performance": [],
+        "trending_models": [],
+        "hot_deals": [],
+    }
+    db.add(
+        MarketStatsCache(
+            cache_key="insights",
+            payload=expected,
+            refreshed_at=datetime.now(timezone.utc),
+        )
+    )
+    db.commit()
+
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_dashboard_insights_payload",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute insights")),
+    )
+    result = stats_module.get_dashboard_insights(db=db)
+    assert result["new_listings_24h"] == 7
+
+
+def test_insights_endpoint_stores_on_miss(monkeypatch):
+    db = _session()
+    payload = {
+        "new_listings_24h": 11,
+        "segment_performance": [],
+        "trending_models": [],
+        "hot_deals": [],
+    }
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_dashboard_insights_payload",
+        lambda *_args, **_kwargs: payload,
+    )
+
+    result = stats_module.get_dashboard_insights(db=db)
+    cached = get_cached_insights(db)
+    assert result["new_listings_24h"] == 11
+    assert cached is not None
+    assert cached["new_listings_24h"] == 11
+
+
+def test_insights_endpoint_serves_stale_on_compute_failure(monkeypatch):
+    db = _session()
+    stale_payload = {
+        "new_listings_24h": 3,
+        "segment_performance": [],
+        "trending_models": [],
+        "hot_deals": [],
+    }
+    db.add(
+        MarketStatsCache(
+            cache_key="insights",
+            payload=stale_payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 10),
+        )
+    )
+    db.commit()
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_dashboard_insights_payload",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+    result = stats_module.get_dashboard_insights(db=db)
+    assert result["new_listings_24h"] == 3
+
+
+def test_price_index_endpoint_returns_cached_on_hit(monkeypatch):
+    db = _session()
+    expected = {"series": [], "top_makes": [], "generated_at": datetime.now(timezone.utc).isoformat()}
+    db.add(
+        MarketStatsCache(
+            cache_key="price_index",
+            payload=expected,
+            refreshed_at=datetime.now(timezone.utc),
+        )
+    )
+    db.commit()
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_price_index_payload",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute price index")),
+    )
+    result = stats_module.get_price_index(db=db)
+    assert "series" in result
+
+
+def test_price_index_endpoint_stores_on_miss(monkeypatch):
+    db = _session()
+    payload = {"series": [], "top_makes": [], "generated_at": datetime.now(timezone.utc).isoformat()}
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_price_index_payload",
+        lambda *_args, **_kwargs: payload,
+    )
+    result = stats_module.get_price_index(db=db)
+    cached = get_cached_price_index(db)
+    assert "series" in result
+    assert cached is not None
+    assert "top_makes" in cached
+
+
+def test_price_index_endpoint_serves_stale_on_compute_failure(monkeypatch):
+    db = _session()
+    stale_payload = {"series": [], "top_makes": [], "generated_at": datetime.now(timezone.utc).isoformat()}
+    db.add(
+        MarketStatsCache(
+            cache_key="price_index",
+            payload=stale_payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 10),
+        )
+    )
+    db.commit()
+    monkeypatch.setattr(
+        stats_module,
+        "_compute_price_index_payload",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+    result = stats_module.get_price_index(db=db)
+    assert "top_makes" in result
 
 
 # ---------------------------------------------------------------------------
