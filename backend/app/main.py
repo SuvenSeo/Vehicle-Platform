@@ -38,6 +38,7 @@ if _sentry_dsn:
 # worst-case init is patches + create_all across both engines. 20s proved too
 # tight on HF Spaces cpu-basic against remote Postgres.
 DB_INIT_TIMEOUT_SECONDS = int(os.getenv("DB_INIT_TIMEOUT_SECONDS", "60"))
+SKIP_DB_INIT = os.getenv("SKIP_DB_INIT", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 
 @asynccontextmanager
@@ -48,15 +49,18 @@ async def lifespan(app: FastAPI):
     # Runs in a thread with a hard timeout: init_db() is a blocking sync call,
     # and a stuck DB connection here would otherwise freeze the whole event
     # loop forever, so the app never starts accepting requests.
-    try:
-        await asyncio.wait_for(asyncio.to_thread(init_db), timeout=DB_INIT_TIMEOUT_SECONDS)
-        logger.info("db_initialized")
-    except asyncio.TimeoutError as e:
-        logger.critical("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
-        raise RuntimeError("Database initialization timed out. Aborting startup.") from e
-    except Exception as e:
-        logger.critical("db_init_failed", error=str(e))
-        raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
+    if SKIP_DB_INIT:
+        logger.info("db_init_skipped", reason="SKIP_DB_INIT=true")
+    else:
+        try:
+            await asyncio.wait_for(asyncio.to_thread(init_db), timeout=DB_INIT_TIMEOUT_SECONDS)
+            logger.info("db_initialized")
+        except asyncio.TimeoutError as e:
+            logger.critical("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
+            raise RuntimeError("Database initialization timed out. Aborting startup.") from e
+        except Exception as e:
+            logger.critical("db_init_failed", error=str(e))
+            raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
 
     try:
         start_daily_sync_scheduler()

@@ -5,6 +5,9 @@ ENV PYTHONUNBUFFERED=1
 # Scraping is owned by GitHub Actions in production. Keep the API container
 # from starting a second in-process scheduler unless explicitly overridden.
 ENV DAILY_SYNC_ENABLED=false
+# Production schema changes are applied by the GitHub Actions maintenance
+# workflow. Avoid blocking API startup on remote DDL locks or pooler latency.
+ENV SKIP_DB_INIT=true
 
 WORKDIR /app
 
