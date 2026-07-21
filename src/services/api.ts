@@ -1937,6 +1937,52 @@ export const benchmarkDealerUrls = async (
   return Array.isArray(data) ? data : [];
 };
 
+export interface DealerClaimProfile {
+  id: number;
+  claim_token: string;
+  display_name: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+  seller_name_pattern: string | null;
+  claimed_url: string | null;
+  status: string;
+  matched_listings: number;
+}
+
+const DEALER_CLAIM_TOKEN_KEY = "motormila.dealer_claim_token.v1";
+
+export function getStoredDealerClaimToken(): string | null {
+  try {
+    return window.localStorage.getItem(DEALER_CLAIM_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function storeDealerClaimToken(token: string | null): void {
+  try {
+    if (token) window.localStorage.setItem(DEALER_CLAIM_TOKEN_KEY, token);
+    else window.localStorage.removeItem(DEALER_CLAIM_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export const claimDealerProfile = async (payload: {
+  display_name: string;
+  contact_phone?: string;
+  contact_email?: string;
+  seller_name_pattern?: string;
+  claimed_url?: string;
+  claim_token?: string;
+}): Promise<DealerClaimProfile> => {
+  return postJSON<DealerClaimProfile>("/dealer/claim", payload);
+};
+
+export const getDealerProfile = async (claimToken: string): Promise<DealerClaimProfile> => {
+  return fetchJSON<DealerClaimProfile>("/dealer/me", { claim_token: claimToken });
+};
+
 export const sendChatMessage = async (
   message: string,
   history: ChatMessage[],
