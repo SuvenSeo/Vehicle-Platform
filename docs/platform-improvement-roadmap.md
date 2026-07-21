@@ -11,13 +11,17 @@ Last updated: 2026-07-21. Live inventory across **13 sources**.
 - Granular React Query staleTime, CID surcharge notify, sitemap `content_updated_at`
 - SEO hubs `/cars/:make` + `/locations/:district`, HF keep-alive cron
 
-### P2 backlog (`cursor/audit-backlog-p2-d670`)
+### P2 backlog
 - HttpOnly `mm_session` cookie auth (+ Bearer fallback / logout clear)
-- Twilio WhatsApp notify on alert match deltas (`notify_phone`)
-- Fair Market Value badges + `GET /listings/{id}/fmv`
-- Dealer claim-profile (`/dealer/claim`, `/dealer/me`) + dashboard card
+- `/auth/me` session bootstrap + `credentials: include` on API client
+- Twilio WhatsApp notify on alert match deltas (`notify_phone`, row badge + validation)
+- Fair Market Value badges on cards + listing detail + `GET /listings/{id}/fmv`
+- Dealer claim-profile (`/dealer/claim`, `/dealer/me`) with seller pattern + URL
 - SI/TA i18n for hero, alerts, calculator, make hub
 - Ops activation docs in `.env.example` / `backend/.env.example`
+
+### Hotfixes
+- `require_pro_access(request: Request)` — Optional[Request] broke FastAPI startup / B2B CI
 
 ## Remaining ops activation (secrets — not code)
 
@@ -38,6 +42,7 @@ Last updated: 2026-07-21. Live inventory across **13 sources**.
 | Full SI/TA page coverage | High-visibility surfaces done; extend page-by-page |
 | pHash background queue | Sync `RUN_IMAGE_PHASH` fine until bottleneck |
 | Dealer verified badge / billing | Claim flow is the foundation |
+| Cookie-only Pro CSRF hardening | Bearer still required for Pro UI writes; SameSite=none for HF↔Vercel |
 
 ## Verification
 
