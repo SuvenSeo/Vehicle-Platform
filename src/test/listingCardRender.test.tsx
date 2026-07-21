@@ -102,8 +102,8 @@ describe("ListingCard render states and interactions", () => {
       </TestRouter>,
     );
 
-    expect(screen.getByText(/market position/i)).toBeInTheDocument();
-    expect(screen.getByText(/% below/i)).toBeInTheDocument();
+    expect(screen.getByText(/fair market value/i)).toBeInTheDocument();
+    expect(screen.getByText(/% below fmv/i)).toBeInTheDocument();
   });
 
   it("keeps compare and watchlist actions compatible", () => {
