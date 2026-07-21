@@ -19,7 +19,7 @@ _BCRYPT_HASH = auth._hash_password("correct-horse")
 class DummyRequest:
     headers = {"user-agent": "pytest"}
     client = type("Client", (), {"host": "127.0.0.1"})()
-
+    cookies: dict = {}
 
 def _configure(monkeypatch, *, plan: str = "enterprise", subscription_status: str = "active"):
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
@@ -133,7 +133,7 @@ def test_pro_gate_enforced_by_default(monkeypatch):
 
     # Secure by default: unset flag means the gate rejects missing tokens.
     with pytest.raises(HTTPException) as excinfo:
-        auth.require_pro_access(authorization=None)
+        auth.require_pro_access(request=DummyRequest(), authorization=None)
     assert excinfo.value.status_code == 401
 
 
@@ -141,7 +141,7 @@ def test_pro_gate_can_be_disabled_for_local_dev(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "false")
 
     # Explicit opt-out: no token required.
-    assert auth.require_pro_access(authorization=None) is None
+    assert auth.require_pro_access(request=DummyRequest(), authorization=None) is None
 
 
 def test_sha256_credentials_are_rejected(monkeypatch):
@@ -176,15 +176,15 @@ def test_pro_gate_enforced_requires_pro_plan(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
 
     with pytest.raises(HTTPException) as no_token:
-        auth.require_pro_access(authorization=None)
+        auth.require_pro_access(request=DummyRequest(), authorization=None)
     assert no_token.value.status_code == 401
 
     good_token, _ = auth.issue_token("owner@example.com", "enterprise")
-    assert auth.require_pro_access(authorization=f"Bearer {good_token}") is None
+    assert auth.require_pro_access(request=DummyRequest(), authorization=f"Bearer {good_token}") is None
 
     free_token, _ = auth.issue_token("someone@example.com", "free")
     with pytest.raises(HTTPException) as wrong_plan:
-        auth.require_pro_access(authorization=f"Bearer {free_token}")
+        auth.require_pro_access(request=DummyRequest(), authorization=f"Bearer {free_token}")
     assert wrong_plan.value.status_code == 403
 
 
@@ -199,7 +199,7 @@ def test_pro_gate_rejects_inactive_subscription(monkeypatch):
     )
 
     with pytest.raises(HTTPException) as inactive_subscription:
-        auth.require_pro_access(authorization=f"Bearer {result['token']}")
+        auth.require_pro_access(request=DummyRequest(), authorization=f"Bearer {result['token']}")
     assert inactive_subscription.value.status_code == 403
 
 
@@ -208,7 +208,7 @@ def test_pro_gate_allows_trialing_subscription(monkeypatch):
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
 
     token, _ = auth.issue_token("trial@example.com", "pro", "trialing")
-    assert auth.require_pro_access(authorization=f"Bearer {token}") is None
+    assert auth.require_pro_access(request=DummyRequest(), authorization=f"Bearer {token}") is None
 
 
 def test_pro_gate_allows_legacy_token_without_subscription_status(monkeypatch):
@@ -229,7 +229,7 @@ def test_pro_gate_allows_legacy_token_without_subscription_status(monkeypatch):
     ).hexdigest()
     legacy_token = f"{payload_part}.{signature}"
 
-    assert auth.require_pro_access(authorization=f"Bearer {legacy_token}") is None
+    assert auth.require_pro_access(request=DummyRequest(), authorization=f"Bearer {legacy_token}") is None
 
 
 def test_me_endpoint_rate_limited(monkeypatch):

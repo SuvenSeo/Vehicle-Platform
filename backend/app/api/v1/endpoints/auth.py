@@ -292,7 +292,7 @@ def pro_access_enforced() -> bool:
 
 
 def require_pro_access(
-    request: Optional[Request] = None,
+    request: Request,
     authorization: Optional[str] = Header(default=None),
 ) -> None:
     """Gate for /pro/* — requires a valid pro/enterprise token unless
@@ -301,6 +301,9 @@ def require_pro_access(
     Accepts Authorization Bearer *or* the HttpOnly ``mm_session`` cookie.
     Mutating clients should still send Bearer (or another custom header) so
     cross-site cookie CSRF cannot alone unlock Pro writes.
+
+    ``request`` must be a required FastAPI-injected ``Request`` (not Optional):
+    Optional[Request]=None is treated as a body field and breaks app startup.
     """
     if not pro_access_enforced():
         return

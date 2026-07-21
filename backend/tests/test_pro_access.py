@@ -26,6 +26,12 @@ from app.api.v1.endpoints.auth import (
 )
 
 
+class _DummyRequest:
+    headers = {"user-agent": "pytest"}
+    client = type("Client", (), {"host": "127.0.0.1"})()
+    cookies: dict = {}
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -67,7 +73,7 @@ def test_require_pro_access_is_noop_when_explicitly_disabled(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "false")
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
     # No authorization header supplied — should not raise.
-    result = require_pro_access(authorization=None)
+    result = require_pro_access(request=_DummyRequest(), authorization=None)
     assert result is None
 
 
@@ -77,7 +83,7 @@ def test_require_pro_access_rejects_missing_token_when_enforced(monkeypatch):
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
 
     with pytest.raises(HTTPException) as exc_info:
-        require_pro_access(authorization=None)
+        require_pro_access(request=_DummyRequest(), authorization=None)
 
     assert exc_info.value.status_code == 401
 
@@ -90,7 +96,7 @@ def test_require_pro_access_rejects_free_plan_token_when_enforced(monkeypatch):
     free_token = _make_token("free")
 
     with pytest.raises(HTTPException) as exc_info:
-        require_pro_access(authorization=f"Bearer {free_token}")
+        require_pro_access(request=_DummyRequest(), authorization=f"Bearer {free_token}")
 
     assert exc_info.value.status_code == 403
 
@@ -102,5 +108,5 @@ def test_require_pro_access_allows_valid_pro_token_when_enforced(monkeypatch):
 
     pro_token = _make_token("pro")
 
-    result = require_pro_access(authorization=f"Bearer {pro_token}")
+    result = require_pro_access(request=_DummyRequest(), authorization=f"Bearer {pro_token}")
     assert result is None
