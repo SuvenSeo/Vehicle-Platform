@@ -13,11 +13,9 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Health ping
-        env:
-          HF_HEALTH_URL: ${{ vars.HF_HEALTH_URL || 'https://seo292-vehicle-platform-backend.hf.space/health' }}
         run: |
           set -euo pipefail
-          url="${HF_HEALTH_URL}"
+          url="https://seo292-vehicle-platform-backend.hf.space/health"
           echo "Pinging ${url}"
           # Retry a few times — Spaces can briefly refuse during redeploys.
           for i in 1 2 3; do
@@ -29,5 +27,7 @@ jobs:
             echo "Attempt ${i} failed; retrying…"
             sleep 5
           done
-          echo "Health ping failed after retries (non-blocking for schedule)"
+          # Scheduled keep-alives should not fail the Actions dashboard when
+          # HF is briefly down; exit 0 so the next tick can try again.
+          echo "Health ping failed after retries (non-blocking)"
           exit 0
