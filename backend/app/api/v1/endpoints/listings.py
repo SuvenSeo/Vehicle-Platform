@@ -1487,9 +1487,18 @@ def get_sitemap_listing_ids(
     offset: Annotated[int, Query(ge=0)] = 0,
     db: Session = Depends(get_db),
 ):
-    """Recent listing IDs + last-seen timestamps for sitemap generation."""
+    """Recent listing IDs + content-change timestamps for sitemap generation.
+
+    ``content_updated_at`` is preferred (price / status changes only). Falls
+    back to ``first_seen_at`` then ``last_seen_at`` for legacy rows.
+    """
     rows = (
-        db.query(CarListing.id, CarListing.last_seen_at)
+        db.query(
+            CarListing.id,
+            CarListing.content_updated_at,
+            CarListing.first_seen_at,
+            CarListing.last_seen_at,
+        )
         .filter(live_listing_filter(), CarListing.is_duplicate == False)
         .order_by(desc(CarListing.last_seen_at))
         .offset(offset)
@@ -1499,7 +1508,11 @@ def get_sitemap_listing_ids(
     return [
         {
             "id": int(row.id),
+            "content_updated_at": (
+                row.content_updated_at.isoformat() if row.content_updated_at else None
+            ),
             "last_seen_at": row.last_seen_at.isoformat() if row.last_seen_at else None,
+            "first_seen_at": row.first_seen_at.isoformat() if row.first_seen_at else None,
         }
         for row in rows
     ]

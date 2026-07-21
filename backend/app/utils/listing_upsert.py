@@ -57,13 +57,16 @@ def upsert_listing(db: Session, source: str, payload: dict) -> bool:
 
     if existing:
         old_price = _as_decimal(existing.price_lkr)
+        was_active = bool(existing.is_active)
         for key, value in payload.items():
             setattr(existing, key, value)
         existing.last_seen_at = utc_now()
         existing.is_active = True  # re-sighted at source: live again
 
         new_price = _as_decimal(payload.get("price_lkr"))
-        if new_price is not None and new_price != old_price:
+        price_changed = new_price is not None and new_price != old_price
+        status_changed = not was_active  # flipped inactive → active
+        if price_changed:
             _record_price_point(db, existing.id, new_price)
             log.info(
                 "price_change_recorded",
@@ -72,10 +75,15 @@ def upsert_listing(db: Session, source: str, payload: dict) -> bool:
                 old_price=str(old_price) if old_price is not None else None,
                 new_price=str(new_price),
             )
+        if price_changed or status_changed:
+            existing.content_updated_at = utc_now()
         return False
 
     listing = CarListing(**payload)
     db.add(listing)
     db.flush()  # assign listing.id for the initial history row
+    now = utc_now()
+    if listing.content_updated_at is None:
+        listing.content_updated_at = now
     _record_price_point(db, listing.id, payload.get("price_lkr"))
     return True

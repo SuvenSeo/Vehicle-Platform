@@ -14,6 +14,7 @@ _CAR_LISTING_COLUMN_PATCHES = (
     ("is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
     ("image_phash", "VARCHAR(16)", "VARCHAR(16)"),
     ("vehicle_category", "VARCHAR(40)", "VARCHAR(40)"),
+    ("content_updated_at", "TIMESTAMPTZ", "DATETIME"),
 )
 
 # (index_name, table_name, columns SQL fragment)
@@ -22,6 +23,7 @@ _CAR_LISTING_COLUMN_PATCHES = (
 # elsewhere in this codebase.
 _INDEX_PATCHES = (
     ("idx_car_listings_last_seen_at", "car_listings", "last_seen_at"),
+    ("idx_car_listings_content_updated_at", "car_listings", "content_updated_at"),
     ("idx_car_listings_image_phash", "car_listings", "image_phash"),
     ("idx_car_listings_vehicle_category", "car_listings", "vehicle_category"),
     # Live listing filters: is_active + is_outlier (+ optional district).

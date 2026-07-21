@@ -91,7 +91,10 @@ def mark_inactive_listings(
             )
             continue
 
-        count = stale_query.update({"is_active": False}, synchronize_session=False)
+        count = stale_query.update(
+            {"is_active": False, "content_updated_at": current},
+            synchronize_session=False,
+        )
         if count:
             deactivated[source] = count
 

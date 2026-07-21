@@ -54,7 +54,11 @@ function renderUrlset(rows) {
   const urls = rows
     .filter((row) => Number.isInteger(Number(row?.id)) && Number(row.id) > 0)
     .map((row) => {
-      const lastmod = toLastmod(row.last_seen_at);
+      // Prefer content_updated_at (price/status change) over re-sight last_seen_at
+      // so Google only re-crawls when the page meaningfully changed.
+      const lastmod = toLastmod(
+        row.content_updated_at || row.first_seen_at || row.last_seen_at,
+      );
       return [
         "  <url>",
         `    <loc>${SITE_ORIGIN}/listing/${Number(row.id)}</loc>`,
