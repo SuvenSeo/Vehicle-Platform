@@ -27,9 +27,30 @@ from app.api.v1.endpoints.auth import (
 
 
 class _DummyRequest:
+    method = "GET"
     headers = {"user-agent": "pytest"}
     client = type("Client", (), {"host": "127.0.0.1"})()
     cookies: dict = {}
+
+
+class _MutableHeaders(dict):
+    def get(self, key, default=None):
+        for k, v in self.items():
+            if str(k).lower() == str(key).lower():
+                return v
+        return default
+
+
+class _UnsafeRequest:
+    method = "POST"
+    cookies: dict = {}
+
+    def __init__(self, origin: str | None = "http://localhost:5173"):
+        headers = {"user-agent": "pytest"}
+        if origin is not None:
+            headers["origin"] = origin
+        self.headers = _MutableHeaders(headers)
+        self.client = type("Client", (), {"host": "127.0.0.1"})()
 
 
 # ---------------------------------------------------------------------------
@@ -110,3 +131,38 @@ def test_require_pro_access_allows_valid_pro_token_when_enforced(monkeypatch):
 
     result = require_pro_access(request=_DummyRequest(), authorization=f"Bearer {pro_token}")
     assert result is None
+
+
+def test_require_pro_access_rejects_cookie_only_unsafe_method(monkeypatch):
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    token = _make_token("pro")
+    req = _UnsafeRequest(origin="http://localhost:5173")
+    req.cookies = {"mm_session": token}
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_pro_access(request=req, authorization=None)
+    assert exc_info.value.status_code == 403
+    assert "Bearer" in str(exc_info.value.detail)
+
+
+def test_require_pro_access_rejects_untrusted_origin_on_write(monkeypatch):
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
+    token = _make_token("pro")
+    req = _UnsafeRequest(origin="https://evil.example")
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_pro_access(request=req, authorization=f"Bearer {token}")
+    assert exc_info.value.status_code == 403
+    assert "Origin" in str(exc_info.value.detail)
+
+
+def test_require_pro_access_allows_bearer_write_from_trusted_origin(monkeypatch):
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
+    token = _make_token("pro")
+    req = _UnsafeRequest(origin="http://localhost:5173")
+    assert require_pro_access(request=req, authorization=f"Bearer {token}") is None

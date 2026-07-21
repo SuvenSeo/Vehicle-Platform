@@ -17,6 +17,7 @@ _BCRYPT_HASH = auth._hash_password("correct-horse")
 
 
 class DummyRequest:
+    method = "GET"
     headers = {"user-agent": "pytest"}
     client = type("Client", (), {"host": "127.0.0.1"})()
     cookies: dict = {}

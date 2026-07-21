@@ -22,6 +22,7 @@ import json
 import os
 import time
 from typing import Optional
+from urllib.parse import urlparse
 import bcrypt
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response
@@ -311,6 +312,48 @@ def pro_access_enforced() -> bool:
     return os.getenv("PRO_ACCESS_ENFORCED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
+def _cors_allowed_origins() -> set[str]:
+    raw = os.getenv("CORS_ORIGINS", "").strip()
+    if raw:
+        return {origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()}
+    return {
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+        "https://motormila.vercel.app",
+        "https://vehicle-platform-one.vercel.app",
+        "https://vehicle-platform-one-suvenseoras-projects.vercel.app",
+    }
+
+
+def _request_origin(request: Request) -> Optional[str]:
+    origin = (request.headers.get("origin") or "").strip().rstrip("/")
+    if origin:
+        return origin
+    referer = (request.headers.get("referer") or "").strip()
+    if not referer:
+        return None
+    try:
+        parsed = urlparse(referer)
+        if not parsed.scheme or not parsed.netloc:
+            return None
+        return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+    except Exception:
+        return None
+
+
+def _is_unsafe_method(request: Request) -> bool:
+    return str(getattr(request, "method", "GET") or "GET").upper() in {
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+    }
+
+
 def require_pro_access(
     request: Request,
     authorization: Optional[str] = Header(default=None),
@@ -318,15 +361,29 @@ def require_pro_access(
     """Gate for /pro/* — requires a valid pro/enterprise token unless
     PRO_ACCESS_ENFORCED=false explicitly opts out (local dev only).
 
-    Accepts Authorization Bearer *or* the HttpOnly ``mm_session`` cookie.
-    Mutating clients should still send Bearer (or another custom header) so
-    cross-site cookie CSRF cannot alone unlock Pro writes.
+    Accepts Authorization Bearer *or* the HttpOnly ``mm_session`` cookie for
+    safe (GET) methods. Mutating methods require a Bearer token AND an Origin
+    (or Referer) in the CORS allowlist so cookie-only CSRF cannot unlock Pro writes.
 
     ``request`` must be a required FastAPI-injected ``Request`` (not Optional):
     Optional[Request]=None is treated as a body field and breaks app startup.
     """
     if not pro_access_enforced():
         return
+
+    unsafe = _is_unsafe_method(request)
+    bearer = (authorization or "").removeprefix("Bearer ").strip()
+    if unsafe and not bearer:
+        raise HTTPException(
+            status_code=403,
+            detail="Pro writes require an Authorization Bearer token (cookie alone is not accepted).",
+        )
+
+    if unsafe:
+        origin = _request_origin(request)
+        allowed = _cors_allowed_origins()
+        if origin is None or origin not in allowed:
+            raise HTTPException(status_code=403, detail="Pro writes require a trusted Origin.")
 
     token = _extract_token(authorization, request)
     payload = verify_token(token)
