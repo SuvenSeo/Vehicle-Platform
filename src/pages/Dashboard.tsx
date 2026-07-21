@@ -493,7 +493,6 @@ export default function Dashboard() {
     scrollToMarket();
   }, [scrollToMarket]);
 
-  const comparedListings = useMemo(() => listings.filter((l) => compareIdSet.has(l.id)), [listings, compareIdSet]);
   const totalPages = Math.ceil(total / LISTINGS_PAGE_SIZE);
   const currentAlertSummary = useMemo(() => summarizeAlertFilters(filters), [filters]);
 
@@ -1109,19 +1108,54 @@ export default function Dashboard() {
 
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,680px)] -translate-x-1/2">
-          <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-soft-xl backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <Scale className="h-4 w-4 text-primary/60" />
-              <span className="text-[12px] font-semibold text-foreground">{compareIds.length} selected</span>
+        <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,720px)] -translate-x-1/2">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-3 py-2.5 shadow-soft-xl backdrop-blur-xl md:px-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex -space-x-2">
+                {compareListings.slice(0, 4).map((listing) => (
+                  <div
+                    key={listing.id}
+                    className="relative h-9 w-9 overflow-hidden rounded-lg border-2 border-card bg-muted ring-1 ring-border"
+                  >
+                    <VehicleThumbnail
+                      src={pickVehicleImageUrl(
+                        [listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])],
+                        [listing.detail_url],
+                      )}
+                      listingId={listing.id}
+                      alt={`${listing.make} ${listing.model}`}
+                      className="h-full w-full object-cover"
+                      placeholderClassName="flex h-full w-full items-center justify-center bg-muted"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-semibold text-foreground">
+                  {compareIds.length} selected to compare
+                </p>
+                <p className="truncate text-[10px] text-muted-foreground">
+                  {compareIds.length < 2 ? "Add one more vehicle" : "Ready to compare side-by-side"}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setCompareListings([])}
-                className="flex h-8 items-center gap-1 rounded-lg border border-border px-3 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
-              ><X className="h-3 w-3" /> Clear</button>
-              <button type="button" disabled={compareIds.length < 2} onClick={() => setShowCompare(true)}
-                className="h-8 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-primary/95 disabled:opacity-40"
-              >Compare</button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCompareListings([])}
+                className="flex h-9 items-center gap-1 rounded-xl border border-border px-3 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X className="h-3 w-3" /> Clear
+              </button>
+              <button
+                type="button"
+                disabled={compareIds.length < 2}
+                onClick={() => setShowCompare(true)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-4 text-[11px] font-bold text-primary-foreground transition-colors hover:bg-primary/95 disabled:opacity-40"
+              >
+                <Scale className="h-3.5 w-3.5" />
+                Compare
+              </button>
             </div>
           </div>
         </div>
@@ -1198,7 +1232,7 @@ export default function Dashboard() {
         onFiltersChange={setFilters}
       />
 
-      <ComparisonModal listings={comparedListings} open={showCompare} onClose={() => setShowCompare(false)} />
+      <ComparisonModal listings={compareListings} open={showCompare} onClose={() => setShowCompare(false)} />
     </div>
   );
 }
