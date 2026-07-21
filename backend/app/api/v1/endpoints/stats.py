@@ -1059,6 +1059,83 @@ def get_make_model_insight(
     }
 
 
+@router.get("/make-insight")
+def get_make_insight(
+    make: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+):
+    """Programmatic SEO hub payload for /cars/:make (all models for a make)."""
+    make_lower = make.strip().lower()
+
+    base_clause = and_(
+        live_listing_filter(),
+        func.lower(CarListing.make) == make_lower,
+    )
+    priced_clause = and_(
+        base_clause,
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+    )
+
+    total = db.query(func.count(CarListing.id)).filter(base_clause).scalar() or 0
+    avg_price = db.query(func.avg(CarListing.price_lkr)).filter(priced_clause).scalar()
+    median_price = median_price_for_listings(db, priced_clause)
+
+    top_models_rows = (
+        db.query(
+            CarListing.model,
+            func.count(CarListing.id).label("count"),
+            func.avg(CarListing.price_lkr).label("avg_price"),
+        )
+        .filter(base_clause, CarListing.model.isnot(None))
+        .group_by(CarListing.model)
+        .order_by(desc("count"))
+        .limit(12)
+        .all()
+    )
+
+    top_districts_rows = (
+        db.query(
+            CarListing.district,
+            func.count(CarListing.id).label("count"),
+            func.avg(CarListing.price_lkr).label("avg_price"),
+        )
+        .filter(base_clause, CarListing.district.isnot(None))
+        .group_by(CarListing.district)
+        .order_by(desc("count"))
+        .limit(6)
+        .all()
+    )
+
+    canonical = db.query(CarListing.make).filter(base_clause).first()
+    canonical_make = str(canonical.make) if canonical else make.strip().title()
+
+    return {
+        "make": canonical_make,
+        "total": int(total),
+        "avg_price_lkr": round(float(avg_price), 2) if avg_price is not None else None,
+        "median_price_lkr": round(float(median_price), 2) if median_price is not None else None,
+        "top_models": [
+            {
+                "model": str(row.model),
+                "count": int(row.count),
+                "avg_price_lkr": round(float(row.avg_price), 2) if row.avg_price is not None else None,
+            }
+            for row in top_models_rows
+            if row.model
+        ],
+        "top_districts": [
+            {
+                "district": str(row.district),
+                "count": int(row.count),
+                "avg_price_lkr": round(float(row.avg_price), 2) if row.avg_price is not None else None,
+            }
+            for row in top_districts_rows
+            if row.district
+        ],
+    }
+
+
 _FUEL_CATEGORY_MAP: dict[str, str] = {
     "petrol": "petrol",
     "gasoline": "petrol",

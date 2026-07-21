@@ -16,6 +16,7 @@ import {
   LiveMarketSnapshot,
   MarketSignal,
   MakeModelInsight,
+  MakeInsight,
   SellerTrustProfile,
   PriceDropItem,
   PriceHistoryInfo,
@@ -1690,6 +1691,30 @@ export const getMakeModelInsight = async (make: string, model: string): Promise<
     total: Number(data.total || 0),
     avg_price_lkr: toNumberOrNull(data.avg_price_lkr),
     median_price_lkr: toNumberOrNull(data.median_price_lkr),
+    top_districts: Array.isArray(data.top_districts)
+      ? (data.top_districts as JsonRecord[]).map((row) => ({
+          district: String(row.district || ""),
+          count: Number(row.count || 0),
+          avg_price_lkr: toNumberOrNull(row.avg_price_lkr),
+        }))
+      : [],
+  };
+};
+
+export const getMakeInsight = async (make: string): Promise<MakeInsight> => {
+  const data = await fetchJSON<JsonRecord>("/stats/make-insight", { make });
+  return {
+    make: String(data.make || make),
+    total: Number(data.total || 0),
+    avg_price_lkr: toNumberOrNull(data.avg_price_lkr),
+    median_price_lkr: toNumberOrNull(data.median_price_lkr),
+    top_models: Array.isArray(data.top_models)
+      ? (data.top_models as JsonRecord[]).map((row) => ({
+          model: String(row.model || ""),
+          count: Number(row.count || 0),
+          avg_price_lkr: toNumberOrNull(row.avg_price_lkr),
+        }))
+      : [],
     top_districts: Array.isArray(data.top_districts)
       ? (data.top_districts as JsonRecord[]).map((row) => ({
           district: String(row.district || ""),

@@ -36,6 +36,8 @@ const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
 const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
 const ProPreview = lazyWithRetry(() => import("./pages/ProPreview"));
 const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
+const MakeHub = lazyWithRetry(() => import("./pages/MakeHub"));
+const DistrictHub = lazyWithRetry(() => import("./pages/DistrictHub"));
 const Alerts = lazyWithRetry(() => import("./pages/Alerts"));
 const PriceIndex = lazyWithRetry(() => import("./pages/PriceIndex"));
 const Docs = lazyWithRetry(() => import("./pages/Docs"));
@@ -130,6 +132,8 @@ const App = () => {
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
+                  <Route path="/cars/:make" element={<MakeHub />} />
+                  <Route path="/locations/:district" element={<DistrictHub />} />
                   <Route path="/alerts" element={<Alerts />} />
                   <Route path="/price-index" element={<PriceIndex />} />
                   <Route path="/official-pulse" element={<OfficialPulse />} />
