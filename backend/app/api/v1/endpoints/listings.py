@@ -18,6 +18,7 @@ from bs4 import BeautifulSoup
 from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
 from app.utils.history_report import build_history_report
+from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
 from app.models.schemas import (
@@ -2027,39 +2028,12 @@ def get_listing_thumbnail_proxy(listing_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{listing_id}/fmv")
 def get_listing_fmv(listing_id: int, db: Session = Depends(get_db)):
-    """Fair Market Value snapshot for a listing (cohort median + ask delta)."""
+    """Fair Market Value — OLS multi-feature model with median fallback."""
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found.")
 
-    asking = float(listing.price_lkr) if listing.price_lkr is not None else None
-    fmv = float(listing.market_median_lkr) if listing.market_median_lkr is not None else None
-    deal_score = float(listing.deal_score) if listing.deal_score is not None else None
-
-    band = None
-    delta_pct = None
-    label = None
-    if asking is not None and fmv is not None and asking > 0 and fmv > 0:
-        delta_pct = round(((asking - fmv) / fmv) * 100, 2)
-        if delta_pct <= -5:
-            band = "below"
-            label = f"Priced {abs(delta_pct):.0f}% below FMV"
-        elif delta_pct >= 8:
-            band = "above"
-            label = f"Overpriced {abs(delta_pct):.0f}% vs FMV"
-        else:
-            band = "fair"
-            label = "Near fair market value"
-
-    return {
-        "listing_id": listing_id,
-        "asking_lkr": asking,
-        "fmv_lkr": fmv,
-        "deal_score": deal_score,
-        "delta_pct": delta_pct,
-        "band": band,
-        "label": label,
-    }
+    return predict_listing_fmv(db, listing)
 
 
 @router.get("/{listing_id}/price-history", response_model=PriceHistoryResponse)
