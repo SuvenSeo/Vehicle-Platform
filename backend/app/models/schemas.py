@@ -1,7 +1,8 @@
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
+import re
 
 class CarListingBase(BaseModel):
     source: str
