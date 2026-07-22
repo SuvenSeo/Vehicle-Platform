@@ -5,11 +5,11 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from app.utils.districts import resolve_canonical_district
+from app.utils.pricing import MIN_REASONABLE_PRICE_LKR
 from app.utils.time import utc_now
 from app.utils.vehicle_category import normalize_vehicle_category
 
 class CarCleaner:
-    MIN_REASONABLE_PRICE_LKR = 100_000
     MAX_REASONABLE_PRICE_LKR = 200_000_000
     _AUXILIARY_TEXT_FIELDS = (
         "_text_blobs",
@@ -83,7 +83,7 @@ class CarCleaner:
         }
 
     def _is_reasonable_price(self, value: int) -> bool:
-        return self.MIN_REASONABLE_PRICE_LKR <= value <= self.MAX_REASONABLE_PRICE_LKR
+        return MIN_REASONABLE_PRICE_LKR <= value <= self.MAX_REASONABLE_PRICE_LKR
 
     def normalize_price_lkr(self, raw_price: Any) -> Optional[int]:
         if raw_price is None or isinstance(raw_price, bool):
@@ -204,7 +204,7 @@ class CarCleaner:
                     return value
 
             return None
-        except:
+        except Exception:
             return None
 
     @classmethod
@@ -411,5 +411,5 @@ class CarCleaner:
         try:
             digits = re.sub(r"\D", "", raw_mileage)
             return int(digits) if digits else None
-        except:
+        except Exception:
             return None
