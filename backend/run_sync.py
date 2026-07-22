@@ -480,17 +480,23 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
         log.info("scraping_source_completed", source=source_name)
     except asyncio.TimeoutError as exc:
         listings_after = _count_source_listings_safe(source_name)
+        listings_new = max(0, listings_after - listings_before)
+        # Partial progress still refreshes inventory; treat as success so pipeline
+        # freshness recovers instead of staying "delayed" after a useful run.
+        timeout_status = "SUCCESS" if listings_new > 0 else "FAILED"
         _finalize_scrape_run_safe(
             run_id,
-            status="FAILED",
+            status=timeout_status,
             listings_found=listings_after,
-            listings_new=max(0, listings_after - listings_before),
+            listings_new=listings_new,
             error_message=f"Source timed out after {source_timeout_seconds}s",
         )
         log.error(
             "scraping_source_timeout",
             source=source_name,
             timeout_seconds=source_timeout_seconds,
+            listings_new=listings_new,
+            status=timeout_status,
         )
         _capture_exception_safely(exc)
     except Exception as exc:

@@ -35,6 +35,8 @@ SOURCE_ORDER = [
     "saleme",
     "riyahub",
     "dimo",
+    "hitad",
+    "cartivate",
 ]
 # High-volume sources can have ~13h overnight gaps between syncs.
 EXPECTED_HOURS = {
@@ -48,6 +50,8 @@ EXPECTED_HOURS = {
     "saleme": 12,
     "riyahub": 12,
     "dimo": 12,
+    "hitad": 12,
+    "cartivate": 12,
 }
 CORE_SOURCES = frozenset({"ikman", "riyasewana"})
 ORPHAN_RUNNING_MINUTES = 90
