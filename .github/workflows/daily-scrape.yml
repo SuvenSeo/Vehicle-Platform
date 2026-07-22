@@ -6,14 +6,17 @@ on:
     - cron: "40 12 * * *"  # 18:10 SLT — evening full scrape (all 13 sources)
   workflow_dispatch:
 
+# Separate group from midday so the two workflows never cancel each other.
+# Keep cancel-in-progress false so a delayed morning run is not killed by evening.
 concurrency:
-  group: scrape-${{ github.ref }}
-  cancel-in-progress: true
+  group: scrape-full-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   scrape-source:
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # ikman/riyasewana crawl up to 100 pages (90 min cap)
+    # Heavy sources need setup (~10m) + scrape headroom. Lighter sources finish sooner.
+    timeout-minutes: ${{ contains(fromJSON('["ikman","riyasewana"]'), matrix.source) && 180 || 60 }}
     strategy:
       fail-fast: false
       matrix:
@@ -102,8 +105,10 @@ jobs:
           # a deeper scan is needed after the Supabase migration.
           SCRAPE_MAX_PAGES: "20"
           SCRAPE_MAX_PAGES_ALT: "20"
-          SCRAPE_MAX_PAGES_IKMAN: "100"
-          SCRAPE_MAX_PAGES_RIYASEWANA: "100"
+          # Cap heavy sources so Playwright fallback can finish inside job timeout.
+          # API mode still covers recent inventory well at 60 pages.
+          SCRAPE_MAX_PAGES_IKMAN: "60"
+          SCRAPE_MAX_PAGES_RIYASEWANA: "60"
           SCRAPE_MAX_PAGES_PATPAT: "20"
           SCRAPE_MAX_PAGES_AUTOLANKA: "20"
           SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "20"
@@ -115,22 +120,22 @@ jobs:
           SCRAPE_MAX_PAGES_DIMO: "20"
           SCRAPE_MAX_PAGES_HITAD: "20"
           SCRAPE_MAX_PAGES_CARTIVATE: "20"
-          # 30 minutes timeout per source (1800s)
-          SCRAPE_SOURCE_TIMEOUT_SECONDS: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "5400"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "5400"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOLANKA: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTO_LANKA_SITE: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTODIRECT: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOSTREAM: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARSHOP: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_HITAD: "1800"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARTIVATE: "1800"
+          # Source timeouts must stay below job timeout minus setup (~10m).
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "9000"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "9000"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOLANKA: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTO_LANKA_SITE: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTODIRECT: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOSTREAM: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARSHOP: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "2700"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "2700"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_HITAD: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARTIVATE: "2400"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
@@ -145,17 +150,23 @@ jobs:
           retention-days: 7
 
       - name: Notify Slack on job failure
-        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          MESSAGE=":rotating_light: Workflow '${{ github.workflow }}' job '${{ github.job }}' failed. Run: ${RUN_URL}"
-          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK_URL }}"
+          MESSAGE=":rotating_light: Workflow '${{ github.workflow }}' job '${{ github.job }}' (${{ matrix.source }}) failed. Run: ${RUN_URL}"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"
 
   market-analysis:
     runs-on: ubuntu-latest
     needs: scrape-source
     if: ${{ !cancelled() }}
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     defaults:
       run:
@@ -195,11 +206,17 @@ jobs:
         run: python run_sync.py
 
       - name: Notify Slack on job failure
-        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           MESSAGE=":rotating_light: Workflow '${{ github.workflow }}' job '${{ github.job }}' failed. Run: ${RUN_URL}"
-          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK_URL }}"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"
 
   snapshot-export:
     runs-on: ubuntu-latest
@@ -249,8 +266,14 @@ jobs:
           retention-days: 14
 
       - name: Notify Slack on job failure
-        if: ${{ failure() && secrets.SLACK_WEBHOOK_URL != '' }}
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           MESSAGE=":rotating_light: Workflow '${{ github.workflow }}' job '${{ github.job }}' failed. Run: ${RUN_URL}"
-          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${{ secrets.SLACK_WEBHOOK_URL }}"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"

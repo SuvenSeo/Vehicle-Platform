@@ -84,6 +84,82 @@ def test_run_alt_sync_skips_source_when_max_pages_is_zero(monkeypatch):
     assert _DummyScraper.scrape_count == 0
 
 
+def test_run_source_timeout_with_new_listings_counts_as_success(monkeypatch):
+    class _SlowScraper:
+        SOURCE = "dummy-timeout"
+
+        def __init__(self, _db):
+            return None
+
+        async def scrape(self, max_pages: int = 5):
+            await asyncio.sleep(1.0)
+
+    finalize_calls = []
+
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(
+        run_sync,
+        "_count_source_listings_safe",
+        lambda _source, _calls=iter([10, 15]): next(_calls),
+    )
+    monkeypatch.setattr(run_sync, "_start_scrape_run", lambda _db, _source: type("R", (), {"id": 7})())
+    monkeypatch.setattr(
+        run_sync,
+        "_finalize_scrape_run_safe",
+        lambda run_id, **kwargs: finalize_calls.append({"run_id": run_id, **kwargs}),
+    )
+    monkeypatch.setattr(run_sync, "_capture_exception_safely", lambda _exc: None)
+    monkeypatch.setattr(run_sync, "_close_db_session", lambda *_args, **_kwargs: None)
+
+    asyncio.run(run_sync._run_source(_SlowScraper, max_pages=2, source_timeout_seconds=0.05))
+
+    assert finalize_calls == [
+        {
+            "run_id": 7,
+            "status": "SUCCESS",
+            "listings_found": 15,
+            "listings_new": 5,
+            "error_message": "Source timed out after 0.05s",
+        }
+    ]
+
+
+def test_run_source_timeout_without_new_listings_stays_failed(monkeypatch):
+    class _SlowScraper:
+        SOURCE = "dummy-timeout-empty"
+
+        def __init__(self, _db):
+            return None
+
+        async def scrape(self, max_pages: int = 5):
+            await asyncio.sleep(1.0)
+
+    finalize_calls = []
+
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(run_sync, "_count_source_listings_safe", lambda _source: 42)
+    monkeypatch.setattr(run_sync, "_start_scrape_run", lambda _db, _source: type("R", (), {"id": 8})())
+    monkeypatch.setattr(
+        run_sync,
+        "_finalize_scrape_run_safe",
+        lambda run_id, **kwargs: finalize_calls.append({"run_id": run_id, **kwargs}),
+    )
+    monkeypatch.setattr(run_sync, "_capture_exception_safely", lambda _exc: None)
+    monkeypatch.setattr(run_sync, "_close_db_session", lambda *_args, **_kwargs: None)
+
+    asyncio.run(run_sync._run_source(_SlowScraper, max_pages=2, source_timeout_seconds=0.05))
+
+    assert finalize_calls == [
+        {
+            "run_id": 8,
+            "status": "FAILED",
+            "listings_found": 42,
+            "listings_new": 0,
+            "error_message": "Source timed out after 0.05s",
+        }
+    ]
+
+
 def test_run_sync_main_falls_back_for_non_positive_page_values_and_runs_sequentially(monkeypatch):
     calls = []
     in_flight = 0
