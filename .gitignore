@@ -53,6 +53,7 @@ coverage
 # Local agent session scratch
 .agents/
 .codex/
+.qoder/
 .ruff_cache/
 /PROJECT.md
 /ORIGINAL_REQUEST.md
