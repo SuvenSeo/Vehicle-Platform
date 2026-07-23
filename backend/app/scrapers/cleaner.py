@@ -28,6 +28,105 @@ class CarCleaner:
         "condition": 20,
         "body_type": 30,
     }
+    # Values that look "set" but are not usable — clear so inference can run.
+    _JUNK_TECHNICAL_VALUES = frozenset(
+        {
+            "",
+            "-",
+            "--",
+            "n/a",
+            "na",
+            "none",
+            "null",
+            "unknown",
+            "other",
+            "nil",
+            "not available",
+            "notapplicable",
+        }
+    )
+    _JUNK_TECHNICAL_COMPACT = frozenset(
+        re.sub(r"[^a-z0-9]+", "", j) for j in _JUNK_TECHNICAL_VALUES if j
+    ) | {""}
+    _CANONICAL_FUEL = {
+        "petrol": "petrol",
+        "gasoline": "petrol",
+        "gas": "petrol",
+        "benzine": "petrol",
+        "octane": "petrol",
+        "diesel": "diesel",
+        "d": "diesel",
+        "electric": "electric",
+        "ev": "electric",
+        "battery": "electric",
+        "batteryelectric": "electric",
+        "hybrid": "hybrid",
+        "pluginhybrid": "pluginhybrid",
+        "pluginelectrichybrid": "pluginhybrid",
+        "phev": "pluginhybrid",
+        "cng": "cng",
+        "lpg": "lpg",
+    }
+    _CANONICAL_TRANSMISSION = {
+        "automatic": "automatic",
+        "auto": "automatic",
+        "tiptronic": "automatic",
+        "triptronic": "automatic",
+        "dct": "automatic",
+        "amt": "automatic",
+        "geartronic": "automatic",
+        "pdk": "automatic",
+        "at": "automatic",
+        "manual": "manual",
+        "stick": "manual",
+        "stickshift": "manual",
+        "mt": "manual",
+        "imt": "manual",
+        "cvt": "cvt",
+        "continuouslyvariabletransmission": "cvt",
+    }
+    _CANONICAL_CONDITION = {
+        "brandnew": "brand_new",
+        "new": "brand_new",
+        "unregistered": "brand_new",
+        "zerokm": "brand_new",
+        "zeromileage": "brand_new",
+        "reconditioned": "reconditioned",
+        "recon": "reconditioned",
+        "recondition": "reconditioned",
+        "used": "used",
+        "preowned": "used",
+        "secondhand": "used",
+        "secondowner": "used",
+        "mintcondition": "used",
+    }
+    _CANONICAL_BODY = {
+        "suv": "suv",
+        "sportutility": "suv",
+        "sportutilityvehicle": "suv",
+        "sedan": "sedan",
+        "saloon": "sedan",
+        "hatchback": "hatchback",
+        "hatch": "hatchback",
+        "pickup": "pickup",
+        "pick-up": "pickup",
+        "doublecab": "pickup",
+        "singlecab": "pickup",
+        "crossover": "crossover",
+        "cuv": "crossover",
+        "wagon": "wagon",
+        "estate": "wagon",
+        "coupe": "coupe",
+        "convertible": "convertible",
+        "cabriolet": "convertible",
+        "mpv": "mpv",
+        "minivan": "mpv",
+        "van": "van",
+        "jeep": "jeep",
+        "mini": "mini",
+        "luxury": "luxury",
+        "premium": "luxury",
+    }
     _INSTALLMENT_HINTS = (
         "installment",
         "monthly",
@@ -252,28 +351,126 @@ class CarCleaner:
                 return value
         return None
 
+    @staticmethod
+    def _compact_token(value: Any) -> str:
+        return re.sub(r"[^a-z0-9]+", "", str(value or "").strip().lower())
+
+    def canonicalize_technical_field(self, field: str, value: Any) -> Optional[str]:
+        """Map messy structured values onto stable canonical tokens.
+
+        Aligns with listings API `_canonical_*` helpers so scrape-time and
+        read-time normalization stay consistent.
+        """
+        if value is None:
+            return None
+        raw = str(value).strip()
+        if not raw:
+            return None
+        compact = self._compact_token(raw)
+        if not compact or compact in self._JUNK_TECHNICAL_COMPACT:
+            return None
+
+        table = {
+            "fuel_type": self._CANONICAL_FUEL,
+            "transmission": self._CANONICAL_TRANSMISSION,
+            "condition": self._CANONICAL_CONDITION,
+            "body_type": self._CANONICAL_BODY,
+        }.get(field)
+        if not table:
+            return raw.lower()
+
+        if compact in table:
+            return table[compact]
+
+        # Soft matches for fuel/condition substrings (plugin hybrid, etc.)
+        if field == "fuel_type":
+            if "plugin" in compact and "hybrid" in compact:
+                return "pluginhybrid"
+            if "hybrid" in compact:
+                return "hybrid"
+            if "electric" in compact or compact == "ev":
+                return "electric"
+        if field == "condition":
+            if "recondition" in compact or compact == "recon":
+                return "reconditioned"
+            if "brandnew" in compact or "unregistered" in compact:
+                return "brand_new"
+            if "secondhand" in compact or "preowned" in compact:
+                return "used"
+        if field == "transmission":
+            if "cvt" in compact:
+                return "cvt"
+            if "auto" in compact:
+                return "automatic"
+            if "manual" in compact or compact in {"mt", "imt"}:
+                return "manual"
+        if field == "body_type":
+            if "hatch" in compact:
+                return "hatchback"
+            if "suv" in compact:
+                return "suv"
+
+        # Unknown non-junk token — keep lowercased so inference does not
+        # overwrite a deliberate vendor value, but only if it looks real.
+        if len(compact) < 2:
+            return None
+        return raw.lower()[: self._TECHNICAL_FIELD_MAX_LENGTHS.get(field, 30)]
+
     def _infer_technical_fields(self, payload: Dict[str, Any]) -> Dict[str, Optional[str]]:
         text = self._build_technical_text_blob(payload)
         if not text:
             return {key: None for key in self._TECHNICAL_FIELD_MAX_LENGTHS}
 
+        # Prefer labeled vendor strings (Cartivate / HitAd style) before free text.
+        labeled_fuel = self._extract_first(
+            text,
+            (
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(plug[\s-]*in\s*hybrid|plugin\s*hybrid|phev)\b", "pluginhybrid"),
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(hybrid)\b", "hybrid"),
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(electric|ev|battery\s*electric)\b", "electric"),
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(diesel)\b", "diesel"),
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(petrol|gasoline|benzine|octane|gas)\b", "petrol"),
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(cng)\b", "cng"),
+                (r"fuel(?:\s*type)?\s*[:\-]?\s*(lpg)\b", "lpg"),
+            ),
+        )
+        labeled_transmission = self._extract_first(
+            text,
+            (
+                (r"transmission\s*[:\-]?\s*(cvt)\b", "cvt"),
+                (r"transmission\s*[:\-]?\s*(automatic|auto|tiptronic|at)\b", "automatic"),
+                (r"transmission\s*[:\-]?\s*(manual|mt|stick)\b", "manual"),
+                (r"gearbox\s*[:\-]?\s*(cvt)\b", "cvt"),
+                (r"gearbox\s*[:\-]?\s*(automatic|auto)\b", "automatic"),
+                (r"gearbox\s*[:\-]?\s*(manual)\b", "manual"),
+            ),
+        )
+
         inferred = {
-            "fuel_type": self._extract_first(
+            "fuel_type": labeled_fuel
+            or self._extract_first(
                 text,
                 (
-                    (r"\b(?:plug[\s-]*in\s*hybrid|phev|hybrid)\b", "hybrid"),
-                    (r"\b(?:electric|ev|battery\s*electric)\b", "electric"),
+                    (r"\b(?:plug[\s-]*in\s*hybrid|phev)\b", "pluginhybrid"),
+                    (r"\b(?:hybrid)\b", "hybrid"),
+                    (r"\b(?:electric|battery\s*electric)\b", "electric"),
+                    (r"\bev\b", "electric"),
                     (r"\b(?:diesel)\b", "diesel"),
-                    (r"\b(?:petrol|gasoline)\b", "petrol"),
+                    (r"\b(?:petrol|gasoline|benzine|octane)\b", "petrol"),
                     (r"\b(?:cng)\b", "cng"),
                     (r"\b(?:lpg)\b", "lpg"),
                 ),
             ),
-            "transmission": self._extract_first(
+            "transmission": labeled_transmission
+            or self._extract_first(
                 text,
                 (
-                    (r"\b(?:automatic|cvt|tiptronic|triptronic|dct|amt|geartronic|pdk)\b", "automatic"),
-                    (r"\b(?:manual|stick\s*shift)\b", "manual"),
+                    (r"\b(?:cvt)\b", "cvt"),
+                    (
+                        r"\b(?:automatic|auto|tiptronic|triptronic|dct|amt|geartronic|pdk)\b",
+                        "automatic",
+                    ),
+                    (r"\b(?:manual|stick\s*shift|i[\s-]?mt)\b", "manual"),
                 ),
             ),
             "body_type": self._extract_first(
@@ -281,10 +478,11 @@ class CarCleaner:
                 (
                     (r"\b(?:suv|sport\s*utility)\b", "suv"),
                     (r"\b(?:sedan|saloon)\b", "sedan"),
-                    (r"\b(?:hatchback)\b", "hatchback"),
+                    (r"\b(?:hatch\s*back|hatch)\b", "hatchback"),
                     (r"\b(?:pickup|pick[\s-]*up|double\s*cab|single\s*cab)\b", "pickup"),
                     (r"\b(?:crossover|cuv)\b", "crossover"),
-                    (r"\b(?:wagon|estate)\b", "wagon"),
+                    # Avoid matching model names like "Wagon R" as body wagon.
+                    (r"\b(?:estate\s*wagon|station\s*wagon|estate)\b", "wagon"),
                     (r"\b(?:coupe)\b", "coupe"),
                     (r"\b(?:convertible|cabriolet)\b", "convertible"),
                     (r"\b(?:mpv|minivan)\b", "mpv"),
@@ -298,8 +496,14 @@ class CarCleaner:
                 text,
                 (
                     (r"\b(?:recondition(?:ed)?|recon)\b", "reconditioned"),
-                    (r"\b(?:brand\s*new|unregistered|zero\s*mileage)\b", "new"),
-                    (r"\b(?:used|pre[\s-]*owned|second\s*owner|mint\s*condition)\b", "used"),
+                    (
+                        r"\b(?:brand\s*new|unregistered|zero\s*mileage|zero\s*km)\b",
+                        "brand_new",
+                    ),
+                    (
+                        r"\b(?:used|pre[\s-]*owned|second[\s-]*hand|second\s*owner|mint\s*condition)\b",
+                        "used",
+                    ),
                 ),
             ),
         }
@@ -363,8 +567,12 @@ class CarCleaner:
             ("city", 100),
         ):
             if key in normalized and normalized[key] is not None:
-                trimmed = self._truncate_text(normalized[key], max_len)
-                normalized[key] = trimmed if trimmed else None
+                if key in self._TECHNICAL_FIELD_MAX_LENGTHS:
+                    canonical = self.canonicalize_technical_field(key, normalized[key])
+                    normalized[key] = self._truncate_text(canonical, max_len) if canonical else None
+                else:
+                    trimmed = self._truncate_text(normalized[key], max_len)
+                    normalized[key] = trimmed if trimmed else None
 
         if normalized.get("vehicle_category"):
             normalized["vehicle_category"] = normalize_vehicle_category(
@@ -383,7 +591,8 @@ class CarCleaner:
                 continue
             inferred = inferred_fields.get(key)
             if inferred:
-                normalized[key] = self._truncate_text(inferred, max_len) or None
+                canonical = self.canonicalize_technical_field(key, inferred) or inferred
+                normalized[key] = self._truncate_text(canonical, max_len) or None
 
         for key in self._AUXILIARY_TEXT_FIELDS:
             normalized.pop(key, None)

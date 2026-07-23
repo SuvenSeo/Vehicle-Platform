@@ -34,11 +34,22 @@ backend/.venv
 backend/__pycache__
 **/__pycache__
 *.pyc
+*.pyo
+*.pyd
 
 # Local databases & caches
 *.db
 *.sqlite
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.tox/
+.coverage
+htmlcov/
+*.egg-info/
+.eslintcache
+.cache/
 
 # Local agent/session config
 .claude/
@@ -54,7 +65,6 @@ coverage
 .agents/
 .codex/
 .qoder/
-.ruff_cache/
 /PROJECT.md
 /ORIGINAL_REQUEST.md
 .env*

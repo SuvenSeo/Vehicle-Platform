@@ -53,6 +53,15 @@ function renderAlerts() {
   );
 }
 
+async function renderAlertsReady() {
+  const view = renderAlerts();
+  // AlertMatchSection fires matchAlerts on mount — flush before asserts.
+  await waitFor(() => {
+    expect(mockMatchAlerts).toHaveBeenCalled();
+  });
+  return view;
+}
+
 describe("Alerts page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -64,27 +73,27 @@ describe("Alerts page", () => {
     mockLoadMarketAlerts.mockReturnValue([]);
   });
 
-  it("renders the page heading", () => {
-    renderAlerts();
+  it("renders the page heading", async () => {
+    await renderAlertsReady();
     expect(screen.getByRole("heading", { name: /market alerts/i, level: 1 })).toBeInTheDocument();
   });
 
-  it("renders the page description", () => {
-    renderAlerts();
+  it("renders the page description", async () => {
+    await renderAlertsReady();
     expect(screen.getByText(/get notified when vehicles/i)).toBeInTheDocument();
   });
 
-  it("renders the 'New alert' button by default", () => {
-    renderAlerts();
+  it("renders the 'New alert' button by default", async () => {
+    await renderAlertsReady();
     expect(screen.getByRole("button", { name: /new alert/i })).toBeInTheDocument();
   });
 
-  it("shows empty state when no alerts exist", () => {
-    renderAlerts();
+  it("shows empty state when no alerts exist", async () => {
+    await renderAlertsReady();
     expect(screen.getByText(/no active alerts/i)).toBeInTheDocument();
   });
 
-  it("renders alert rows when server returns alerts", () => {
+  it("renders alert rows when server returns alerts", async () => {
     const alerts: ServerMarketAlert[] = [
       {
         id: 1,
@@ -109,7 +118,7 @@ describe("Alerts page", () => {
     ];
     mockUseServerAlerts.mockReturnValue({ ...BASE_HOOK_RESULT, alerts });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     const rows = screen.getAllByTestId("alert-row");
     expect(rows).toHaveLength(2);
@@ -117,7 +126,7 @@ describe("Alerts page", () => {
     expect(screen.getByText("Honda")).toBeInTheDocument();
   });
 
-  it("renders alert district and price details", () => {
+  it("renders alert district and price details", async () => {
     const alerts: ServerMarketAlert[] = [
       {
         id: 3,
@@ -132,34 +141,34 @@ describe("Alerts page", () => {
     ];
     mockUseServerAlerts.mockReturnValue({ ...BASE_HOOK_RESULT, alerts });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     expect(screen.getByText("Gampaha")).toBeInTheDocument();
   });
 
-  it("shows loading skeletons while alerts are loading", () => {
+  it("shows loading skeletons while alerts are loading", async () => {
     mockUseServerAlerts.mockReturnValue({ ...BASE_HOOK_RESULT, loading: true });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     expect(screen.getByLabelText(/loading alerts/i)).toBeInTheDocument();
   });
 
-  it("shows error message when server returns an error", () => {
+  it("shows error message when server returns an error", async () => {
     mockUseServerAlerts.mockReturnValue({
       ...BASE_HOOK_RESULT,
       error: "Network error",
       alerts: [],
     });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText("Network error")).toBeInTheDocument();
   });
 
-  it("opens the create alert form when 'New alert' is clicked", () => {
-    renderAlerts();
+  it("opens the create alert form when 'New alert' is clicked", async () => {
+    await renderAlertsReady();
 
     fireEvent.click(screen.getByRole("button", { name: /new alert/i }));
 
@@ -179,7 +188,7 @@ describe("Alerts page", () => {
       refresh: refreshFn,
     });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     fireEvent.click(screen.getByRole("button", { name: /new alert/i }));
 
@@ -196,7 +205,7 @@ describe("Alerts page", () => {
   });
 
   it("shows a validation error when form is submitted with no filters", async () => {
-    renderAlerts();
+    await renderAlertsReady();
 
     fireEvent.click(screen.getByRole("button", { name: /new alert/i }));
     fireEvent.click(screen.getByRole("button", { name: /save alert/i }));
@@ -223,7 +232,7 @@ describe("Alerts page", () => {
     ];
     mockUseServerAlerts.mockReturnValue({ ...BASE_HOOK_RESULT, alerts, remove: removeFn });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     const deleteBtn = screen.getByRole("button", { name: /delete alert for suzuki alto/i });
     fireEvent.click(deleteBtn);
@@ -233,13 +242,13 @@ describe("Alerts page", () => {
     });
   });
 
-  it("renders the Active alerts section heading", () => {
-    renderAlerts();
+  it("renders the Active alerts section heading", async () => {
+    await renderAlertsReady();
     expect(screen.getByRole("heading", { name: /active alerts/i, level: 2 })).toBeInTheDocument();
   });
 
   it("renders the current matches section heading", async () => {
-    renderAlerts();
+    await renderAlertsReady();
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: /current matches/i, level: 2 })).toBeInTheDocument();
     });
@@ -274,7 +283,7 @@ describe("Alerts page", () => {
     };
     mockMatchAlerts.mockResolvedValue(matchData);
 
-    renderAlerts();
+    await renderAlertsReady();
 
     await waitFor(
       () => {
@@ -288,7 +297,7 @@ describe("Alerts page", () => {
   it("shows empty match state when no results are returned", async () => {
     mockMatchAlerts.mockResolvedValue({ results: [], checked_at: new Date().toISOString() });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     await waitFor(() => {
       expect(screen.getByText(/no matching listings for your alerts/i)).toBeInTheDocument();
@@ -298,14 +307,14 @@ describe("Alerts page", () => {
   it("shows match error when matchAlerts rejects", async () => {
     mockMatchAlerts.mockRejectedValue(new Error("Match API down"));
 
-    renderAlerts();
+    await renderAlertsReady();
 
     await waitFor(() => {
       expect(screen.getByText("Match API down")).toBeInTheDocument();
     });
   });
 
-  it("shows fallback localStorage alerts when server errors and localStorage has data", () => {
+  it("shows fallback localStorage alerts when server errors and localStorage has data", async () => {
     mockUseServerAlerts.mockReturnValue({
       ...BASE_HOOK_RESULT,
       alerts: [],
@@ -320,13 +329,13 @@ describe("Alerts page", () => {
       },
     ]);
 
-    renderAlerts();
+    await renderAlertsReady();
 
     expect(screen.getByText(/locally saved/i)).toBeInTheDocument();
     expect(screen.getByText("Toyota Vitz / Colombo")).toBeInTheDocument();
   });
 
-  it("has a link from each alert row to browse matching listings", () => {
+  it("has a link from each alert row to browse matching listings", async () => {
     const alerts: ServerMarketAlert[] = [
       {
         id: 10,
@@ -341,7 +350,7 @@ describe("Alerts page", () => {
     ];
     mockUseServerAlerts.mockReturnValue({ ...BASE_HOOK_RESULT, alerts });
 
-    renderAlerts();
+    await renderAlertsReady();
 
     const browseLinks = screen.getAllByRole("link", { name: /browse/i });
     expect(browseLinks.length).toBeGreaterThan(0);

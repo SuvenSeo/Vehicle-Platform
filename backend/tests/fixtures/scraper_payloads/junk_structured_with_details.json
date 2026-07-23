@@ -1,0 +1,14 @@
+{
+  "source": "patpat",
+  "source_id": "junk-1",
+  "make": "Toyota",
+  "model": "RAV4",
+  "year": 2018,
+  "price_lkr": "Rs. 14,500,000",
+  "url": "https://example.com/junk-1",
+  "fuel_type": "N/A",
+  "transmission": "--",
+  "body_type": "unknown",
+  "condition": "other",
+  "details": "Hybrid • CVT • SUV • Reconditioned"
+}

@@ -3,6 +3,7 @@ import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-lea
 import { DistrictVelocityPoint } from "@/types/car";
 import { LazyMapMount } from "@/components/leaflet/LazyMapMount";
 import { MapResizeController } from "@/components/leaflet/MapResizeController";
+import "leaflet/dist/leaflet.css";
 
 interface DistrictVelocityMapProps {
   data: DistrictVelocityPoint[];

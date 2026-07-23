@@ -308,5 +308,7 @@ def test_cartivate_builds_payload_from_listing_card():
     assert payload["price_lkr"] == 11_550_000
     assert payload["district"] == "Colombo"
     assert payload["mileage"] == 0
+    assert payload["fuel_type"] == "petrol"
+    assert payload["transmission"] == "automatic"
     assert payload["url"] == "https://cartivatemotors.lk/listing/kia-sonet-htx-plus-2026/"
     assert "sonet.jpg" in (payload.get("thumbnail_url") or "")
