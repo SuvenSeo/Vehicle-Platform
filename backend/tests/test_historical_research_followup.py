@@ -136,6 +136,33 @@ def test_csv_import_maps_brand_price_columns(tmp_path: Path):
     assert rows[0]["make"] == "Toyota"
     assert rows[0]["price_lkr"] == 4_500_000
     assert rows[0]["year"] == 2015
+    assert rows[0]["raw_meta"]["price_unit"] == "lkr"
+
+
+def test_csv_import_prasad_nirmal_lakhs_and_millage(tmp_path: Path):
+    """Real Kaggle SL car_price_dataset.csv uses Price in lakhs + Millage(KM)."""
+    csv_path = tmp_path / "car_price_dataset.csv"
+    csv_path.write_text(
+        ",Brand,Model,YOM,Engine (cc),Gear,Fuel Type,Millage(KM),Town,Date,"
+        "Leasing,Condition,AIR CONDITION,POWER STEERING,POWER MIRROR,POWER WINDOW,Price\n"
+        "0,TOYOTA,AQUA,2015,1500.0,Automatic,Hybrid,85000.0,Colombo,2025-01-10,"
+        "No Leasing,USED,Available,Available,Available,Available,43.0\n"
+        "1,SUZUKI,ALTO,2018,800.0,Manual,Petrol,42000.0,Gampaha,2025-01-12,"
+        "No Leasing,USED,Available,Available,Available,Available,28.5\n",
+        encoding="utf-8",
+    )
+    rows = rows_from_csv(
+        csv_path,
+        archive_source="kaggle_sl",
+        observed_default=datetime(2025, 1, 15, tzinfo=timezone.utc),
+        price_unit="auto",
+    )
+    assert len(rows) == 2
+    assert rows[0]["make"] == "Toyota"
+    assert rows[0]["price_lkr"] == 4_300_000
+    assert rows[0]["mileage"] == 85_000
+    assert rows[0]["raw_meta"]["price_unit"] == "lakhs"
+    assert rows[1]["price_lkr"] == 2_850_000
 
 
 def test_nhtsa_fetch_models_for_make_live():

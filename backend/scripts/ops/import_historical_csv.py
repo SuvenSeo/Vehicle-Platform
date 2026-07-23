@@ -2,13 +2,19 @@
 """Import a Kaggle-style / community CSV into historical_price_observations.
 
 Expected columns (case-insensitive aliases):
-  Brand/Make, Model, YOM/Year, Price/Price (LKR), Mileage, Town/Location,
-  Date/Listing Date, URL (optional)
+  Brand/Make, Model, YOM/Year, Price/Price (LKR), Mileage/Millage(KM),
+  Town/Location, Date/Listing Date, URL (optional)
+
+Price units:
+  --price-unit auto   (default) detect lakhs vs LKR from magnitude
+  --price-unit lakhs  Prasad Nirmal SL dataset (43.0 → 4,300,000 LKR)
+  --price-unit lkr    already in rupees
 
 Example:
   cd backend && ALLOW_SQLITE_FALLBACK=true \\
-    .venv/bin/python scripts/ops/import_historical_csv.py path/to/dataset.csv \\
-    --archive-source kaggle_sl --observed-default 2025-01-15
+    .venv/bin/python scripts/ops/import_historical_csv.py \\
+    data/historical/kaggle_sl_car_price_dataset.csv \\
+    --archive-source kaggle_sl --price-unit lakhs
 """
 
 from __future__ import annotations
@@ -36,6 +42,12 @@ def main() -> int:
         default="2025-01-15",
         help="ISO date used when CSV row has no date",
     )
+    parser.add_argument(
+        "--price-unit",
+        choices=("auto", "lkr", "lakhs"),
+        default="auto",
+        help="How to interpret the Price column (default: auto)",
+    )
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -52,11 +64,19 @@ def main() -> int:
             archive_source=args.archive_source,
             observed_default=default_dt,
             limit=args.limit,
+            price_unit=args.price_unit,
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
     print(f"parsed_rows={len(rows)}")
+    if rows:
+        sample = rows[0]
+        print(
+            "sample="
+            f"{sample['make']} {sample['model']} yom={sample['year']} "
+            f"price_lkr={sample['price_lkr']} unit={sample['raw_meta'].get('price_unit')}"
+        )
     if args.dry_run:
         return 0
 
