@@ -9,6 +9,7 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { ListingCard } from "@/components/ListingCard";
+import { ModelPriceTimeMachine } from "@/components/ModelPriceTimeMachine";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
@@ -252,6 +253,10 @@ export default function MakeModelHub() {
             )}
           </motion.section>
         )}
+
+        <motion.div variants={revealItem}>
+          <ModelPriceTimeMachine make={makeParam} model={modelParam} />
+        </motion.div>
 
         {/* Recent listings — photo-forward tiles, reusing the shared ListingCard */}
         {recentListings.length > 0 && (

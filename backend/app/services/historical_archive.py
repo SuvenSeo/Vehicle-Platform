@@ -7,6 +7,7 @@ belong in ``historical_price_observations`` — never live ``car_listings``.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -36,9 +37,24 @@ DEFAULT_IKMAN_SERP_URLS = (
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
 )
 
+TOP_BRAND_SERP_URLS = (
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
+    "http://ikman.lk/en/ads/sri-lanka/cars/toyota",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
+    "http://ikman.lk/en/ads/sri-lanka/cars/suzuki",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda",
+    "http://ikman.lk/en/ads/sri-lanka/cars/honda",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
+    "http://ikman.lk/en/ads/sri-lanka/cars/nissan",
+)
+
 _YEAR_RE = re.compile(r"\b(19[5-9]\d|20[0-2]\d)\b")
 _MILEAGE_RE = re.compile(r"([\d,]+)\s*km", re.IGNORECASE)
 _PRICE_RE = re.compile(r"Rs\.?\s*([\d,]+)", re.IGNORECASE)
+_INITIAL_DATA_RE = re.compile(
+    r"window\.initialData\s*=\s*(\{.*?\})\s*;?\s*</script>",
+    re.DOTALL,
+)
 
 
 @dataclass(frozen=True)
@@ -82,6 +98,132 @@ def _extract_year_from_title(title: str) -> Optional[int]:
     return None
 
 
+def _row_from_parts(
+    *,
+    cleaner: CarCleaner,
+    seen: set[str],
+    archive_source: str,
+    observed_at: datetime,
+    snapshot_url: str,
+    title: str,
+    href: str,
+    price_text: str,
+    mileage_text: str = "",
+    area: str | None = None,
+    extra_meta: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    title = " ".join(str(title or "").split())
+    href = str(href or "").strip()
+    if not title or not href:
+        return None
+    absolute = urljoin("https://ikman.lk/", href if href.startswith("/") else f"/en/ad/{href}")
+    if "/ad/" not in absolute and not href.startswith("http"):
+        absolute = urljoin("https://ikman.lk/en/ad/", href)
+
+    price = cleaner.clean_price(price_text)
+    if price is None:
+        match = _PRICE_RE.search(price_text or title)
+        if match:
+            price = cleaner.clean_price(match.group(0))
+    if price is None:
+        return None
+
+    mileage = None
+    mileage_match = _MILEAGE_RE.search(mileage_text or "")
+    if mileage_match:
+        mileage = cleaner.clean_mileage(mileage_match.group(0))
+
+    district = resolve_canonical_district(area) if area else None
+    title_parts = cleaner.clean_title(title)
+    make = title_parts.get("make")
+    model = title_parts.get("model")
+    year = title_parts.get("year") or _extract_year_from_title(title)
+    source_id = _slug_source_id(absolute)
+    dedupe_key = f"{source_id}|{observed_at.isoformat()}"
+    if dedupe_key in seen:
+        return None
+    seen.add(dedupe_key)
+
+    raw_meta = {
+        "snapshot_url": snapshot_url or None,
+        "price_text": price_text or None,
+        "meta_text": mileage_text or None,
+    }
+    if extra_meta:
+        raw_meta.update(extra_meta)
+
+    return {
+        "archive_source": archive_source,
+        "source_id": source_id,
+        "observed_at": observed_at,
+        "url": absolute,
+        "title": title[:500],
+        "make": make,
+        "model": model,
+        "year": year,
+        "price_lkr": price,
+        "mileage": mileage,
+        "district": district,
+        "city": area,
+        "confidence": "medium",
+        "raw_meta": raw_meta,
+    }
+
+
+def _parse_initial_data_ads(
+    html: str,
+    *,
+    cleaner: CarCleaner,
+    seen: set[str],
+    archive_source: str,
+    observed_at: datetime,
+    snapshot_url: str,
+) -> list[dict[str, Any]]:
+    match = _INITIAL_DATA_RE.search(html or "")
+    if not match:
+        return []
+    try:
+        payload = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return []
+
+    ads_root = (
+        ((payload.get("serp") or {}).get("ads") or {}).get("data") or {}
+    )
+    buckets: list[Any] = []
+    for key in ("ads", "topAds", "spotlights"):
+        value = ads_root.get(key)
+        if isinstance(value, list):
+            buckets.extend(value)
+
+    rows: list[dict[str, Any]] = []
+    for ad in buckets:
+        if not isinstance(ad, dict):
+            continue
+        title = str(ad.get("title") or "")
+        slug = str(ad.get("slug") or ad.get("id") or "")
+        href = f"/en/ad/{slug}" if slug and not str(slug).startswith("/") else slug
+        description = str(ad.get("description") or "")
+        # description often looks like "Colombo, Cars"
+        area = description.split(",")[0].strip() if description else None
+        row = _row_from_parts(
+            cleaner=cleaner,
+            seen=seen,
+            archive_source=archive_source,
+            observed_at=observed_at,
+            snapshot_url=snapshot_url,
+            title=title,
+            href=href,
+            price_text=str(ad.get("price") or ""),
+            mileage_text=str(ad.get("details") or ""),
+            area=area,
+            extra_meta={"parser": "initialData", "ad_id": ad.get("id")},
+        )
+        if row:
+            rows.append(row)
+    return rows
+
+
 def parse_ikman_serp_html(
     html: str,
     *,
@@ -89,21 +231,28 @@ def parse_ikman_serp_html(
     archive_source: str = "wayback_ikman",
     snapshot_url: str = "",
 ) -> list[dict[str, Any]]:
-    """Extract listing cards from a classic ikman cars SERP snapshot."""
-    soup = BeautifulSoup(html or "", "lxml")
+    """Extract listing cards from classic HTML or modern window.initialData SERPs."""
     cleaner = CarCleaner()
-    rows: list[dict[str, Any]] = []
     seen: set[str] = set()
 
+    rows = _parse_initial_data_ads(
+        html,
+        cleaner=cleaner,
+        seen=seen,
+        archive_source=archive_source,
+        observed_at=observed_at,
+        snapshot_url=snapshot_url,
+    )
+    if rows:
+        return rows
+
+    soup = BeautifulSoup(html or "", "lxml")
     for item in soup.select("div.ui-item, li.ui-item, article.ui-item"):
         title_el = item.select_one("a.item-title, a[class*='item-title']")
         if title_el is None:
             continue
         title = " ".join(title_el.stripped_strings)
         href = (title_el.get("href") or "").strip()
-        if not href or not title:
-            continue
-        absolute = urljoin("https://ikman.lk/", href)
 
         price_text = ""
         info_el = item.select_one(".item-info, p.item-info")
@@ -113,61 +262,35 @@ def parse_ikman_serp_html(
             strong = item.find("strong")
             if strong is not None:
                 price_text = strong.get_text(" ", strip=True)
-        price = cleaner.clean_price(price_text)
-        if price is None:
+        if not price_text:
             match = _PRICE_RE.search(item.get_text(" ", strip=True))
-            if match:
-                price = cleaner.clean_price(match.group(0))
-        if price is None:
-            continue
+            price_text = match.group(0) if match else ""
 
         meta_text = ""
         meta_el = item.select_one(".item-meta, p.item-meta")
         if meta_el is not None:
             meta_text = meta_el.get_text(" ", strip=True)
-        mileage = None
-        mileage_match = _MILEAGE_RE.search(meta_text or item.get_text(" ", strip=True))
-        if mileage_match:
-            mileage = cleaner.clean_mileage(mileage_match.group(0))
 
         area = None
         area_el = item.select_one(".item-area, span.item-area")
         if area_el is not None:
             area = area_el.get_text(" ", strip=True)
-        district = resolve_canonical_district(area) if area else None
 
-        title_parts = cleaner.clean_title(title)
-        make = title_parts.get("make")
-        model = title_parts.get("model")
-        year = title_parts.get("year") or _extract_year_from_title(title)
-        source_id = _slug_source_id(absolute)
-        dedupe_key = f"{source_id}|{observed_at.isoformat()}"
-        if dedupe_key in seen:
-            continue
-        seen.add(dedupe_key)
-
-        rows.append(
-            {
-                "archive_source": archive_source,
-                "source_id": source_id,
-                "observed_at": observed_at,
-                "url": absolute,
-                "title": title[:500],
-                "make": make,
-                "model": model,
-                "year": year,
-                "price_lkr": price,
-                "mileage": mileage,
-                "district": district,
-                "city": area,
-                "confidence": "medium",
-                "raw_meta": {
-                    "snapshot_url": snapshot_url or None,
-                    "price_text": price_text or None,
-                    "meta_text": meta_text or None,
-                },
-            }
+        row = _row_from_parts(
+            cleaner=cleaner,
+            seen=seen,
+            archive_source=archive_source,
+            observed_at=observed_at,
+            snapshot_url=snapshot_url,
+            title=title,
+            href=href,
+            price_text=price_text,
+            mileage_text=meta_text,
+            area=area,
+            extra_meta={"parser": "classic_html"},
         )
+        if row:
+            rows.append(row)
     return rows
 
 

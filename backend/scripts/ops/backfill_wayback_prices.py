@@ -24,6 +24,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from app.services.historical_archive import (
     DEFAULT_IKMAN_SERP_URLS,
+    TOP_BRAND_SERP_URLS,
     discover_ikman_cdx,
     fetch_wayback_html,
     parse_ikman_serp_html,
@@ -40,10 +41,16 @@ def main() -> int:
     parser.add_argument("--sleep", type=float, default=1.5, help="Seconds between Wayback fetches")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--jsonl", type=Path, default=None, help="Optional path to write observations")
+    parser.add_argument(
+        "--brands-only",
+        action="store_true",
+        help="Only Toyota/Suzuki/Honda/Nissan brand SERPs (recommended for first backfill)",
+    )
     args = parser.parse_args()
 
+    serp_urls = TOP_BRAND_SERP_URLS if args.brands_only else DEFAULT_IKMAN_SERP_URLS
     hits = discover_ikman_cdx(
-        serp_urls=DEFAULT_IKMAN_SERP_URLS,
+        serp_urls=serp_urls,
         from_ts=args.from_ts,
         to_ts=args.to_ts,
         per_url_limit=max(args.max_snapshots, 20),

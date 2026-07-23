@@ -158,12 +158,18 @@ ALLOW_SQLITE_FALLBACK=true \
   .venv/bin/python scripts/ops/import_historical_csv.py ~/Downloads/sl_cars.csv \
   --archive-source kaggle_sl --observed-default 2025-01-15
 
-# Wayback SERP backfill (rate-limited)
+# Wayback SERP backfill (rate-limited; brands-only recommended)
 ALLOW_SQLITE_FALLBACK=true \
-  .venv/bin/python scripts/ops/backfill_wayback_prices.py --max-snapshots 12 --dry-run
+  .venv/bin/python scripts/ops/backfill_wayback_prices.py --brands-only --max-snapshots 48 --dry-run
 ```
 
-API: `GET /api/v1/stats/model-price-history?make=toyota&model=aqua&from_year=2015&to_year=2026`
+**Production (Supabase):** GitHub → Actions → **Historical Data Backfill** → Run workflow  
+(`.github/workflows/historical-backfill.yml` uses `secrets.HOT_DATABASE_URL`).
+
+API: `GET /api/v1/stats/model-price-history?make=toyota&model=aqua&from_year=2015&to_year=2026`  
+UI: Price Time Machine on `/cars/:make/:model`
+
+Modern ikman Wayback snapshots are JS apps — the parser reads `window.initialData` (not only classic `ui-item` HTML).
 
 ## Legal / ops notes
 

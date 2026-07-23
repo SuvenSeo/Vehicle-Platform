@@ -382,6 +382,45 @@ export interface MakeModelInsight {
   top_districts: MakeModelDistrictEntry[];
 }
 
+export interface ModelPriceHistoryPoint {
+  period: string;
+  period_year: number;
+  period_month: number;
+  median_price_lkr: number | null;
+  listing_count: number;
+  origin: "live_aggregates" | "archive_observations" | string;
+}
+
+export interface ModelPriceYomBucket {
+  yom: number;
+  listing_count: number;
+  avg_price_lkr: number | null;
+  median_price_lkr: number | null;
+  note?: string;
+}
+
+export interface ModelPriceHistory {
+  make: string;
+  model: string;
+  from_year: number;
+  to_year: number;
+  calendar_series: {
+    live_aggregates: ModelPriceHistoryPoint[];
+    archive_observations: ModelPriceHistoryPoint[];
+  };
+  cross_section_by_yom: ModelPriceYomBucket[];
+  counts: {
+    aggregate_points: number;
+    archive_points: number;
+    archive_listings: number;
+    yom_buckets: number;
+  };
+  interpretation: {
+    calendar_series: string;
+    cross_section_by_yom: string;
+  };
+}
+
 export interface MakeInsightModelEntry {
   model: string;
   count: number;

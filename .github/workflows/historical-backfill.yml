@@ -1,0 +1,112 @@
+name: Historical Data Backfill
+
+# Seeds DMT/policy market_signals, imports a community SL vehicle CSV into
+# historical_price_observations (NOT live car_listings), and rate-limits a
+# Wayback Machine backfill for top ikman brand SERPs.
+#
+# Trigger: Actions → Historical Data Backfill → Run workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: "Seed DMT + policy market_signals"
+        type: boolean
+        default: true
+      run_csv_import:
+        description: "Import community CSV into historical_price_observations"
+        type: boolean
+        default: true
+      run_wayback:
+        description: "Wayback backfill (Toyota/Suzuki/Honda/Nissan)"
+        type: boolean
+        default: true
+      wayback_max_snapshots:
+        description: "Max Wayback snapshots to fetch (spread across timeline)"
+        type: number
+        default: 48
+      wayback_sleep:
+        description: "Seconds between Wayback fetches"
+        type: number
+        default: 2
+
+concurrency:
+  group: historical-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ensure schema
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python - <<'PY'
+          from db.session import init_db
+          init_db()
+          print("schema_ok")
+          PY
+
+      - name: Seed DMT + policy context
+        if: ${{ inputs.run_seed }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: python scripts/ops/seed_market_context.py
+
+      - name: Download community SL vehicle CSV
+        if: ${{ inputs.run_csv_import }}
+        run: |
+          mkdir -p /tmp/historical_seed
+          curl -fsSL \
+            "https://raw.githubusercontent.com/manojtharindu11/srilankan-used-car-price-predictor/main/collect%20data/data/sri_lankan_vehicles.csv" \
+            -o /tmp/historical_seed/sri_lankan_vehicles.csv
+          wc -l /tmp/historical_seed/sri_lankan_vehicles.csv
+
+      - name: Import CSV → historical_price_observations only
+        if: ${{ inputs.run_csv_import }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python scripts/ops/import_historical_csv.py \
+            /tmp/historical_seed/sri_lankan_vehicles.csv \
+            --archive-source community_csv_riyasewana \
+            --observed-default 2026-02-20
+
+      - name: Wayback backfill (top brands)
+        if: ${{ inputs.run_wayback }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python scripts/ops/backfill_wayback_prices.py \
+            --brands-only \
+            --from 20170101 \
+            --to 20261231 \
+            --max-snapshots "${{ inputs.wayback_max_snapshots }}" \
+            --sleep "${{ inputs.wayback_sleep }}"

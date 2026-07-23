@@ -87,7 +87,19 @@ def test_upsert_historical_observations_is_idempotent(db_session):
     assert db_session.query(HistoricalPriceObservation).count() == len(rows)
 
 
-def test_cdx_hit_raw_url():
+def test_parse_ikman_initial_data_serp():
+    html = (
+        Path(__file__).parent
+        / "fixtures"
+        / "historical"
+        / "ikman_cars_initialdata_20230504_snippet.html"
+    ).read_text(encoding="utf-8")
+    observed = datetime(2023, 5, 4, 2, 25, 10, tzinfo=timezone.utc)
+    rows = parse_ikman_serp_html(html, observed_at=observed)
+    assert len(rows) >= 5
+    assert any(row["price_lkr"] and row["price_lkr"] > 1_000_000 for row in rows)
+    assert any(row.get("make") == "Toyota" for row in rows)
+
     hit = CdxHit(
         timestamp="20170107165014",
         original="http://ikman.lk/en/ads/sri-lanka/cars",
