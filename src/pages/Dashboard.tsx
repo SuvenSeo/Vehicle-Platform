@@ -11,9 +11,7 @@ import { getPriceDrops,
 } from "@/services/api";
 import { useLiveMarketSnapshot } from "@/hooks/useLiveMarketSnapshot";
 import { ListingCard } from "@/components/ListingCard";
-import { ComparisonModal } from "@/components/ComparisonModal";
 import { FilterSidebar } from "@/components/FilterSidebar";
-import { MarketIntelligencePanel } from "@/components/MarketIntelligencePanel";
 import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
 import { FuelMixStrip } from "@/components/FuelMixStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
@@ -52,7 +50,6 @@ import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
 import { loadMarketAlerts, patchMarketAlertServerId, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { QUERY_STALE } from "@/lib/queryPolicy";
-import { MobileFilterSheet } from "@/components/MobileFilterSheet";
 
 const heroContainerVariants = {
   hidden: { opacity: 0 },
@@ -106,6 +103,15 @@ const DistrictVelocityMap = lazyWithRetry(() =>
 );
 const ProvinceVelocityStrip = lazyWithRetry(() =>
   import("@/components/ProvinceVelocityStrip").then((m) => ({ default: m.ProvinceVelocityStrip }))
+);
+const ComparisonModal = lazyWithRetry(() =>
+  import("@/components/ComparisonModal").then((m) => ({ default: m.ComparisonModal }))
+);
+const MarketIntelligencePanel = lazyWithRetry(() =>
+  import("@/components/MarketIntelligencePanel").then((m) => ({ default: m.MarketIntelligencePanel }))
+);
+const MobileFilterSheet = lazyWithRetry(() =>
+  import("@/components/MobileFilterSheet").then((m) => ({ default: m.MobileFilterSheet }))
 );
 
 const EMPTY_VELOCITY_POINTS: DistrictVelocityPoint[] = [];
@@ -717,7 +723,9 @@ export default function Dashboard() {
 
           {/* ── Full-width live intelligence console ── */}
           <div className="mt-12 lg:mt-16">
-            <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+            <Suspense fallback={null}>
+              <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+            </Suspense>
           </div>
         </motion.div>
       </section>
@@ -1225,14 +1233,18 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      <MobileFilterSheet
-        open={showMobileFilter}
-        onOpenChange={setShowMobileFilter}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
+      <Suspense fallback={null}>
+        <MobileFilterSheet
+          open={showMobileFilter}
+          onOpenChange={setShowMobileFilter}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
+      </Suspense>
 
-      <ComparisonModal listings={compareListings} open={showCompare} onClose={() => setShowCompare(false)} />
+      <Suspense fallback={null}>
+        <ComparisonModal listings={compareListings} open={showCompare} onClose={() => setShowCompare(false)} />
+      </Suspense>
     </div>
   );
 }

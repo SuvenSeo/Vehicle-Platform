@@ -42,8 +42,21 @@ export default defineConfig({
           if (id.includes("leaflet") || id.includes("react-leaflet")) {
             return "map-vendor";
           }
-          if (id.includes("framer-motion") || id.includes("motion")) {
+          if (id.includes("framer-motion") || id.includes("/motion/")) {
             return "motion-vendor";
+          }
+          if (
+            id.includes("node_modules/jspdf") ||
+            id.includes("html2canvas") ||
+            id.includes("dompurify")
+          ) {
+            return "pdf-vendor";
+          }
+          if (id.includes("node_modules/docx") || id.includes("file-saver")) {
+            return "report-vendor";
+          }
+          if (id.includes("node_modules/zod") || id.includes("@hookform")) {
+            return "form-vendor";
           }
         },
       },

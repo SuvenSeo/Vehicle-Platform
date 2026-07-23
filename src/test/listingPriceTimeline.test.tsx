@@ -1,14 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { MemoryRouter } from "react-router-dom";
 import { ListingPriceTimeline } from "@/components/ListingPriceTimeline";
+import { TestRouter } from "@/test/testUtils";
 import type { PriceHistoryInfo } from "@/types/car";
 
 function renderTimeline(history: PriceHistoryInfo | null) {
   return render(
-    <MemoryRouter>
+    <TestRouter>
       <ListingPriceTimeline history={history} marketMedianLkr={9_200_000} />
-    </MemoryRouter>,
+    </TestRouter>,
   );
 }
 

@@ -20,6 +20,10 @@ vi.mock("@/components/MarketPredictor", () => ({
   MarketPredictor: () => <div>MarketPredictor</div>,
 }));
 
+vi.mock("@/components/MobileFilterSheet", () => ({
+  MobileFilterSheet: () => null,
+}));
+
 vi.mock("@/components/ComparisonModal", () => ({
   ComparisonModal: () => null,
 }));

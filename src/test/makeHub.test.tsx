@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { TestRouter } from "@/test/testUtils";
 import * as api from "@/services/api";
 import type { MakeInsight } from "@/types/car";
 import MakeHub from "@/pages/MakeHub";
@@ -35,11 +36,11 @@ function renderHub() {
   return render(
     <AppPreferencesProvider>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={["/cars/toyota"]}>
+        <TestRouter initialEntries={["/cars/toyota"]}>
           <Routes>
             <Route path="/cars/:make" element={<MakeHub />} />
           </Routes>
-        </MemoryRouter>
+        </TestRouter>
       </QueryClientProvider>
     </AppPreferencesProvider>,
   );

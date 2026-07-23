@@ -13,13 +13,15 @@ import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
-import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { AuthProvider } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
+const FeedbackWidget = lazyWithRetry(() =>
+  import("@/components/FeedbackWidget").then((m) => ({ default: m.FeedbackWidget }))
+);
 
 // Lazy load heavy page chunks
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
@@ -77,7 +79,9 @@ function MainLayout({ chatMounted }: { chatMounted: boolean }) {
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <Navbar />
       <SettingsFloatingIcon />
-      <FeedbackWidget />
+      <Suspense fallback={null}>
+        <FeedbackWidget />
+      </Suspense>
       {chatMounted && (
         <Suspense fallback={null}>
           <AIChatWidget />

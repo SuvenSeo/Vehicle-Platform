@@ -133,6 +133,8 @@ class CartivateScraper:
             "mileage": self._extract_mileage(card_text),
             "district": "Colombo",
             "condition": None,
+            # Card text includes "Fuel type Petrol" / "Transmission Auto";
+            # cleaner labeled extractors + Auto alias fill the fields.
             "_text_blobs": card_text,
             "scraped_at": utc_now(),
         }

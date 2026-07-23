@@ -75,10 +75,10 @@ def test_ikman_prefers_structured_brand_model_from_api_properties():
     assert payload["year"] == 2020
     assert payload["mileage"] == 69_000
     assert payload["engine_capacity"] == 1000
-    assert payload["fuel_type"] == "Petrol"
-    assert payload["transmission"] == "Automatic"
-    assert payload["body_type"] == "Hatchback"
-    assert payload["condition"] == "Used"
+    assert payload["fuel_type"] == "petrol"
+    assert payload["transmission"] == "automatic"
+    assert payload["body_type"] == "hatchback"
+    assert payload["condition"] == "used"
 
 
 def test_ikman_api_rejects_missing_price():

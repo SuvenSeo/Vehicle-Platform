@@ -362,7 +362,13 @@ class RiyasewanaScraper:
                                                 else category_path
                                             )
                                         ),
-                                        "_text_blobs": title,
+                                        # Include meta + card text so fuel/gear/body
+                                        # keywords outside the title still enrich.
+                                        "_text_blobs": [
+                                            title,
+                                            meta_text,
+                                            card.get_text(" ", strip=True),
+                                        ],
                                         "scraped_at": utc_now(),
                                     }
 

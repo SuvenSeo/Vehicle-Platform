@@ -1,6 +1,6 @@
 # Motormila Platform Improvement Roadmap
 
-Last updated: 2026-07-21. Live inventory across **13 sources**.
+Last updated: 2026-07-23. Live inventory across **13 sources**.
 
 ## Shipped on `main` (Jul 19–21)
 
@@ -29,6 +29,16 @@ Last updated: 2026-07-21. Live inventory across **13 sources**.
 
 ### Hotfixes
 - `require_pro_access(request: Request)` — Optional[Request] broke FastAPI startup / B2B CI
+
+## Phase 7 backlog (Ardeno deferred epics) — shipped 2026-07-23
+
+| Epic | Delivered |
+|------|-----------|
+| B1 Scraper field enrichment | Cleaner canonicalize + Auto/hatch/PHEV/CVT/`brand_new` aliases; junk structured reset; riyasewana richer blobs |
+| B2 Scraper guard fixtures | `tests/fixtures/scraper_payloads/*` + `test_scraper_payload_guards.py` |
+| B3 Frontend test warnings | `TestRouter` future flags; async flush for Alerts / MobileFilterSheet act noise |
+| B4 Bundle / code-splitting | Dashboard sub-lazies; pdf/report/form `manualChunks`; leaflet CSS deferred; FeedbackWidget lazy |
+| B5 Repo hygiene | browserslist/`caniuse-lite` bump; `.gitignore` py/tooling cache coverage |
 
 ## Remaining ops activation (secrets — not code)
 

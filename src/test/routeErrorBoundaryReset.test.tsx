@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
+import { Outlet, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { TestRouter } from "@/test/testUtils";
 
 function Boom(): React.ReactElement {
   throw new Error("Maximum call stack size exceeded");
@@ -24,14 +25,14 @@ describe("RouteErrorBoundary", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     render(
-      <MemoryRouter initialEntries={["/boom"]}>
+      <TestRouter initialEntries={["/boom"]}>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/boom" element={<Boom />} />
           </Route>
         </Routes>
-      </MemoryRouter>,
+      </TestRouter>,
     );
 
     expect(screen.getByText(/This page failed to load/i)).toBeInTheDocument();

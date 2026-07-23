@@ -102,7 +102,7 @@ def test_normalize_listing_payload_can_preserve_explicit_unavailable_price_rows(
         (
             "riyasewana",
             {"specs": "Hybrid • CVT • SUV • Reconditioned"},
-            {"fuel_type": "hybrid", "transmission": "automatic", "body_type": "suv", "condition": "reconditioned"},
+            {"fuel_type": "hybrid", "transmission": "cvt", "body_type": "suv", "condition": "reconditioned"},
         ),
         (
             "auto-lanka",
@@ -112,12 +112,32 @@ def test_normalize_listing_payload_can_preserve_explicit_unavailable_price_rows(
         (
             "patpat",
             {"raw_meta": {"fuel": "Electric", "gearbox": "Automatic", "body": "Hatchback", "status": "Brand New"}},
-            {"fuel_type": "electric", "transmission": "automatic", "body_type": "hatchback", "condition": "new"},
+            {"fuel_type": "electric", "transmission": "automatic", "body_type": "hatchback", "condition": "brand_new"},
         ),
         (
             "autodirect",
             {"meta": "Fuel: LPG | Manual | Sedan | Pre-owned"},
             {"fuel_type": "lpg", "transmission": "manual", "body_type": "sedan", "condition": "used"},
+        ),
+        (
+            "cartivate",
+            {"_text_blobs": "Fuel type Petrol | Transmission Auto | Mileage 0"},
+            {"fuel_type": "petrol", "transmission": "automatic", "body_type": None, "condition": None},
+        ),
+        (
+            "hitad",
+            {"title": "Suzuki Swift Hatch 2019", "_text_blobs": "Petrol Manual Hatch Second hand"},
+            {"fuel_type": "petrol", "transmission": "manual", "body_type": "hatchback", "condition": "used"},
+        ),
+        (
+            "ikman",
+            {"details": "Fuel Type: PHEV | Transmission: CVT | Body Type: Hatch | Condition: Brand New"},
+            {
+                "fuel_type": "pluginhybrid",
+                "transmission": "cvt",
+                "body_type": "hatchback",
+                "condition": "brand_new",
+            },
         ),
     ],
 )
@@ -131,10 +151,10 @@ def test_normalize_listing_payload_extracts_technical_fields_from_mixed_text_blo
     normalized = cleaner.normalize_listing_payload(payload)
 
     assert normalized is not None
-    assert normalized["fuel_type"] == expected["fuel_type"]
-    assert normalized["transmission"] == expected["transmission"]
-    assert normalized["body_type"] == expected["body_type"]
-    assert normalized["condition"] == expected["condition"]
+    assert normalized.get("fuel_type") == expected["fuel_type"]
+    assert normalized.get("transmission") == expected["transmission"]
+    assert normalized.get("body_type") == expected["body_type"]
+    assert normalized.get("condition") == expected["condition"]
 
 
 def test_normalize_listing_payload_does_not_override_existing_structured_technical_fields():
@@ -157,6 +177,66 @@ def test_normalize_listing_payload_does_not_override_existing_structured_technic
     assert normalized["transmission"] == "manual"
     assert normalized["body_type"] == "sedan"
     assert normalized["condition"] == "used"
+
+
+def test_normalize_listing_payload_canonicalizes_messy_structured_values():
+    cleaner = CarCleaner()
+    payload = _base_payload(source="ikman", source_id="listing-messy-structured")
+    payload.update(
+        {
+            "fuel_type": "Petrol",
+            "transmission": "Auto",
+            "body_type": "Hatch",
+            "condition": "Used",
+        }
+    )
+
+    normalized = cleaner.normalize_listing_payload(payload)
+
+    assert normalized is not None
+    assert normalized["fuel_type"] == "petrol"
+    assert normalized["transmission"] == "automatic"
+    assert normalized["body_type"] == "hatchback"
+    assert normalized["condition"] == "used"
+
+
+def test_normalize_listing_payload_reinfers_when_structured_value_is_junk():
+    cleaner = CarCleaner()
+    payload = _base_payload(source="patpat", source_id="listing-junk")
+    payload.update(
+        {
+            "fuel_type": "N/A",
+            "transmission": "-",
+            "body_type": "unknown",
+            "condition": "other",
+            "details": "Diesel Automatic Sedan Used",
+        }
+    )
+
+    normalized = cleaner.normalize_listing_payload(payload)
+
+    assert normalized is not None
+    assert normalized["fuel_type"] == "diesel"
+    assert normalized["transmission"] == "automatic"
+    assert normalized["body_type"] == "sedan"
+    assert normalized["condition"] == "used"
+
+
+def test_normalize_listing_payload_does_not_treat_wagon_r_as_wagon_body():
+    cleaner = CarCleaner()
+    payload = _base_payload(source="riyasewana", source_id="wagon-r")
+    payload["make"] = "Suzuki"
+    payload["model"] = "Wagon R"
+    payload["title"] = "Suzuki Wagon R 2018 for sale"
+    payload["_text_blobs"] = "Suzuki Wagon R Petrol Automatic Used"
+
+    normalized = cleaner.normalize_listing_payload(payload)
+
+    assert normalized is not None
+    assert normalized.get("fuel_type") == "petrol"
+    assert normalized.get("transmission") == "automatic"
+    assert normalized.get("body_type") is None
+    assert normalized.get("condition") == "used"
 
 
 @pytest.mark.parametrize(

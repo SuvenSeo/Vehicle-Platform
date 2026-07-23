@@ -45,13 +45,33 @@ function renderSheet(
   return render(<MobileFilterSheet {...defaults} {...props} />);
 }
 
+async function renderSheetReady(
+  props: Partial<{
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+    filters: FilterState;
+    onFiltersChange: (f: FilterState) => void;
+  }> = {},
+) {
+  const view = renderSheet(props);
+  if (props.open === false) return view;
+  // Flush getMakes() so Radix Select updates land inside act().
+  await waitFor(() => {
+    expect(screen.getByText("Make")).toBeInTheDocument();
+  });
+  await waitFor(() => {
+    expect(screen.queryByRole("button", { name: "Toyota" })).toBeTruthy();
+  });
+  return view;
+}
+
 describe("MobileFilterSheet", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the sheet title when open", () => {
-    renderSheet();
+  it("renders the sheet title when open", async () => {
+    await renderSheetReady();
     expect(screen.getByText("Quick Filters")).toBeInTheDocument();
   });
 
@@ -60,72 +80,72 @@ describe("MobileFilterSheet", () => {
     expect(screen.queryByText("Quick Filters")).not.toBeInTheDocument();
   });
 
-  it("renders Make, Price range, and District sections", () => {
-    renderSheet();
+  it("renders Make, Price range, and District sections", async () => {
+    await renderSheetReady();
     expect(screen.getByText("Make")).toBeInTheDocument();
     expect(screen.getByText("Price range")).toBeInTheDocument();
     expect(screen.getByText("District")).toBeInTheDocument();
   });
 
-  it("renders quick-make pills for Toyota, Suzuki, Honda, Nissan", () => {
-    renderSheet();
+  it("renders quick-make pills for Toyota, Suzuki, Honda, Nissan", async () => {
+    await renderSheetReady();
     expect(screen.getByRole("button", { name: "Toyota" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Suzuki" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Honda" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Nissan" })).toBeInTheDocument();
   });
 
-  it("renders price preset pills", () => {
-    renderSheet();
+  it("renders price preset pills", async () => {
+    await renderSheetReady();
     expect(screen.getByRole("button", { name: "Under 3M" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "3M–6M" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "6M–10M" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "10M+" })).toBeInTheDocument();
   });
 
-  it("renders Min LKR and Max LKR price inputs", () => {
-    renderSheet();
+  it("renders Min LKR and Max LKR price inputs", async () => {
+    await renderSheetReady();
     expect(screen.getByLabelText("Minimum price")).toBeInTheDocument();
     expect(screen.getByLabelText("Maximum price")).toBeInTheDocument();
   });
 
-  it("shows active filter count badge when filters are set", () => {
-    renderSheet({
+  it("shows active filter count badge when filters are set", async () => {
+    await renderSheetReady({
       filters: baseFilters({ make: "Toyota", district: "Colombo" }),
     });
     expect(screen.getByLabelText("2 active filters")).toBeInTheDocument();
   });
 
-  it("does not show badge when no filters are active", () => {
-    renderSheet({ filters: baseFilters() });
+  it("does not show badge when no filters are active", async () => {
+    await renderSheetReady({ filters: baseFilters() });
     expect(screen.queryByLabelText(/active filter/i)).not.toBeInTheDocument();
   });
 
-  it("renders Cancel and Apply buttons", () => {
-    renderSheet();
+  it("renders Cancel and Apply buttons", async () => {
+    await renderSheetReady();
     expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /apply filters/i })).toBeInTheDocument();
   });
 
-  it("calls onOpenChange(false) when Cancel is clicked", () => {
+  it("calls onOpenChange(false) when Cancel is clicked", async () => {
     const onOpenChange = vi.fn();
-    renderSheet({ onOpenChange });
+    await renderSheetReady({ onOpenChange });
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("calls onFiltersChange and onOpenChange(false) when Apply is clicked", () => {
+  it("calls onFiltersChange and onOpenChange(false) when Apply is clicked", async () => {
     const onFiltersChange = vi.fn();
     const onOpenChange = vi.fn();
-    renderSheet({ onFiltersChange, onOpenChange });
+    await renderSheetReady({ onFiltersChange, onOpenChange });
     fireEvent.click(screen.getByRole("button", { name: /apply filters/i }));
     expect(onFiltersChange).toHaveBeenCalled();
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("includes selected make in applied filters", () => {
+  it("includes selected make in applied filters", async () => {
     const onFiltersChange = vi.fn();
-    renderSheet({ onFiltersChange });
+    await renderSheetReady({ onFiltersChange });
 
     fireEvent.click(screen.getByRole("button", { name: "Toyota" }));
     fireEvent.click(screen.getByRole("button", { name: /apply filters/i }));
@@ -135,9 +155,9 @@ describe("MobileFilterSheet", () => {
     );
   });
 
-  it("deselects a quick-make pill when clicked a second time", () => {
+  it("deselects a quick-make pill when clicked a second time", async () => {
     const onFiltersChange = vi.fn();
-    renderSheet({ onFiltersChange, filters: baseFilters({ make: "Toyota" }) });
+    await renderSheetReady({ onFiltersChange, filters: baseFilters({ make: "Toyota" }) });
 
     // The Toyota pill is active on open — click to deselect
     fireEvent.click(screen.getByRole("button", { name: "Toyota" }));
@@ -148,10 +168,10 @@ describe("MobileFilterSheet", () => {
     );
   });
 
-  it("calls onFiltersChange with cleared fields when Clear all is clicked", () => {
+  it("calls onFiltersChange with cleared fields when Clear all is clicked", async () => {
     const onFiltersChange = vi.fn();
     const onOpenChange = vi.fn();
-    renderSheet({
+    await renderSheetReady({
       onFiltersChange,
       onOpenChange,
       filters: baseFilters({ make: "Toyota", district: "Colombo", price_min: 3_000_000 }),
@@ -171,9 +191,9 @@ describe("MobileFilterSheet", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("applies price preset when a preset pill is clicked", () => {
+  it("applies price preset when a preset pill is clicked", async () => {
     const onFiltersChange = vi.fn();
-    renderSheet({ onFiltersChange });
+    await renderSheetReady({ onFiltersChange });
 
     fireEvent.click(screen.getByRole("button", { name: "Under 3M" }));
     fireEvent.click(screen.getByRole("button", { name: /apply filters/i }));
@@ -183,23 +203,23 @@ describe("MobileFilterSheet", () => {
     );
   });
 
-  it("hides price range section when price_availability is unavailable", () => {
-    renderSheet({
+  it("hides price range section when price_availability is unavailable", async () => {
+    await renderSheetReady({
       filters: baseFilters({ price_availability: "unavailable" }),
     });
     expect(screen.queryByText("Price range")).not.toBeInTheDocument();
   });
 
   it("shows Model section after fetching models for selected make", async () => {
-    renderSheet({ filters: baseFilters({ make: "Toyota" }) });
+    await renderSheetReady({ filters: baseFilters({ make: "Toyota" }) });
     await waitFor(() => {
       expect(screen.getByText("Model")).toBeInTheDocument();
     });
   });
 
-  it("resets price inputs when preset is clicked twice (toggle off)", () => {
+  it("resets price inputs when preset is clicked twice (toggle off)", async () => {
     const onFiltersChange = vi.fn();
-    renderSheet({ onFiltersChange });
+    await renderSheetReady({ onFiltersChange });
 
     const presetBtn = screen.getByRole("button", { name: "3M–6M" });
     fireEvent.click(presetBtn); // select
@@ -211,9 +231,9 @@ describe("MobileFilterSheet", () => {
     );
   });
 
-  it("min/max price inputs accept numeric input and apply it", () => {
+  it("min/max price inputs accept numeric input and apply it", async () => {
     const onFiltersChange = vi.fn();
-    renderSheet({ onFiltersChange });
+    await renderSheetReady({ onFiltersChange });
 
     fireEvent.change(screen.getByLabelText("Minimum price"), {
       target: { value: "2000000" },
@@ -228,9 +248,9 @@ describe("MobileFilterSheet", () => {
     );
   });
 
-  it("preserves existing filters (sort, page) when applying", () => {
+  it("preserves existing filters (sort, page) when applying", async () => {
     const onFiltersChange = vi.fn();
-    renderSheet({
+    await renderSheetReady({
       onFiltersChange,
       filters: baseFilters({ sort: "price_asc", page: 3 }),
     });
