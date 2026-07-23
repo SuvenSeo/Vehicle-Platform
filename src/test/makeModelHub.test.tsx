@@ -8,6 +8,7 @@ import type { MakeModelInsight } from "@/types/car";
 vi.mock("@/services/api", () => ({
   getMakeModelInsight: vi.fn(),
   getListings: vi.fn(),
+  getModelPriceHistory: vi.fn(),
   formatPrice: (value: number | null) =>
     value == null ? "N/A" : `Rs. ${(value / 1_000_000).toFixed(1)}M`,
 }));
@@ -47,6 +48,26 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getMakeModelInsight).mockResolvedValue(INSIGHT_FIXTURE);
   vi.mocked(api.getListings).mockResolvedValue({ listings: [], total: 0 });
+  vi.mocked(api.getModelPriceHistory).mockResolvedValue({
+    make: "Toyota",
+    model: "Prius",
+    from_year: 2010,
+    to_year: 2026,
+    calendar_series: { live_aggregates: [], archive_observations: [] },
+    cross_section_by_yom: [
+      { yom: 2015, listing_count: 12, avg_price_lkr: 8_000_000, median_price_lkr: 7_800_000 },
+    ],
+    counts: {
+      aggregate_points: 0,
+      archive_points: 0,
+      archive_listings: 0,
+      yom_buckets: 1,
+    },
+    interpretation: {
+      calendar_series: "Calendar",
+      cross_section_by_yom: "YOM cross-section",
+    },
+  });
 });
 
 describe("MakeModelHub", () => {
@@ -117,6 +138,13 @@ describe("MakeModelHub", () => {
     renderHub();
     await waitFor(() => {
       expect(screen.getByText(/could not load market data/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows the price time machine section", async () => {
+    renderHub();
+    await waitFor(() => {
+      expect(screen.getByText(/Price Time Machine/i)).toBeInTheDocument();
     });
   });
 });

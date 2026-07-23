@@ -17,6 +17,7 @@ import {
   MarketSignal,
   MakeModelInsight,
   MakeInsight,
+  ModelPriceHistory,
   SellerTrustProfile,
   PriceDropItem,
   PriceHistoryInfo,
@@ -1743,6 +1744,66 @@ export const getMakeModelInsight = async (make: string, model: string): Promise<
           avg_price_lkr: toNumberOrNull(row.avg_price_lkr),
         }))
       : [],
+  };
+};
+
+export const getModelPriceHistory = async (
+  make: string,
+  model: string,
+  opts?: { from_year?: number; to_year?: number },
+): Promise<ModelPriceHistory> => {
+  const data = await fetchJSON<JsonRecord>("/stats/model-price-history", {
+    make,
+    model,
+    from_year: opts?.from_year ?? 2000,
+    to_year: opts?.to_year ?? 2026,
+  });
+
+  const mapPoint = (row: JsonRecord) => ({
+    period: String(row.period || ""),
+    period_year: Number(row.period_year || 0),
+    period_month: Number(row.period_month || 0),
+    median_price_lkr: toNumberOrNull(row.median_price_lkr),
+    listing_count: Number(row.listing_count || 0),
+    origin: String(row.origin || ""),
+  });
+
+  const calendar = (data.calendar_series as JsonRecord | undefined) || {};
+  const counts = (data.counts as JsonRecord | undefined) || {};
+  const interpretation = (data.interpretation as JsonRecord | undefined) || {};
+
+  return {
+    make: String(data.make || make),
+    model: String(data.model || model),
+    from_year: Number(data.from_year || opts?.from_year || 2000),
+    to_year: Number(data.to_year || opts?.to_year || 2026),
+    calendar_series: {
+      live_aggregates: Array.isArray(calendar.live_aggregates)
+        ? (calendar.live_aggregates as JsonRecord[]).map(mapPoint)
+        : [],
+      archive_observations: Array.isArray(calendar.archive_observations)
+        ? (calendar.archive_observations as JsonRecord[]).map(mapPoint)
+        : [],
+    },
+    cross_section_by_yom: Array.isArray(data.cross_section_by_yom)
+      ? (data.cross_section_by_yom as JsonRecord[]).map((row) => ({
+          yom: Number(row.yom || 0),
+          listing_count: Number(row.listing_count || 0),
+          avg_price_lkr: toNumberOrNull(row.avg_price_lkr),
+          median_price_lkr: toNumberOrNull(row.median_price_lkr),
+          note: row.note ? String(row.note) : undefined,
+        }))
+      : [],
+    counts: {
+      aggregate_points: Number(counts.aggregate_points || 0),
+      archive_points: Number(counts.archive_points || 0),
+      archive_listings: Number(counts.archive_listings || 0),
+      yom_buckets: Number(counts.yom_buckets || 0),
+    },
+    interpretation: {
+      calendar_series: String(interpretation.calendar_series || ""),
+      cross_section_by_yom: String(interpretation.cross_section_by_yom || ""),
+    },
   };
 };
 
