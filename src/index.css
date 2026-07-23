@@ -1404,15 +1404,29 @@
 }
 
 /* ============================================================================
-   Footer
+   Footer — Ardeno-inspired floating panel with Motormila cyan field
    ========================================================================== */
 
 @layer components {
-  .app-footer-lanka {
-    position: relative;
-    overflow: hidden;
-    border-top: 1px solid hsl(var(--border));
-    background: hsl(var(--surface));
+  .app-footer {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(10, 122, 255, 0.08), transparent 70%),
+      hsl(var(--background));
+  }
+
+  .app-footer__panel {
+    isolation: isolate;
+  }
+
+  .app-footer__watermark {
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 40px rgba(34, 211, 238, 0.12));
+  }
+
+  .theme-dark .app-footer {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(34, 211, 238, 0.06), transparent 70%),
+      hsl(var(--background));
   }
 }
 
