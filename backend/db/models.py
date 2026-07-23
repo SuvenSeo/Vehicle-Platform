@@ -175,6 +175,46 @@ class ImportPriceSnapshot(Base):
         Index('idx_import_price_observed_at', 'observed_at'),
     )
 
+
+class HistoricalPriceObservation(Base):
+    """Dated asking-price points from archives (Wayback/Common Crawl) or curated past ads.
+
+    Kept separate from live ``car_listings`` so archive rows never poison
+    velocity, deal scores, or active inventory views.
+    """
+
+    __tablename__ = 'historical_price_observations'
+
+    id = Column(Integer, primary_key=True)
+    archive_source = Column(String(40), nullable=False)  # wayback_ikman, wayback_riyasewana, ...
+    source_id = Column(String(120), nullable=False)
+    observed_at = Column(DateTime(timezone=True), nullable=False)
+    url = Column(Text, nullable=False)
+    title = Column(Text)
+    make = Column(String(50))
+    model = Column(String(100))
+    year = Column(Integer)
+    price_lkr = Column(Numeric(15, 2), nullable=False)
+    mileage = Column(Integer)
+    district = Column(String(50))
+    city = Column(String(100))
+    confidence = Column(String(20), nullable=False, server_default='medium')
+    raw_meta = Column(JSON)
+    ingested_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index(
+            'idx_hist_price_archive_source_id_observed',
+            'archive_source',
+            'source_id',
+            'observed_at',
+            unique=True,
+        ),
+        Index('idx_hist_price_make_model_observed', 'make', 'model', 'observed_at'),
+        Index('idx_hist_price_observed_at', 'observed_at'),
+    )
+
+
 class Location(Base):
     __tablename__ = 'locations'
 

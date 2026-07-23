@@ -26,6 +26,7 @@ Last updated: 2026-07-21. Live inventory across **13 sources**.
 - Dealer verified badge + billing fields + `POST /dealer/verify`
 - Pro write CSRF: Bearer required + trusted Origin/Referer
 - Expanded SI/TA coverage: nav, sign-in, Pro gate, dealer, listing, pricing, home pulse
+- Historical asking-price backfill (Wayback/CC → `historical_price_observations`) — see `docs/historical-price-data-sources.md`
 
 ### Hotfixes
 - `require_pro_access(request: Request)` — Optional[Request] broke FastAPI startup / B2B CI
