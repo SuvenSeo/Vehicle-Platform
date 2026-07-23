@@ -222,17 +222,8 @@ export function AppFooter() {
 
         <div
           aria-hidden="true"
-          className="relative z-0 mt-10 flex select-none items-center justify-center gap-[clamp(0.9rem,2.4vw,2rem)] overflow-hidden border-t border-white/[0.06] pt-8 md:mt-12 md:pt-10"
+          className="relative z-0 mt-10 flex select-none items-center justify-center overflow-hidden border-t border-white/[0.06] pt-8 md:mt-12 md:pt-10"
         >
-          <img
-            src="/logo.png"
-            alt=""
-            width={190}
-            height={190}
-            className="h-[clamp(4.5rem,10vw,9.5rem)] w-auto opacity-60 grayscale contrast-125"
-            loading="lazy"
-            decoding="async"
-          />
           <span className="app-footer__watermark whitespace-nowrap bg-gradient-to-b from-cyan-200/20 via-sky-300/10 to-transparent bg-clip-text font-display text-[clamp(3.4rem,11.5vw,12rem)] font-black uppercase leading-none tracking-[-0.03em] text-transparent">
             Motormila
           </span>
