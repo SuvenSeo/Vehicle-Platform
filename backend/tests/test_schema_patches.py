@@ -145,3 +145,18 @@ def test_search_listings_count_uses_id_only_subquery():
 
     assert payload.total == 1
     assert payload.items[0].title is None
+
+
+def test_apply_schema_patches_ensures_historical_price_observations_table():
+    engine = create_engine("sqlite:///:memory:")
+    apply_schema_patches(engine)
+    with engine.connect() as conn:
+        tables = {
+            row[0]
+            for row in conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+    assert "historical_price_observations" in tables
+    # Idempotent
+    apply_schema_patches(engine)

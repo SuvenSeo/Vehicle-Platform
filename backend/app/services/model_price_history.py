@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import and_, func
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from db.models import (
@@ -72,18 +73,24 @@ def build_model_price_history(
         for row in aggregate_rows
     ]
 
-    archive_rows = (
-        db.query(HistoricalPriceObservation)
-        .filter(
-            func.lower(HistoricalPriceObservation.make) == make_lower,
-            func.lower(HistoricalPriceObservation.model) == model_lower,
-            HistoricalPriceObservation.price_lkr.isnot(None),
-            HistoricalPriceObservation.price_lkr >= MIN_REASONABLE_PRICE_LKR,
-            func.extract("year", HistoricalPriceObservation.observed_at) >= from_year,
-            func.extract("year", HistoricalPriceObservation.observed_at) <= to_year,
+    archive_rows: list[HistoricalPriceObservation] = []
+    try:
+        archive_rows = (
+            db.query(HistoricalPriceObservation)
+            .filter(
+                func.lower(HistoricalPriceObservation.make) == make_lower,
+                func.lower(HistoricalPriceObservation.model) == model_lower,
+                HistoricalPriceObservation.price_lkr.isnot(None),
+                HistoricalPriceObservation.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+                func.extract("year", HistoricalPriceObservation.observed_at) >= from_year,
+                func.extract("year", HistoricalPriceObservation.observed_at) <= to_year,
+            )
+            .all()
         )
-        .all()
-    )
+    except (ProgrammingError, OperationalError):
+        # Table not migrated yet — still return live aggregates / YOM cross-section.
+        db.rollback()
+        archive_rows = []
 
     bucket: dict[tuple[int, int], list[float]] = {}
     for row in archive_rows:
