@@ -16,6 +16,8 @@ import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { AuthProvider } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RequireAuth } from "@/components/RequireAuth";
+import { RequireAdmin } from "@/components/RequireAdmin";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
@@ -35,8 +37,10 @@ const Calculator = lazyWithRetry(() => import("./pages/Calculator"));
 const EVHub = lazyWithRetry(() => import("./pages/EVHub"));
 const BestPicks = lazyWithRetry(() => import("./pages/BestPicks"));
 const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
+const SignUp = lazyWithRetry(() => import("./pages/SignUp"));
 const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
 const ProPreview = lazyWithRetry(() => import("./pages/ProPreview"));
+const AdminDashboard = lazyWithRetry(() => import("./pages/AdminDashboard"));
 const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
 const MakeHub = lazyWithRetry(() => import("./pages/MakeHub"));
 const DistrictHub = lazyWithRetry(() => import("./pages/DistrictHub"));
@@ -75,28 +79,30 @@ const MinimalLoader = () => (
 
 function MainLayout({ chatMounted }: { chatMounted: boolean }) {
   return (
-    <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
-      <a href="#main-content" className="skip-to-content">Skip to main content</a>
-      <Navbar />
-      <SettingsFloatingIcon />
-      <Suspense fallback={null}>
-        <FeedbackWidget />
-      </Suspense>
-      {chatMounted && (
+    <RequireAuth>
+      <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
+        <a href="#main-content" className="skip-to-content">Skip to main content</a>
+        <Navbar />
+        <SettingsFloatingIcon />
         <Suspense fallback={null}>
-          <AIChatWidget />
+          <FeedbackWidget />
         </Suspense>
-      )}
-      <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
-        <RouteErrorBoundary>
-          <Suspense fallback={<MinimalLoader />}>
-            <Outlet />
+        {chatMounted && (
+          <Suspense fallback={null}>
+            <AIChatWidget />
           </Suspense>
-        </RouteErrorBoundary>
-      </main>
-      <AppFooter />
-      <MobileBottomNav />
-    </div>
+        )}
+        <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
+          <RouteErrorBoundary>
+            <Suspense fallback={<MinimalLoader />}>
+              <Outlet />
+            </Suspense>
+          </RouteErrorBoundary>
+        </main>
+        <AppFooter />
+        <MobileBottomNav />
+      </div>
+    </RequireAuth>
   );
 }
 
@@ -145,11 +151,24 @@ const App = () => {
                   <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
                   <Route path="/docs" element={<Docs />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route
+                    path="/admin"
+                    element={(
+                      <RequireAdmin>
+                        <AdminDashboard />
+                      </RequireAdmin>
+                    )}
+                  />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={
                   <Suspense fallback={<MinimalLoader />}>
                     <SignIn />
+                  </Suspense>
+                } />
+                <Route path="/sign-up" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <SignUp />
                   </Suspense>
                 } />
                 <Route path="/pro-preview" element={

@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/components/BrandLogo";
 import { scrollBehavior } from "@/lib/motion";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, UserCircle2, X } from "lucide-react";
+import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, Shield, UserCircle2, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SignInPortalModal } from "@/components/SignInPortalModal";
@@ -34,7 +34,7 @@ export function Navbar() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [stars, setStars] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState("overview");
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin, hasProAccess } = useAuth();
   const pipelineStatus = usePipelineStatus();
   const { t } = useAppPreferences();
   const { hash, pathname } = useLocation();
@@ -62,11 +62,14 @@ export function Navbar() {
       { label: "Dealer", href: "/dealer", detail: "Operator command center" },
       { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: "Saved listing watches" },
       { label: t("nav.settings", "Settings"), href: "/settings", detail: t("nav.settingsDetail", "Language and theme") },
+      ...(isAdmin
+        ? [{ label: "Admin", href: "/admin", detail: "Invites, plans, analytics" }]
+        : []),
       isAuthenticated
         ? { label: t("nav.proDashboard", "Pro Dashboard"), href: "/pro", detail: t("nav.proDetail", "Paid market terminal") }
         : { label: t("nav.proPreview", "Pro Preview"), href: "/pro-preview", detail: t("nav.proPreviewDetail", "Locked terminal layout") },
     ],
-    [isAuthenticated, t],
+    [isAuthenticated, isAdmin, t],
   );
 
   useEffect(() => {
@@ -212,7 +215,7 @@ export function Navbar() {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/sign-in");
     setMobileOpen(false);
   };
 
@@ -322,13 +325,32 @@ export function Navbar() {
               {/* Auth actions */}
               {isAuthenticated && user ? (
                 <div className="hidden items-center gap-1 sm:flex">
+                  <span
+                    className={`inline-flex h-8 items-center rounded-full border px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+                      hasProAccess
+                        ? "border-primary/25 bg-primary/10 text-primary-bright"
+                        : "border-border bg-foreground/[0.03] text-muted-foreground"
+                    }`}
+                  >
+                    {user.plan}
+                  </span>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/admin")}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-foreground outline-none transition-colors hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-primary/50"
+                    >
+                      <Shield className="h-3 w-3" />
+                      <span className="text-[12px] font-medium tracking-tight">Admin</span>
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={() => navigate("/pro")}
+                    onClick={() => navigate(hasProAccess ? "/pro" : "/pricing")}
                     className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Crown className="h-3 w-3" />
-                    <span className="text-[12px] font-medium tracking-tight">Pro</span>
+                    <span className="text-[12px] font-medium tracking-tight">{hasProAccess ? "Pro" : "Upgrade"}</span>
                   </button>
                   <button
                     type="button"

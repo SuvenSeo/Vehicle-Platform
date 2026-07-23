@@ -944,7 +944,7 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
 
     try {
       const response = await fetch(url.toString(), {
-        headers: { Accept: "application/json", ...(headers || {}) },
+        headers: { Accept: "application/json", ...authHeaders(), ...(headers || {}) },
         credentials,
         signal: controller.signal,
       });
@@ -993,6 +993,7 @@ async function postJSON<T>(path: string, body: Record<string, unknown>, headers?
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          ...authHeaders(),
           ...(headers || {}),
         },
         body: JSON.stringify(body),
@@ -2197,4 +2198,116 @@ export const calculateTco = async (input: TcoInput): Promise<TcoResult> => {
 export const getPermits = async (): Promise<PermitInfo[]> => {
   const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
   return Array.isArray(data) ? data : [];
+};
+
+export type AdminUser = {
+  id: number;
+  email: string;
+  name: string;
+  plan: "free" | "pro" | "enterprise";
+  subscriptionStatus: string;
+  role: "user" | "admin";
+  isActive: boolean;
+  invitedByEmail?: string | null;
+  lastLoginAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type AdminInvite = {
+  id: number;
+  email: string;
+  plan: string;
+  role: string;
+  status: string;
+  token: string;
+  signupPath: string;
+  invitedByEmail?: string | null;
+  expiresAt?: string | null;
+  acceptedAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type AdminOverview = {
+  listings: { total: number; live: number };
+  users: { total: number; free: number; pro: number; admins: number };
+  invites: { pending: number };
+  feedback: { open: number };
+  dealers: { verified: number };
+  recentScrapes: Array<{
+    id: number;
+    source: string;
+    status?: string | null;
+    listingsFound: number;
+    listingsNew: number;
+    startedAt?: string | null;
+    finishedAt?: string | null;
+    errorMessage?: string | null;
+  }>;
+  topMakes: Array<{ make: string; count: number }>;
+  generatedAt: string;
+};
+
+export const getAdminOverview = async (): Promise<AdminOverview> => {
+  return fetchJSON<AdminOverview>("/admin/overview", undefined, authHeaders());
+};
+
+export const getAdminUsers = async (
+  params: { limit?: number; offset?: number } = {},
+): Promise<{ total: number; users: AdminUser[] }> => {
+  return fetchJSON<{ total: number; users: AdminUser[] }>("/admin/users", params, authHeaders());
+};
+
+export const getAdminInvites = async (
+  params: { status?: string; limit?: number } = {},
+): Promise<{ invites: AdminInvite[] }> => {
+  return fetchJSON<{ invites: AdminInvite[] }>("/admin/invites", params, authHeaders());
+};
+
+export const createAdminInvite = async (input: {
+  email: string;
+  plan?: string;
+  role?: string;
+}): Promise<AdminInvite> => {
+  return postJSON<AdminInvite>("/admin/invites", input, authHeaders());
+};
+
+export const updateAdminUser = async (
+  userId: number,
+  patch: {
+    plan?: string;
+    subscription_status?: string;
+    role?: string;
+    is_active?: boolean;
+    name?: string;
+  },
+): Promise<AdminUser> => {
+  if (USE_MOCK) throw new Error("Mock mode is disabled");
+  const url = new URL(`${API_BASE}/admin/users/${userId}`, window.location.origin).toString();
+  const response = await fetch(url, {
+    method: "PATCH",
+    credentials: resolveFetchCredentials(),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) throw await parseApiError(response);
+  return response.json();
+};
+
+export const revokeAdminInvite = async (inviteId: number): Promise<{ ok: boolean }> => {
+  if (USE_MOCK) throw new Error("Mock mode is disabled");
+  const url = new URL(`${API_BASE}/admin/invites/${inviteId}`, window.location.origin).toString();
+  const response = await fetch(url, {
+    method: "DELETE",
+    credentials: resolveFetchCredentials(),
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (!response.ok) throw await parseApiError(response);
+  return response.json();
 };

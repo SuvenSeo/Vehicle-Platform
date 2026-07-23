@@ -50,6 +50,8 @@ import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
 import { loadMarketAlerts, patchMarketAlertServerId, removeMarketAlert, saveMarketAlert, summarizeAlertFilters, type MarketAlert } from "@/lib/marketAlerts";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { QUERY_STALE } from "@/lib/queryPolicy";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { ProFeatureLock } from "@/components/ProFeatureLock";
 
 const heroContainerVariants = {
   hidden: { opacity: 0 },
@@ -567,6 +569,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen">
+      <FreePlanBanner />
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section id="overview" className="relative -mt-16 overflow-hidden border-b border-border bg-surface pt-16">
@@ -723,9 +726,11 @@ export default function Dashboard() {
 
           {/* ── Full-width live intelligence console ── */}
           <div className="mt-12 lg:mt-16">
-            <Suspense fallback={null}>
-              <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
-            </Suspense>
+            <ProFeatureLock label="Live intelligence console">
+              <Suspense fallback={null}>
+                <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+              </Suspense>
+            </ProFeatureLock>
           </div>
         </motion.div>
       </section>
@@ -768,6 +773,7 @@ export default function Dashboard() {
             </div>
 
             {/* Hot deals */}
+            <ProFeatureLock label="Best deals scoring">
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
@@ -800,6 +806,7 @@ export default function Dashboard() {
                 <p className="text-[11px] text-muted-foreground">No deals found in current slice</p>
               )}
             </div>
+            </ProFeatureLock>
             {/* Price cuts (7d) */}
             <div>
               <div className="mb-5 flex items-center justify-between">

@@ -81,10 +81,10 @@ export default function SignIn() {
             </Link>
             <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 mb-5">
               <Lock className="w-3 h-3 text-primary" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("signin.eyebrow", "Pro Access")}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("signin.eyebrow", "Invite only")}</span>
             </div>
             <h1 className="display-1 text-foreground">{t("signin.title", "Sign in")}</h1>
-            <p className="text-body-lg mt-3">Access the vehicle intelligence dashboard.</p>
+            <p className="text-body-lg mt-3">Motormila is private. Sign in with an invited account.</p>
           </div>
 
           {previewAccessEnabled && (
@@ -152,7 +152,10 @@ export default function SignIn() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground font-semibold">
-            Not a subscriber? <Link to="/" className="text-foreground underline underline-offset-2 transition-all hover:text-primary">Browse public data</Link>
+            Have an invite link?{" "}
+            <Link to="/sign-up" className="text-foreground underline underline-offset-2 transition-all hover:text-primary">
+              Complete sign-up
+            </Link>
           </p>
         </motion.div>
 
