@@ -9,13 +9,17 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!authReady) {
     return (
-      <div className="flex min-h-[50vh] w-full items-center justify-center" aria-label="Checking session" role="status">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative h-10 w-10">
+      <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background" aria-label="Checking session" role="status">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_30%,hsl(var(--primary)/0.10),transparent_65%)]" />
+        <div className="relative flex flex-col items-center gap-5">
+          <div className="relative h-11 w-11">
             <div className="absolute inset-0 rounded-full border-2 border-foreground/[0.08]" />
             <div className="absolute inset-0 animate-spin rounded-full border-t-2 border-primary" />
           </div>
-          <p className="tech-label">Checking session</p>
+          <div className="text-center">
+            <p className="font-display text-[15px] font-semibold tracking-tight text-foreground">Motormila</p>
+            <p className="mt-1 tech-label">Checking session</p>
+          </div>
         </div>
       </div>
     );

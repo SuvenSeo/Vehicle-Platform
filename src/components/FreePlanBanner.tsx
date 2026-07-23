@@ -8,17 +8,21 @@ export function FreePlanBanner() {
   if (!user || hasProAccess || isAdmin) return null;
 
   return (
-    <div className="border-b border-primary/15 bg-primary/[0.06]">
-      <div className="mx-auto flex max-w-[1560px] flex-wrap items-center justify-between gap-3 px-5 py-2.5 sm:px-6">
-        <p className="flex items-center gap-2 text-[12px] font-medium text-foreground">
-          <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-          You&apos;re on the <span className="font-bold">Free</span> plan — Pro lanes, exports, and deep analytics stay locked.
+    <div className="relative border-b border-primary/15 bg-[linear-gradient(90deg,hsl(var(--primary)/0.08),hsl(var(--primary)/0.03)_45%,hsl(var(--primary)/0.08))]">
+      <div className="mx-auto flex max-w-[1560px] flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-6">
+        <p className="flex items-center gap-2.5 text-[12px] font-medium text-foreground">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
+            <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
+          </span>
+          <span>
+            You&apos;re on the <span className="font-bold">Free</span> plan — Pro lanes, exports, and deep analytics stay locked.
+          </span>
         </p>
         <Link
           to="/pricing"
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
         >
-          <Crown className="h-3 w-3" aria-hidden />
+          <Crown className="h-3.5 w-3.5" aria-hidden />
           Upgrade
         </Link>
       </div>
