@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException, Response
+from fastapi import APIRouter, Depends, Header, Query, HTTPException, Request, Response
 from sqlalchemy.orm import Session, load_only
 from sqlalchemy import String, cast, func, desc, and_, or_
 from typing import Optional, List, Dict, Any, Annotated
@@ -21,6 +21,7 @@ from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
+from app.api.v1.endpoints.auth import PRO_PLANS, verify_token
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -38,6 +39,29 @@ from app.services.rate_limit import RateLimiter
 _listings_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_listings_rate_limiter)])
+
+FREE_LISTINGS_MAX_SIZE = 12
+FREE_LISTINGS_MAX_PAGE = 1
+
+
+def _request_plan(request: Request, authorization: Optional[str] = None) -> Optional[str]:
+    """Best-effort plan from Bearer or session cookie. None if anonymous/open mode."""
+    bearer = (authorization or "").removeprefix("Bearer ").strip()
+    token = bearer
+    if not token:
+        token = str(request.cookies.get("mm_session") or "").strip()
+    if not token:
+        return None
+    payload = verify_token(token)
+    if not payload:
+        return None
+    return str(payload.get("plan") or "free").strip().lower()
+
+
+def _is_free_browse_plan(plan: Optional[str]) -> bool:
+    if plan is None:
+        return False
+    return plan not in PRO_PLANS and plan != "admin"
 
 SOURCE_LABELS = {
     "ikman": "Ikman",
@@ -1192,6 +1216,7 @@ def _optional_text_param(value: object) -> Optional[str]:
 
 @router.get("", response_model=ListingsResponse)
 def search_listings(
+    request: Request,
     keyword: Optional[str] = Query(None, alias="q", max_length=120),
     source: Optional[str] = None,
     make: Optional[str] = None,
@@ -1219,6 +1244,7 @@ def search_listings(
     sort: str = Query("newest", pattern="^(newest|deal_score|price_asc|price_desc|mileage_asc)$"),
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
+    authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     keyword_text = _optional_text_param(keyword)
@@ -1231,6 +1257,15 @@ def search_listings(
     if not isinstance(size, int) or size < 1:
         size = 10
     size = min(size, 100)
+
+    plan = _request_plan(request, authorization)
+    free_browse = _is_free_browse_plan(plan)
+    if free_browse:
+        # Free teaser: first page only, capped page size, no deal-score sort.
+        page = min(page, FREE_LISTINGS_MAX_PAGE)
+        size = min(size, FREE_LISTINGS_MAX_SIZE)
+        if sort == "deal_score":
+            sort = "newest"
 
     q = (
         db.query(CarListing)
@@ -1365,6 +1400,12 @@ def search_listings(
     count_q = q._clone()
     total = count_q.order_by(None).with_entities(func.count(CarListing.id)).scalar() or 0
     items = q.offset((page - 1) * size).limit(size).all()
+
+    if free_browse:
+        # Keep layout data, hide Pro pricing signals from free responses.
+        for item in items:
+            item.deal_score = None
+            item.market_median_lkr = None
 
     return ListingsResponse(
         items=items,

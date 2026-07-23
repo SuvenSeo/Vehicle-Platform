@@ -12,7 +12,15 @@ import { minCashDownForPrice, sortListingsByAffordability } from "@/lib/cashToOw
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { revealContainer, revealItem } from "@/lib/motion";
+import { useAuth } from "@/lib/authContext";
+import {
+  FREE_BEST_PICKS_LIMIT,
+  FREE_PRICE_DROPS_LIMIT,
+  freePlanCopy,
+  hasFullPlatformAccess,
+} from "@/lib/planLimits";
 
 const PICKS_PAGES = 4;
 const MIN_DEAL_SCORE = 8;
@@ -55,6 +63,8 @@ function sortPicks(listings: CarListing[], mode: BestPicksSortMode): CarListing[
 }
 
 export default function BestPicks() {
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [picks, setPicks] = useState<CarListing[]>([]);
@@ -64,20 +74,21 @@ export default function BestPicks() {
 
   useEffect(() => {
     let cancelled = false;
-    getPriceDrops(7, 8)
+    getPriceDrops(7, fullAccess ? 8 : FREE_PRICE_DROPS_LIMIT)
       .then((items) => { if (!cancelled) setDrops(items); })
       .catch(() => { /* feed is additive — page works without it */ })
       .finally(() => { if (!cancelled) setDropsLoaded(true); });
     return () => { cancelled = true; };
-  }, []);
+  }, [fullAccess]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true); setError(null);
       try {
+        const pagesToFetch = fullAccess ? PICKS_PAGES : 1;
         const base: FilterState = { sort: "deal_score", page: 1, vehicle_category: "cars" };
-        const responses = await Promise.all(Array.from({ length: PICKS_PAGES }, (_, i) => getListings({ ...base, page: i + 1 })));
+        const responses = await Promise.all(Array.from({ length: pagesToFetch }, (_, i) => getListings({ ...base, page: i + 1 })));
         if (cancelled) return;
         const unique = new Map<number, CarListing>();
         responses.flatMap((r) => r.listings)
@@ -89,16 +100,19 @@ export default function BestPicks() {
       finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [fullAccess]);
 
-  const ranked = useMemo(() => sortPicks(picks, sortMode), [picks, sortMode]);
+  const ranked = useMemo(() => {
+    const sorted = sortPicks(picks, sortMode);
+    return fullAccess ? sorted : sorted.slice(0, FREE_BEST_PICKS_LIMIT);
+  }, [picks, sortMode, fullAccess]);
   const topScore = useMemo(() => ranked.reduce((mx, l) => Math.max(mx, Number(l.deal_score || 0)), 0), [ranked]);
   const [featured, ...rest] = ranked;
   const rankCaption =
     sortMode === "affordability"
       ? "ranked by min cash down (CBSL LTV)"
       : "ranked by deal strength";
-
+  const hiddenPickCount = fullAccess ? 0 : Math.max(0, picks.length - FREE_BEST_PICKS_LIMIT);
   return (
     <PageCanvas>
       <PageHero
@@ -107,10 +121,12 @@ export default function BestPicks() {
         eyebrowIcon={Star}
         watermarkIcon={Star}
         title={<>Deal-score picks<span className="text-sheen">.</span></>}
-        description={loading ? "Scanning inventory..." : `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`}
+        description={loading ? "Scanning inventory..." : fullAccess
+          ? `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`
+          : `${ranked.length} free teaser picks scored ${MIN_DEAL_SCORE}+ — upgrade for the full board.`}
         highlights={[
           { label: "Min score", value: `${MIN_DEAL_SCORE}+`, hint: "Strict deal-score floor" },
-          { label: "Inventory", value: loading ? "…" : String(ranked.length), hint: "Vehicles in this shortlist" },
+          { label: "Inventory", value: loading ? "…" : String(ranked.length), hint: fullAccess ? "Vehicles in this shortlist" : "Free teaser shortlist" },
           { label: "Sort modes", value: "2", hint: "Deal score or affordability" },
         ]}
       >
@@ -313,6 +329,13 @@ export default function BestPicks() {
               </div>
             )}
           </>
+        )}
+
+        {!fullAccess && !loading && !error && (hiddenPickCount > 0 || picks.length > 0) && (
+          <UpgradePrompt
+            title={freePlanCopy.picksTitle}
+            body={freePlanCopy.picksBody}
+          />
         )}
       </PageBody>
     </PageCanvas>

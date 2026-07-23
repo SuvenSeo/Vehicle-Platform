@@ -52,6 +52,15 @@ import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 import { FreePlanBanner } from "@/components/FreePlanBanner";
 import { ProFeatureLock } from "@/components/ProFeatureLock";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { useAuth } from "@/lib/authContext";
+import {
+  FREE_LISTINGS_PAGE_SIZE,
+  FREE_MAX_LISTING_PAGES,
+  freeListingsVisibleTotal,
+  freePlanCopy,
+  hasFullPlatformAccess,
+} from "@/lib/planLimits";
 
 const heroContainerVariants = {
   hidden: { opacity: 0 },
@@ -194,6 +203,8 @@ function parseFilters(params: URLSearchParams): FilterState {
 export default function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<FilterState>(() => parseFilters(searchParams));
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
 
   useEffect(() => {
     const nextFilters = parseFilters(searchParams);
@@ -203,6 +214,17 @@ export default function Dashboard() {
     });
   }, [searchParams]);
 
+  // Free plan: always page 1 — pagination is a Pro unlock.
+  useEffect(() => {
+    if (!fullAccess && filters.page > FREE_MAX_LISTING_PAGES) {
+      setFilters((prev) => ({ ...prev, page: 1 }));
+    }
+  }, [fullAccess, filters.page]);
+
+  const listingFilters = useMemo<FilterState>(
+    () => (fullAccess ? filters : { ...filters, page: 1 }),
+    [filters, fullAccess],
+  );
   const { t } = useAppPreferences();
   const queryClient = useQueryClient();
   const liveMarketSnapshot = useLiveMarketSnapshot();
@@ -264,8 +286,8 @@ export default function Dashboard() {
     void refetchVelocity();
   }, [refetchVelocity]);
   const listingsQuery = useQuery({
-    queryKey: ["listings", filters],
-    queryFn: () => getListings(filters),
+    queryKey: ["listings", listingFilters],
+    queryFn: () => getListings(listingFilters),
     staleTime: QUERY_STALE.listings,
   });
   const { refetch: refetchListings } = listingsQuery;
@@ -501,7 +523,11 @@ export default function Dashboard() {
     scrollToMarket();
   }, [scrollToMarket]);
 
-  const totalPages = Math.ceil(total / LISTINGS_PAGE_SIZE);
+  const totalPages = fullAccess
+    ? Math.ceil(total / LISTINGS_PAGE_SIZE)
+    : Math.min(1, Math.ceil(total / FREE_LISTINGS_PAGE_SIZE) || 0);
+  const freeVisibleCap = freeListingsVisibleTotal(total);
+  const freeHitListingCap = !fullAccess && total > FREE_LISTINGS_PAGE_SIZE * FREE_MAX_LISTING_PAGES;
   const currentAlertSummary = useMemo(() => summarizeAlertFilters(filters), [filters]);
 
   const saveCurrentMarketAlert = useCallback(() => {
@@ -996,10 +1022,13 @@ export default function Dashboard() {
                             {hasPrice ? (
                               <p className="text-[14px] font-bold text-foreground num">{formatPrice(Number(listing.price_lkr))}</p>
                             ) : <PriceUnavailableBadge label="N/A" className="text-[10px]" />}
-                            {listing.deal_score != null && (
+                            {fullAccess && listing.deal_score != null && (
                               <p className={`mt-0.5 text-[10px] font-bold num ${Number(listing.deal_score) >= 0 ? "text-primary-bright" : "text-muted-foreground"}`}>
                                 {Number(listing.deal_score) >= 0 ? "+" : ""}{Number(listing.deal_score).toFixed(0)} deal
                               </p>
+                            )}
+                            {!fullAccess && (
+                              <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground/70">Pro score</p>
                             )}
                           </div>
                           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -1010,8 +1039,8 @@ export default function Dashboard() {
                 </motion.div>
               )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
+              {/* Pagination / free upgrade ceiling */}
+              {fullAccess && totalPages > 1 && (
                 <div className="mt-8 flex items-center justify-between border-t border-border pt-6">
                   <p className="text-[11px] text-muted-foreground">
                     <span className="num text-foreground">{(filters.page - 1) * LISTINGS_PAGE_SIZE + 1}–{Math.min(filters.page * LISTINGS_PAGE_SIZE, total)}</span> of {total.toLocaleString()}
@@ -1027,7 +1056,27 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
-            </div>
+              {!fullAccess && (
+                <div className="mt-8 space-y-3 border-t border-border pt-6">
+                  <p className="text-[11px] text-muted-foreground">
+                    Showing <span className="num font-semibold text-foreground">{Math.min(listings.length, freeVisibleCap)}</span> of{" "}
+                    <span className="num font-semibold text-foreground">{total.toLocaleString()}</span> live listings on Free
+                  </p>
+                  {freeHitListingCap ? (
+                    <UpgradePrompt
+                      variant="strip"
+                      title={freePlanCopy.listingsTitle}
+                      body={freePlanCopy.listingsBody}
+                    />
+                  ) : (
+                    <UpgradePrompt
+                      variant="strip"
+                      title={freePlanCopy.scoresTitle}
+                      body={freePlanCopy.scoresBody}
+                    />
+                  )}
+                </div>
+              )}            </div>
           </div>
         </div>
       </section>
@@ -1043,6 +1092,7 @@ export default function Dashboard() {
 
           {/* District demand velocity */}
           <div className="mt-12 border-t border-border pt-8">
+            <ProFeatureLock label="District demand velocity">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-bright">Demand velocity</p>
@@ -1079,6 +1129,7 @@ export default function Dashboard() {
                 />
               </div>
             </Suspense>
+            </ProFeatureLock>
           </div>
 
           {/* Tool links */}

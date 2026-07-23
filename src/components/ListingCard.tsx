@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { CarListing } from "@/types/car";
 import { formatPrice } from "@/services/api";
-import { Gauge, MapPin, ArrowRight, Heart, Check, Plus } from "lucide-react";
+import { Gauge, MapPin, ArrowRight, Heart, Check, Plus, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
@@ -14,6 +14,8 @@ import {
 import { HybridCliffBadge } from "@/components/HybridCliffBadge";
 import { MileageTrustChip } from "@/components/MileageTrustChip";
 import { summarizeFmv } from "@/lib/fmv";
+import { useAuth } from "@/lib/authContext";
+import { hasFullPlatformAccess } from "@/lib/planLimits";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -66,9 +68,11 @@ export const ListingCard = memo(function ListingCard({
   onWatchlistToggle,
   isWatchlisted,
 }: ListingCardProps) {
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   // null deal_score = rating suppressed server-side (thin cohort, old vehicle,
   // extreme price) — show no badge rather than a fake-neutral one.
-  const hasDealScore = listing.deal_score !== null && listing.deal_score !== undefined;
+  const hasDealScore = fullAccess && listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = Number(listing.deal_score ?? 0);
   const imageUrl = getListingImageUrl(listing);
   const dealLabel = getListingDealLabel(dealScore);
@@ -165,7 +169,12 @@ export const ListingCard = memo(function ListingCard({
                 {dealScore >= 0 ? "+" : ""}{dealScore.toFixed(0)} deal
               </span>
             )}
-          </div>
+            {!fullAccess && (
+              <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white/85 backdrop-blur-md">
+                <Lock className="h-2.5 w-2.5" aria-hidden />
+                Pro score
+              </span>
+            )}          </div>
         </div>
 
         {/* Content */}
