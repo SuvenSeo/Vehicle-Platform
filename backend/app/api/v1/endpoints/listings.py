@@ -44,12 +44,15 @@ FREE_LISTINGS_MAX_SIZE = 12
 FREE_LISTINGS_MAX_PAGE = 1
 
 
-def _request_plan(request: Request, authorization: Optional[str] = None) -> Optional[str]:
+def _request_plan(request: Optional[Request] = None, authorization: Optional[str] = None) -> Optional[str]:
     """Best-effort plan from Bearer or session cookie. None if anonymous/open mode."""
-    bearer = (authorization or "").removeprefix("Bearer ").strip()
+    # Direct unit calls may pass FastAPI Header()/Query() defaults instead of None.
+    auth_value = authorization if isinstance(authorization, str) else None
+    bearer = (auth_value or "").removeprefix("Bearer ").strip()
     token = bearer
-    if not token:
-        token = str(request.cookies.get("mm_session") or "").strip()
+    if not token and request is not None:
+        cookies = getattr(request, "cookies", None) or {}
+        token = str(cookies.get("mm_session") or "").strip()
     if not token:
         return None
     payload = verify_token(token)

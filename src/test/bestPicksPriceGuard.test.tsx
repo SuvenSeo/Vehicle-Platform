@@ -1,6 +1,7 @@
 import { TestRouter } from "@/test/testUtils";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AuthProvider } from "@/lib/authContext";
 
 vi.mock("@/services/api", () => ({
   getListings: vi.fn(),
@@ -12,6 +13,43 @@ vi.mock("@/services/api", () => ({
 import BestPicks from "@/pages/BestPicks";
 import * as api from "@/services/api";
 import type { CarListing } from "@/types/car";
+
+function installProAuth() {
+  const store = new Map<string, string>();
+  store.set(
+    "autolens.auth_user",
+    JSON.stringify({
+      email: "pro@example.com",
+      name: "Pro User",
+      plan: "pro",
+      subscriptionStatus: "active",
+      role: "user",
+      avatarInitials: "PU",
+    }),
+  );
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
+
+function renderBestPicks() {
+  return render(
+    <AuthProvider>
+      <TestRouter>
+        <BestPicks />
+      </TestRouter>
+    </AuthProvider>,
+  );
+}
 
 function makeListing(id: number, make: string, model: string, priceLkr: number, dealScore: number) {
   return {
@@ -33,6 +71,7 @@ function makeListing(id: number, make: string, model: string, priceLkr: number, 
 describe("BestPicks price guard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    installProAuth();
 
     vi.mocked(api.getListings).mockImplementation(async () => ({
       listings: [
@@ -47,11 +86,7 @@ describe("BestPicks price guard", () => {
   });
 
   it("excludes zero and tiny malformed prices from best picks", async () => {
-    render(
-      <TestRouter>
-        <BestPicks />
-      </TestRouter>,
-    );
+    renderBestPicks();
 
     await screen.findByText(/Toyota Corolla/i);
 
@@ -62,11 +97,7 @@ describe("BestPicks price guard", () => {
   });
 
   it("re-ranks high deal_score listings by affordability cash down", async () => {
-    render(
-      <TestRouter>
-        <BestPicks />
-      </TestRouter>,
-    );
+    renderBestPicks();
 
     await screen.findByText(/BMW X5/i);
     // Default deal_score mode: highest score featured first.

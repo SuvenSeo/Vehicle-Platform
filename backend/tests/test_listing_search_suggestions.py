@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,6 +10,10 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import listings
 from db.models import Base, CarListing
+
+
+def _anon_request():
+    return SimpleNamespace(cookies={})
 
 
 def _session():
@@ -85,7 +90,9 @@ def test_search_listings_filters_by_keyword_tokens():
     )
     db.commit()
 
-    payload = listings.search_listings(keyword="Toyota Axio", sort="newest", page=1, size=10, db=db)
+    payload = listings.search_listings(
+        request=_anon_request(), keyword="Toyota Axio", sort="newest", page=1, size=10, db=db
+    )
 
     assert payload.total == 1
     assert payload.items[0].make == "Toyota"
