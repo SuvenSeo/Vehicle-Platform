@@ -1,6 +1,6 @@
 name: Historical Data Backfill
 
-# Seeds DMT/policy market_signals, imports a community SL vehicle CSV into
+# Seeds DMT/policy market_signals, imports the staged Kaggle SL vehicle CSV into
 # historical_price_observations (NOT live car_listings), and rate-limits a
 # Wayback Machine backfill for top ikman brand SERPs.
 #
@@ -14,7 +14,7 @@ on:
         type: boolean
         default: true
       run_csv_import:
-        description: "Import community CSV into historical_price_observations"
+        description: "Import Kaggle SL CSV into historical_price_observations"
         type: boolean
         default: true
       run_wayback:
@@ -78,26 +78,20 @@ jobs:
           ALLOW_SQLITE_FALLBACK: "false"
         run: python scripts/ops/seed_market_context.py
 
-      - name: Download community SL vehicle CSV
-        if: ${{ inputs.run_csv_import }}
-        run: |
-          mkdir -p /tmp/historical_seed
-          curl -fsSL \
-            "https://raw.githubusercontent.com/manojtharindu11/srilankan-used-car-price-predictor/main/collect%20data/data/sri_lankan_vehicles.csv" \
-            -o /tmp/historical_seed/sri_lankan_vehicles.csv
-          wc -l /tmp/historical_seed/sri_lankan_vehicles.csv
-
-      - name: Import CSV → historical_price_observations only
+      - name: Import Kaggle SL CSV → historical_price_observations only
         if: ${{ inputs.run_csv_import }}
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
         run: |
+          test -f data/historical/kaggle_sl_car_price_dataset.csv
+          wc -l data/historical/kaggle_sl_car_price_dataset.csv
           python scripts/ops/import_historical_csv.py \
-            /tmp/historical_seed/sri_lankan_vehicles.csv \
-            --archive-source community_csv_riyasewana \
-            --observed-default 2026-02-20
+            data/historical/kaggle_sl_car_price_dataset.csv \
+            --archive-source kaggle_sl \
+            --price-unit lakhs \
+            --observed-default 2025-01-15
 
       - name: Wayback backfill (top brands)
         if: ${{ inputs.run_wayback }}

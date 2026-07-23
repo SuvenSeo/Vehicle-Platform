@@ -33,6 +33,38 @@ from app.services.historical_archive import (
 from db.session import ColdSessionLocal, init_db
 
 
+def _spread_hits(hits: list, max_snapshots: int) -> list:
+    """Year-balanced sample so early HTML captures aren't drowned by recent SPA dumps."""
+    if max_snapshots <= 0 or len(hits) <= max_snapshots:
+        return hits
+
+    by_year: dict[str, list] = {}
+    for hit in hits:
+        by_year.setdefault(hit.timestamp[:4], []).append(hit)
+
+    years = sorted(by_year)
+    if not years:
+        return hits[:max_snapshots]
+
+    selected: list = []
+    seen: set[tuple[str, str]] = set()
+    while len(selected) < max_snapshots and any(by_year.values()):
+        for year in years:
+            bucket = by_year.get(year) or []
+            if not bucket:
+                continue
+            hit = bucket.pop(0)
+            key = (hit.timestamp, hit.original)
+            if key in seen:
+                continue
+            seen.add(key)
+            selected.append(hit)
+            if len(selected) >= max_snapshots:
+                break
+    selected.sort(key=lambda h: h.timestamp)
+    return selected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--from", dest="from_ts", default="20170101")
@@ -55,13 +87,9 @@ def main() -> int:
         to_ts=args.to_ts,
         per_url_limit=max(args.max_snapshots, 20),
     )
-    if args.max_snapshots > 0:
-        # Spread roughly evenly across the timeline when capping.
-        if len(hits) > args.max_snapshots:
-            step = len(hits) / args.max_snapshots
-            hits = [hits[int(i * step)] for i in range(args.max_snapshots)]
+    hits = _spread_hits(hits, args.max_snapshots)
 
-    print(f"cdx_hits={len(hits)} from={args.from_ts} to={args.to_ts}")
+    print(f"cdx_hits={len(hits)} from={args.from_ts} to={args.to_ts} brands_only={args.brands_only}")
 
     all_rows: list[dict] = []
     for index, hit in enumerate(hits, start=1):
