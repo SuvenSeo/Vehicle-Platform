@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
@@ -37,15 +38,12 @@ DEFAULT_IKMAN_SERP_URLS = (
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
 )
 
+# Prefer https; http duplicates are expanded inside discover_ikman_cdx.
 TOP_BRAND_SERP_URLS = (
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
-    "http://ikman.lk/en/ads/sri-lanka/cars/toyota",
     "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
-    "http://ikman.lk/en/ads/sri-lanka/cars/suzuki",
     "https://ikman.lk/en/ads/sri-lanka/cars/honda",
-    "http://ikman.lk/en/ads/sri-lanka/cars/honda",
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
-    "http://ikman.lk/en/ads/sri-lanka/cars/nissan",
 )
 
 _YEAR_RE = re.compile(r"\b(19[5-9]\d|20[0-2]\d)\b")
@@ -294,6 +292,21 @@ def parse_ikman_serp_html(
     return rows
 
 
+def _cdx_payload_to_hits(payload: Any) -> list[CdxHit]:
+    if not isinstance(payload, list) or len(payload) < 2:
+        return []
+    hits: list[CdxHit] = []
+    for row in payload[1:]:
+        if not isinstance(row, (list, tuple)) or len(row) < 2:
+            continue
+        ts, original = str(row[0]), str(row[1])
+        status = str(row[2]) if len(row) > 2 else "200"
+        if not ts or not original:
+            continue
+        hits.append(CdxHit(timestamp=ts, original=original, statuscode=status))
+    return hits
+
+
 def fetch_cdx_hits(
     url: str,
     *,
@@ -301,6 +314,7 @@ def fetch_cdx_hits(
     to_ts: str = "20261231",
     limit: int = 200,
     client: httpx.Client | None = None,
+    retries: int = 3,
 ) -> list[CdxHit]:
     """Query Wayback CDX for successful captures of a URL."""
     params = {
@@ -314,33 +328,37 @@ def fetch_cdx_hits(
         "limit": str(limit),
     }
     owns_client = client is None
-    http = client or httpx.Client(timeout=45.0, follow_redirects=True)
+    timeout = httpx.Timeout(60.0, connect=15.0)
+    http = client or httpx.Client(timeout=timeout, follow_redirects=True)
+    last_exc: Exception | None = None
     try:
-        response = http.get(WAYBACK_CDX, params=params)
-        response.raise_for_status()
-        payload = response.json()
+        for attempt in range(1, retries + 1):
+            try:
+                response = http.get(WAYBACK_CDX, params=params)
+                response.raise_for_status()
+                return _cdx_payload_to_hits(response.json())
+            except Exception as exc:
+                last_exc = exc
+                log.warning(
+                    "wayback_cdx_retry",
+                    url=url,
+                    attempt=attempt,
+                    error=str(exc),
+                )
+                if attempt < retries:
+                    time.sleep(1.0 * attempt)
+        if last_exc is not None:
+            raise last_exc
+        return []
     finally:
         if owns_client:
             http.close()
 
-    if not isinstance(payload, list) or len(payload) < 2:
-        return []
-
-    hits: list[CdxHit] = []
-    for row in payload[1:]:
-        if not isinstance(row, (list, tuple)) or len(row) < 2:
-            continue
-        ts, original = str(row[0]), str(row[1])
-        status = str(row[2]) if len(row) > 2 else "200"
-        if not ts or not original:
-            continue
-        hits.append(CdxHit(timestamp=ts, original=original, statuscode=status))
-    return hits
-
 
 def fetch_wayback_html(hit: CdxHit, *, client: httpx.Client | None = None) -> str:
     owns_client = client is None
-    http = client or httpx.Client(timeout=60.0, follow_redirects=True)
+    timeout = httpx.Timeout(60.0, connect=15.0)
+    http = client or httpx.Client(timeout=timeout, follow_redirects=True)
     try:
         response = http.get(hit.raw_url)
         response.raise_for_status()
@@ -415,11 +433,18 @@ def discover_ikman_cdx(
 ) -> list[CdxHit]:
     """Collect collapsed CDX hits across common ikman cars SERP URLs."""
     owns_client = client is None
-    http = client or httpx.Client(timeout=45.0, follow_redirects=True)
+    timeout = httpx.Timeout(60.0, connect=15.0)
+    http = client or httpx.Client(timeout=timeout, follow_redirects=True)
     all_hits: list[CdxHit] = []
     seen: set[tuple[str, str]] = set()
+    # Deduplicate http/https variants — CDX already returns both schemes.
+    expanded: list[str] = []
+    for url in serp_urls:
+        canonical = url.replace("http://", "https://", 1)
+        if canonical not in expanded:
+            expanded.append(canonical)
     try:
-        for url in serp_urls:
+        for url in expanded:
             try:
                 hits = fetch_cdx_hits(
                     url,

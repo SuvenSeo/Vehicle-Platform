@@ -163,8 +163,22 @@ ALLOW_SQLITE_FALLBACK=true \
   .venv/bin/python scripts/ops/backfill_wayback_prices.py --brands-only --max-snapshots 48 --dry-run
 ```
 
-**Production (Supabase):** GitHub → Actions → **Historical Data Backfill** → Run workflow  
-(`.github/workflows/historical-backfill.yml` uses `secrets.HOT_DATABASE_URL`).
+**Production (Supabase):** this cloud-agent environment has **no** `HOT_DATABASE_URL`
+and cannot dispatch GitHub Actions (`gh` is read-only / 403). After this PR merges:
+
+1. GitHub → Actions → **Historical Data Backfill** → Run workflow  
+   (uses `secrets.HOT_DATABASE_URL`; seed + community CSV → archive table only + Wayback brands).
+2. Or locally with prod URL:
+
+```bash
+cd backend
+export HOT_DATABASE_URL='…' COLD_DATABASE_URL="$HOT_DATABASE_URL" ALLOW_SQLITE_FALLBACK=false
+python scripts/ops/seed_market_context.py
+python scripts/ops/import_historical_csv.py /path/to/csv --archive-source community_csv_riyasewana
+python scripts/ops/backfill_wayback_prices.py --brands-only --from 20170101 --to 20261231 --max-snapshots 48 --sleep 2
+```
+
+Do **not** import Kaggle/community CSV into live `car_listings`.
 
 API: `GET /api/v1/stats/model-price-history?make=toyota&model=aqua&from_year=2015&to_year=2026`  
 UI: Price Time Machine on `/cars/:make/:model`
