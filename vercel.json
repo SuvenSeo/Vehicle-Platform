@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/v1/:path*",
+      "destination": "https://seo292-vehicle-platform-backend.hf.space/api/v1/:path*"
+    },
+    {
       "source": "/listing/:id",
       "has": [
         {

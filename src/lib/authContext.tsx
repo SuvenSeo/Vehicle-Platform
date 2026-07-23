@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import { API_BASE } from "@/services/api";
+import { API_BASE, resolveFetchCredentials } from "@/services/api";
 import { getStoredAuthToken, storeAuthToken } from "@/lib/authToken";
 
 export interface AuthUser {
@@ -129,7 +129,8 @@ async function loginWithBackend(email: string, password: string): Promise<AuthUs
 
   const response = await fetch(new URL(`${API_BASE}/auth/login`, window.location.origin).toString(), {
     method: "POST",
-    credentials: "include",
+    // Cross-origin HF Spaces: omit cookies — preflight lacks Allow-Credentials.
+    credentials: resolveFetchCredentials(API_BASE),
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -171,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (token) headers.Authorization = `Bearer ${token}`;
 
         const response = await fetch(new URL(`${API_BASE}/auth/me`, window.location.origin).toString(), {
-          credentials: "include",
+          credentials: resolveFetchCredentials(API_BASE),
           headers,
         });
         if (cancelled) return;
@@ -238,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (BACKEND_AUTH_ENABLED) {
       void fetch(new URL(`${API_BASE}/auth/logout`, window.location.origin).toString(), {
         method: "POST",
-        credentials: "include",
+        credentials: resolveFetchCredentials(API_BASE),
         headers: { Accept: "application/json" },
       }).catch(() => {
         // Cookie clear is best-effort — local state is already wiped.

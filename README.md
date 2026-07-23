@@ -128,10 +128,12 @@ curl https://seo292-vehicle-platform-backend.hf.space/api/v1/stats/summary
 In Vercel Project Settings -> Environment Variables, set:
 
 ```env
-VITE_API_URL=https://seo292-vehicle-platform-backend.hf.space/api/v1
+VITE_API_URL=/api/v1
 ```
 
-Then redeploy frontend in Vercel. Your live stats/map/listings/trends should populate once API calls target Hugging Face.
+`vercel.json` rewrites `/api/v1/*` to the Hugging Face Space, so the browser
+talks same-origin (avoids HF CORS preflight stripping credentials). Absolute
+HF URLs still work as a fallback.
 
 ## 8) Make Deployments Fully Automatic
 

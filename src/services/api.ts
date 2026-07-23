@@ -81,6 +81,23 @@ const USE_MOCK = false;
 const REQUEST_TIMEOUT_MS = 25000;
 const MIN_REASONABLE_PRICE_LKR = 100_000;
 
+/**
+ * Cookie credentials only work when the API is same-origin.
+ * Cross-origin calls to Hugging Face Spaces fail in the browser because HF's
+ * edge answers CORS preflight without Access-Control-Allow-Credentials, so
+ * `credentials: "include"` makes POSTs (calculator, chat, login) throw
+ * TypeError "Failed to fetch". Bearer auth still works with "omit".
+ */
+export function resolveFetchCredentials(apiBase: string = API_BASE): RequestCredentials {
+  if (typeof window === "undefined") return "omit";
+  try {
+    const apiOrigin = new URL(apiBase, window.location.origin).origin;
+    return apiOrigin === window.location.origin ? "include" : "omit";
+  } catch {
+    return "omit";
+  }
+}
+
 function resolveSnapshotBase() {
   const configured = String(import.meta.env.VITE_SNAPSHOT_BASE_URL || "").trim();
   return configured ? configured.replace(/\/+$/, "") : "";
@@ -918,6 +935,7 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
 
   const timeoutMs = API_BASE.includes("hf.space") ? HF_COLD_START_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
   const maxAttempts = API_BASE.includes("hf.space") ? 3 : 2;
+  const credentials = resolveFetchCredentials();
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -926,8 +944,8 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
 
     try {
       const response = await fetch(url.toString(), {
-        headers: { 'Accept': 'application/json', ...(headers || {}) },
-        credentials: "include",
+        headers: { Accept: "application/json", ...(headers || {}) },
+        credentials,
         signal: controller.signal,
       });
 
@@ -958,26 +976,51 @@ async function fetchJSON<T>(path: string, params?: QueryParams, headers?: Record
 async function postJSON<T>(path: string, body: Record<string, unknown>, headers?: Record<string, string>): Promise<T> {
   if (USE_MOCK) throw new Error("Mock mode is disabled");
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const url = new URL(`${API_BASE}${path}`, window.location.origin).toString();
+  const timeoutMs = API_BASE.includes("hf.space") ? HF_COLD_START_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+  const maxAttempts = API_BASE.includes("hf.space") ? 3 : 2;
+  const credentials = resolveFetchCredentials();
+  let lastError: unknown;
 
-  const response = await fetch(new URL(`${API_BASE}${path}`, window.location.origin).toString(), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(headers || {}),
-    },
-    body: JSON.stringify(body),
-    signal: controller.signal,
-  }).finally(() => clearTimeout(timeout));
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw await parseApiError(response);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        credentials,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(headers || {}),
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw await parseApiError(response);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      const isServerError = error instanceof APIError && error.status >= 500;
+      const isNetworkError = error instanceof TypeError;
+      const retryable = isAbort || isServerError || isNetworkError;
+      if (!retryable || attempt === maxAttempts - 1) {
+        throw error;
+      }
+      const backoffMs = Math.min(1000 * 2 ** attempt, 4000);
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
-  return response.json();
+  throw lastError;
 }
 
 export const getStats = async (): Promise<StatsOverview> => {

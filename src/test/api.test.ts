@@ -49,6 +49,55 @@ describe("api module", () => {
     expect(result).toEqual({ response: "ok", listings: [] });
   });
 
+  it("omits cookies for cross-origin HF API bases (HF preflight lacks Allow-Credentials)", async () => {
+    const { resolveFetchCredentials } = await import("@/services/api");
+
+    expect(resolveFetchCredentials("/api/v1")).toBe("include");
+    expect(
+      resolveFetchCredentials("https://seo292-vehicle-platform-backend.hf.space/api/v1"),
+    ).toBe("omit");
+  });
+
+  it("posts landed-cost with same-origin credentials mode in tests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cif_lkr: 3600000,
+        cid: 720000,
+        surcharge: 360000,
+        excise: 5775000,
+        sscl: 261375,
+        vat: 1928947.5,
+        luxury_tax: 0,
+        total_tax: 9045322.5,
+        landed_cost: 12645322.5,
+        surcharge_applied: true,
+        notes: "ok",
+      }),
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { calculateLandedCost } = await import("@/services/api");
+    const result = await calculateLandedCost({
+      cif_usd: 12000,
+      exchange_rate: 300,
+      fuel_type: "hybrid",
+      engine_cc: 1500,
+      apply_surcharge: true,
+      apply_sscl: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/calculators/landed-cost");
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      // Vitest uses relative /api/v1 → same-origin → include is fine.
+      credentials: "include",
+    });
+    expect(result.landed_cost).toBe(12645322.5);
+  });
+
   it("exports listing detail helpers", async () => {
     const api: typeof import("@/services/api") = await import("@/services/api");
 
