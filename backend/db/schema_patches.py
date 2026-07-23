@@ -94,6 +94,103 @@ def _create_index_sql(index_name: str, table_name: str, columns: str) -> str:
     return f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({columns})"
 
 
+def _ensure_historical_price_observations_table(
+    engine: Engine,
+    *,
+    dialect: str,
+    bounded_ddl,
+) -> None:
+    """Idempotent CREATE for the archive price table (Postgres + SQLite)."""
+    inspector = inspect(engine)
+    try:
+        if "historical_price_observations" in inspector.get_table_names():
+            return
+    except Exception as exc:
+        log.warning("schema_hist_table_inspect_failed", error=str(exc))
+
+    if dialect == "postgresql":
+        ddl = """
+        CREATE TABLE IF NOT EXISTS historical_price_observations (
+            id SERIAL PRIMARY KEY,
+            archive_source VARCHAR(40) NOT NULL,
+            source_id VARCHAR(120) NOT NULL,
+            observed_at TIMESTAMPTZ NOT NULL,
+            url TEXT NOT NULL,
+            title TEXT,
+            make VARCHAR(50),
+            model VARCHAR(100),
+            year INTEGER,
+            price_lkr NUMERIC(15, 2) NOT NULL,
+            mileage INTEGER,
+            district VARCHAR(50),
+            city VARCHAR(100),
+            confidence VARCHAR(20) NOT NULL DEFAULT 'medium',
+            raw_meta JSONB,
+            ingested_at TIMESTAMPTZ DEFAULT NOW()
+        )
+        """
+        indexes = (
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hist_price_archive_source_id_observed
+            ON historical_price_observations (archive_source, source_id, observed_at)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_hist_price_make_model_observed
+            ON historical_price_observations (make, model, observed_at)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_hist_price_observed_at
+            ON historical_price_observations (observed_at)
+            """,
+        )
+    else:
+        ddl = """
+        CREATE TABLE IF NOT EXISTS historical_price_observations (
+            id INTEGER PRIMARY KEY,
+            archive_source VARCHAR(40) NOT NULL,
+            source_id VARCHAR(120) NOT NULL,
+            observed_at DATETIME NOT NULL,
+            url TEXT NOT NULL,
+            title TEXT,
+            make VARCHAR(50),
+            model VARCHAR(100),
+            year INTEGER,
+            price_lkr NUMERIC(15, 2) NOT NULL,
+            mileage INTEGER,
+            district VARCHAR(50),
+            city VARCHAR(100),
+            confidence VARCHAR(20) NOT NULL DEFAULT 'medium',
+            raw_meta JSON,
+            ingested_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        indexes = (
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hist_price_archive_source_id_observed
+            ON historical_price_observations (archive_source, source_id, observed_at)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_hist_price_make_model_observed
+            ON historical_price_observations (make, model, observed_at)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_hist_price_observed_at
+            ON historical_price_observations (observed_at)
+            """,
+        )
+
+    try:
+        bounded_ddl(ddl)
+        for index_sql in indexes:
+            try:
+                bounded_ddl(index_sql)
+            except Exception as exc:
+                log.warning("schema_hist_index_failed", error=str(exc))
+        log.info("schema_hist_table_ensured")
+    except Exception as exc:
+        log.warning("schema_hist_table_failed", error=str(exc))
+
+
 def apply_schema_patches(engine: Engine) -> None:
     """Add missing columns and create new tables without a full Alembic migration."""
     from db.models import Base
@@ -162,8 +259,12 @@ def apply_schema_patches(engine: Engine) -> None:
                 error=str(exc),
             )
 
-    # Ensure tables like scrape_runs exist before index patches reference them.
+    # Ensure tables like scrape_runs / historical_price_observations exist
+    # before index patches reference them. Also emit an explicit CREATE for the
+    # archive table so a timed-out or partial create_all cannot leave the API
+    # querying a missing relation (prod 500s on /market/summary + model-price-history).
     Base.metadata.create_all(bind=engine)
+    _ensure_historical_price_observations_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
 
     for index_name, table_name, columns in _INDEX_PATCHES:
         try:

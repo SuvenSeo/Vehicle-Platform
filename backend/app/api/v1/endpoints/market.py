@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, func
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from app.models.schemas import ImportPriceSnapshotRead, MarketSignalRead
@@ -10,6 +11,20 @@ from db.session import get_db
 _market_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_market_rate_limiter)])
+
+
+def _historical_observation_stats(db: Session) -> dict:
+    """Count archive rows; return zeros if the table is not migrated yet."""
+    try:
+        hist_count = int(db.query(func.count(HistoricalPriceObservation.id)).scalar() or 0)
+        latest_hist = db.query(func.max(HistoricalPriceObservation.observed_at)).scalar()
+        return {
+            "count": hist_count,
+            "latest_observed_at": latest_hist.isoformat() if latest_hist else None,
+        }
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        return {"count": 0, "latest_observed_at": None}
 
 
 @router.get("/signals", response_model=list[MarketSignalRead])
@@ -62,8 +77,7 @@ def get_market_signal_summary(db: Session = Depends(get_db)):
     )
     import_count = int(db.query(func.count(ImportPriceSnapshot.id)).scalar() or 0)
     latest_import = db.query(func.max(ImportPriceSnapshot.observed_at)).scalar()
-    hist_count = int(db.query(func.count(HistoricalPriceObservation.id)).scalar() or 0)
-    latest_hist = db.query(func.max(HistoricalPriceObservation.observed_at)).scalar()
+    historical = _historical_observation_stats(db)
 
     return {
         "signals": [
@@ -79,8 +93,5 @@ def get_market_signal_summary(db: Session = Depends(get_db)):
             "count": import_count,
             "latest_observed_at": latest_import.isoformat() if latest_import else None,
         },
-        "historical_price_observations": {
-            "count": hist_count,
-            "latest_observed_at": latest_hist.isoformat() if latest_hist else None,
-        },
+        "historical_price_observations": historical,
     }
