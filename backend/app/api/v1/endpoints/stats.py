@@ -41,6 +41,7 @@ from app.models.schemas import DistrictVelocityResponse
 from app.models.schemas import PriceIndexResponse
 from app.utils.price_index import build_price_index
 from app.services.rate_limit import RateLimiter
+from app.services.model_price_history import build_model_price_history
 
 _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 
@@ -1057,6 +1058,31 @@ def get_make_model_insight(
             if row.district
         ],
     }
+
+
+@router.get("/model-price-history")
+def get_model_price_history(
+    make: str = Query(..., min_length=1),
+    model: str = Query(..., min_length=1),
+    from_year: int = Query(2000, ge=1950, le=2100),
+    to_year: int = Query(2026, ge=1950, le=2100),
+    db: Session = Depends(get_db),
+):
+    """Calendar-time + YOM cross-section price history for a make/model.
+
+    Combines Motormila ``price_aggregates``, Wayback/CSV
+    ``historical_price_observations``, and today's live listings by
+    manufacture year (explicitly labeled so YOM is not mistaken for history).
+    """
+    if to_year < from_year:
+        from_year, to_year = to_year, from_year
+    return build_model_price_history(
+        db,
+        make=make,
+        model=model,
+        from_year=from_year,
+        to_year=to_year,
+    )
 
 
 @router.get("/make-insight")
