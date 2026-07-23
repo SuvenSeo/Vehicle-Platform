@@ -194,7 +194,11 @@ export default function Calculator() {
         resWithoutSurcharge ? Math.max(0, res.landed_cost - resWithoutSurcharge.landed_cost) : null,
       );
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "An error occurred.";
+      const raw = e instanceof Error ? e.message : "An error occurred.";
+      const message =
+        raw === "Failed to fetch" || raw.includes("NetworkError")
+          ? "Could not reach the calculation API. Check your connection and try again."
+          : raw;
       toast.error("Calculation failed", { description: message });
     } finally {
       setLcLoading(false);
@@ -216,7 +220,11 @@ export default function Calculator() {
       });
       setTcoResult(res);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "An error occurred.";
+      const raw = e instanceof Error ? e.message : "An error occurred.";
+      const message =
+        raw === "Failed to fetch" || raw.includes("NetworkError")
+          ? "Could not reach the calculation API. Check your connection and try again."
+          : raw;
       toast.error("Calculation failed", { description: message });
     } finally {
       setTcoLoading(false);
