@@ -98,10 +98,32 @@ _POSTGRES_TRGM_INDEX_PATCHES = (
 def _column_exists(engine: Engine, table: str, column: str) -> bool:
     inspector = inspect(engine)
     try:
+        inspector.clear_cache()
+    except Exception:
+        pass
+    try:
         columns = {col["name"] for col in inspector.get_columns(table)}
     except Exception:
         return False
     return column in columns
+
+
+def _pg_column_exists(conn, table: str, column: str) -> bool:
+    """information_schema check — bypasses SQLAlchemy inspector cache."""
+    row = conn.execute(
+        text(
+            """
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = :table
+              AND column_name = :column
+            LIMIT 1
+            """
+        ),
+        {"table": table, "column": column},
+    ).first()
+    return row is not None
 
 
 def _create_index_sql(index_name: str, table_name: str, columns: str) -> str:
@@ -215,19 +237,68 @@ def _ensure_auth_tables(engine: Engine, *, dialect: str, bounded_ddl) -> None:
     from db.models import Base, PlatformUser, UserInvite
 
     required_platform_cols = {
-        "email",
-        "password_hash",
-        "name",
-        "plan",
-        "subscription_status",
-        "role",
-        "is_active",
-        "token_version",
-        "created_at",
-        "updated_at",
+        "email": ("VARCHAR(255)", "VARCHAR(255)"),
+        "password_hash": ("VARCHAR(255)", "VARCHAR(255)"),
+        "name": ("VARCHAR(120)", "VARCHAR(120)"),
+        "plan": ("VARCHAR(20) DEFAULT 'free'", "VARCHAR(20) DEFAULT 'free'"),
+        "subscription_status": (
+            "VARCHAR(20) NOT NULL DEFAULT 'none'",
+            "VARCHAR(20) NOT NULL DEFAULT 'none'",
+        ),
+        "role": (
+            "VARCHAR(20) NOT NULL DEFAULT 'user'",
+            "VARCHAR(20) NOT NULL DEFAULT 'user'",
+        ),
+        "is_active": (
+            "BOOLEAN NOT NULL DEFAULT TRUE",
+            "BOOLEAN NOT NULL DEFAULT 1",
+        ),
+        "token_version": (
+            "INTEGER NOT NULL DEFAULT 0",
+            "INTEGER NOT NULL DEFAULT 0",
+        ),
+        "invited_by_email": ("VARCHAR(255)", "VARCHAR(255)"),
+        "last_login_at": ("TIMESTAMPTZ", "DATETIME"),
+        "created_at": (
+            "TIMESTAMPTZ DEFAULT NOW()",
+            "DATETIME DEFAULT CURRENT_TIMESTAMP",
+        ),
+        "updated_at": (
+            "TIMESTAMPTZ DEFAULT NOW()",
+            "DATETIME DEFAULT CURRENT_TIMESTAMP",
+        ),
     }
 
+    # Always try additive IF NOT EXISTS patches first (works even when DROP is denied).
+    for column_name, (pg_type, sqlite_type) in required_platform_cols.items():
+        col_type = pg_type if dialect == "postgresql" else sqlite_type
+        if dialect == "postgresql":
+            sql = (
+                f"ALTER TABLE platform_users "
+                f"ADD COLUMN IF NOT EXISTS {column_name} {col_type}"
+            )
+        else:
+            # SQLite: only add when missing.
+            if _column_exists(engine, "platform_users", column_name):
+                continue
+            sql = f"ALTER TABLE platform_users ADD COLUMN {column_name} {col_type}"
+        try:
+            bounded_ddl(sql)
+        except Exception as exc:
+            msg = str(exc).lower()
+            if "duplicate column" in msg or "no such table" in msg:
+                continue
+            log.warning(
+                "schema_platform_users_column_failed",
+                column=column_name,
+                error=str(exc),
+            )
+
     inspector = inspect(engine)
+    try:
+        inspector.clear_cache()
+    except Exception:
+        pass
     try:
         tables = set(inspector.get_table_names())
     except Exception as exc:
@@ -235,11 +306,24 @@ def _ensure_auth_tables(engine: Engine, *, dialect: str, bounded_ddl) -> None:
         tables = set()
 
     if "platform_users" in tables:
-        try:
-            cols = {col["name"] for col in inspector.get_columns("platform_users")}
-        except Exception:
-            cols = set()
-        missing = required_platform_cols - cols
+        missing: set[str] = set()
+        if dialect == "postgresql":
+            try:
+                with engine.connect() as conn:
+                    for column_name in required_platform_cols:
+                        if not _pg_column_exists(conn, "platform_users", column_name):
+                            missing.add(column_name)
+            except Exception as exc:
+                log.warning("schema_platform_users_pg_check_failed", error=str(exc))
+                missing = set(required_platform_cols)
+        else:
+            try:
+                inspector.clear_cache()
+                cols = {col["name"] for col in inspector.get_columns("platform_users")}
+                missing = set(required_platform_cols) - cols
+            except Exception:
+                missing = set(required_platform_cols)
+
         if missing:
             row_count = None
             try:
@@ -269,6 +353,71 @@ def _ensure_auth_tables(engine: Engine, *, dialect: str, bounded_ddl) -> None:
         )
     except Exception as exc:
         log.warning("schema_auth_tables_failed", error=str(exc))
+
+
+def heal_platform_users_schema(db) -> list[str]:
+    """Runtime best-effort ADD COLUMN for invite-auth fields (admin request path).
+
+    Used when startup patches were skipped or silently failed (e.g. SKIP_DB_INIT,
+    inspector cache, or DDL permissions flaking on the pooler).
+    """
+    bind = db.get_bind()
+    if bind is None:
+        return []
+    dialect = bind.dialect.name
+    applied: list[str] = []
+    patches = (
+        ("token_version", "INTEGER NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
+        ("subscription_status", "VARCHAR(20) NOT NULL DEFAULT 'none'", "VARCHAR(20) NOT NULL DEFAULT 'none'"),
+        ("role", "VARCHAR(20) NOT NULL DEFAULT 'user'", "VARCHAR(20) NOT NULL DEFAULT 'user'"),
+        ("is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
+        ("invited_by_email", "VARCHAR(255)", "VARCHAR(255)"),
+        ("last_login_at", "TIMESTAMPTZ", "DATETIME"),
+        ("created_at", "TIMESTAMPTZ DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "TIMESTAMPTZ DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    )
+    for column_name, pg_type, sqlite_type in patches:
+        col_type = pg_type if dialect == "postgresql" else sqlite_type
+        try:
+            if dialect == "postgresql":
+                if _pg_column_exists(db, "platform_users", column_name):
+                    continue
+                db.execute(
+                    text(
+                        f"ALTER TABLE platform_users "
+                        f"ADD COLUMN IF NOT EXISTS {column_name} {col_type}"
+                    )
+                )
+            else:
+                if _column_exists(bind, "platform_users", column_name):
+                    continue
+                db.execute(
+                    text(f"ALTER TABLE platform_users ADD COLUMN {column_name} {col_type}")
+                )
+            applied.append(column_name)
+        except Exception as exc:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            log.warning(
+                "runtime_platform_users_heal_failed",
+                column=column_name,
+                error=str(exc),
+            )
+            continue
+    if applied:
+        try:
+            db.commit()
+        except Exception as exc:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            log.warning("runtime_platform_users_heal_commit_failed", error=str(exc))
+            return []
+        log.info("runtime_platform_users_healed", columns=applied)
+    return applied
 
 
 def apply_schema_patches(engine: Engine) -> None:

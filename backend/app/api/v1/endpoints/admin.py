@@ -33,6 +33,7 @@ from db.models import (
     UserInvite,
     live_listing_filter,
 )
+from db.schema_patches import heal_platform_users_schema
 from db.session import get_db
 
 router = APIRouter()
@@ -196,6 +197,7 @@ def list_users(
 ):
     del admin
     try:
+        heal_platform_users_schema(db)
         total = db.query(func.count(PlatformUser.id)).scalar() or 0
         rows = (
             db.query(PlatformUser)
@@ -210,10 +212,27 @@ def list_users(
             db.rollback()
         except Exception:
             pass
-        raise HTTPException(
-            status_code=500,
-            detail=f"admin_users_failed: {type(exc).__name__}: {exc}",
-        ) from exc
+        # One more heal+retry for the common UndefinedColumn race.
+        try:
+            heal_platform_users_schema(db)
+            total = db.query(func.count(PlatformUser.id)).scalar() or 0
+            rows = (
+                db.query(PlatformUser)
+                .order_by(PlatformUser.id.desc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
+            return {"total": int(total), "users": [_user_row_response(row) for row in rows]}
+        except Exception as retry_exc:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=500,
+                detail=f"admin_users_failed: {type(retry_exc).__name__}: {retry_exc}",
+            ) from retry_exc
 
 
 @router.patch("/users/{user_id}", response_model=dict)
