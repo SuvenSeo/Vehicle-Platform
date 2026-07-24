@@ -194,7 +194,7 @@ def _ensure_historical_price_observations_table(
 
 def apply_schema_patches(engine: Engine) -> None:
     """Add missing columns and create new tables without a full Alembic migration."""
-    from db.models import Base
+    from db.models import Base, PlatformUser, UserInvite
 
     dialect = engine.dialect.name
 
@@ -212,6 +212,16 @@ def apply_schema_patches(engine: Engine) -> None:
                 conn.execute(text("SET LOCAL lock_timeout = '5s'"))
                 conn.execute(text("SET LOCAL statement_timeout = '15s'"))
             conn.execute(text(sql))
+
+    # Auth tables must exist before column patches and before any request can
+    # poison a Postgres session by SELECTing a missing relation.
+    try:
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[PlatformUser.__table__, UserInvite.__table__],
+        )
+    except Exception as exc:
+        log.warning("schema_auth_tables_failed", error=str(exc))
 
     for column_name, pg_type, sqlite_type in _CAR_LISTING_COLUMN_PATCHES:
         if _column_exists(engine, "car_listings", column_name):

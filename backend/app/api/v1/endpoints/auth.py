@@ -188,6 +188,10 @@ def auth_has_login_accounts(db: Optional[Session] = None) -> bool:
     try:
         return db.query(PlatformUser.id).filter(PlatformUser.is_active.is_(True)).first() is not None
     except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
         return False
 
 
@@ -345,17 +349,35 @@ def resolve_user_record(email: str, db: Optional[Session] = None) -> Optional[di
                     return None
                 return _platform_user_to_record(row)
         except Exception:
-            # Table may not exist yet during early migrate/tests — fall through.
-            pass
+            # Table/column may be missing during early migrate — fall through.
+            # Postgres aborts the whole transaction on the failed statement; without
+            # rollback, later queries in this same request (invites, listings) 500.
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
     return _configured_users().get(normalized)
 
 
 def sync_env_user_to_db(record: dict, db: Session) -> Optional[PlatformUser]:
-    """Upsert an AUTH_USERS bootstrap account into platform_users."""
+    """Upsert an AUTH_USERS bootstrap account into platform_users.
+
+    AUTH_USERS remains the source of truth for bootstrap admins: if a DB row
+    already exists (e.g. from an earlier secret), refresh credentials/plan/role
+    from the env entry so rotating HF secrets actually unlocks login.
+    """
     email = record["email"]
     existing = db.query(PlatformUser).filter(PlatformUser.email == email).first()
     if existing is not None:
+        existing.password_hash = record["password_hash"]
+        existing.name = record["name"]
+        existing.plan = record["plan"]
+        existing.subscription_status = record["subscription_status"]
+        existing.role = record.get("role") or existing.role or "user"
+        existing.is_active = True
+        db.commit()
+        db.refresh(existing)
         return existing
     user = PlatformUser(
         email=email,
@@ -487,12 +509,19 @@ def login(
         raise HTTPException(status_code=503, detail="Authentication is not configured on this deployment.")
 
     email = payload.email.strip().lower()
-    record = resolve_user_record(email, _session_or_none(db))
+    session = _session_or_none(db)
+    record = resolve_user_record(email, session)
+    env_record = _configured_users().get(email)
 
-    if not record or not _verify_password(payload.password, record["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if record and _verify_password(payload.password, record["password_hash"]):
+        return _issue_login_response(record, response, db)
 
-    return _issue_login_response(record, response, db)
+    # DB is checked first; a stale platform_users hash (from an older AUTH_USERS
+    # secret) would otherwise permanently shadow a corrected HF secret.
+    if env_record and _verify_password(payload.password, env_record["password_hash"]):
+        return _issue_login_response(env_record, response, db)
+
+    raise HTTPException(status_code=401, detail="Invalid email or password.")
 
 
 @router.post("/signup", response_model=dict)
