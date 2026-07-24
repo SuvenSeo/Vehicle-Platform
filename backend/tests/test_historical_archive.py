@@ -136,3 +136,17 @@ def test_parse_ikman_initial_data_serp():
     )
     assert "20170107165014id_" in hit.raw_url
     assert hit.observed_at.year == 2017
+
+
+def test_max_serp_urls_include_extended_brands_and_models():
+    from app.services.historical_archive import MAX_IKMAN_SERP_URLS, RIYASEWANA_SERP_URLS, _year_windows
+
+    assert len(MAX_IKMAN_SERP_URLS) >= 45
+    assert any("/toyota/aqua" in u for u in MAX_IKMAN_SERP_URLS)
+    assert any("/audi" in u for u in MAX_IKMAN_SERP_URLS)
+    assert any("/vans" in u for u in MAX_IKMAN_SERP_URLS)
+    assert any("toyota-cars" in u for u in RIYASEWANA_SERP_URLS)
+    windows = _year_windows("20170101", "20191231")
+    assert len(windows) == 3
+    assert windows[0][0].startswith("2017")
+    assert windows[-1][0].startswith("2019")

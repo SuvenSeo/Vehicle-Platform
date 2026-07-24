@@ -1,7 +1,7 @@
 name: Historical Data Backfill
 
-# Max densify: seed DMT/policy, import Kaggle SL CSV, Wayback (ikman brands/models
-# + riyasewana), then Common Crawl densify. Writes ONLY to
+# Max densify: seed DMT/policy, import Kaggle + community CSVs, Wayback
+# (ikman brands/models + riyasewana), then Common Crawl densify. Writes ONLY to
 # historical_price_observations / market_signals — never live car_listings.
 #
 # Trigger: Actions → Historical Data Backfill → Run workflow
@@ -18,18 +18,26 @@ on:
         description: "Import Kaggle SL CSV into historical_price_observations"
         type: boolean
         default: true
+      run_community_csv:
+        description: "Import community riyasewana-derived CSV (archive only)"
+        type: boolean
+        default: true
       run_wayback:
         description: "Max Wayback backfill (ikman brands/models + riyasewana)"
         type: boolean
         default: true
       run_common_crawl:
-        description: "Common Crawl densify for ikman SERPs"
+        description: "Common Crawl densify for ikman/riyasewana SERPs"
         type: boolean
         default: true
-      wayback_max_snapshots:
-        description: "Max Wayback snapshots (year-balanced)"
+      wayback_max_snapshots_per_url:
+        description: "Max monthly CDX hits kept per SERP URL"
         type: number
-        default: 300
+        default: 30
+      wayback_max_snapshots:
+        description: "Optional global Wayback snapshot cap (0 = no global cap)"
+        type: number
+        default: 600
       wayback_sleep:
         description: "Seconds between Wayback fetches"
         type: number
@@ -37,7 +45,7 @@ on:
       cc_max_records:
         description: "Max Common Crawl WARC records to fetch"
         type: number
-        default: 100
+        default: 200
   push:
     branches: [main]
     paths:
@@ -63,11 +71,13 @@ jobs:
       PYTHONUNBUFFERED: "1"
       RUN_SEED: ${{ github.event_name == 'push' && 'true' || inputs.run_seed }}
       RUN_CSV: ${{ github.event_name == 'push' && 'true' || inputs.run_csv_import }}
+      RUN_COMMUNITY_CSV: ${{ github.event_name == 'push' && 'true' || inputs.run_community_csv }}
       RUN_WAYBACK: ${{ github.event_name == 'push' && 'true' || inputs.run_wayback }}
       RUN_CC: ${{ github.event_name == 'push' && 'true' || inputs.run_common_crawl }}
-      WAYBACK_MAX: ${{ github.event_name == 'push' && '300' || inputs.wayback_max_snapshots }}
+      WAYBACK_PER_URL: ${{ github.event_name == 'push' && '30' || inputs.wayback_max_snapshots_per_url }}
+      WAYBACK_MAX: ${{ github.event_name == 'push' && '600' || inputs.wayback_max_snapshots }}
       WAYBACK_SLEEP: ${{ github.event_name == 'push' && '1.5' || inputs.wayback_sleep }}
-      CC_MAX: ${{ github.event_name == 'push' && '100' || inputs.cc_max_records }}
+      CC_MAX: ${{ github.event_name == 'push' && '200' || inputs.cc_max_records }}
 
     steps:
       - name: Checkout code
@@ -118,6 +128,23 @@ jobs:
             --price-unit lakhs \
             --observed-default 2025-01-15
 
+      - name: Import community SL CSV → historical_price_observations only
+        if: ${{ env.RUN_COMMUNITY_CSV == 'true' }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          mkdir -p /tmp/historical_seed
+          curl -fsSL \
+            "https://raw.githubusercontent.com/manojtharindu11/srilankan-used-car-price-predictor/main/collect%20data/data/sri_lankan_vehicles.csv" \
+            -o /tmp/historical_seed/sri_lankan_vehicles.csv
+          wc -l /tmp/historical_seed/sri_lankan_vehicles.csv
+          python scripts/ops/import_historical_csv.py \
+            /tmp/historical_seed/sri_lankan_vehicles.csv \
+            --archive-source community_csv_riyasewana \
+            --observed-default 2026-02-20
+
       - name: Wayback max densify (ikman + riyasewana)
         if: ${{ env.RUN_WAYBACK == 'true' }}
         env:
@@ -129,8 +156,10 @@ jobs:
             --profile max \
             --from 20100101 \
             --to 20261231 \
+            --max-snapshots-per-url "${WAYBACK_PER_URL}" \
             --max-snapshots "${WAYBACK_MAX}" \
-            --sleep "${WAYBACK_SLEEP}"
+            --sleep "${WAYBACK_SLEEP}" \
+            --commit-every 5
 
       - name: Common Crawl densify
         if: ${{ env.RUN_CC == 'true' }}
@@ -141,5 +170,5 @@ jobs:
         run: |
           python scripts/ops/backfill_common_crawl_prices.py \
             --max-records "${CC_MAX}" \
-            --crawl-limit 10 \
+            --crawl-limit 12 \
             --sleep 1.0
