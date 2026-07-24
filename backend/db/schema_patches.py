@@ -30,7 +30,20 @@ _TABLE_COLUMN_PATCHES = (
     ),
     ("dealer_profiles", "billing_email", "VARCHAR(255)", "VARCHAR(255)"),
     ("dealer_profiles", "current_period_end", "TIMESTAMPTZ", "DATETIME"),
+    # platform_users — older prod tables predate invite-auth columns; missing any
+    # of these makes ORM SELECTs 500 even when COUNT(id) still works.
+    ("platform_users", "subscription_status", "VARCHAR(20) NOT NULL DEFAULT 'none'", "VARCHAR(20) NOT NULL DEFAULT 'none'"),
+    ("platform_users", "role", "VARCHAR(20) NOT NULL DEFAULT 'user'", "VARCHAR(20) NOT NULL DEFAULT 'user'"),
+    ("platform_users", "is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
     ("platform_users", "token_version", "INTEGER NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
+    ("platform_users", "invited_by_email", "VARCHAR(255)", "VARCHAR(255)"),
+    ("platform_users", "last_login_at", "TIMESTAMPTZ", "DATETIME"),
+    ("platform_users", "created_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    ("platform_users", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    ("user_invites", "role", "VARCHAR(20) NOT NULL DEFAULT 'user'", "VARCHAR(20) NOT NULL DEFAULT 'user'"),
+    ("user_invites", "invited_by_email", "VARCHAR(255)", "VARCHAR(255)"),
+    ("user_invites", "accepted_at", "TIMESTAMPTZ", "DATETIME"),
+    ("user_invites", "created_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
 )
 
 # (index_name, table_name, columns SQL fragment)
