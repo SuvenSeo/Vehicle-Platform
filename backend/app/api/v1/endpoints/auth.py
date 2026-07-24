@@ -188,6 +188,10 @@ def auth_has_login_accounts(db: Optional[Session] = None) -> bool:
     try:
         return db.query(PlatformUser.id).filter(PlatformUser.is_active.is_(True)).first() is not None
     except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
         return False
 
 
@@ -345,8 +349,13 @@ def resolve_user_record(email: str, db: Optional[Session] = None) -> Optional[di
                     return None
                 return _platform_user_to_record(row)
         except Exception:
-            # Table may not exist yet during early migrate/tests — fall through.
-            pass
+            # Table/column may be missing during early migrate — fall through.
+            # Postgres aborts the whole transaction on the failed statement; without
+            # rollback, later queries in this same request (invites, listings) 500.
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
     return _configured_users().get(normalized)
 

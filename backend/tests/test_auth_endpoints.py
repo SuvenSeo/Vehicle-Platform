@@ -382,3 +382,39 @@ def test_login_auth_users_overrides_stale_db_password(monkeypatch):
     assert auth._verify_password("correct-horse", row.password_hash)
     assert row.plan == "enterprise"
     assert row.role == "admin"
+
+
+def test_resolve_user_record_rolls_back_after_platform_users_failure(monkeypatch):
+    """Postgres aborts the txn on a failed SELECT; we must rollback before AUTH_USERS fallback."""
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "owner@example.com",
+                    "password_hash": _BCRYPT_HASH,
+                    "name": "Owner",
+                    "plan": "enterprise",
+                    "subscription_status": "active",
+                    "role": "admin",
+                }
+            ]
+        ),
+    )
+
+    class BoomSession:
+        def __init__(self):
+            self.rolled_back = False
+
+        def query(self, *args, **kwargs):
+            raise RuntimeError('relation "platform_users" does not exist')
+
+        def rollback(self):
+            self.rolled_back = True
+
+    session = BoomSession()
+    record = auth.resolve_user_record("owner@example.com", session)
+    assert record is not None
+    assert record["email"] == "owner@example.com"
+    assert record["role"] == "admin"
+    assert session.rolled_back is True
