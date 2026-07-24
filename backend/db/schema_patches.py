@@ -205,9 +205,75 @@ def _ensure_historical_price_observations_table(
         log.warning("schema_hist_table_failed", error=str(exc))
 
 
+def _ensure_auth_tables(engine: Engine, *, dialect: str, bounded_ddl) -> None:
+    """Create platform_users / user_invites, or rebuild an empty partial platform_users.
+
+    Prod hit a state where COUNT(platform_users.id) worked but ORM SELECTs 500'd
+    because invite-auth columns were missing. When the table is empty, drop and
+    recreate from the current model instead of fighting half-applied DDL.
+    """
+    from db.models import Base, PlatformUser, UserInvite
+
+    required_platform_cols = {
+        "email",
+        "password_hash",
+        "name",
+        "plan",
+        "subscription_status",
+        "role",
+        "is_active",
+        "token_version",
+        "created_at",
+        "updated_at",
+    }
+
+    inspector = inspect(engine)
+    try:
+        tables = set(inspector.get_table_names())
+    except Exception as exc:
+        log.warning("schema_auth_inspect_failed", error=str(exc))
+        tables = set()
+
+    if "platform_users" in tables:
+        try:
+            cols = {col["name"] for col in inspector.get_columns("platform_users")}
+        except Exception:
+            cols = set()
+        missing = required_platform_cols - cols
+        if missing:
+            row_count = None
+            try:
+                with engine.connect() as conn:
+                    row_count = conn.execute(text("SELECT COUNT(*) FROM platform_users")).scalar()
+            except Exception as exc:
+                log.warning("schema_platform_users_count_failed", error=str(exc))
+            if row_count == 0:
+                try:
+                    drop_sql = (
+                        "DROP TABLE IF EXISTS platform_users CASCADE"
+                        if dialect == "postgresql"
+                        else "DROP TABLE IF EXISTS platform_users"
+                    )
+                    bounded_ddl(drop_sql)
+                    log.info(
+                        "schema_platform_users_rebuilt",
+                        missing=sorted(missing),
+                    )
+                except Exception as exc:
+                    log.warning("schema_platform_users_drop_failed", error=str(exc))
+
+    try:
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[PlatformUser.__table__, UserInvite.__table__],
+        )
+    except Exception as exc:
+        log.warning("schema_auth_tables_failed", error=str(exc))
+
+
 def apply_schema_patches(engine: Engine) -> None:
     """Add missing columns and create new tables without a full Alembic migration."""
-    from db.models import Base, PlatformUser, UserInvite
+    from db.models import Base
 
     dialect = engine.dialect.name
 
@@ -226,15 +292,7 @@ def apply_schema_patches(engine: Engine) -> None:
                 conn.execute(text("SET LOCAL statement_timeout = '15s'"))
             conn.execute(text(sql))
 
-    # Auth tables must exist before column patches and before any request can
-    # poison a Postgres session by SELECTing a missing relation.
-    try:
-        Base.metadata.create_all(
-            bind=engine,
-            tables=[PlatformUser.__table__, UserInvite.__table__],
-        )
-    except Exception as exc:
-        log.warning("schema_auth_tables_failed", error=str(exc))
+    _ensure_auth_tables(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
 
     for column_name, pg_type, sqlite_type in _CAR_LISTING_COLUMN_PATCHES:
         if _column_exists(engine, "car_listings", column_name):

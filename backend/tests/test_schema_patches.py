@@ -208,3 +208,27 @@ def test_apply_schema_patches_adds_missing_platform_users_columns():
     db = Session()
     assert db.query(PlatformUser).order_by(PlatformUser.created_at.desc()).all() == []
     db.close()
+
+
+def test_apply_schema_patches_rebuilds_empty_partial_platform_users():
+    from sqlalchemy import text
+
+    from db.schema_patches import _column_exists
+
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE platform_users (
+                    id INTEGER PRIMARY KEY,
+                    email VARCHAR(255) NOT NULL UNIQUE
+                )
+                """
+            )
+        )
+
+    apply_schema_patches(engine)
+    assert _column_exists(engine, "platform_users", "password_hash")
+    assert _column_exists(engine, "platform_users", "token_version")
+    assert _column_exists(engine, "platform_users", "created_at")
