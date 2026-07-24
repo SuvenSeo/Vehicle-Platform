@@ -30,11 +30,15 @@ def main() -> int:
     parser.add_argument("--password", required=True)
     parser.add_argument("--name", default="Owner")
     parser.add_argument("--plan", default="enterprise", choices=["free", "pro", "enterprise"])
+    parser.add_argument(
+        "--auth-users-only",
+        action="store_true",
+        help="Print only AUTH_USERS (keep the existing AUTH_TOKEN_SECRET on HF).",
+    )
     args = parser.parse_args()
 
     email = args.email.strip().lower()
     password_hash = bcrypt.hashpw(args.password.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
-    secret = secrets.token_urlsafe(48)
     users = [
         {
             "email": email,
@@ -45,10 +49,21 @@ def main() -> int:
             "role": "admin",
         }
     ]
+    auth_users = json.dumps(users, separators=(",", ":"))
+
+    if args.auth_users_only:
+        print(f"AUTH_USERS={auth_users}")
+        print()
+        print("Paste into Hugging Face Space secrets (do not rotate AUTH_TOKEN_SECRET).")
+        print("Then Restart / Factory rebuild the Space.")
+        print(f"Sign in at https://motormila.vercel.app/sign-in as {email}")
+        return 0
+
+    secret = secrets.token_urlsafe(48)
 
     print("=== Hugging Face Space secrets ===")
     print(f"AUTH_TOKEN_SECRET={secret}")
-    print(f"AUTH_USERS={json.dumps(users, separators=(',', ':'))}")
+    print(f"AUTH_USERS={auth_users}")
     print("APP_ACCESS_ENFORCED=true")
     print("PRO_ACCESS_ENFORCED=true")
     print("PUBLIC_APP_ORIGIN=https://motormila.vercel.app")

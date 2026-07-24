@@ -293,3 +293,92 @@ def test_me_endpoint_rate_limited(monkeypatch):
     with pytest.raises(HTTPException) as excinfo:
         auth.me(DummyRequest(), authorization=f"Bearer {token}")
     assert excinfo.value.status_code == 429
+
+
+def test_login_auth_users_overrides_stale_db_password(monkeypatch):
+    """Rotating AUTH_USERS on HF must unlock login even if platform_users is stale."""
+    from fastapi import Response
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from db.models import Base, PlatformUser
+
+    stale_hash = auth._hash_password("old-password")
+    fresh_hash = auth._hash_password("correct-horse")
+
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "owner@example.com",
+                    "password_hash": fresh_hash,
+                    "name": "Owner Person",
+                    "plan": "enterprise",
+                    "subscription_status": "active",
+                    "role": "admin",
+                }
+            ]
+        ),
+    )
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(bind=engine)
+    db = sessionmaker(bind=engine)()
+    db.add(
+        PlatformUser(
+            email="owner@example.com",
+            password_hash=stale_hash,
+            name="Stale Name",
+            plan="free",
+            subscription_status="none",
+            role="user",
+            is_active=True,
+            token_version=0,
+        )
+    )
+    db.commit()
+
+    # Stale DB password alone would 401; AUTH_USERS password must win.
+    with pytest.raises(HTTPException) as wrong_only_db:
+        # Temporarily clear AUTH_USERS to prove DB hash is wrong.
+        monkeypatch.setenv("AUTH_USERS", "[]")
+        auth.login(
+            auth.LoginRequest(email="owner@example.com", password="correct-horse"),
+            DummyRequest(),
+            Response(),
+            db=db,
+        )
+    assert wrong_only_db.value.status_code == 401
+
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "owner@example.com",
+                    "password_hash": fresh_hash,
+                    "name": "Owner Person",
+                    "plan": "enterprise",
+                    "subscription_status": "active",
+                    "role": "admin",
+                }
+            ]
+        ),
+    )
+
+    result = auth.login(
+        auth.LoginRequest(email="owner@example.com", password="correct-horse"),
+        DummyRequest(),
+        Response(),
+        db=db,
+    )
+    assert result["user"]["email"] == "owner@example.com"
+    assert result["user"]["plan"] == "enterprise"
+    assert result["user"]["role"] == "admin"
+
+    row = db.query(PlatformUser).filter(PlatformUser.email == "owner@example.com").one()
+    assert auth._verify_password("correct-horse", row.password_hash)
+    assert row.plan == "enterprise"
+    assert row.role == "admin"
