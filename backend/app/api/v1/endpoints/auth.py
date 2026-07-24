@@ -41,6 +41,7 @@ from sqlalchemy.orm import Session
 
 from app.services.rate_limit import RateLimiter
 from db.models import PlatformUser, UserInvite
+from db.schema_patches import heal_platform_users_schema
 from db.session import get_db
 
 router = APIRouter()
@@ -367,6 +368,11 @@ def sync_env_user_to_db(record: dict, db: Session) -> Optional[PlatformUser]:
     already exists (e.g. from an earlier secret), refresh credentials/plan/role
     from the env entry so rotating HF secrets actually unlocks login.
     """
+    try:
+        heal_platform_users_schema(db)
+    except Exception:
+        pass
+
     email = record["email"]
     existing = db.query(PlatformUser).filter(PlatformUser.email == email).first()
     if existing is not None:

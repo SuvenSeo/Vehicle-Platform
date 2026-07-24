@@ -232,3 +232,35 @@ def test_apply_schema_patches_rebuilds_empty_partial_platform_users():
     assert _column_exists(engine, "platform_users", "password_hash")
     assert _column_exists(engine, "platform_users", "token_version")
     assert _column_exists(engine, "platform_users", "created_at")
+
+
+def test_heal_platform_users_schema_adds_token_version():
+    from sqlalchemy import text
+
+    from db.schema_patches import _column_exists, heal_platform_users_schema
+
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE platform_users (
+                    id INTEGER PRIMARY KEY,
+                    email VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    name VARCHAR(120) NOT NULL,
+                    plan VARCHAR(20) NOT NULL DEFAULT 'free',
+                    subscription_status VARCHAR(20) NOT NULL DEFAULT 'none',
+                    role VARCHAR(20) NOT NULL DEFAULT 'user',
+                    is_active BOOLEAN NOT NULL DEFAULT 1
+                )
+                """
+            )
+        )
+    Session = sessionmaker(bind=engine)
+    db = Session()
+    assert not _column_exists(engine, "platform_users", "token_version")
+    applied = heal_platform_users_schema(db)
+    assert "token_version" in applied
+    assert _column_exists(engine, "platform_users", "token_version")
+    db.close()
