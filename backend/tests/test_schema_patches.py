@@ -165,3 +165,46 @@ def test_apply_schema_patches_ensures_historical_price_observations_table():
     assert "historical_price_observations" in tables
     # Idempotent
     apply_schema_patches(engine)
+
+
+def test_apply_schema_patches_adds_missing_platform_users_columns():
+    """Prod had a partial platform_users table: COUNT worked, ORM SELECT 500'd."""
+    from sqlalchemy import text
+
+    from db.models import PlatformUser
+    from db.schema_patches import _column_exists
+
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE TABLE platform_users (
+                    id INTEGER PRIMARY KEY,
+                    email VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    name VARCHAR(120) NOT NULL,
+                    plan VARCHAR(20) NOT NULL DEFAULT 'free'
+                )
+                """
+            )
+        )
+
+    apply_schema_patches(engine)
+
+    for column in (
+        "role",
+        "subscription_status",
+        "is_active",
+        "token_version",
+        "created_at",
+        "updated_at",
+        "invited_by_email",
+        "last_login_at",
+    ):
+        assert _column_exists(engine, "platform_users", column), column
+
+    Session = sessionmaker(bind=engine)
+    db = Session()
+    assert db.query(PlatformUser).order_by(PlatformUser.created_at.desc()).all() == []
+    db.close()
