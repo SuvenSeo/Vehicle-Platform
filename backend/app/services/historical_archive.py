@@ -29,22 +29,116 @@ log = structlog.get_logger()
 WAYBACK_CDX = "https://web.archive.org/cdx/search/cdx"
 WAYBACK_RAW = "https://web.archive.org/web/{ts}id_/{url}"
 
-DEFAULT_IKMAN_SERP_URLS = (
-    "http://ikman.lk/en/ads/sri-lanka/cars",
-    "https://ikman.lk/en/ads/sri-lanka/cars",
-    "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
-    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
-    "https://ikman.lk/en/ads/sri-lanka/cars/honda",
-    "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
+_IKMAN_CARS = "https://ikman.lk/en/ads/sri-lanka/cars"
+
+# Prefer https; http duplicates are collapsed inside discover_ikman_cdx.
+TOP_BRAND_SERP_URLS = (
+    f"{_IKMAN_CARS}/toyota",
+    f"{_IKMAN_CARS}/suzuki",
+    f"{_IKMAN_CARS}/honda",
+    f"{_IKMAN_CARS}/nissan",
 )
 
-# Prefer https; http duplicates are expanded inside discover_ikman_cdx.
-TOP_BRAND_SERP_URLS = (
-    "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
-    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
-    "https://ikman.lk/en/ads/sri-lanka/cars/honda",
-    "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
+# Broader brand set ranked by Motormila live listing volume (Jul 2026).
+EXTENDED_BRAND_SERP_URLS = TOP_BRAND_SERP_URLS + (
+    f"{_IKMAN_CARS}/mitsubishi",
+    f"{_IKMAN_CARS}/mercedes-benz",
+    f"{_IKMAN_CARS}/daihatsu",
+    f"{_IKMAN_CARS}/micro",
+    f"{_IKMAN_CARS}/bmw",
+    f"{_IKMAN_CARS}/kia",
+    f"{_IKMAN_CARS}/perodua",
+    f"{_IKMAN_CARS}/hyundai",
+    f"{_IKMAN_CARS}/audi",
+    f"{_IKMAN_CARS}/mazda",
+    f"{_IKMAN_CARS}/tata",
+    f"{_IKMAN_CARS}/land-rover",
+    f"{_IKMAN_CARS}/peugeot",
+    f"{_IKMAN_CARS}/ford",
+    f"{_IKMAN_CARS}/renault",
+    f"{_IKMAN_CARS}/volkswagen",
+    f"{_IKMAN_CARS}/mahindra",
+    f"{_IKMAN_CARS}/isuzu",
 )
+
+# High-volume make/model SERPs (ikman slug paths). Dense history for Time Machine.
+POPULAR_MODEL_SERP_URLS = (
+    f"{_IKMAN_CARS}/toyota/aqua",
+    f"{_IKMAN_CARS}/toyota/axio",
+    f"{_IKMAN_CARS}/toyota/premio",
+    f"{_IKMAN_CARS}/toyota/prius",
+    f"{_IKMAN_CARS}/toyota/vitz",
+    f"{_IKMAN_CARS}/toyota/corolla",
+    f"{_IKMAN_CARS}/toyota/chr",
+    f"{_IKMAN_CARS}/toyota/hilux",
+    f"{_IKMAN_CARS}/toyota/land-cruiser",
+    f"{_IKMAN_CARS}/suzuki/alto",
+    f"{_IKMAN_CARS}/suzuki/wagon-r",
+    f"{_IKMAN_CARS}/suzuki/swift",
+    f"{_IKMAN_CARS}/suzuki/spacia",
+    f"{_IKMAN_CARS}/suzuki/every",
+    f"{_IKMAN_CARS}/honda/vezel",
+    f"{_IKMAN_CARS}/honda/fit",
+    f"{_IKMAN_CARS}/honda/civic",
+    f"{_IKMAN_CARS}/honda/grace",
+    f"{_IKMAN_CARS}/honda/works",
+    f"{_IKMAN_CARS}/nissan/leaf",
+    f"{_IKMAN_CARS}/nissan/march",
+    f"{_IKMAN_CARS}/nissan/sunny",
+    f"{_IKMAN_CARS}/nissan/x-trail",
+    f"{_IKMAN_CARS}/mitsubishi/montero",
+    f"{_IKMAN_CARS}/mitsubishi/lancer",
+    f"{_IKMAN_CARS}/bmw/320i",
+    f"{_IKMAN_CARS}/mercedes-benz/c200",
+)
+
+CATEGORY_SERP_URLS = (
+    _IKMAN_CARS,
+    "https://ikman.lk/en/ads/sri-lanka/vans",
+)
+
+RIYASEWANA_SERP_URLS = (
+    "https://riyasewana.com/search/cars",
+    "https://riyasewana.com/search/toyota-cars",
+    "https://riyasewana.com/search/suzuki-cars",
+    "https://riyasewana.com/search/honda-cars",
+    "https://riyasewana.com/search/nissan-cars",
+)
+
+DEFAULT_IKMAN_SERP_URLS = CATEGORY_SERP_URLS + TOP_BRAND_SERP_URLS
+
+
+def dense_serp_urls(*, include_riyasewana: bool = True) -> tuple[str, ...]:
+    """Maximum practical ikman (+ optional riyasewana) SERP coverage."""
+    urls = list(CATEGORY_SERP_URLS)
+    urls.extend(EXTENDED_BRAND_SERP_URLS)
+    urls.extend(POPULAR_MODEL_SERP_URLS)
+    if include_riyasewana:
+        urls.extend(RIYASEWANA_SERP_URLS)
+    # Preserve order, drop dupes.
+    seen: set[str] = set()
+    out: list[str] = []
+    for url in urls:
+        if url in seen:
+            continue
+        seen.add(url)
+        out.append(url)
+    return tuple(out)
+
+
+def serp_urls_for_profile(profile: str, *, include_riyasewana: bool = True) -> tuple[str, ...]:
+    key = (profile or "dense").strip().lower()
+    if key in {"brands", "brands-only", "top"}:
+        return TOP_BRAND_SERP_URLS
+    if key in {"extended", "brands-extended"}:
+        return EXTENDED_BRAND_SERP_URLS
+    if key in {"models", "model"}:
+        return POPULAR_MODEL_SERP_URLS
+    if key in {"all", "default"}:
+        return DEFAULT_IKMAN_SERP_URLS
+    if key in {"dense", "max", "maximum"}:
+        return dense_serp_urls(include_riyasewana=include_riyasewana)
+    raise ValueError(f"Unknown Wayback profile: {profile}")
 
 _YEAR_RE = re.compile(r"\b(19[5-9]\d|20[0-2]\d)\b")
 _MILEAGE_RE = re.compile(r"([\d,]+)\s*km", re.IGNORECASE)
@@ -292,6 +386,88 @@ def parse_ikman_serp_html(
     return rows
 
 
+def parse_riyasewana_serp_html(
+    html: str,
+    *,
+    observed_at: datetime,
+    archive_source: str = "wayback_riyasewana",
+    snapshot_url: str = "",
+) -> list[dict[str, Any]]:
+    """Extract listing cards from classic riyasewana.com search SERPs."""
+    cleaner = CarCleaner()
+    seen: set[str] = set()
+    rows: list[dict[str, Any]] = []
+    soup = BeautifulSoup(html or "", "lxml")
+    for item in soup.select("li.item, .item.round, li.round"):
+        title_el = item.select_one("h3 a[href], a[href*='/buy/']")
+        if title_el is None:
+            continue
+        title = " ".join(title_el.stripped_strings) or (title_el.get("title") or "")
+        href = (title_el.get("href") or "").strip()
+        if "/buy/" not in href:
+            continue
+
+        price_text = ""
+        for box in item.select(".boxintxt"):
+            text = box.get_text(" ", strip=True)
+            if _PRICE_RE.search(text):
+                price_text = text
+                break
+        if not price_text:
+            match = _PRICE_RE.search(item.get_text(" ", strip=True))
+            price_text = match.group(0) if match else ""
+
+        mileage_text = ""
+        area = None
+        for box in item.select(".boxintxt"):
+            text = box.get_text(" ", strip=True)
+            if "km" in text.lower():
+                mileage_text = text
+            elif area is None and text and not _PRICE_RE.search(text) and not re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+                # First non-price/non-date box is usually the town.
+                if "km" not in text.lower():
+                    area = text
+
+        row = _row_from_parts(
+            cleaner=cleaner,
+            seen=seen,
+            archive_source=archive_source,
+            observed_at=observed_at,
+            snapshot_url=snapshot_url,
+            title=title,
+            href=href,
+            price_text=price_text,
+            mileage_text=mileage_text,
+            area=area,
+            extra_meta={"parser": "riyasewana_html"},
+        )
+        if row:
+            rows.append(row)
+    return rows
+
+
+def parse_archive_serp_html(
+    html: str,
+    *,
+    observed_at: datetime,
+    snapshot_url: str = "",
+    original_url: str = "",
+) -> list[dict[str, Any]]:
+    """Dispatch SERP HTML to the right marketplace parser."""
+    haystack = f"{snapshot_url} {original_url}".lower()
+    if "riyasewana" in haystack:
+        return parse_riyasewana_serp_html(
+            html,
+            observed_at=observed_at,
+            snapshot_url=snapshot_url,
+        )
+    return parse_ikman_serp_html(
+        html,
+        observed_at=observed_at,
+        snapshot_url=snapshot_url,
+    )
+
+
 def _cdx_payload_to_hits(payload: Any) -> list[CdxHit]:
     if not isinstance(payload, list) or len(payload) < 2:
         return []
@@ -307,6 +483,24 @@ def _cdx_payload_to_hits(payload: Any) -> list[CdxHit]:
     return hits
 
 
+def _year_windows(from_ts: str, to_ts: str) -> list[tuple[str, str]]:
+    """Split a CDX range into calendar-year windows for denser monthly captures."""
+    start_year = int(str(from_ts)[:4])
+    end_year = int(str(to_ts)[:4])
+    if end_year < start_year:
+        start_year, end_year = end_year, start_year
+    windows: list[tuple[str, str]] = []
+    for year in range(start_year, end_year + 1):
+        window_from = f"{year}0101"
+        window_to = f"{year}1231"
+        if year == start_year:
+            window_from = str(from_ts)[:8].ljust(8, "0")
+        if year == end_year:
+            window_to = str(to_ts)[:8].ljust(8, "9")
+        windows.append((window_from, window_to))
+    return windows
+
+
 def fetch_cdx_hits(
     url: str,
     *,
@@ -314,55 +508,102 @@ def fetch_cdx_hits(
     to_ts: str = "20261231",
     limit: int = 200,
     client: httpx.Client | None = None,
-    retries: int = 3,
+    retries: int = 4,
+    year_chunk: bool = True,
 ) -> list[CdxHit]:
-    """Query Wayback CDX for successful captures of a URL."""
-    params = {
-        "url": url,
-        "from": from_ts,
-        "to": to_ts,
-        "output": "json",
-        "fl": "timestamp,original,statuscode",
-        "filter": "statuscode:200",
-        "collapse": "timestamp:6",  # roughly monthly collapse
-        "limit": str(limit),
-    }
+    """Query Wayback CDX for successful captures of a URL.
+
+    When ``year_chunk`` is true, queries each calendar year separately so a
+    global ``limit`` does not starve early years.
+    """
     owns_client = client is None
-    timeout = httpx.Timeout(60.0, connect=15.0)
+    timeout = httpx.Timeout(75.0, connect=20.0)
     http = client or httpx.Client(timeout=timeout, follow_redirects=True)
-    last_exc: Exception | None = None
     try:
-        for attempt in range(1, retries + 1):
-            try:
-                response = http.get(WAYBACK_CDX, params=params)
-                response.raise_for_status()
-                return _cdx_payload_to_hits(response.json())
-            except Exception as exc:
-                last_exc = exc
-                log.warning(
-                    "wayback_cdx_retry",
-                    url=url,
-                    attempt=attempt,
-                    error=str(exc),
-                )
-                if attempt < retries:
-                    time.sleep(1.0 * attempt)
-        if last_exc is not None:
-            raise last_exc
-        return []
+        windows = _year_windows(from_ts, to_ts) if year_chunk else [(from_ts, to_ts)]
+        per_window = max(12, (limit + len(windows) - 1) // max(len(windows), 1))
+        all_hits: list[CdxHit] = []
+        seen: set[tuple[str, str]] = set()
+        for window_from, window_to in windows:
+            params = {
+                "url": url,
+                "from": window_from,
+                "to": window_to,
+                "output": "json",
+                "fl": "timestamp,original,statuscode",
+                "filter": "statuscode:200",
+                "collapse": "timestamp:6",  # roughly monthly collapse
+                "limit": str(per_window if year_chunk else limit),
+            }
+            last_exc: Exception | None = None
+            payload: Any = None
+            for attempt in range(1, retries + 1):
+                try:
+                    response = http.get(WAYBACK_CDX, params=params)
+                    response.raise_for_status()
+                    payload = response.json()
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    log.warning(
+                        "wayback_cdx_retry",
+                        url=url,
+                        from_ts=window_from,
+                        attempt=attempt,
+                        error=str(exc),
+                    )
+                    if attempt < retries:
+                        time.sleep(1.5 * attempt)
+            if last_exc is not None:
+                log.warning("wayback_cdx_window_failed", url=url, from_ts=window_from, error=str(last_exc))
+                continue
+            for hit in _cdx_payload_to_hits(payload):
+                key = (hit.timestamp, hit.original)
+                if key in seen:
+                    continue
+                seen.add(key)
+                all_hits.append(hit)
+        all_hits.sort(key=lambda h: h.timestamp)
+        if limit > 0 and len(all_hits) > limit:
+            # Even spread across the full timeline for this URL.
+            step = len(all_hits) / limit
+            all_hits = [all_hits[int(i * step)] for i in range(limit)]
+        return all_hits
     finally:
         if owns_client:
             http.close()
 
 
-def fetch_wayback_html(hit: CdxHit, *, client: httpx.Client | None = None) -> str:
+def fetch_wayback_html(
+    hit: CdxHit,
+    *,
+    client: httpx.Client | None = None,
+    retries: int = 3,
+) -> str:
     owns_client = client is None
-    timeout = httpx.Timeout(60.0, connect=15.0)
+    timeout = httpx.Timeout(90.0, connect=20.0)
     http = client or httpx.Client(timeout=timeout, follow_redirects=True)
+    last_exc: Exception | None = None
     try:
-        response = http.get(hit.raw_url)
-        response.raise_for_status()
-        return response.text
+        for attempt in range(1, retries + 1):
+            try:
+                response = http.get(hit.raw_url)
+                response.raise_for_status()
+                return response.text
+            except Exception as exc:
+                last_exc = exc
+                log.warning(
+                    "wayback_fetch_retry",
+                    url=hit.raw_url,
+                    attempt=attempt,
+                    error=str(exc),
+                )
+                if attempt < retries:
+                    time.sleep(1.5 * attempt)
+        if last_exc is not None:
+            raise last_exc
+        return ""
     finally:
         if owns_client:
             http.close()
@@ -431,9 +672,9 @@ def discover_ikman_cdx(
     per_url_limit: int = 120,
     client: httpx.Client | None = None,
 ) -> list[CdxHit]:
-    """Collect collapsed CDX hits across common ikman cars SERP URLs."""
+    """Collect collapsed CDX hits across marketplace SERP URLs."""
     owns_client = client is None
-    timeout = httpx.Timeout(60.0, connect=15.0)
+    timeout = httpx.Timeout(75.0, connect=20.0)
     http = client or httpx.Client(timeout=timeout, follow_redirects=True)
     all_hits: list[CdxHit] = []
     seen: set[tuple[str, str]] = set()
@@ -452,6 +693,7 @@ def discover_ikman_cdx(
                     to_ts=to_ts,
                     limit=per_url_limit,
                     client=http,
+                    year_chunk=True,
                 )
             except Exception as exc:
                 log.warning("wayback_cdx_failed", url=url, error=str(exc))
@@ -462,6 +704,8 @@ def discover_ikman_cdx(
                     continue
                 seen.add(key)
                 all_hits.append(hit)
+            # Be polite between CDX URL queries.
+            time.sleep(0.4)
     finally:
         if owns_client:
             http.close()

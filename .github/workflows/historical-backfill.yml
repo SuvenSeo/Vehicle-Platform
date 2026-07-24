@@ -1,8 +1,8 @@
 name: Historical Data Backfill
 
 # Seeds DMT/policy market_signals, imports the staged Kaggle SL vehicle CSV into
-# historical_price_observations (NOT live car_listings), and rate-limits a
-# Wayback Machine backfill for top ikman brand SERPs.
+# historical_price_observations (NOT live car_listings), and rate-limits a dense
+# Wayback Machine backfill (ikman brands/models/category + riyasewana SERPs).
 #
 # Trigger: Actions → Historical Data Backfill → Run workflow
 
@@ -17,18 +17,34 @@ on:
         description: "Import Kaggle SL CSV into historical_price_observations"
         type: boolean
         default: true
-      run_wayback:
-        description: "Wayback backfill (Toyota/Suzuki/Honda/Nissan)"
+      run_community_csv:
+        description: "Also import community riyasewana-derived CSV (archive only)"
         type: boolean
         default: true
+      run_wayback:
+        description: "Wayback dense archive backfill"
+        type: boolean
+        default: true
+      wayback_profile:
+        description: "SERP profile: dense | brands | extended | models | all"
+        type: string
+        default: "dense"
+      wayback_max_snapshots_per_url:
+        description: "Max monthly CDX hits kept per SERP URL"
+        type: number
+        default: 30
       wayback_max_snapshots:
-        description: "Max Wayback snapshots to fetch (spread across timeline)"
+        description: "Optional global snapshot cap (0 = no global cap)"
         type: number
-        default: 48
+        default: 600
       wayback_sleep:
-        description: "Seconds between Wayback fetches"
+        description: "Seconds between Wayback HTML fetches"
         type: number
-        default: 2
+        default: 1.5
+      include_riyasewana:
+        description: "Include riyasewana.com SERPs in dense profile"
+        type: boolean
+        default: true
 
 concurrency:
   group: historical-backfill
@@ -37,7 +53,7 @@ concurrency:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     defaults:
       run:
         working-directory: backend
@@ -93,16 +109,40 @@ jobs:
             --price-unit lakhs \
             --observed-default 2025-01-15
 
-      - name: Wayback backfill (top brands)
+      - name: Import community SL CSV → historical_price_observations only
+        if: ${{ inputs.run_community_csv }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          mkdir -p /tmp/historical_seed
+          curl -fsSL \
+            "https://raw.githubusercontent.com/manojtharindu11/srilankan-used-car-price-predictor/main/collect%20data/data/sri_lankan_vehicles.csv" \
+            -o /tmp/historical_seed/sri_lankan_vehicles.csv
+          wc -l /tmp/historical_seed/sri_lankan_vehicles.csv
+          python scripts/ops/import_historical_csv.py \
+            /tmp/historical_seed/sri_lankan_vehicles.csv \
+            --archive-source community_csv_riyasewana \
+            --observed-default 2026-02-20
+
+      - name: Wayback dense backfill
         if: ${{ inputs.run_wayback }}
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
         run: |
+          RIYA_FLAG="--include-riyasewana"
+          if [ "${{ inputs.include_riyasewana }}" != "true" ]; then
+            RIYA_FLAG="--no-include-riyasewana"
+          fi
           python scripts/ops/backfill_wayback_prices.py \
-            --brands-only \
+            --profile "${{ inputs.wayback_profile }}" \
+            $RIYA_FLAG \
             --from 20170101 \
             --to 20261231 \
+            --max-snapshots-per-url "${{ inputs.wayback_max_snapshots_per_url }}" \
             --max-snapshots "${{ inputs.wayback_max_snapshots }}" \
-            --sleep "${{ inputs.wayback_sleep }}"
+            --sleep "${{ inputs.wayback_sleep }}" \
+            --commit-every 5

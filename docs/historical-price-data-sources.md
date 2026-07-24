@@ -158,24 +158,25 @@ ALLOW_SQLITE_FALLBACK=true \
   .venv/bin/python scripts/ops/import_historical_csv.py ~/Downloads/sl_cars.csv \
   --archive-source kaggle_sl --observed-default 2025-01-15
 
-# Wayback SERP backfill (rate-limited; brands-only recommended)
+# Dense Wayback backfill (brands + popular models + category + riyasewana)
 ALLOW_SQLITE_FALLBACK=true \
-  .venv/bin/python scripts/ops/backfill_wayback_prices.py --brands-only --max-snapshots 48 --dry-run
+  .venv/bin/python scripts/ops/backfill_wayback_prices.py \
+  --profile dense --max-snapshots-per-url 30 --max-snapshots 600 --sleep 1.5 --dry-run
 ```
 
-**Production (Supabase):** this cloud-agent environment has **no** `HOT_DATABASE_URL`
-and cannot dispatch GitHub Actions (`gh` is read-only / 403). After this PR merges:
+**Production (Supabase):** GitHub → Actions → **Historical Data Backfill** → Run workflow  
+(defaults: `profile=dense`, 30 snapshots/URL, global cap 600, includes riyasewana; uses `secrets.HOT_DATABASE_URL`).
 
-1. GitHub → Actions → **Historical Data Backfill** → Run workflow  
-   (uses `secrets.HOT_DATABASE_URL`; seed + community CSV → archive table only + Wayback brands).
-2. Or locally with prod URL:
+Or locally with prod URL:
 
 ```bash
 cd backend
 export HOT_DATABASE_URL='…' COLD_DATABASE_URL="$HOT_DATABASE_URL" ALLOW_SQLITE_FALLBACK=false
 python scripts/ops/seed_market_context.py
-python scripts/ops/import_historical_csv.py /path/to/csv --archive-source community_csv_riyasewana
-python scripts/ops/backfill_wayback_prices.py --brands-only --from 20170101 --to 20261231 --max-snapshots 48 --sleep 2
+python scripts/ops/import_historical_csv.py data/historical/kaggle_sl_car_price_dataset.csv \
+  --archive-source kaggle_sl --price-unit lakhs
+python scripts/ops/backfill_wayback_prices.py --profile dense \
+  --max-snapshots-per-url 30 --max-snapshots 600 --sleep 1.5
 ```
 
 Do **not** import Kaggle/community CSV into live `car_listings`.

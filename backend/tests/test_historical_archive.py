@@ -106,3 +106,48 @@ def test_parse_ikman_initial_data_serp():
     )
     assert "20170107165014id_" in hit.raw_url
     assert hit.observed_at.year == 2017
+
+
+def test_dense_serp_profile_covers_brands_models_and_riyasewana():
+    from app.services.historical_archive import dense_serp_urls, serp_urls_for_profile
+
+    dense = dense_serp_urls(include_riyasewana=True)
+    assert any("/toyota/aqua" in u for u in dense)
+    assert any("/mitsubishi" in u for u in dense)
+    assert any("riyasewana.com" in u for u in dense)
+    assert len(dense) >= 40
+    assert serp_urls_for_profile("brands") == serp_urls_for_profile("top")
+    assert len(serp_urls_for_profile("brands")) == 4
+
+
+def test_parse_riyasewana_serp_html():
+    from app.services.historical_archive import parse_archive_serp_html, parse_riyasewana_serp_html
+
+    html = (
+        Path(__file__).parent
+        / "fixtures"
+        / "historical"
+        / "riyasewana_cars_20190320_snippet.html"
+    ).read_text(encoding="utf-8")
+    observed = datetime(2019, 3, 20, 23, 29, 51, tzinfo=timezone.utc)
+    rows = parse_riyasewana_serp_html(html, observed_at=observed)
+    assert len(rows) >= 3
+    assert all(row["archive_source"] == "wayback_riyasewana" for row in rows)
+    assert all(row["price_lkr"] and row["price_lkr"] > 100_000 for row in rows)
+    assert any(row.get("make") == "Toyota" for row in rows)
+
+    dispatched = parse_archive_serp_html(
+        html,
+        observed_at=observed,
+        original_url="https://riyasewana.com/search/cars",
+    )
+    assert len(dispatched) == len(rows)
+
+
+def test_year_windows_cover_range():
+    from app.services.historical_archive import _year_windows
+
+    windows = _year_windows("20170101", "20191231")
+    assert windows[0][0].startswith("2017")
+    assert windows[-1][0].startswith("2019")
+    assert len(windows) == 3
