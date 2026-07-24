@@ -195,15 +195,25 @@ def list_users(
     offset: int = Query(default=0, ge=0),
 ):
     del admin
-    total = db.query(func.count(PlatformUser.id)).scalar() or 0
-    rows = (
-        db.query(PlatformUser)
-        .order_by(PlatformUser.created_at.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
-    return {"total": int(total), "users": [_user_row_response(row) for row in rows]}
+    try:
+        total = db.query(func.count(PlatformUser.id)).scalar() or 0
+        rows = (
+            db.query(PlatformUser)
+            .order_by(PlatformUser.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return {"total": int(total), "users": [_user_row_response(row) for row in rows]}
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500,
+            detail=f"admin_users_failed: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.patch("/users/{user_id}", response_model=dict)
