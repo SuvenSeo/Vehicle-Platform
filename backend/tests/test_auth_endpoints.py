@@ -115,7 +115,7 @@ def test_logout_clears_session_cookie(monkeypatch):
     from fastapi import Response
 
     response = Response()
-    auth.logout(response)
+    auth.logout(response, DummyRequest())
     set_cookie = response.headers.get("set-cookie", "")
     assert auth.SESSION_COOKIE_NAME in set_cookie
     assert "Max-Age=0" in set_cookie or "max-age=0" in set_cookie.lower()
@@ -176,6 +176,27 @@ def test_sha256_credentials_are_rejected(monkeypatch):
 def test_pro_gate_enforced_requires_pro_plan(monkeypatch):
     _configure(monkeypatch, plan="enterprise")
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "owner@example.com",
+                    "password_hash": _BCRYPT_HASH,
+                    "name": "Owner Person",
+                    "plan": "enterprise",
+                    "subscription_status": "active",
+                },
+                {
+                    "email": "someone@example.com",
+                    "password_hash": _BCRYPT_HASH,
+                    "name": "Free Person",
+                    "plan": "free",
+                    "subscription_status": "none",
+                },
+            ]
+        ),
+    )
 
     with pytest.raises(HTTPException) as no_token:
         auth.require_pro_access(request=DummyRequest(), authorization=None)
@@ -208,6 +229,20 @@ def test_pro_gate_rejects_inactive_subscription(monkeypatch):
 def test_pro_gate_allows_trialing_subscription(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "trial@example.com",
+                    "password_hash": _BCRYPT_HASH,
+                    "name": "Trial User",
+                    "plan": "pro",
+                    "subscription_status": "trialing",
+                }
+            ]
+        ),
+    )
 
     token, _ = auth.issue_token("trial@example.com", "pro", "trialing")
     assert auth.require_pro_access(request=DummyRequest(), authorization=f"Bearer {token}") is None
@@ -216,6 +251,20 @@ def test_pro_gate_allows_trialing_subscription(monkeypatch):
 def test_pro_gate_allows_legacy_token_without_subscription_status(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "legacy@example.com",
+                    "password_hash": _BCRYPT_HASH,
+                    "name": "Legacy User",
+                    "plan": "enterprise",
+                    "subscription_status": "active",
+                }
+            ]
+        ),
+    )
 
     expires_at = int(time.time() + auth._token_ttl_seconds())
     payload_part = auth._b64url_encode(
@@ -235,7 +284,7 @@ def test_pro_gate_allows_legacy_token_without_subscription_status(monkeypatch):
 
 
 def test_me_endpoint_rate_limited(monkeypatch):
-    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    _configure(monkeypatch, plan="enterprise")
     token, _ = auth.issue_token("owner@example.com", "enterprise", "active")
 
     for _ in range(60):

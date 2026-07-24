@@ -112,7 +112,7 @@ def test_get_listing_does_not_fill_specs_from_peer_defaults():
     db.add_all([target, peer])
     db.commit()
 
-    payload = listings.get_listing(target.id, db=db)
+    payload = listings.get_listing(target.id, request=SimpleNamespace(cookies={}), db=db)
 
     assert payload.id == target.id
     assert payload.mileage is None

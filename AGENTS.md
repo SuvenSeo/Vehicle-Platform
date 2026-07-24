@@ -31,6 +31,8 @@ the UI.
 - Platform access is invite-only: bootstrap an admin via `AUTH_USERS` with
   `"role":"admin"`, set `VITE_ENABLE_BACKEND_AUTH=true`, then invite users
   from `/admin` (email + free/pro plan). Invited users complete `/sign-up?token=…`.
+  Production app: `https://motormila.vercel.app`. Generate HF/Vercel secrets with
+  `python scripts/bootstrap_platform_auth.py --email … --password …`.
 
 ### Run commands (local dev)
 

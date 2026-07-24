@@ -15,6 +15,14 @@ from app.models.schemas import MarketAlertCreate
 from db.models import Base, CarListing, MarketAlert
 
 
+class _DummyRequest:
+    method = "GET"
+    headers = {"user-agent": "pytest"}
+    client = type("Client", (), {"host": "127.0.0.1"})()
+    cookies: dict = {}
+
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -58,6 +66,7 @@ def test_create_alert_persists_to_db():
     token = "test-token-uuid-001"
 
     result = alerts_module.create_alert(
+        request=_DummyRequest(),
         payload=MarketAlertCreate(make="Toyota", model="Axio", max_price=5_000_000, district="Colombo"),
         x_alert_token=token,
         db=db,
@@ -77,6 +86,7 @@ def test_create_alert_with_minimal_fields():
     db = _session()
 
     result = alerts_module.create_alert(
+        request=_DummyRequest(),
         payload=MarketAlertCreate(make="Honda"),
         x_alert_token="tok-minimal",
         db=db,
@@ -93,6 +103,7 @@ def test_create_alert_rejects_empty_token():
 
     with pytest.raises(HTTPException) as exc_info:
         alerts_module.create_alert(
+            request=_DummyRequest(),
             payload=MarketAlertCreate(make="Suzuki"),
             x_alert_token="",
             db=db,
@@ -106,8 +117,9 @@ def test_create_alert_rejects_token_exceeding_max_length():
 
     with pytest.raises(HTTPException) as exc_info:
         alerts_module.create_alert(
+            request=_DummyRequest(),
             payload=MarketAlertCreate(make="Suzuki"),
-            x_alert_token="x" * 37,
+            x_alert_token="x" * 65,
             db=db,
         )
 
@@ -118,8 +130,9 @@ def test_create_alert_enforces_per_token_limit():
     db = _session()
     token = "tok-limit-test"
 
-    for i in range(alerts_module.MAX_ALERTS_PER_TOKEN):
+    for i in range(alerts_module.PRO_ALERTS_LIMIT):
         alerts_module.create_alert(
+            request=_DummyRequest(),
             payload=MarketAlertCreate(make=f"Make{i}"),
             x_alert_token=token,
             db=db,
@@ -127,6 +140,7 @@ def test_create_alert_enforces_per_token_limit():
 
     with pytest.raises(HTTPException) as exc_info:
         alerts_module.create_alert(
+            request=_DummyRequest(),
             payload=MarketAlertCreate(make="OverLimit"),
             x_alert_token=token,
             db=db,
@@ -144,11 +158,11 @@ def test_list_alerts_returns_only_active_for_token():
     token = "tok-list-001"
     other_token = "tok-list-002"
 
-    alerts_module.create_alert(MarketAlertCreate(make="Toyota"), x_alert_token=token, db=db)
-    alerts_module.create_alert(MarketAlertCreate(make="Honda"), x_alert_token=token, db=db)
-    alerts_module.create_alert(MarketAlertCreate(make="Nissan"), x_alert_token=other_token, db=db)
+    alerts_module.create_alert(request=_DummyRequest(), payload=MarketAlertCreate(make="Toyota"), x_alert_token=token, db=db)
+    alerts_module.create_alert(request=_DummyRequest(), payload=MarketAlertCreate(make="Honda"), x_alert_token=token, db=db)
+    alerts_module.create_alert(request=_DummyRequest(), payload=MarketAlertCreate(make="Nissan"), x_alert_token=other_token, db=db)
 
-    result = alerts_module.list_alerts(token=token, db=db)
+    result = alerts_module.list_alerts(request=_DummyRequest(), token=token, db=db)
 
     assert len(result) == 2
     makes = {a.make for a in result}
@@ -158,7 +172,7 @@ def test_list_alerts_returns_only_active_for_token():
 def test_list_alerts_returns_empty_list_for_unknown_token():
     db = _session()
 
-    result = alerts_module.list_alerts(token="no-such-token", db=db)
+    result = alerts_module.list_alerts(request=_DummyRequest(), token="no-such-token", db=db)
 
     assert result == []
 
@@ -167,10 +181,10 @@ def test_list_alerts_excludes_deactivated_alerts():
     db = _session()
     token = "tok-inactive"
 
-    created = alerts_module.create_alert(MarketAlertCreate(make="BMW"), x_alert_token=token, db=db)
-    alerts_module.delete_alert(alert_id=created.id, x_alert_token=token, db=db)
+    created = alerts_module.create_alert(request=_DummyRequest(), payload=MarketAlertCreate(make="BMW"), x_alert_token=token, db=db)
+    alerts_module.delete_alert(request=_DummyRequest(), alert_id=created.id, x_alert_token=token, db=db)
 
-    result = alerts_module.list_alerts(token=token, db=db)
+    result = alerts_module.list_alerts(request=_DummyRequest(), token=token, db=db)
     assert result == []
 
 
@@ -182,8 +196,8 @@ def test_delete_alert_soft_deletes_record():
     db = _session()
     token = "tok-delete-001"
 
-    created = alerts_module.create_alert(MarketAlertCreate(make="Mazda"), x_alert_token=token, db=db)
-    alerts_module.delete_alert(alert_id=created.id, x_alert_token=token, db=db)
+    created = alerts_module.create_alert(request=_DummyRequest(), payload=MarketAlertCreate(make="Mazda"), x_alert_token=token, db=db)
+    alerts_module.delete_alert(request=_DummyRequest(), alert_id=created.id, x_alert_token=token, db=db)
 
     stored = db.query(MarketAlert).filter(MarketAlert.id == created.id).one()
     assert stored.active is False
@@ -194,10 +208,10 @@ def test_delete_alert_raises_404_for_wrong_token():
     owner_token = "tok-owner"
     attacker_token = "tok-attacker"
 
-    created = alerts_module.create_alert(MarketAlertCreate(make="Kia"), x_alert_token=owner_token, db=db)
+    created = alerts_module.create_alert(request=_DummyRequest(), payload=MarketAlertCreate(make="Kia"), x_alert_token=owner_token, db=db)
 
     with pytest.raises(HTTPException) as exc_info:
-        alerts_module.delete_alert(alert_id=created.id, x_alert_token=attacker_token, db=db)
+        alerts_module.delete_alert(request=_DummyRequest(), alert_id=created.id, x_alert_token=attacker_token, db=db)
 
     assert exc_info.value.status_code == 404
 
@@ -206,7 +220,7 @@ def test_delete_alert_raises_404_for_nonexistent_id():
     db = _session()
 
     with pytest.raises(HTTPException) as exc_info:
-        alerts_module.delete_alert(alert_id=99999, x_alert_token="tok-any", db=db)
+        alerts_module.delete_alert(request=_DummyRequest(), alert_id=99999, x_alert_token="tok-any", db=db)
 
     assert exc_info.value.status_code == 404
 
@@ -224,12 +238,13 @@ def test_match_alerts_returns_matching_listings():
     _seed_listing(db, make="Honda", model="Fit", price_lkr=2_500_000, district="Colombo")
 
     alerts_module.create_alert(
-        MarketAlertCreate(make="Toyota", model="Axio", max_price=3_500_000),
+        request=_DummyRequest(),
+        payload=MarketAlertCreate(make="Toyota", model="Axio", max_price=3_500_000),
         x_alert_token=token,
         db=db,
     )
 
-    response = alerts_module.match_alerts(token=token, db=db)
+    response = alerts_module.match_alerts(request=_DummyRequest(), token=token, db=db)
 
     assert len(response.results) == 1
     result = response.results[0]
@@ -247,12 +262,13 @@ def test_match_alerts_empty_when_no_listings_match():
     _seed_listing(db, make="Toyota", model="Axio", price_lkr=8_000_000)
 
     alerts_module.create_alert(
-        MarketAlertCreate(make="Toyota", model="Axio", max_price=5_000_000),
+        request=_DummyRequest(),
+        payload=MarketAlertCreate(make="Toyota", model="Axio", max_price=5_000_000),
         x_alert_token=token,
         db=db,
     )
 
-    response = alerts_module.match_alerts(token=token, db=db)
+    response = alerts_module.match_alerts(request=_DummyRequest(), token=token, db=db)
 
     assert response.results[0].matching_count == 0
     assert response.results[0].listings == []
@@ -279,19 +295,20 @@ def test_match_alerts_no_filters_matches_all_non_outliers():
     db.commit()
 
     alerts_module.create_alert(
-        MarketAlertCreate(),
+        request=_DummyRequest(),
+        payload=MarketAlertCreate(),
         x_alert_token=token,
         db=db,
     )
 
-    response = alerts_module.match_alerts(token=token, db=db)
+    response = alerts_module.match_alerts(request=_DummyRequest(), token=token, db=db)
     assert response.results[0].matching_count == 2
 
 
 def test_match_alerts_returns_empty_results_for_unknown_token():
     db = _session()
 
-    response = alerts_module.match_alerts(token="tok-nobody", db=db)
+    response = alerts_module.match_alerts(request=_DummyRequest(), token="tok-nobody", db=db)
 
     assert response.results == []
 
@@ -304,11 +321,12 @@ def test_match_alerts_district_filter_is_case_insensitive():
     _seed_listing(db, make="Suzuki", model="Alto", district="Kandy", price_lkr=1_400_000)
 
     alerts_module.create_alert(
-        MarketAlertCreate(make="Suzuki", district="colombo"),
+        request=_DummyRequest(),
+        payload=MarketAlertCreate(make="Suzuki", district="colombo"),
         x_alert_token=token,
         db=db,
     )
 
-    response = alerts_module.match_alerts(token=token, db=db)
+    response = alerts_module.match_alerts(request=_DummyRequest(), token=token, db=db)
     assert response.results[0].matching_count == 1
     assert response.results[0].listings[0].district == "Colombo"

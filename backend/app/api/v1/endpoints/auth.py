@@ -45,7 +45,7 @@ from db.session import get_db
 
 router = APIRouter()
 
-TOKEN_TTL_SECONDS_DEFAULT = 7 * 24 * 3600
+TOKEN_TTL_SECONDS_DEFAULT = 24 * 3600  # 24h — shorter sessions; override with AUTH_TOKEN_TTL_SECONDS
 INVITE_TTL_DAYS_DEFAULT = 14
 SESSION_COOKIE_NAME = "mm_session"
 ALLOWED_PLANS = {"free", "pro", "enterprise"}
@@ -164,6 +164,7 @@ def _configured_users() -> dict[str, dict]:
             else "active",
             "role": role if role in ALLOWED_ROLES else "user",
             "is_active": True,
+            "token_version": 0,
             "source": "env",
         }
     return users
@@ -205,6 +206,7 @@ def issue_token(
     subscription_status: str = "active",
     *,
     role: str = "user",
+    token_version: int = 0,
     now: Optional[float] = None,
 ) -> tuple[str, int]:
     secret = _token_secret()
@@ -220,6 +222,7 @@ def issue_token(
                 "plan": plan,
                 "subscription_status": normalized_subscription_status,
                 "role": normalized_role,
+                "tv": int(token_version or 0),
                 "exp": expires_at,
             },
             separators=(",", ":"),
@@ -273,8 +276,58 @@ def _platform_user_to_record(user: PlatformUser) -> dict:
         "subscription_status": user.subscription_status,
         "role": user.role,
         "is_active": bool(user.is_active),
+        "token_version": int(getattr(user, "token_version", 0) or 0),
         "source": "db",
         "id": user.id,
+    }
+
+
+def bump_token_version(db: Session, *, email: Optional[str] = None, user_id: Optional[int] = None) -> int:
+    """Invalidate outstanding JWTs for a platform user by bumping token_version."""
+    query = db.query(PlatformUser)
+    if user_id is not None:
+        query = query.filter(PlatformUser.id == user_id)
+    elif email:
+        query = query.filter(PlatformUser.email == email.strip().lower())
+    else:
+        return 0
+    row = query.first()
+    if row is None:
+        return 0
+    row.token_version = int(getattr(row, "token_version", 0) or 0) + 1
+    db.commit()
+    db.refresh(row)
+    return int(row.token_version or 0)
+
+
+def resolve_live_session(payload: dict, db: Optional[Session] = None) -> dict:
+    """Re-read plan/role/active from the account store; reject revoked/inactive sessions.
+
+    Never trusts JWT plan/role alone once an account row exists (or AUTH_USERS entry).
+    """
+    email = str(payload.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    record = resolve_user_record(email, db)
+    if record is None:
+        raise HTTPException(status_code=401, detail="Session is no longer valid.")
+
+    token_tv = int(payload.get("tv") or 0)
+    record_tv = int(record.get("token_version") or 0)
+    # Env-only accounts have no token_version until synced; treat missing as 0.
+    if record.get("source") == "db" and token_tv != record_tv:
+        raise HTTPException(status_code=401, detail="Session has been revoked.")
+
+    return {
+        "email": email,
+        "plan": record["plan"],
+        "subscription_status": record["subscription_status"],
+        "role": record.get("role") or "user",
+        "token_version": record_tv,
+        "name": record.get("name") or email.split("@")[0],
+        "id": record.get("id"),
+        "source": record.get("source"),
     }
 
 
@@ -351,7 +404,9 @@ def _extract_token(
     request: Optional[Request] = None,
 ) -> str:
     """Prefer Authorization Bearer, then fall back to the HttpOnly session cookie."""
-    bearer = (authorization or "").removeprefix("Bearer ").strip()
+    # Direct unit calls may pass FastAPI Header() defaults instead of None/str.
+    auth_value = authorization if isinstance(authorization, str) else None
+    bearer = (auth_value or "").removeprefix("Bearer ").strip()
     if bearer:
         return bearer
     if request is not None:
@@ -388,7 +443,9 @@ def _issue_login_response(record: dict, response: Response, db: Optional[Session
     session = _session_or_none(db)
     if session is not None and record.get("source") == "env":
         try:
-            sync_env_user_to_db(record, session)
+            synced = sync_env_user_to_db(record, session)
+            if synced is not None:
+                record = _platform_user_to_record(synced)
         except Exception:
             session.rollback()
 
@@ -398,6 +455,7 @@ def _issue_login_response(record: dict, response: Response, db: Optional[Session
             if row is not None:
                 row.last_login_at = datetime.now(timezone.utc)
                 session.commit()
+                record = _platform_user_to_record(row)
         except Exception:
             session.rollback()
 
@@ -406,6 +464,7 @@ def _issue_login_response(record: dict, response: Response, db: Optional[Session
         record["plan"],
         record["subscription_status"],
         role=record.get("role") or "user",
+        token_version=int(record.get("token_version") or 0),
     )
     _set_session_cookie(response, token, expires_at)
     return {
@@ -518,7 +577,23 @@ def invite_preview(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/logout", response_model=dict)
-def logout(response: Response):
+def logout(
+    response: Response,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Optional[Session] = Depends(get_db),
+):
+    """Clear cookie and revoke the current token version when a DB user is known."""
+    token = _extract_token(authorization, request)
+    payload = verify_token(token)
+    session = _session_or_none(db)
+    if payload is not None and session is not None:
+        email = str(payload.get("email") or "").strip().lower()
+        if email:
+            try:
+                bump_token_version(session, email=email)
+            except Exception:
+                session.rollback()
     _clear_session_cookie(response)
     return {"ok": True}
 
@@ -535,28 +610,16 @@ def me(
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
-    email = str(payload.get("email") or "").strip().lower()
-    record = resolve_user_record(email, _session_or_none(db))
-    if record:
-        return _user_response(record)
-
-    plan = str(payload.get("plan") or "free").strip().lower()
-    subscription_status = str(
-        payload.get("subscription_status") or payload.get("subscriptionStatus") or "active"
-    ).strip().lower()
-    role = str(payload.get("role") or "user").strip().lower()
-    name = email.split("@")[0] if email else "Motormila User"
-    return {
-        "email": email,
-        "name": name,
-        "plan": plan if plan in ALLOWED_PLANS else "free",
-        "subscriptionStatus": subscription_status
-        if subscription_status in ALLOWED_SUBSCRIPTION_STATUSES
-        else "none",
-        "role": role if role in ALLOWED_ROLES else "user",
-        "avatarInitials": (name[:2] or "AU").upper(),
-        "exp": payload.get("exp"),
-    }
+    live = resolve_live_session(payload, _session_or_none(db))
+    return _user_response(
+        {
+            "email": live["email"],
+            "name": live["name"],
+            "plan": live["plan"],
+            "subscription_status": live["subscription_status"],
+            "role": live["role"],
+        }
+    )
 
 
 def pro_access_enforced() -> bool:
@@ -622,22 +685,24 @@ def _is_unsafe_method(request: Request) -> bool:
 def get_current_auth_payload(
     request: Request,
     authorization: Optional[str] = Header(default=None),
+    db: Optional[Session] = Depends(get_db),
 ) -> dict:
     token = _extract_token(authorization, request)
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Authentication required.")
-    return payload
+    return resolve_live_session(payload, _session_or_none(db))
 
 
 def require_authenticated(
     request: Request,
     authorization: Optional[str] = Header(default=None),
+    db: Optional[Session] = Depends(get_db),
 ) -> Optional[dict]:
     """Gate for product APIs when APP_ACCESS_ENFORCED is on."""
     if not app_access_enforced():
         return None
-    return get_current_auth_payload(request, authorization)
+    return get_current_auth_payload(request, authorization, db)
 
 
 def require_admin_access(
@@ -645,26 +710,22 @@ def require_admin_access(
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ) -> dict:
-    """Require an authenticated admin (DB role or AUTH_USERS role=admin)."""
-    payload = get_current_auth_payload(request, authorization)
-    email = str(payload.get("email") or "").strip().lower()
-    record = resolve_user_record(email, db)
-    role = (record or {}).get("role") or str(payload.get("role") or "user")
-    if str(role).lower() != "admin":
+    """Require an authenticated admin from the live account store (not JWT role alone)."""
+    live = get_current_auth_payload(request, authorization, db)
+    if str(live.get("role") or "").lower() != "admin":
         raise HTTPException(status_code=403, detail="Admin access required.")
     return {
-        "email": email,
-        "plan": (record or {}).get("plan") or payload.get("plan") or "free",
+        "email": live["email"],
+        "plan": live["plan"],
         "role": "admin",
-        "subscription_status": (record or {}).get("subscription_status")
-        or payload.get("subscription_status")
-        or "active",
+        "subscription_status": live["subscription_status"],
     }
 
 
 def require_pro_access(
     request: Request,
     authorization: Optional[str] = Header(default=None),
+    db: Optional[Session] = Depends(get_db),
 ) -> None:
     """Gate for /pro/* — requires a valid pro/enterprise token unless
     PRO_ACCESS_ENFORCED=false explicitly opts out (local dev only).
@@ -673,14 +734,15 @@ def require_pro_access(
     safe (GET) methods. Mutating methods require a Bearer token AND an Origin
     (or Referer) in the CORS allowlist so cookie-only CSRF cannot unlock Pro writes.
 
-    ``request`` must be a required FastAPI-injected ``Request`` (not Optional):
-    Optional[Request]=None is treated as a body field and breaks app startup.
+    Plan/status are re-read from the live account store so downgrades take effect
+    immediately (JWT claims alone are not trusted).
     """
     if not pro_access_enforced():
         return
 
     unsafe = _is_unsafe_method(request)
-    bearer = (authorization or "").removeprefix("Bearer ").strip()
+    auth_value = authorization if isinstance(authorization, str) else None
+    bearer = (auth_value or "").removeprefix("Bearer ").strip()
     if unsafe and not bearer:
         raise HTTPException(
             status_code=403,
@@ -697,10 +759,10 @@ def require_pro_access(
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Pro access requires a valid session token.")
-    if str(payload.get("plan") or "").lower() not in PRO_PLANS:
+
+    live = resolve_live_session(payload, _session_or_none(db))
+    if str(live.get("plan") or "").lower() not in PRO_PLANS:
         raise HTTPException(status_code=403, detail="Pro subscription required.")
-    subscription_status = str(
-        payload.get("subscription_status") or payload.get("subscriptionStatus") or "active"
-    ).lower()
+    subscription_status = str(live.get("subscription_status") or "active").lower()
     if subscription_status not in ACTIVE_PRO_SUBSCRIPTION_STATUSES:
         raise HTTPException(status_code=403, detail="Active Pro subscription required.")
