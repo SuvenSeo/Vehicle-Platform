@@ -52,11 +52,18 @@ FALLBACK_CRAWLS = (
 
 DEFAULT_CC_URL_PATTERNS = (
     "ikman.lk/en/ads/sri-lanka/cars",
+    "ikman.lk/en/ads/sri-lanka/vans",
     "ikman.lk/en/ads/sri-lanka/cars/toyota",
     "ikman.lk/en/ads/sri-lanka/cars/suzuki",
     "ikman.lk/en/ads/sri-lanka/cars/honda",
     "ikman.lk/en/ads/sri-lanka/cars/nissan",
     "ikman.lk/en/ads/sri-lanka/cars/mitsubishi",
+    "ikman.lk/en/ads/sri-lanka/cars/bmw",
+    "ikman.lk/en/ads/sri-lanka/cars/mercedes-benz",
+    "ikman.lk/en/ads/sri-lanka/cars/toyota/aqua",
+    "ikman.lk/en/ads/sri-lanka/cars/suzuki/alto",
+    "ikman.lk/en/ads/sri-lanka/cars/honda/vezel",
+    "riyasewana.com/search/cars",
 )
 
 

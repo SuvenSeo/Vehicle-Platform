@@ -48,6 +48,7 @@ TOP_BRAND_SERP_URLS = (
 # Maximum recoverable brand + model SERPs for densify runs.
 MAX_IKMAN_SERP_URLS = (
     "https://ikman.lk/en/ads/sri-lanka/cars",
+    "https://ikman.lk/en/ads/sri-lanka/vans",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
     "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
     "https://ikman.lk/en/ads/sri-lanka/cars/honda",
@@ -62,25 +63,51 @@ MAX_IKMAN_SERP_URLS = (
     "https://ikman.lk/en/ads/sri-lanka/cars/kia",
     "https://ikman.lk/en/ads/sri-lanka/cars/daihatsu",
     "https://ikman.lk/en/ads/sri-lanka/cars/tata",
+    "https://ikman.lk/en/ads/sri-lanka/cars/audi",
+    "https://ikman.lk/en/ads/sri-lanka/cars/land-rover",
+    "https://ikman.lk/en/ads/sri-lanka/cars/peugeot",
+    "https://ikman.lk/en/ads/sri-lanka/cars/ford",
+    "https://ikman.lk/en/ads/sri-lanka/cars/renault",
+    "https://ikman.lk/en/ads/sri-lanka/cars/volkswagen",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mahindra",
+    "https://ikman.lk/en/ads/sri-lanka/cars/isuzu",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota/aqua",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota/axio",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota/vitz",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota/premio",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota/prius",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/corolla",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/chr",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/hilux",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/land-cruiser",
     "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/alto",
     "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/wagon-r",
     "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/swift",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/spacia",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/every",
     "https://ikman.lk/en/ads/sri-lanka/cars/honda/fit",
     "https://ikman.lk/en/ads/sri-lanka/cars/honda/vezel",
     "https://ikman.lk/en/ads/sri-lanka/cars/honda/civic",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda/grace",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda/works",
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan/leaf",
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan/march",
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan/note",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan/sunny",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan/x-trail",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mitsubishi/montero",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mitsubishi/lancer",
+    "https://ikman.lk/en/ads/sri-lanka/cars/bmw/320i",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mercedes-benz/c200",
 )
 
 RIYASEWANA_SERP_URLS = (
     "https://riyasewana.com/search/cars",
     "https://www.riyasewana.com/search/cars",
+    "https://riyasewana.com/search/toyota-cars",
+    "https://riyasewana.com/search/suzuki-cars",
+    "https://riyasewana.com/search/honda-cars",
+    "https://riyasewana.com/search/nissan-cars",
 )
 
 _YEAR_RE = re.compile(r"\b(19[5-9]\d|20[0-2]\d)\b")
@@ -472,6 +499,24 @@ def _cdx_payload_to_hits(payload: Any) -> list[CdxHit]:
     return hits
 
 
+def _year_windows(from_ts: str, to_ts: str) -> list[tuple[str, str]]:
+    """Split a CDX range into calendar-year windows for denser monthly captures."""
+    start_year = int(str(from_ts)[:4])
+    end_year = int(str(to_ts)[:4])
+    if end_year < start_year:
+        start_year, end_year = end_year, start_year
+    windows: list[tuple[str, str]] = []
+    for year in range(start_year, end_year + 1):
+        window_from = f"{year}0101"
+        window_to = f"{year}1231"
+        if year == start_year:
+            window_from = str(from_ts)[:8].ljust(8, "0")
+        if year == end_year:
+            window_to = str(to_ts)[:8].ljust(8, "9")
+        windows.append((window_from, window_to))
+    return windows
+
+
 def fetch_cdx_hits(
     url: str,
     *,
@@ -479,55 +524,106 @@ def fetch_cdx_hits(
     to_ts: str = "20261231",
     limit: int = 200,
     client: httpx.Client | None = None,
-    retries: int = 3,
+    retries: int = 4,
+    year_chunk: bool = True,
 ) -> list[CdxHit]:
-    """Query Wayback CDX for successful captures of a URL."""
-    params = {
-        "url": url,
-        "from": from_ts,
-        "to": to_ts,
-        "output": "json",
-        "fl": "timestamp,original,statuscode",
-        "filter": "statuscode:200",
-        "collapse": "timestamp:6",  # roughly monthly collapse
-        "limit": str(limit),
-    }
+    """Query Wayback CDX for successful captures of a URL.
+
+    When ``year_chunk`` is true, queries each calendar year separately so a
+    global ``limit`` does not starve early years.
+    """
     owns_client = client is None
-    timeout = httpx.Timeout(60.0, connect=15.0)
+    timeout = httpx.Timeout(75.0, connect=20.0)
     http = client or httpx.Client(timeout=timeout, follow_redirects=True)
-    last_exc: Exception | None = None
     try:
-        for attempt in range(1, retries + 1):
-            try:
-                response = http.get(WAYBACK_CDX, params=params)
-                response.raise_for_status()
-                return _cdx_payload_to_hits(response.json())
-            except Exception as exc:
-                last_exc = exc
+        windows = _year_windows(from_ts, to_ts) if year_chunk else [(from_ts, to_ts)]
+        per_window = max(12, (limit + len(windows) - 1) // max(len(windows), 1))
+        all_hits: list[CdxHit] = []
+        seen: set[tuple[str, str]] = set()
+        for window_from, window_to in windows:
+            params = {
+                "url": url,
+                "from": window_from,
+                "to": window_to,
+                "output": "json",
+                "fl": "timestamp,original,statuscode",
+                "filter": "statuscode:200",
+                "collapse": "timestamp:6",
+                "limit": str(per_window if year_chunk else limit),
+            }
+            last_exc: Exception | None = None
+            payload: Any = None
+            for attempt in range(1, retries + 1):
+                try:
+                    response = http.get(WAYBACK_CDX, params=params)
+                    response.raise_for_status()
+                    payload = response.json()
+                    last_exc = None
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    log.warning(
+                        "wayback_cdx_retry",
+                        url=url,
+                        from_ts=window_from,
+                        attempt=attempt,
+                        error=str(exc),
+                    )
+                    if attempt < retries:
+                        time.sleep(1.5 * attempt)
+            if last_exc is not None:
                 log.warning(
-                    "wayback_cdx_retry",
+                    "wayback_cdx_window_failed",
                     url=url,
-                    attempt=attempt,
-                    error=str(exc),
+                    from_ts=window_from,
+                    error=str(last_exc),
                 )
-                if attempt < retries:
-                    time.sleep(1.0 * attempt)
-        if last_exc is not None:
-            raise last_exc
-        return []
+                continue
+            for hit in _cdx_payload_to_hits(payload):
+                key = (hit.timestamp, hit.original)
+                if key in seen:
+                    continue
+                seen.add(key)
+                all_hits.append(hit)
+        all_hits.sort(key=lambda h: h.timestamp)
+        if limit > 0 and len(all_hits) > limit:
+            step = len(all_hits) / limit
+            all_hits = [all_hits[int(i * step)] for i in range(limit)]
+        return all_hits
     finally:
         if owns_client:
             http.close()
 
 
-def fetch_wayback_html(hit: CdxHit, *, client: httpx.Client | None = None) -> str:
+def fetch_wayback_html(
+    hit: CdxHit,
+    *,
+    client: httpx.Client | None = None,
+    retries: int = 3,
+) -> str:
     owns_client = client is None
-    timeout = httpx.Timeout(60.0, connect=15.0)
+    timeout = httpx.Timeout(90.0, connect=20.0)
     http = client or httpx.Client(timeout=timeout, follow_redirects=True)
+    last_exc: Exception | None = None
     try:
-        response = http.get(hit.raw_url)
-        response.raise_for_status()
-        return response.text
+        for attempt in range(1, retries + 1):
+            try:
+                response = http.get(hit.raw_url)
+                response.raise_for_status()
+                return response.text
+            except Exception as exc:
+                last_exc = exc
+                log.warning(
+                    "wayback_fetch_retry",
+                    url=hit.raw_url,
+                    attempt=attempt,
+                    error=str(exc),
+                )
+                if attempt < retries:
+                    time.sleep(1.5 * attempt)
+        if last_exc is not None:
+            raise last_exc
+        return ""
     finally:
         if owns_client:
             http.close()
@@ -596,9 +692,9 @@ def discover_ikman_cdx(
     per_url_limit: int = 120,
     client: httpx.Client | None = None,
 ) -> list[CdxHit]:
-    """Collect collapsed CDX hits across common ikman cars SERP URLs."""
+    """Collect collapsed CDX hits across marketplace SERP URLs."""
     owns_client = client is None
-    timeout = httpx.Timeout(60.0, connect=15.0)
+    timeout = httpx.Timeout(75.0, connect=20.0)
     http = client or httpx.Client(timeout=timeout, follow_redirects=True)
     all_hits: list[CdxHit] = []
     seen: set[tuple[str, str]] = set()
@@ -617,6 +713,7 @@ def discover_ikman_cdx(
                     to_ts=to_ts,
                     limit=per_url_limit,
                     client=http,
+                    year_chunk=True,
                 )
             except Exception as exc:
                 log.warning("wayback_cdx_failed", url=url, error=str(exc))
@@ -627,6 +724,7 @@ def discover_ikman_cdx(
                     continue
                 seen.add(key)
                 all_hits.append(hit)
+            time.sleep(0.35)
     finally:
         if owns_client:
             http.close()
