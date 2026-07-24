@@ -34,7 +34,7 @@ Copy `backend/.env.example` to `backend/.env` and set Supabase:
 ```env
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
 ALLOW_SQLITE_FALLBACK=false
-CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173,https://vehicle-platform-one.vercel.app
+CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173,https://motormila.vercel.app,https://vehicle-platform-one.vercel.app
 ```
 
 Notes:
@@ -172,12 +172,27 @@ Normally not required because frontend calls the same backend URL, but if needed
 ### Real Pro authentication (enforced by default)
 
 The backend ships an env-configured auth layer, and `/api/v1/pro/*` routes
-require a valid pro/enterprise bearer token **by default**. Set on the backend:
+require a valid pro/enterprise bearer token **by default**. Bootstrap secrets:
+
+```bash
+python scripts/bootstrap_platform_auth.py --email you@example.com --password 'your-strong-password' --name 'Owner'
+```
+
+Paste the printed `AUTH_TOKEN_SECRET` + `AUTH_USERS` into **Hugging Face Space
+secrets**, and set on **Vercel Production**:
 
 ```env
-AUTH_TOKEN_SECRET=<long-random-string>
-AUTH_USERS=[{"email":"owner@example.com","password_hash":"$2b$12$...","name":"Owner","plan":"enterprise","subscription_status":"active"}]
+VITE_ENABLE_BACKEND_AUTH=true
+VITE_API_URL=/api/v1
 ```
+
+Then redeploy both. Sign in at https://motormila.vercel.app/sign-in and open
+`/admin` to invite users.
+
+Optional:
+- `RESEND_API_KEY` (+ `RESEND_FROM`) — email invite links automatically
+- `BILLING_WEBHOOK_SECRET` — `POST /api/v1/billing/webhook` upgrades plans from Stripe/PayHere adapters
+- `PUBLIC_APP_ORIGIN=https://motormila.vercel.app` — invite link host
 
 Generate a bcrypt password hash with:
 
@@ -186,6 +201,10 @@ python -c "import bcrypt; print(bcrypt.hashpw(b'your-password', bcrypt.gensalt()
 ```
 
 Legacy unsalted SHA-256 entries (`password_sha256`) are no longer accepted.
+
+Sessions re-check plan/role/active from the DB on every gated request, and
+`token_version` is bumped on logout / admin plan changes so old JWTs die
+immediately. Default token TTL is 24 hours (`AUTH_TOKEN_TTL_SECONDS`).
 
 Then set `VITE_ENABLE_BACKEND_AUTH=true` on the frontend build. Sign-in
 goes through `POST /api/v1/auth/login` and the issued bearer token is sent

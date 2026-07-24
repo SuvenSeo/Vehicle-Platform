@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
-from .endpoints import admin, alerts, auth, b2b, calculators, chat, dealer, feedback, listings, market, pipeline, pro, stats
+from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, feedback, listings, market, pipeline, pro, stats
 from .endpoints.auth import require_authenticated, require_pro_access
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(billing.router, prefix="/billing", tags=["billing"])
 # Product data routes require a signed-in session when APP_ACCESS_ENFORCED=true.
 _app_gate = [Depends(require_authenticated)]
 api_router.include_router(listings.router, prefix="/listings", tags=["listings"], dependencies=_app_gate)

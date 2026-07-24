@@ -1,9 +1,14 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
+from app.api.v1.endpoints.auth import (
+    _extract_token,
+    resolve_live_session,
+    verify_token,
+)
 from app.models.schemas import (
     AlertMatchListing,
     AlertMatchResponse,
@@ -12,40 +17,83 @@ from app.models.schemas import (
     MarketAlertRead,
 )
 from app.services.rate_limit import RateLimiter
+from app.utils.plan_limits import FREE_ALERTS_LIMIT, PRO_ALERTS_LIMIT, is_free_browse_plan
 from db.models import CarListing, MarketAlert, live_listing_filter
 from db.session import get_db
 
-MAX_ALERTS_PER_TOKEN = 20
 MATCH_LIMIT_PER_ALERT = 5
+# Back-compat alias for older tests/docs.
+MAX_ALERTS_PER_TOKEN = PRO_ALERTS_LIMIT
 
 _alerts_rate_limiter = RateLimiter(max_requests=60, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_alerts_rate_limiter)])
 
 
-def _validate_token(token: str) -> str:
+def _validate_token(token: object) -> str:
+    if not isinstance(token, str):
+        raise HTTPException(status_code=400, detail="Invalid alert token")
     token = token.strip()
-    if not token or len(token) > 36:
+    if not token or len(token) > 64:
         raise HTTPException(status_code=400, detail="Invalid alert token")
     return token
+
+
+def _account_alert_token(email: str) -> str:
+    # Stable, account-scoped token so alerts follow the Motormila user, not a random browser UUID.
+    return f"mm:{email.strip().lower()}"
+
+
+def _optional_str(value: object) -> Optional[str]:
+    return value if isinstance(value, str) else None
+
+
+def _resolve_alert_identity(
+    request: Optional[Request],
+    authorization: Optional[str],
+    x_alert_token: Optional[str],
+    db: Session,
+) -> Tuple[str, Optional[dict]]:
+    """Prefer authenticated Motormila session; fall back to legacy X-Alert-Token."""
+    token = _extract_token(_optional_str(authorization), request)
+    payload = verify_token(token) if token else None
+    if payload is not None:
+        live = resolve_live_session(payload, db)
+        return _account_alert_token(live["email"]), live
+
+    alert_token = _optional_str(x_alert_token)
+    if not alert_token:
+        raise HTTPException(status_code=400, detail="Alert token or signed-in session required.")
+    return _validate_token(alert_token), None
+
+
+def _max_alerts_for(live: Optional[dict]) -> int:
+    if live is None:
+        return PRO_ALERTS_LIMIT
+    if is_free_browse_plan(live.get("plan"), role=live.get("role")):
+        return FREE_ALERTS_LIMIT
+    return PRO_ALERTS_LIMIT
 
 
 @router.post("", response_model=MarketAlertRead, status_code=201)
 def create_alert(
     payload: MarketAlertCreate,
-    x_alert_token: str = Header(..., alias="X-Alert-Token"),
+    request: Request,
     db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(default=None),
+    x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
 ):
-    token = _validate_token(x_alert_token)
+    token, live = _resolve_alert_identity(request, authorization, x_alert_token, db)
+    max_alerts = _max_alerts_for(live)
     active_count = (
         db.query(MarketAlert)
         .filter(MarketAlert.user_token == token, MarketAlert.active.is_(True))
         .count()
     )
-    if active_count >= MAX_ALERTS_PER_TOKEN:
+    if active_count >= max_alerts:
         raise HTTPException(
             status_code=429,
-            detail=f"Maximum {MAX_ALERTS_PER_TOKEN} active alerts per token reached.",
+            detail=f"Maximum {max_alerts} active alerts reached for this account.",
         )
 
     alert = MarketAlert(
@@ -64,13 +112,18 @@ def create_alert(
 
 @router.get("", response_model=List[MarketAlertRead])
 def list_alerts(
-    token: str = Query(...),
+    request: Request,
     db: Session = Depends(get_db),
+    token: Optional[str] = Query(default=None),
+    authorization: Optional[str] = Header(default=None),
+    x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
 ):
-    validated = _validate_token(token)
+    owner, _live = _resolve_alert_identity(
+        request, authorization, _optional_str(x_alert_token) or _optional_str(token), db
+    )
     return (
         db.query(MarketAlert)
-        .filter(MarketAlert.user_token == validated, MarketAlert.active.is_(True))
+        .filter(MarketAlert.user_token == owner, MarketAlert.active.is_(True))
         .order_by(MarketAlert.created_at.desc())
         .all()
     )
@@ -79,13 +132,15 @@ def list_alerts(
 @router.delete("/{alert_id}", status_code=204)
 def delete_alert(
     alert_id: int,
-    x_alert_token: str = Header(..., alias="X-Alert-Token"),
+    request: Request,
     db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(default=None),
+    x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
 ):
-    token = _validate_token(x_alert_token)
+    owner, _live = _resolve_alert_identity(request, authorization, x_alert_token, db)
     alert = (
         db.query(MarketAlert)
-        .filter(MarketAlert.id == alert_id, MarketAlert.user_token == token)
+        .filter(MarketAlert.id == alert_id, MarketAlert.user_token == owner)
         .first()
     )
     if not alert:
@@ -96,13 +151,18 @@ def delete_alert(
 
 @router.post("/match", response_model=AlertMatchResponse)
 def match_alerts(
-    token: str = Query(...),
+    request: Request,
     db: Session = Depends(get_db),
+    token: Optional[str] = Query(default=None),
+    authorization: Optional[str] = Header(default=None),
+    x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
 ):
-    validated = _validate_token(token)
+    owner, _live = _resolve_alert_identity(
+        request, authorization, _optional_str(x_alert_token) or _optional_str(token), db
+    )
     alerts = (
         db.query(MarketAlert)
-        .filter(MarketAlert.user_token == validated, MarketAlert.active.is_(True))
+        .filter(MarketAlert.user_token == owner, MarketAlert.active.is_(True))
         .all()
     )
 
@@ -125,7 +185,6 @@ def match_alerts(
             .limit(MATCH_LIMIT_PER_ALERT)
             .all()
         )
-
         results.append(
             AlertMatchResult(
                 alert_id=alert.id,
@@ -136,17 +195,17 @@ def match_alerts(
                 matching_count=matching_count,
                 listings=[
                     AlertMatchListing(
-                        id=listing.id,
-                        title=listing.title,
-                        make=listing.make,
-                        model=listing.model,
-                        year=listing.year,
-                        price_lkr=float(listing.price_lkr) if listing.price_lkr is not None else None,
-                        district=listing.district,
-                        deal_score=float(listing.deal_score) if listing.deal_score is not None else None,
-                        thumbnail_url=listing.thumbnail_url,
+                        id=row.id,
+                        title=row.title,
+                        make=row.make,
+                        model=row.model,
+                        year=row.year,
+                        price_lkr=float(row.price_lkr) if row.price_lkr is not None else None,
+                        district=row.district,
+                        deal_score=float(row.deal_score) if row.deal_score is not None else None,
+                        thumbnail_url=row.thumbnail_url,
                     )
-                    for listing in top_listings
+                    for row in top_listings
                 ],
             )
         )

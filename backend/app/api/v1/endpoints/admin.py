@@ -23,6 +23,7 @@ from app.api.v1.endpoints.auth import (
     require_admin_access,
     resolve_user_record,
 )
+from app.services.invite_email import try_send_invite_email
 from db.models import (
     CarListing,
     DealerProfile,
@@ -55,8 +56,8 @@ def _normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-def _invite_response(invite: UserInvite) -> dict:
-    return {
+def _invite_response(invite: UserInvite, *, email_sent: bool | None = None) -> dict:
+    payload = {
         "id": invite.id,
         "email": invite.email,
         "plan": invite.plan,
@@ -69,6 +70,18 @@ def _invite_response(invite: UserInvite) -> dict:
         "acceptedAt": invite.accepted_at.isoformat() if invite.accepted_at else None,
         "createdAt": invite.created_at.isoformat() if invite.created_at else None,
     }
+    if email_sent is not None:
+        payload["emailSent"] = email_sent
+    return payload
+
+
+def _dispatch_invite_email(invite: UserInvite, *, invited_by: str) -> bool:
+    return try_send_invite_email(
+        to_email=invite.email,
+        plan=invite.plan,
+        token=invite.token,
+        invited_by=invited_by,
+    )
 
 
 def _user_row_response(user: PlatformUser) -> dict:
@@ -246,6 +259,9 @@ def update_user(
             raise HTTPException(status_code=400, detail="Name cannot be empty.")
         user.name = name
 
+    # Any privilege / identity change invalidates outstanding sessions.
+    user.token_version = int(getattr(user, "token_version", 0) or 0) + 1
+
     db.commit()
     db.refresh(user)
     return _user_row_response(user)
@@ -302,7 +318,8 @@ def create_invite(
         pending.invited_by_email = admin["email"]
         db.commit()
         db.refresh(pending)
-        return _invite_response(pending)
+        sent = _dispatch_invite_email(pending, invited_by=admin["email"])
+        return _invite_response(pending, email_sent=sent)
 
     invite = UserInvite(
         email=email,
@@ -316,7 +333,8 @@ def create_invite(
     db.add(invite)
     db.commit()
     db.refresh(invite)
-    return _invite_response(invite)
+    sent = _dispatch_invite_email(invite, invited_by=admin["email"])
+    return _invite_response(invite, email_sent=sent)
 
 
 @router.delete("/invites/{invite_id}", response_model=dict)

@@ -1921,7 +1921,7 @@ export const deleteAlert = async (token: string, id: number): Promise<void> => {
   const url = new URL(`${API_BASE}/alerts/${id}`, window.location.origin).toString();
   const response = await fetch(url, {
     method: "DELETE",
-    headers: { Accept: "application/json", ...alertTokenHeader(token) },
+    headers: { Accept: "application/json", ...authHeaders(), ...alertTokenHeader(token) },
     signal: controller.signal,
   }).finally(() => clearTimeout(timeout));
   if (!response.ok && response.status !== 204) {

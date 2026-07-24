@@ -9,6 +9,7 @@ Covers:
 - require_pro_access() passes silently when enforcement is on and the token is a valid Pro token
 """
 
+import json
 import os
 import sys
 import time
@@ -20,10 +21,13 @@ from fastapi import HTTPException
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints.auth import (
+    _hash_password,
     issue_token,
     pro_access_enforced,
     require_pro_access,
 )
+
+_BCRYPT_HASH = _hash_password("correct-horse")
 
 
 class _DummyRequest:
@@ -53,20 +57,25 @@ class _UnsafeRequest:
         self.client = type("Client", (), {"host": "127.0.0.1"})()
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_token(plan: str, *, secret: str = "test-secret") -> str:
-    os.environ["AUTH_TOKEN_SECRET"] = secret
+def _configure_account(monkeypatch, plan: str, *, secret: str = "test-secret") -> str:
+    """Seed AUTH_USERS so live session revalidation matches the issued token plan."""
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", secret)
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps(
+            [
+                {
+                    "email": "user@example.com",
+                    "password_hash": _BCRYPT_HASH,
+                    "name": "User Example",
+                    "plan": plan,
+                    "subscription_status": "active" if plan in {"pro", "enterprise"} else "none",
+                }
+            ]
+        ),
+    )
     token, _ = issue_token("user@example.com", plan, now=time.time())
     return token
-
-
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
 
 
 def test_pro_access_enforced_by_default(monkeypatch):
@@ -112,9 +121,7 @@ def test_require_pro_access_rejects_missing_token_when_enforced(monkeypatch):
 def test_require_pro_access_rejects_free_plan_token_when_enforced(monkeypatch):
     """A valid token for a free-plan user → HTTP 403 (subscription required)."""
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
-    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
-
-    free_token = _make_token("free")
+    free_token = _configure_account(monkeypatch, "free")
 
     with pytest.raises(HTTPException) as exc_info:
         require_pro_access(request=_DummyRequest(), authorization=f"Bearer {free_token}")
@@ -125,9 +132,7 @@ def test_require_pro_access_rejects_free_plan_token_when_enforced(monkeypatch):
 def test_require_pro_access_allows_valid_pro_token_when_enforced(monkeypatch):
     """A valid Pro token passes through silently when enforcement is on."""
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
-    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
-
-    pro_token = _make_token("pro")
+    pro_token = _configure_account(monkeypatch, "pro")
 
     result = require_pro_access(request=_DummyRequest(), authorization=f"Bearer {pro_token}")
     assert result is None
@@ -135,8 +140,7 @@ def test_require_pro_access_allows_valid_pro_token_when_enforced(monkeypatch):
 
 def test_require_pro_access_rejects_cookie_only_unsafe_method(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
-    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
-    token = _make_token("pro")
+    token = _configure_account(monkeypatch, "pro")
     req = _UnsafeRequest(origin="http://localhost:5173")
     req.cookies = {"mm_session": token}
 
@@ -148,9 +152,8 @@ def test_require_pro_access_rejects_cookie_only_unsafe_method(monkeypatch):
 
 def test_require_pro_access_rejects_untrusted_origin_on_write(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
-    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
-    token = _make_token("pro")
+    token = _configure_account(monkeypatch, "pro")
     req = _UnsafeRequest(origin="https://evil.example")
 
     with pytest.raises(HTTPException) as exc_info:
@@ -161,8 +164,7 @@ def test_require_pro_access_rejects_untrusted_origin_on_write(monkeypatch):
 
 def test_require_pro_access_allows_bearer_write_from_trusted_origin(monkeypatch):
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
-    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")
-    token = _make_token("pro")
+    token = _configure_account(monkeypatch, "pro")
     req = _UnsafeRequest(origin="http://localhost:5173")
     assert require_pro_access(request=req, authorization=f"Bearer {token}") is None

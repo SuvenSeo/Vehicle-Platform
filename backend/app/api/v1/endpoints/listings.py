@@ -21,7 +21,13 @@ from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
-from app.api.v1.endpoints.auth import PRO_PLANS, verify_token
+from app.api.v1.endpoints.auth import PRO_PLANS, resolve_live_session, verify_token
+from app.utils.plan_limits import (
+    FREE_LISTINGS_MAX_PAGE,
+    FREE_LISTINGS_MAX_SIZE,
+    FREE_PRICE_DROPS_LIMIT,
+    is_free_browse_plan,
+)
 from app.models.schemas import (
     CarListingRead,
     ListingsResponse,
@@ -40,13 +46,13 @@ _listings_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_listings_rate_limiter)])
 
-FREE_LISTINGS_MAX_SIZE = 12
-FREE_LISTINGS_MAX_PAGE = 1
 
-
-def _request_plan(request: Optional[Request] = None, authorization: Optional[str] = None) -> Optional[str]:
-    """Best-effort plan from Bearer or session cookie. None if anonymous/open mode."""
-    # Direct unit calls may pass FastAPI Header()/Query() defaults instead of None.
+def _request_live_access(
+    request: Optional[Request] = None,
+    authorization: Optional[str] = None,
+    db: Optional[Session] = None,
+) -> tuple[Optional[str], Optional[str]]:
+    """Return (plan, role) from a live session when possible; else JWT plan only."""
     auth_value = authorization if isinstance(authorization, str) else None
     bearer = (auth_value or "").removeprefix("Bearer ").strip()
     token = bearer
@@ -54,17 +60,27 @@ def _request_plan(request: Optional[Request] = None, authorization: Optional[str
         cookies = getattr(request, "cookies", None) or {}
         token = str(cookies.get("mm_session") or "").strip()
     if not token:
-        return None
+        return None, None
     payload = verify_token(token)
     if not payload:
-        return None
-    return str(payload.get("plan") or "free").strip().lower()
+        return None, None
+    if db is not None:
+        try:
+            live = resolve_live_session(payload, db)
+            return str(live.get("plan") or "free").lower(), str(live.get("role") or "user").lower()
+        except Exception:
+            return None, None
+    return str(payload.get("plan") or "free").strip().lower(), str(payload.get("role") or "user").strip().lower()
 
 
-def _is_free_browse_plan(plan: Optional[str]) -> bool:
-    if plan is None:
-        return False
-    return plan not in PRO_PLANS and plan != "admin"
+def _request_plan(request: Optional[Request] = None, authorization: Optional[str] = None) -> Optional[str]:
+    plan, _role = _request_live_access(request, authorization, db=None)
+    return plan
+
+
+def _is_free_browse_plan(plan: Optional[str], role: Optional[str] = None) -> bool:
+    return is_free_browse_plan(plan, role=role)
+
 
 SOURCE_LABELS = {
     "ikman": "Ikman",
@@ -1261,8 +1277,8 @@ def search_listings(
         size = 10
     size = min(size, 100)
 
-    plan = _request_plan(request, authorization)
-    free_browse = _is_free_browse_plan(plan)
+    plan, role = _request_live_access(request, authorization, db)
+    free_browse = _is_free_browse_plan(plan, role)
     if free_browse:
         # Free teaser: first page only, capped page size, no deal-score sort.
         page = min(page, FREE_LISTINGS_MAX_PAGE)
@@ -1421,8 +1437,10 @@ def search_listings(
 
 @router.get("/price-drops", response_model=PriceDropsResponse)
 def get_price_drops(
+    request: Request,
     days: int = Query(7, ge=1, le=30),
     limit: int = Query(20, ge=1, le=50),
+    authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """Biggest recorded price cuts in the window, live listings only.
@@ -1430,6 +1448,10 @@ def get_price_drops(
     A cut is a history point lower than the immediately-preceding tracked
     price for the same vehicle (LAG window over vehicle_price_history).
     """
+    plan, role = _request_live_access(request, authorization, db)
+    if _is_free_browse_plan(plan, role):
+        limit = min(limit, FREE_PRICE_DROPS_LIMIT)
+
     cutoff = utc_now() - timedelta(days=days)
 
     prev_price = (
@@ -2116,10 +2138,19 @@ def get_listing_history_report(listing_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{listing_id}", response_model=CarListingRead)
-def get_listing(listing_id: int, db: Session = Depends(get_db)):
+def get_listing(
+    listing_id: int,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found.")
+    plan, role = _request_live_access(request, authorization, db)
+    if _is_free_browse_plan(plan, role):
+        listing.deal_score = None
+        listing.market_median_lkr = None
     return listing
 
 @router.get("/{listing_id}/similar", response_model=List[CarListingRead])

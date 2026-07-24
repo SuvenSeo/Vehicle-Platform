@@ -30,6 +30,7 @@ _TABLE_COLUMN_PATCHES = (
     ),
     ("dealer_profiles", "billing_email", "VARCHAR(255)", "VARCHAR(255)"),
     ("dealer_profiles", "current_period_end", "TIMESTAMPTZ", "DATETIME"),
+    ("platform_users", "token_version", "INTEGER NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
 )
 
 # (index_name, table_name, columns SQL fragment)

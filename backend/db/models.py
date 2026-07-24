@@ -406,6 +406,8 @@ class PlatformUser(Base):
     subscription_status = Column(String(20), nullable=False, default="none")
     role = Column(String(20), nullable=False, default="user")  # user | admin
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    # Bumped on logout / plan-role-active changes to invalidate outstanding JWTs.
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
     invited_by_email = Column(String(255), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
