@@ -20,3 +20,14 @@ def _filter_known_test_warnings() -> None:
         message="Support for class-based `config` is deprecated.*",
         category=DeprecationWarning,
     )
+
+
+@pytest.fixture(autouse=True)
+def _open_app_access_for_unit_tests(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Product APIs stay open in unit tests unless a test opts into the gate.
+
+    Production defaults APP_ACCESS_ENFORCED=true; tests that need the gate
+    should setenv("APP_ACCESS_ENFORCED", "true") themselves.
+    """
+    monkeypatch.setenv("APP_ACCESS_ENFORCED", "false")
+

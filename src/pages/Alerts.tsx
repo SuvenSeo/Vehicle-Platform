@@ -13,7 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { revealItem, springSoft } from "@/lib/motion";
+import { useAuth } from "@/lib/authContext";
+import { FREE_ALERTS_LIMIT, freePlanCopy, hasFullPlatformAccess } from "@/lib/planLimits";
 
 const itemVariants = revealItem;
 
@@ -154,6 +157,8 @@ function AlertMatchSection({ token }: { token: string }) {
 interface CreateAlertFormProps {
   onCreated: () => void;
   token: string;
+  alertCount: number;
+  fullAccess: boolean;
   onCreate: (data: {
     make?: string;
     model?: string;
@@ -163,7 +168,7 @@ interface CreateAlertFormProps {
   }) => Promise<unknown>;
 }
 
-function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
+function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: CreateAlertFormProps) {
   const { t } = useAppPreferences();
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
@@ -173,11 +178,20 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const atFreeLimit = !fullAccess && alertCount >= FREE_ALERTS_LIMIT;
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullAccess && alertCount >= FREE_ALERTS_LIMIT) {
+      setFormError(`Free plan includes ${FREE_ALERTS_LIMIT} alert. Upgrade to Pro for more.`);
+      return;
+    }
     if (!make.trim() && !model.trim() && !district.trim() && !maxPrice.trim()) {
       setFormError("Provide at least one filter.");
+      return;
+    }
+    if (!fullAccess && notifyPhone.trim()) {
+      setFormError("WhatsApp notifications unlock with Pro.");
       return;
     }
     if (!isValidNotifyPhone(notifyPhone)) {
@@ -193,7 +207,7 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
         model: model.trim() || undefined,
         district: district.trim() || undefined,
         max_price: Number.isFinite(price) && price > 0 ? price : undefined,
-        notify_phone: notifyPhone.trim() || undefined,
+        notify_phone: fullAccess ? (notifyPhone.trim() || undefined) : undefined,
       });
       setMake(""); setModel(""); setDistrict(""); setMaxPrice(""); setNotifyPhone("");
       setOpen(false);
@@ -203,7 +217,17 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
     } finally {
       setSaving(false);
     }
-  }, [make, model, district, maxPrice, notifyPhone, onCreate, onCreated]);
+  }, [make, model, district, maxPrice, notifyPhone, onCreate, onCreated, fullAccess, alertCount]);
+
+  if (atFreeLimit) {
+    return (
+      <UpgradePrompt
+        variant="strip"
+        title={freePlanCopy.alertsTitle}
+        body={freePlanCopy.alertsBody}
+      />
+    );
+  }
 
   if (!open) {
     return (
@@ -252,22 +276,28 @@ function CreateAlertForm({ onCreated, onCreate }: CreateAlertFormProps) {
             className="num h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
           />
         </div>
-        <div className="col-span-2">
-          <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
-            {t("alerts.notifyWhatsapp", "WhatsApp (optional)")}
-          </label>
-          <Input
-            id="alert-whatsapp"
-            value={notifyPhone}
-            onChange={(e) => setNotifyPhone(e.target.value)}
-            placeholder="0771234567"
-            inputMode="tel"
-            className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
-          />
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Get a WhatsApp ping when new matches appear (requires Twilio on the server).
-          </p>
-        </div>
+        {fullAccess ? (
+          <div className="col-span-2">
+            <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+              {t("alerts.notifyWhatsapp", "WhatsApp (optional)")}
+            </label>
+            <Input
+              id="alert-whatsapp"
+              value={notifyPhone}
+              onChange={(e) => setNotifyPhone(e.target.value)}
+              placeholder="0771234567"
+              inputMode="tel"
+              className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Get a WhatsApp ping when new matches appear (requires Twilio on the server).
+            </p>
+          </div>
+        ) : (
+          <div className="col-span-2 rounded-xl border border-primary/15 bg-primary/[0.05] px-3 py-2.5 text-[11px] text-muted-foreground">
+            WhatsApp match pings unlock with Pro.
+          </div>
+        )}
       </div>
       {formError && (
         <p role="alert" className="text-[11px] font-medium text-destructive/80">{formError}</p>
@@ -343,6 +373,8 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
 
 export default function Alerts() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const { alerts, loading, error, token, refresh, create, remove } = useServerMarketAlerts();
 
   const localAlerts = loadMarketAlerts();
@@ -358,7 +390,7 @@ export default function Alerts() {
         title={<>{t("alerts.title", "Market Alerts")}</>}
         description={t("alerts.description", "Get notified when vehicles matching your criteria appear on the market.")}
         highlights={[
-          { label: "Active", value: String(alerts.length), hint: "Saved alert rules" },
+          { label: "Active", value: String(alerts.length), hint: fullAccess ? "Saved alert rules" : `Free limit ${FREE_ALERTS_LIMIT}` },
           { label: "Matches", value: "Live", hint: "Scan against inventory" },
           { label: "Sync", value: token ? "On" : "Local", hint: "Server or device storage" },
         ]}
@@ -366,7 +398,13 @@ export default function Alerts() {
 
       <PageBody narrow className="py-8 sm:py-10">
         <motion.div variants={itemVariants} className="mb-14">
-        <CreateAlertForm token={token} onCreated={refresh} onCreate={create} />
+        <CreateAlertForm
+          token={token}
+          onCreated={refresh}
+          onCreate={create}
+          alertCount={alerts.length}
+          fullAccess={fullAccess}
+        />
         </motion.div>
 
       {/* Active alerts */}

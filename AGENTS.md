@@ -21,16 +21,20 @@ the UI.
   `ALLOW_SQLITE_FALLBACK=true` and the backend uses a local SQLite file
   (`backend/autolens.db`). Without it the backend aborts startup with
   "No database URL configured" (this flag defaults to `false`).
-- For local work also set `PRO_ACCESS_ENFORCED=false`, otherwise every
-  `/api/v1/pro/*` route requires a real auth token.
+- For local work also set `PRO_ACCESS_ENFORCED=false` and
+  `APP_ACCESS_ENFORCED=false`, otherwise `/api/v1/pro/*` and product data
+  routes require a real auth token.
 - Backend CI passes these inline (`ALLOW_SQLITE_FALLBACK=true python -m pytest tests`).
   Locally you can instead put them in `backend/.env` (gitignored).
 - The frontend needs no `.env` in dev — `src/services/api.ts` defaults
   `VITE_API_URL` to `/api/v1` when `import.meta.env.DEV`.
+- Platform access is invite-only: bootstrap an admin via `AUTH_USERS` with
+  `"role":"admin"`, set `VITE_ENABLE_BACKEND_AUTH=true`, then invite users
+  from `/admin` (email + free/pro plan). Invited users complete `/sign-up?token=…`.
 
 ### Run commands (local dev)
 
-- Backend: `cd backend && ALLOW_SQLITE_FALLBACK=true PRO_ACCESS_ENFORCED=false .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`
+- Backend: `cd backend && ALLOW_SQLITE_FALLBACK=true PRO_ACCESS_ENFORCED=false APP_ACCESS_ENFORCED=false .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000`
 - Frontend: `npm run dev` (from repo root).
 
 ### Non-obvious gotchas

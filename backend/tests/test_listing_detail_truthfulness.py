@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,6 +10,10 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import listings
 from db.models import Base, CarListing
+
+
+def _anon_request():
+    return SimpleNamespace(cookies={})
 
 
 def _session():
@@ -70,7 +75,7 @@ def test_search_listings_keeps_missing_specs_unknown_when_source_fields_absent()
     db.add(listing)
     db.commit()
 
-    payload = listings.search_listings(sort="newest", page=1, size=12, db=db)
+    payload = listings.search_listings(request=_anon_request(), sort="newest", page=1, size=12, db=db)
 
     assert payload.total == 1
     row = payload.items[0]

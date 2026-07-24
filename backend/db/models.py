@@ -391,3 +391,51 @@ class ImagePhashJob(Base):
         Index("idx_image_phash_jobs_status", "status", "id"),
         Index("idx_image_phash_jobs_listing", "listing_id"),
     )
+
+
+class PlatformUser(Base):
+    """Invited Motormila accounts (admin-provisioned; not self-serve open signup)."""
+
+    __tablename__ = "platform_users"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=False)
+    name = Column(String(120), nullable=False)
+    plan = Column(String(20), nullable=False, default="free")  # free | pro | enterprise
+    subscription_status = Column(String(20), nullable=False, default="none")
+    role = Column(String(20), nullable=False, default="user")  # user | admin
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    invited_by_email = Column(String(255), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_platform_users_email", "email"),
+        Index("idx_platform_users_plan", "plan"),
+        Index("idx_platform_users_role", "role"),
+    )
+
+
+class UserInvite(Base):
+    """Admin-issued email invites. Signup requires a valid pending invite token."""
+
+    __tablename__ = "user_invites"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False)
+    plan = Column(String(20), nullable=False, default="free")  # free | pro | enterprise
+    role = Column(String(20), nullable=False, default="user")  # user | admin
+    token = Column(String(64), nullable=False, unique=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending | accepted | revoked
+    invited_by_email = Column(String(255), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_user_invites_email", "email"),
+        Index("idx_user_invites_token", "token"),
+        Index("idx_user_invites_status", "status"),
+    )

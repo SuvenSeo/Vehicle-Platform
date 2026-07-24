@@ -1,8 +1,37 @@
 import { TestRouter } from "@/test/testUtils";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactElement } from "react";
+import { AuthProvider } from "@/lib/authContext";
 import { ListingCard } from "@/components/ListingCard";
 import type { CarListing } from "@/types/car";
+
+function installProAuth() {
+  const store = new Map<string, string>();
+  store.set(
+    "autolens.auth_user",
+    JSON.stringify({
+      email: "pro@example.com",
+      name: "Pro User",
+      plan: "pro",
+      subscriptionStatus: "active",
+      role: "user",
+      avatarInitials: "PU",
+    }),
+  );
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
 
 function buildListing(overrides: Partial<CarListing> = {}): CarListing {
   return {
@@ -30,15 +59,21 @@ function buildListing(overrides: Partial<CarListing> = {}): CarListing {
   };
 }
 
+function renderCard(ui: ReactElement) {
+  return render(
+    <AuthProvider>
+      <TestRouter>{ui}</TestRouter>
+    </AuthProvider>,
+  );
+}
+
 describe("ListingCard render states and interactions", () => {
+  beforeEach(() => installProAuth());
+
   it("uses compact layout classes for denser market cards", () => {
     const listing = buildListing();
 
-    render(
-      <TestRouter>
-        <ListingCard listing={listing} />
-      </TestRouter>,
-    );
+    renderCard(<ListingCard listing={listing} />);
 
     const card = screen.getByRole("article", { name: /Toyota Aqua listing card/i });
     const cardLink = screen.getByRole("link", { name: /Open Toyota Aqua/i });
@@ -60,11 +95,7 @@ describe("ListingCard render states and interactions", () => {
       images: [],
     });
 
-    render(
-      <TestRouter>
-        <ListingCard listing={listing} />
-      </TestRouter>,
-    );
+    renderCard(<ListingCard listing={listing} />);
 
     expect(screen.getByText("District N/A")).toBeInTheDocument();
     expect(screen.getByText("Mileage N/A")).toBeInTheDocument();
@@ -76,11 +107,7 @@ describe("ListingCard render states and interactions", () => {
       price_lkr: null,
     });
 
-    render(
-      <TestRouter>
-        <ListingCard listing={listing} />
-      </TestRouter>,
-    );
+    renderCard(<ListingCard listing={listing} />);
 
     expect(screen.getByText("Price unavailable")).toBeInTheDocument();
   });
@@ -96,11 +123,7 @@ describe("ListingCard render states and interactions", () => {
       is_dealer: true,
     });
 
-    render(
-      <TestRouter>
-        <ListingCard listing={listing} />
-      </TestRouter>,
-    );
+    renderCard(<ListingCard listing={listing} />);
 
     expect(screen.getByText(/fair market value/i)).toBeInTheDocument();
     expect(screen.getByText(/% below fmv/i)).toBeInTheDocument();
@@ -111,16 +134,14 @@ describe("ListingCard render states and interactions", () => {
     const onCompareToggle = vi.fn();
     const onWatchlistToggle = vi.fn();
 
-    render(
-      <TestRouter>
-        <ListingCard
-          listing={listing}
-          onCompareToggle={onCompareToggle}
-          onWatchlistToggle={onWatchlistToggle}
-          isComparing={false}
-          isWatchlisted={false}
-        />
-      </TestRouter>,
+    renderCard(
+      <ListingCard
+        listing={listing}
+        onCompareToggle={onCompareToggle}
+        onWatchlistToggle={onWatchlistToggle}
+        isComparing={false}
+        isWatchlisted={false}
+      />,
     );
 
     fireEvent.click(screen.getByLabelText("Add to watchlist"));

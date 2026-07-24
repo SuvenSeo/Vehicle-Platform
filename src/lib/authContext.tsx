@@ -7,15 +7,19 @@ export interface AuthUser {
   name: string;
   plan: "free" | "pro" | "enterprise";
   subscriptionStatus: "none" | "trialing" | "active" | "past_due";
+  role: "user" | "admin";
   avatarInitials: string;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (input: { token: string; name: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   hasProAccess: boolean;
+  isAdmin: boolean;
+  authReady: boolean;
   previewAccessEnabled: boolean;
 }
 
@@ -60,6 +64,7 @@ function parseDemoUsers(): Record<string, DemoAccountRecord> {
         password,
         name: String(item.name),
         plan,
+        role: item?.role === "admin" ? "admin" : "user",
         subscriptionStatus:
           item.subscriptionStatus === "active" || item.subscriptionStatus === "trialing" || item.subscriptionStatus === "past_due"
             ? item.subscriptionStatus
@@ -80,11 +85,12 @@ export const DEMO_AUTH_ENABLED = Object.keys(DEMO_USERS).length > 0;
 const PREVIEW_AUTH_ENABLED = !BACKEND_AUTH_ENABLED;
 // Passwords are intentionally NOT exported: the sign-in page may list which
 // review accounts exist, but secrets never leave this module.
-export const DEMO_ACCOUNT_SUMMARY = Object.values(DEMO_USERS).map(({ email, name, plan, subscriptionStatus, avatarInitials }) => ({
+export const DEMO_ACCOUNT_SUMMARY = Object.values(DEMO_USERS).map(({ email, name, plan, subscriptionStatus, role, avatarInitials }) => ({
   email,
   name,
   plan,
   subscriptionStatus,
+  role,
   avatarInitials,
 }));
 
@@ -118,6 +124,7 @@ function normalizeServerUser(raw: Partial<AuthUser> | undefined, email: string):
     name,
     plan,
     subscriptionStatus,
+    role: raw?.role === "admin" ? "admin" : "user",
     avatarInitials: String(raw?.avatarInitials || name.split(/\s+/).map((part) => part[0]).join("") || "AU")
       .slice(0, 3)
       .toUpperCase(),
@@ -148,8 +155,44 @@ async function loginWithBackend(email: string, password: string): Promise<AuthUs
   return normalizeServerUser(data.user, email);
 }
 
+async function signupWithBackend(input: {
+  token: string;
+  name: string;
+  password: string;
+}): Promise<AuthUser | null> {
+  if (!BACKEND_AUTH_ENABLED) {
+    throw new Error("Backend auth is required to accept invites.");
+  }
+
+  const response = await fetch(new URL(`${API_BASE}/auth/signup`, window.location.origin).toString(), {
+    method: "POST",
+    credentials: resolveFetchCredentials(API_BASE),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    let detail = "Invite signup failed.";
+    try {
+      const body = (await response.json()) as { detail?: string };
+      if (typeof body.detail === "string") detail = body.detail;
+    } catch {
+      // keep default
+    }
+    throw new Error(detail);
+  }
+
+  const data = (await response.json().catch(() => ({}))) as LoginResponse;
+  storeAuthToken(data.token || null);
+  return normalizeServerUser(data.user, data.user?.email || "");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadUser);
+  const [authReady, setAuthReady] = useState(!BACKEND_AUTH_ENABLED);
   // Plan/status from localStorage alone is forgeable. When backend auth is on,
   // Pro routes also require a bearer token issued by /auth/login.
   const planAllowsPro = Boolean(
@@ -160,9 +203,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasProAccess = BACKEND_AUTH_ENABLED
     ? planAllowsPro && Boolean(getStoredAuthToken())
     : planAllowsPro;
+  const isAdmin = Boolean(user?.role === "admin");
 
   useEffect(() => {
-    if (!BACKEND_AUTH_ENABLED) return;
+    if (!BACKEND_AUTH_ENABLED) {
+      setAuthReady(true);
+      return;
+    }
 
     let cancelled = false;
     void (async () => {
@@ -194,6 +241,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
       } catch {
         // Soft-fail: keep local session for offline / cold-start flakiness.
+      } finally {
+        if (!cancelled) setAuthReady(true);
       }
     })();
 
@@ -210,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (serverUser) {
         setUser(serverUser);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(serverUser));
+        setAuthReady(true);
         return { success: true };
       }
     } catch (error) {
@@ -229,7 +279,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setUser(demoUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser));
+    setAuthReady(true);
     return { success: true };
+  }, []);
+
+  const signup = useCallback(async (input: { token: string; name: string; password: string }) => {
+    try {
+      const serverUser = await signupWithBackend(input);
+      if (!serverUser) return { success: false, error: "Sign-up failed." };
+      setUser(serverUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serverUser));
+      setAuthReady(true);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : "Sign-up failed." };
+    }
   }, []);
 
   const logout = useCallback(() => {
@@ -252,9 +316,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
+        signup,
         logout,
         isAuthenticated: user !== null,
         hasProAccess,
+        isAdmin,
+        authReady,
         previewAccessEnabled: PREVIEW_AUTH_ENABLED,
       }}
     >

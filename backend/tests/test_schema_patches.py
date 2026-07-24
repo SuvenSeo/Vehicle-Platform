@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import Column, Integer, MetaData, String, Table, Text, create_engine
@@ -14,6 +15,10 @@ from db.schema_patches import (
     _create_index_sql,
     apply_schema_patches,
 )
+
+
+def _anon_request():
+    return SimpleNamespace(cookies={})
 
 
 def _sqlite_index_columns(conn, index_name):
@@ -140,7 +145,7 @@ def test_search_listings_count_uses_id_only_subquery():
     )
     db.commit()
 
-    payload = listings.search_listings(page=1, size=10, db=db)
+    payload = listings.search_listings(request=_anon_request(), page=1, size=10, db=db)
     db.close()
 
     assert payload.total == 1

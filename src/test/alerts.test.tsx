@@ -1,6 +1,7 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
 import { TestRouter } from "@/test/testUtils";
 import type { ServerMarketAlert, AlertMatchResponse } from "@/services/api";
 
@@ -43,13 +44,42 @@ const EMPTY_MATCH: AlertMatchResponse = {
   checked_at: new Date().toISOString(),
 };
 
+function installProAuth() {
+  const store = new Map<string, string>();
+  store.set(
+    "autolens.auth_user",
+    JSON.stringify({
+      email: "pro@example.com",
+      name: "Pro User",
+      plan: "pro",
+      subscriptionStatus: "active",
+      role: "user",
+      avatarInitials: "PU",
+    }),
+  );
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
+
 function renderAlerts() {
   return render(
-    <AppPreferencesProvider>
-      <TestRouter>
-        <Alerts />
-      </TestRouter>
-    </AppPreferencesProvider>,
+    <AuthProvider>
+      <AppPreferencesProvider>
+        <TestRouter>
+          <Alerts />
+        </TestRouter>
+      </AppPreferencesProvider>
+    </AuthProvider>,
   );
 }
 
@@ -65,6 +95,7 @@ async function renderAlertsReady() {
 describe("Alerts page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    installProAuth();
     mockUseServerAlerts.mockReturnValue({ ...BASE_HOOK_RESULT });
     mockMatchAlerts.mockResolvedValue(EMPTY_MATCH);
     mockFormatPrice.mockImplementation((price: number | null) =>

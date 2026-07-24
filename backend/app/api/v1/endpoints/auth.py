@@ -1,43 +1,63 @@
-"""Environment-configured authentication with signed bearer tokens.
+"""Authentication with signed bearer tokens.
 
-Accounts live in the AUTH_USERS env var (JSON list), tokens are HMAC-SHA256
-signed with AUTH_TOKEN_SECRET. Passwords are bcrypt hashes only — legacy
-unsalted SHA-256 entries are no longer accepted.
+Accounts resolve from (in order):
+  1. ``platform_users`` DB table (invite-provisioned accounts)
+  2. ``AUTH_USERS`` env JSON (bootstrap / legacy deployments)
+
+Tokens are HMAC-SHA256 signed with AUTH_TOKEN_SECRET. Passwords are bcrypt
+hashes only — legacy unsalted SHA-256 entries are no longer accepted.
 
 AUTH_USERS example:
     [{"email": "owner@example.com", "password_hash": "$2b$12$...",
-      "name": "Owner", "plan": "enterprise", "subscription_status": "active"}]
+      "name": "Owner", "plan": "enterprise", "subscription_status": "active",
+      "role": "admin"}]
 
 Generate a password hash with:
     python -c "import bcrypt; print(bcrypt.hashpw(b'your-password', bcrypt.gensalt()).decode())"
 
 /api/v1/pro/* endpoints require a valid pro/enterprise token by default;
 set PRO_ACCESS_ENFORCED=false only for local development.
+
+App-wide API gating uses APP_ACCESS_ENFORCED (default true, same opt-out).
 """
+
+from __future__ import annotations
 
 import base64
 import hashlib
 import hmac
 import json
 import os
+import secrets
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import urlparse
-import bcrypt
 
-from fastapi import APIRouter, Header, HTTPException, Request, Response
+import bcrypt
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from app.services.rate_limit import RateLimiter
+from db.models import PlatformUser, UserInvite
+from db.session import get_db
 
 router = APIRouter()
 
 TOKEN_TTL_SECONDS_DEFAULT = 7 * 24 * 3600
+INVITE_TTL_DAYS_DEFAULT = 14
 SESSION_COOKIE_NAME = "mm_session"
 ALLOWED_PLANS = {"free", "pro", "enterprise"}
 ALLOWED_SUBSCRIPTION_STATUSES = {"none", "trialing", "active", "past_due", "canceled"}
+ALLOWED_ROLES = {"user", "admin"}
 PRO_PLANS = {"pro", "enterprise"}
 ACTIVE_PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
+
+
+def _session_or_none(db: object) -> Optional[Session]:
+    """FastAPI injects Session; direct unit calls may pass Depends(...) or omit db."""
+    return db if isinstance(db, Session) else None
 
 _login_rate_limiter = RateLimiter(
     max_requests=10,
@@ -49,11 +69,22 @@ _me_rate_limiter = RateLimiter(
     window_seconds=60,
     message="Too many account lookups. Try again shortly.",
 )
+_signup_rate_limiter = RateLimiter(
+    max_requests=10,
+    window_seconds=60,
+    message="Too many sign-up attempts. Try again shortly.",
+)
 
 
 class LoginRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=1, max_length=200)
+
+
+class SignupRequest(BaseModel):
+    token: str = Field(..., min_length=16, max_length=128)
+    name: str = Field(..., min_length=1, max_length=120)
+    password: str = Field(..., min_length=8, max_length=200)
 
 
 def _token_secret() -> str:
@@ -69,6 +100,17 @@ def _token_ttl_seconds() -> int:
     except ValueError:
         pass
     return TOKEN_TTL_SECONDS_DEFAULT
+
+
+def _invite_ttl_days() -> int:
+    raw = os.getenv("AUTH_INVITE_TTL_DAYS", "").strip()
+    try:
+        parsed = int(raw)
+        if parsed > 0:
+            return parsed
+    except ValueError:
+        pass
+    return INVITE_TTL_DAYS_DEFAULT
 
 
 def _hash_password(password: str) -> str:
@@ -108,10 +150,10 @@ def _configured_users() -> dict[str, dict]:
 
         plan = str(item.get("plan") or "pro").strip().lower()
         subscription_status = str(item.get("subscription_status") or "active").strip().lower()
-        
-        # If plain password is provided, hash it with bcrypt
+        role = str(item.get("role") or "user").strip().lower()
+
         final_hash = password_hash or _hash_password(plain_password)
-        
+
         users[email] = {
             "email": email,
             "password_hash": final_hash,
@@ -120,12 +162,32 @@ def _configured_users() -> dict[str, dict]:
             "subscription_status": subscription_status
             if subscription_status in ALLOWED_SUBSCRIPTION_STATUSES
             else "active",
+            "role": role if role in ALLOWED_ROLES else "user",
+            "is_active": True,
+            "source": "env",
         }
     return users
 
 
 def auth_is_configured() -> bool:
-    return bool(_token_secret()) and bool(_configured_users())
+    """Auth works when a signing secret is set and at least one account source exists.
+
+    Account sources: AUTH_USERS env, or any row in platform_users (checked at
+    request time). Secret alone is enough for invite validation / signup once
+    an admin has been seeded via AUTH_USERS or a prior DB user.
+    """
+    return bool(_token_secret())
+
+
+def auth_has_login_accounts(db: Optional[Session] = None) -> bool:
+    if _configured_users():
+        return True
+    if db is None:
+        return False
+    try:
+        return db.query(PlatformUser.id).filter(PlatformUser.is_active.is_(True)).first() is not None
+    except Exception:
+        return False
 
 
 def _b64url_encode(payload: bytes) -> str:
@@ -142,17 +204,22 @@ def issue_token(
     plan: str,
     subscription_status: str = "active",
     *,
+    role: str = "user",
     now: Optional[float] = None,
 ) -> tuple[str, int]:
     secret = _token_secret()
     expires_at = int((time.time() if now is None else now) + _token_ttl_seconds())
     normalized_subscription_status = str(subscription_status or "active").strip().lower()
+    normalized_role = str(role or "user").strip().lower()
+    if normalized_role not in ALLOWED_ROLES:
+        normalized_role = "user"
     payload = _b64url_encode(
         json.dumps(
             {
                 "email": email,
                 "plan": plan,
                 "subscription_status": normalized_subscription_status,
+                "role": normalized_role,
                 "exp": expires_at,
             },
             separators=(",", ":"),
@@ -192,8 +259,80 @@ def _user_response(record: dict) -> dict:
         "name": name,
         "plan": record["plan"],
         "subscriptionStatus": record["subscription_status"],
+        "role": record.get("role") or "user",
         "avatarInitials": initials,
     }
+
+
+def _platform_user_to_record(user: PlatformUser) -> dict:
+    return {
+        "email": user.email,
+        "password_hash": user.password_hash,
+        "name": user.name,
+        "plan": user.plan,
+        "subscription_status": user.subscription_status,
+        "role": user.role,
+        "is_active": bool(user.is_active),
+        "source": "db",
+        "id": user.id,
+    }
+
+
+def resolve_user_record(email: str, db: Optional[Session] = None) -> Optional[dict]:
+    """Resolve an account by email from DB first, then AUTH_USERS env."""
+    normalized = email.strip().lower()
+    if not normalized:
+        return None
+
+    if db is not None:
+        try:
+            row = db.query(PlatformUser).filter(PlatformUser.email == normalized).first()
+            if row is not None:
+                if not row.is_active:
+                    return None
+                return _platform_user_to_record(row)
+        except Exception:
+            # Table may not exist yet during early migrate/tests — fall through.
+            pass
+
+    return _configured_users().get(normalized)
+
+
+def sync_env_user_to_db(record: dict, db: Session) -> Optional[PlatformUser]:
+    """Upsert an AUTH_USERS bootstrap account into platform_users."""
+    email = record["email"]
+    existing = db.query(PlatformUser).filter(PlatformUser.email == email).first()
+    if existing is not None:
+        return existing
+    user = PlatformUser(
+        email=email,
+        password_hash=record["password_hash"],
+        name=record["name"],
+        plan=record["plan"],
+        subscription_status=record["subscription_status"],
+        role=record.get("role") or "user",
+        is_active=True,
+        invited_by_email="system:AUTH_USERS",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def default_subscription_for_plan(plan: str) -> str:
+    if plan in PRO_PLANS:
+        return "active"
+    return "none"
+
+
+def generate_invite_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def invite_expiry(*, now: Optional[datetime] = None) -> datetime:
+    base = now or datetime.now(timezone.utc)
+    return base + timedelta(days=_invite_ttl_days())
 
 
 def _cookie_secure() -> bool:
@@ -245,25 +384,136 @@ def _clear_session_cookie(response: Response) -> None:
     )
 
 
+def _issue_login_response(record: dict, response: Response, db: Optional[Session] = None) -> dict:
+    session = _session_or_none(db)
+    if session is not None and record.get("source") == "env":
+        try:
+            sync_env_user_to_db(record, session)
+        except Exception:
+            session.rollback()
+
+    if session is not None and record.get("id"):
+        try:
+            row = session.query(PlatformUser).filter(PlatformUser.id == record["id"]).first()
+            if row is not None:
+                row.last_login_at = datetime.now(timezone.utc)
+                session.commit()
+        except Exception:
+            session.rollback()
+
+    token, expires_at = issue_token(
+        record["email"],
+        record["plan"],
+        record["subscription_status"],
+        role=record.get("role") or "user",
+    )
+    _set_session_cookie(response, token, expires_at)
+    return {
+        "user": _user_response(record),
+        "token": token,
+        "expires_at": expires_at,
+    }
+
+
 @router.post("/login", response_model=dict)
-def login(payload: LoginRequest, request: Request, response: Response):
+def login(
+    payload: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Optional[Session] = Depends(get_db),
+):
     _login_rate_limiter(request)
 
     if not auth_is_configured():
         raise HTTPException(status_code=503, detail="Authentication is not configured on this deployment.")
 
     email = payload.email.strip().lower()
-    record = _configured_users().get(email)
+    record = resolve_user_record(email, _session_or_none(db))
 
     if not record or not _verify_password(payload.password, record["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    token, expires_at = issue_token(record["email"], record["plan"], record["subscription_status"])
-    _set_session_cookie(response, token, expires_at)
+    return _issue_login_response(record, response, db)
+
+
+@router.post("/signup", response_model=dict)
+def signup(
+    payload: SignupRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """Complete an admin invite: create platform_users row and sign the user in."""
+    _signup_rate_limiter(request)
+
+    if not auth_is_configured():
+        raise HTTPException(status_code=503, detail="Authentication is not configured on this deployment.")
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database is required for invite signup.")
+
+    token = payload.token.strip()
+    invite = db.query(UserInvite).filter(UserInvite.token == token).first()
+    if invite is None:
+        raise HTTPException(status_code=404, detail="Invite not found.")
+    if invite.status != "pending":
+        raise HTTPException(status_code=410, detail="Invite is no longer valid.")
+
+    expires_at = invite.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=410, detail="Invite has expired.")
+
+    email = invite.email.strip().lower()
+    existing = db.query(PlatformUser).filter(PlatformUser.email == email).first()
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="An account already exists for this email.")
+
+    plan = invite.plan if invite.plan in ALLOWED_PLANS else "free"
+    role = invite.role if invite.role in ALLOWED_ROLES else "user"
+    subscription_status = default_subscription_for_plan(plan)
+    name = payload.name.strip() or email.split("@")[0]
+
+    user = PlatformUser(
+        email=email,
+        password_hash=_hash_password(payload.password),
+        name=name,
+        plan=plan,
+        subscription_status=subscription_status,
+        role=role,
+        is_active=True,
+        invited_by_email=invite.invited_by_email,
+        last_login_at=datetime.now(timezone.utc),
+    )
+    invite.status = "accepted"
+    invite.accepted_at = datetime.now(timezone.utc)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    record = _platform_user_to_record(user)
+    return _issue_login_response(record, response, db)
+
+
+@router.get("/invite/{token}", response_model=dict)
+def invite_preview(token: str, db: Session = Depends(get_db)):
+    """Public preview of a pending invite (no secrets)."""
+    invite = db.query(UserInvite).filter(UserInvite.token == token.strip()).first()
+    if invite is None:
+        raise HTTPException(status_code=404, detail="Invite not found.")
+    if invite.status != "pending":
+        raise HTTPException(status_code=410, detail="Invite is no longer valid.")
+
+    expires_at = invite.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=410, detail="Invite has expired.")
+
     return {
-        "user": _user_response(record),
-        "token": token,
-        "expires_at": expires_at,
+        "email": invite.email,
+        "plan": invite.plan,
+        "expiresAt": expires_at.isoformat(),
     }
 
 
@@ -274,7 +524,11 @@ def logout(response: Response):
 
 
 @router.get("/me", response_model=dict)
-def me(request: Request, authorization: Optional[str] = Header(default=None)):
+def me(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Optional[Session] = Depends(get_db),
+):
     _me_rate_limiter(request)
     token = _extract_token(authorization, request)
     payload = verify_token(token)
@@ -282,7 +536,7 @@ def me(request: Request, authorization: Optional[str] = Header(default=None)):
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
     email = str(payload.get("email") or "").strip().lower()
-    record = _configured_users().get(email)
+    record = resolve_user_record(email, _session_or_none(db))
     if record:
         return _user_response(record)
 
@@ -290,6 +544,7 @@ def me(request: Request, authorization: Optional[str] = Header(default=None)):
     subscription_status = str(
         payload.get("subscription_status") or payload.get("subscriptionStatus") or "active"
     ).strip().lower()
+    role = str(payload.get("role") or "user").strip().lower()
     name = email.split("@")[0] if email else "Motormila User"
     return {
         "email": email,
@@ -298,6 +553,7 @@ def me(request: Request, authorization: Optional[str] = Header(default=None)):
         "subscriptionStatus": subscription_status
         if subscription_status in ALLOWED_SUBSCRIPTION_STATUSES
         else "none",
+        "role": role if role in ALLOWED_ROLES else "user",
         "avatarInitials": (name[:2] or "AU").upper(),
         "exp": payload.get("exp"),
     }
@@ -310,6 +566,15 @@ def pro_access_enforced() -> bool:
     enforces the gate; set it to false/0/no/off only for local development.
     """
     return os.getenv("PRO_ACCESS_ENFORCED", "true").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def app_access_enforced() -> bool:
+    """Require a signed-in session for protected product APIs.
+
+    Secure by default (same pattern as Pro). Opt out with APP_ACCESS_ENFORCED=false
+    for local development / open public demos.
+    """
+    return os.getenv("APP_ACCESS_ENFORCED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _cors_allowed_origins() -> set[str]:
@@ -351,6 +616,49 @@ def _is_unsafe_method(request: Request) -> bool:
         "PUT",
         "PATCH",
         "DELETE",
+    }
+
+
+def get_current_auth_payload(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+) -> dict:
+    token = _extract_token(authorization, request)
+    payload = verify_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+    return payload
+
+
+def require_authenticated(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+) -> Optional[dict]:
+    """Gate for product APIs when APP_ACCESS_ENFORCED is on."""
+    if not app_access_enforced():
+        return None
+    return get_current_auth_payload(request, authorization)
+
+
+def require_admin_access(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Require an authenticated admin (DB role or AUTH_USERS role=admin)."""
+    payload = get_current_auth_payload(request, authorization)
+    email = str(payload.get("email") or "").strip().lower()
+    record = resolve_user_record(email, db)
+    role = (record or {}).get("role") or str(payload.get("role") or "user")
+    if str(role).lower() != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required.")
+    return {
+        "email": email,
+        "plan": (record or {}).get("plan") or payload.get("plan") or "free",
+        "role": "admin",
+        "subscription_status": (record or {}).get("subscription_status")
+        or payload.get("subscription_status")
+        or "active",
     }
 
 

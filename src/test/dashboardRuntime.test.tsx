@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
 
 vi.mock("@/components/StatsBar", () => ({
   StatsBar: () => <div>StatsBar</div>,
@@ -94,11 +95,13 @@ function renderDashboard(initialEntries: string[] = ["/"]) {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <AppPreferencesProvider>
-        <TestRouter initialEntries={initialEntries}>
-          <Dashboard />
-        </TestRouter>
-      </AppPreferencesProvider>
+      <AuthProvider>
+        <AppPreferencesProvider>
+          <TestRouter initialEntries={initialEntries}>
+            <Dashboard />
+          </TestRouter>
+        </AppPreferencesProvider>
+      </AuthProvider>
     </QueryClientProvider>,
   );
 }

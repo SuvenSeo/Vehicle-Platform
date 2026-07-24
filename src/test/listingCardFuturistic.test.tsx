@@ -1,8 +1,37 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import type { ReactElement } from "react";
 import { TestRouter } from "@/test/testUtils";
+import { AuthProvider } from "@/lib/authContext";
 import { ListingCard } from "@/components/ListingCard";
 import type { CarListing } from "@/types/car";
+
+function installProAuth() {
+  const store = new Map<string, string>();
+  store.set(
+    "autolens.auth_user",
+    JSON.stringify({
+      email: "pro@example.com",
+      name: "Pro User",
+      plan: "pro",
+      subscriptionStatus: "active",
+      role: "user",
+      avatarInitials: "PU",
+    }),
+  );
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
 
 const sampleListing: CarListing = {
   id: 11,
@@ -28,13 +57,19 @@ const sampleListing: CarListing = {
   scraped_at: new Date().toISOString(),
 };
 
+function renderCard(ui: ReactElement) {
+  return render(
+    <AuthProvider>
+      <TestRouter>{ui}</TestRouter>
+    </AuthProvider>,
+  );
+}
+
 describe("ListingCard footer metadata", () => {
+  beforeEach(() => installProAuth());
+
   it("shows real days-on-market instead of a fabricated integrity score", () => {
-    render(
-      <TestRouter>
-        <ListingCard listing={sampleListing} />
-      </TestRouter>,
-    );
+    renderCard(<ListingCard listing={sampleListing} />);
 
     // first_seen_at is now, so the card reports it was listed today.
     expect(screen.getByText(/listed today/i)).toBeInTheDocument();
@@ -44,10 +79,10 @@ describe("ListingCard footer metadata", () => {
 
   it("reports day counts for older listings", () => {
     const listedTenDaysAgo = new Date(Date.now() - 10 * 86_400_000).toISOString();
-    render(
-      <TestRouter>
-        <ListingCard listing={{ ...sampleListing, id: 12, first_seen_at: listedTenDaysAgo, scraped_at: listedTenDaysAgo }} />
-      </TestRouter>,
+    renderCard(
+      <ListingCard
+        listing={{ ...sampleListing, id: 12, first_seen_at: listedTenDaysAgo, scraped_at: listedTenDaysAgo }}
+      />,
     );
 
     expect(screen.getByText(/listed 10 days/i)).toBeInTheDocument();
