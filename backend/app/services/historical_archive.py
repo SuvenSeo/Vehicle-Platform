@@ -30,7 +30,6 @@ WAYBACK_CDX = "https://web.archive.org/cdx/search/cdx"
 WAYBACK_RAW = "https://web.archive.org/web/{ts}id_/{url}"
 
 DEFAULT_IKMAN_SERP_URLS = (
-    "http://ikman.lk/en/ads/sri-lanka/cars",
     "https://ikman.lk/en/ads/sri-lanka/cars",
     "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
     "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
@@ -46,8 +45,46 @@ TOP_BRAND_SERP_URLS = (
     "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
 )
 
+# Maximum recoverable brand + model SERPs for densify runs.
+MAX_IKMAN_SERP_URLS = (
+    "https://ikman.lk/en/ads/sri-lanka/cars",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mitsubishi",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mazda",
+    "https://ikman.lk/en/ads/sri-lanka/cars/bmw",
+    "https://ikman.lk/en/ads/sri-lanka/cars/mercedes-benz",
+    "https://ikman.lk/en/ads/sri-lanka/cars/micro",
+    "https://ikman.lk/en/ads/sri-lanka/cars/perodua",
+    "https://ikman.lk/en/ads/sri-lanka/cars/hyundai",
+    "https://ikman.lk/en/ads/sri-lanka/cars/kia",
+    "https://ikman.lk/en/ads/sri-lanka/cars/daihatsu",
+    "https://ikman.lk/en/ads/sri-lanka/cars/tata",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/aqua",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/axio",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/vitz",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/premio",
+    "https://ikman.lk/en/ads/sri-lanka/cars/toyota/prius",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/alto",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/wagon-r",
+    "https://ikman.lk/en/ads/sri-lanka/cars/suzuki/swift",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda/fit",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda/vezel",
+    "https://ikman.lk/en/ads/sri-lanka/cars/honda/civic",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan/leaf",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan/march",
+    "https://ikman.lk/en/ads/sri-lanka/cars/nissan/note",
+)
+
+RIYASEWANA_SERP_URLS = (
+    "https://riyasewana.com/search/cars",
+    "https://www.riyasewana.com/search/cars",
+)
+
 _YEAR_RE = re.compile(r"\b(19[5-9]\d|20[0-2]\d)\b")
-_MILEAGE_RE = re.compile(r"([\d,]+)\s*km", re.IGNORECASE)
+_MILEAGE_RE = re.compile(r"([\d,]+)\s*(?:km|\(km\))", re.IGNORECASE)
 _PRICE_RE = re.compile(r"Rs\.?\s*([\d,]+)", re.IGNORECASE)
 _INITIAL_DATA_RE = re.compile(
     r"window\.initialData\s*=\s*(\{.*?\})\s*;?\s*</script>",
@@ -289,7 +326,135 @@ def parse_ikman_serp_html(
         )
         if row:
             rows.append(row)
+
+    # Modern card markup fallback (when initialData is missing / stripped).
+    if not rows:
+        for item in soup.select("a.gtm-ad-item, a[data-testid='ad-card-link']"):
+            href = (item.get("href") or "").strip()
+            heading = item.select_one("h2, [class*='title--'], [class*='heading']")
+            title = " ".join(heading.stripped_strings) if heading is not None else ""
+            if not title:
+                title = re.sub(
+                    r"\s+for sale\s*$",
+                    "",
+                    (item.get("title") or "").strip(),
+                    flags=re.IGNORECASE,
+                ).strip()
+            price_el = item.select_one("[class*='price--'], [class*='price-']")
+            price_text = price_el.get_text(" ", strip=True) if price_el is not None else ""
+            if not price_text:
+                match = _PRICE_RE.search(item.get_text(" ", strip=True))
+                price_text = match.group(0) if match else ""
+            card_text = item.get_text(" ", strip=True)
+            area = None
+            loc_match = re.search(
+                r"(?:MEMBER\s+)?([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)?),\s*Cars\b",
+                card_text,
+            )
+            if loc_match:
+                area = loc_match.group(1).strip()
+            row = _row_from_parts(
+                cleaner=cleaner,
+                seen=seen,
+                archive_source=archive_source,
+                observed_at=observed_at,
+                snapshot_url=snapshot_url,
+                title=title,
+                href=href,
+                price_text=price_text,
+                mileage_text=card_text,
+                area=area,
+                extra_meta={"parser": "gtm_ad_item"},
+            )
+            if row:
+                rows.append(row)
     return rows
+
+
+def parse_riyasewana_serp_html(
+    html: str,
+    *,
+    observed_at: datetime,
+    archive_source: str = "wayback_riyasewana",
+    snapshot_url: str = "",
+) -> list[dict[str, Any]]:
+    """Extract listing cards from archived riyasewana.com/search/cars snapshots."""
+    soup = BeautifulSoup(html or "", "lxml")
+    cleaner = CarCleaner()
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for item in soup.select("li.item, .item"):
+        title_el = item.select_one("h3 a[href], a[href*='/buy/'], a[title]")
+        if title_el is None:
+            continue
+        title = (title_el.get("title") or " ".join(title_el.stripped_strings)).strip()
+        href = (title_el.get("href") or "").strip()
+        if not title or not href:
+            continue
+
+        price_text = ""
+        for box in item.select(".boxintxt, .boxtext div"):
+            text = box.get_text(" ", strip=True)
+            if _PRICE_RE.search(text):
+                price_text = text
+                break
+        if not price_text:
+            match = _PRICE_RE.search(item.get_text(" ", strip=True))
+            price_text = match.group(0) if match else ""
+
+        mileage_text = ""
+        area = None
+        for box in item.select(".boxintxt"):
+            text = box.get_text(" ", strip=True)
+            if _MILEAGE_RE.search(text) or "(km)" in text.lower():
+                mileage_text = text
+            elif _PRICE_RE.search(text):
+                continue
+            elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+                continue
+            elif text and area is None and not text.lower().startswith("rs"):
+                area = text
+
+        row = _row_from_parts(
+            cleaner=cleaner,
+            seen=seen,
+            archive_source=archive_source,
+            observed_at=observed_at,
+            snapshot_url=snapshot_url,
+            title=title,
+            href=href,
+            price_text=price_text,
+            mileage_text=mileage_text or item.get_text(" ", strip=True),
+            area=area,
+            extra_meta={"parser": "riyasewana_item"},
+        )
+        if row:
+            # Prefer riyasewana absolute URLs already present on href.
+            rows.append(row)
+    return rows
+
+
+def parse_archive_serp_html(
+    html: str,
+    *,
+    observed_at: datetime,
+    original_url: str = "",
+    snapshot_url: str = "",
+) -> list[dict[str, Any]]:
+    """Route a snapshot to the right marketplace parser."""
+    host = urlparse(original_url or snapshot_url).netloc.lower()
+    if "riyasewana" in host:
+        return parse_riyasewana_serp_html(
+            html,
+            observed_at=observed_at,
+            snapshot_url=snapshot_url,
+        )
+    return parse_ikman_serp_html(
+        html,
+        observed_at=observed_at,
+        snapshot_url=snapshot_url,
+    )
 
 
 def _cdx_payload_to_hits(payload: Any) -> list[CdxHit]:

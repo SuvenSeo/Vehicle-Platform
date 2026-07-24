@@ -201,4 +201,10 @@ Modern ikman Wayback snapshots are JS apps — the parser reads `window.initialD
 | Complete listing-level history **2000–2016** | **No** as a full census; only sparse newspaper / early-web samples |
 | “Insane” charts of how the market changed | **Yes** if we combine archive SERPs + macro signals + ongoing scrape — not if we wait for a mythical complete dump |
 
-Highest-ROI next steps: (1) download + import a Kaggle SL CSV, (2) run `seed_market_context.py`, (3) rate-limited Wayback backfill for top brands, (4) wire the model-price-history API into a frontend “Price Time Machine” chart.
+Highest-ROI densify path now:
+
+1. `scripts/ops/backfill_wayback_prices.py --profile max` — ikman brands/models + riyasewana (2010→present)
+2. `scripts/ops/backfill_common_crawl_prices.py` — Common Crawl WARC densify for months Wayback missed
+3. GitHub Action **Historical Data Backfill** (auto on main when historical code changes; also manual dispatch)
+
+Still impossible: a complete nationwide 2000–2009 listing dump. Use CBSL/FX/USS proxies + selective newspaper anchors for that era.

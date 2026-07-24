@@ -1,10 +1,11 @@
 name: Historical Data Backfill
 
-# Seeds DMT/policy market_signals, imports the staged Kaggle SL vehicle CSV into
-# historical_price_observations (NOT live car_listings), and rate-limits a
-# Wayback Machine backfill for top ikman brand SERPs.
+# Max densify: seed DMT/policy, import Kaggle SL CSV, Wayback (ikman brands/models
+# + riyasewana), then Common Crawl densify. Writes ONLY to
+# historical_price_observations / market_signals — never live car_listings.
 #
 # Trigger: Actions → Historical Data Backfill → Run workflow
+# Also runs automatically on push to main when historical backfill code changes.
 
 on:
   workflow_dispatch:
@@ -18,17 +19,34 @@ on:
         type: boolean
         default: true
       run_wayback:
-        description: "Wayback backfill (Toyota/Suzuki/Honda/Nissan)"
+        description: "Max Wayback backfill (ikman brands/models + riyasewana)"
+        type: boolean
+        default: true
+      run_common_crawl:
+        description: "Common Crawl densify for ikman SERPs"
         type: boolean
         default: true
       wayback_max_snapshots:
-        description: "Max Wayback snapshots to fetch (spread across timeline)"
+        description: "Max Wayback snapshots (year-balanced)"
         type: number
-        default: 48
+        default: 300
       wayback_sleep:
         description: "Seconds between Wayback fetches"
         type: number
-        default: 2
+        default: 1.5
+      cc_max_records:
+        description: "Max Common Crawl WARC records to fetch"
+        type: number
+        default: 100
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/services/historical_archive.py"
+      - "backend/app/services/common_crawl_archive.py"
+      - "backend/scripts/ops/backfill_wayback_prices.py"
+      - "backend/scripts/ops/backfill_common_crawl_prices.py"
+      - "backend/data/historical/**"
+      - ".github/workflows/historical-backfill.yml"
 
 concurrency:
   group: historical-backfill
@@ -37,12 +55,19 @@ concurrency:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     defaults:
       run:
         working-directory: backend
     env:
       PYTHONUNBUFFERED: "1"
+      RUN_SEED: ${{ github.event_name == 'push' && 'true' || inputs.run_seed }}
+      RUN_CSV: ${{ github.event_name == 'push' && 'true' || inputs.run_csv_import }}
+      RUN_WAYBACK: ${{ github.event_name == 'push' && 'true' || inputs.run_wayback }}
+      RUN_CC: ${{ github.event_name == 'push' && 'true' || inputs.run_common_crawl }}
+      WAYBACK_MAX: ${{ github.event_name == 'push' && '300' || inputs.wayback_max_snapshots }}
+      WAYBACK_SLEEP: ${{ github.event_name == 'push' && '1.5' || inputs.wayback_sleep }}
+      CC_MAX: ${{ github.event_name == 'push' && '100' || inputs.cc_max_records }}
 
     steps:
       - name: Checkout code
@@ -71,7 +96,7 @@ jobs:
           PY
 
       - name: Seed DMT + policy context
-        if: ${{ inputs.run_seed }}
+        if: ${{ env.RUN_SEED == 'true' }}
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
@@ -79,7 +104,7 @@ jobs:
         run: python scripts/ops/seed_market_context.py
 
       - name: Import Kaggle SL CSV → historical_price_observations only
-        if: ${{ inputs.run_csv_import }}
+        if: ${{ env.RUN_CSV == 'true' }}
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
@@ -93,16 +118,28 @@ jobs:
             --price-unit lakhs \
             --observed-default 2025-01-15
 
-      - name: Wayback backfill (top brands)
-        if: ${{ inputs.run_wayback }}
+      - name: Wayback max densify (ikman + riyasewana)
+        if: ${{ env.RUN_WAYBACK == 'true' }}
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
         run: |
           python scripts/ops/backfill_wayback_prices.py \
-            --brands-only \
-            --from 20170101 \
+            --profile max \
+            --from 20100101 \
             --to 20261231 \
-            --max-snapshots "${{ inputs.wayback_max_snapshots }}" \
-            --sleep "${{ inputs.wayback_sleep }}"
+            --max-snapshots "${WAYBACK_MAX}" \
+            --sleep "${WAYBACK_SLEEP}"
+
+      - name: Common Crawl densify
+        if: ${{ env.RUN_CC == 'true' }}
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python scripts/ops/backfill_common_crawl_prices.py \
+            --max-records "${CC_MAX}" \
+            --crawl-limit 10 \
+            --sleep 1.0

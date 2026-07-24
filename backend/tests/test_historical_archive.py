@@ -10,7 +10,9 @@ from sqlalchemy.pool import StaticPool
 
 from app.services.historical_archive import (
     CdxHit,
+    parse_archive_serp_html,
     parse_ikman_serp_html,
+    parse_riyasewana_serp_html,
     parse_wayback_timestamp,
     upsert_historical_observations,
 )
@@ -21,6 +23,12 @@ FIXTURE = (
     / "fixtures"
     / "historical"
     / "ikman_cars_category_20170107_snippet.html"
+)
+RIYA_FIXTURE = (
+    Path(__file__).parent
+    / "fixtures"
+    / "historical"
+    / "riyasewana_cars_20190320_snippet.html"
 )
 
 
@@ -71,6 +79,28 @@ def test_parse_ikman_serp_html_extracts_priced_listings():
     assert vezel is not None
     assert vezel["price_lkr"] == 5_695_000
     assert vezel["make"] == "Honda"
+
+
+def test_parse_riyasewana_serp_html_extracts_priced_listings():
+    html = RIYA_FIXTURE.read_text(encoding="utf-8", errors="ignore")
+    observed = datetime(2019, 3, 20, 23, 29, 51, tzinfo=timezone.utc)
+    rows = parse_riyasewana_serp_html(html, observed_at=observed)
+    assert len(rows) >= 3
+    by_title = {row["title"]: row for row in rows}
+    corolla = by_title.get("Toyota Corolla 110 Registered 1996 Car")
+    assert corolla is not None
+    assert corolla["price_lkr"] == 1_950_000
+    assert corolla["make"] == "Toyota"
+    assert corolla["mileage"] == 154_000
+    assert corolla["district"] == "Kegalle"
+    assert corolla["archive_source"] == "wayback_riyasewana"
+
+    routed = parse_archive_serp_html(
+        html,
+        observed_at=observed,
+        original_url="https://riyasewana.com/search/cars",
+    )
+    assert len(routed) == len(rows)
 
 
 def test_upsert_historical_observations_is_idempotent(db_session):

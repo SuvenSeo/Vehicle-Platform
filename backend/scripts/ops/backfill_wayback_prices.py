@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Backfill historical asking prices from Wayback Machine ikman SERP snapshots.
+"""Max-coverage Wayback backfill into historical_price_observations.
+
+Profiles:
+  brands  — Toyota/Suzuki/Honda/Nissan (default legacy --brands-only)
+  max     — all major brands + popular models + riyasewana SERPs
 
 Examples:
   cd backend && ALLOW_SQLITE_FALLBACK=true \\
-    .venv/bin/python scripts/ops/backfill_wayback_prices.py --dry-run --max-snapshots 3
-
-  cd backend && ALLOW_SQLITE_FALLBACK=true \\
-    .venv/bin/python scripts/ops/backfill_wayback_prices.py --from 20170101 --to 20201231
+    .venv/bin/python scripts/ops/backfill_wayback_prices.py \\
+    --profile max --max-snapshots 300 --sleep 1.5
 """
 
 from __future__ import annotations
@@ -17,17 +19,18 @@ import sys
 import time
 from pathlib import Path
 
-# Allow `python scripts/ops/...` from backend/
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.services.historical_archive import (
     DEFAULT_IKMAN_SERP_URLS,
+    MAX_IKMAN_SERP_URLS,
+    RIYASEWANA_SERP_URLS,
     TOP_BRAND_SERP_URLS,
     discover_ikman_cdx,
     fetch_wayback_html,
-    parse_ikman_serp_html,
+    parse_archive_serp_html,
     upsert_historical_observations,
 )
 from db.session import ColdSessionLocal, init_db
@@ -65,39 +68,59 @@ def _spread_hits(hits: list, max_snapshots: int) -> list:
     return selected
 
 
+def _serp_urls_for_profile(profile: str, brands_only: bool) -> tuple[str, ...]:
+    if brands_only or profile == "brands":
+        return TOP_BRAND_SERP_URLS
+    if profile == "max":
+        return tuple(dict.fromkeys([*MAX_IKMAN_SERP_URLS, *RIYASEWANA_SERP_URLS]))
+    if profile == "riyasewana":
+        return RIYASEWANA_SERP_URLS
+    return DEFAULT_IKMAN_SERP_URLS
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--from", dest="from_ts", default="20170101")
+    parser.add_argument("--from", dest="from_ts", default="20100101")
     parser.add_argument("--to", dest="to_ts", default="20261231")
-    parser.add_argument("--max-snapshots", type=int, default=24)
+    parser.add_argument("--max-snapshots", type=int, default=120)
     parser.add_argument("--sleep", type=float, default=1.5, help="Seconds between Wayback fetches")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--jsonl", type=Path, default=None, help="Optional path to write observations")
     parser.add_argument(
+        "--profile",
+        choices=("default", "brands", "max", "riyasewana"),
+        default="max",
+        help="SERP URL set (default: max)",
+    )
+    parser.add_argument(
         "--brands-only",
         action="store_true",
-        help="Only Toyota/Suzuki/Honda/Nissan brand SERPs (recommended for first backfill)",
+        help="Alias for --profile brands (kept for older workflows)",
     )
     args = parser.parse_args()
 
-    serp_urls = TOP_BRAND_SERP_URLS if args.brands_only else DEFAULT_IKMAN_SERP_URLS
+    serp_urls = _serp_urls_for_profile(args.profile, args.brands_only)
     hits = discover_ikman_cdx(
         serp_urls=serp_urls,
         from_ts=args.from_ts,
         to_ts=args.to_ts,
-        per_url_limit=max(args.max_snapshots, 20),
+        per_url_limit=max(args.max_snapshots, 40),
     )
     hits = _spread_hits(hits, args.max_snapshots)
 
-    print(f"cdx_hits={len(hits)} from={args.from_ts} to={args.to_ts} brands_only={args.brands_only}")
+    print(
+        f"cdx_hits={len(hits)} from={args.from_ts} to={args.to_ts} "
+        f"profile={args.profile} urls={len(serp_urls)}"
+    )
 
     all_rows: list[dict] = []
     for index, hit in enumerate(hits, start=1):
         try:
             html = fetch_wayback_html(hit)
-            rows = parse_ikman_serp_html(
+            rows = parse_archive_serp_html(
                 html,
                 observed_at=hit.observed_at,
+                original_url=hit.original,
                 snapshot_url=hit.raw_url,
             )
             print(
