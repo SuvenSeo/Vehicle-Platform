@@ -34,6 +34,12 @@ type PageHeroProps = {
   children?: React.ReactNode;
   align?: "left" | "center";
   className?: string;
+  /** Optional full-bleed photographic atmosphere (cover). */
+  mediaSrc?: string;
+  /** CSS object-position, e.g. "center right". */
+  mediaPosition?: string;
+  /** Softens photo under copy — default "brand". */
+  mediaTone?: "brand" | "dark" | "light";
 };
 
 function HighlightChip({
@@ -63,15 +69,35 @@ export function PageHero({
   children,
   align = "left",
   className,
+  mediaSrc,
+  mediaPosition = "center",
+  mediaTone = "brand",
 }: PageHeroProps) {
   const centered = align === "center";
 
   return (
     <motion.section
       variants={revealItem}
-      className={cn("page-hero platform-hero", `page-hero--${theme}`, className)}
+      className={cn(
+        "page-hero platform-hero",
+        `page-hero--${theme}`,
+        mediaSrc && "page-hero--media",
+        mediaSrc && `page-hero--media-${mediaTone}`,
+        className,
+      )}
     >
       <div className="page-hero__atmosphere" aria-hidden>
+        {mediaSrc ? (
+          <>
+            <img
+              src={mediaSrc}
+              alt=""
+              className="page-hero__media"
+              style={{ objectPosition: mediaPosition }}
+            />
+            <div className="page-hero__media-veil" />
+          </>
+        ) : null}
         <div className="page-hero__grid" />
         <div className="page-hero__orb page-hero__orb--a" />
         <div className="page-hero__orb page-hero__orb--b" />

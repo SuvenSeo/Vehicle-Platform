@@ -17,6 +17,7 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
+import { visuals } from "@/lib/visualAssets";
 import {
   PULSE_SOURCE_GUIDES,
   formatPulsePeriod,
@@ -110,6 +111,9 @@ export default function OfficialPulse() {
         watermarkIcon={Radio}
         title={<>{t("pulse.title", "Official pulse.")}</>}
         description={t("pulse.description", "Government & import market signals, explained in-platform.")}
+        mediaSrc={visuals.alt2BlogTeaPlantation}
+        mediaPosition="center 40%"
+        mediaTone="brand"
         highlights={[
           {
             label: t("pulse.signals", "Signals"),

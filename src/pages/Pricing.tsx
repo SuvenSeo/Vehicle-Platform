@@ -8,6 +8,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 const COMPARE_ROW_DEFS = [
   { labelKey: "pricing.compare.dashboard", labelFb: "Dashboard browse", freeKey: "pricing.val.yes", freeFb: "Yes", proKey: "pricing.val.yes", proFb: "Yes", dealerKey: "pricing.val.yes", dealerFb: "Yes", enterpriseKey: "pricing.val.yes", enterpriseFb: "Yes" },
@@ -47,6 +48,9 @@ export default function Pricing() {
         watermarkIcon={Users}
         title={<>{t("pricing.title", "Pricing that funds the pipeline")}<span className="text-sheen">.</span></>}
         description={t("pricing.body", "Free browse stays free. Pro and Dealer fund scrapes, scores, and workspaces.")}
+        mediaSrc={visuals.alt2PagePricingBg}
+        mediaPosition="center 40%"
+        mediaTone="brand"
         highlights={[
           { label: "Workspaces", value: "4", hint: "Free through enterprise tiers" },
           { label: "Dealer lane", value: "Pro", hint: "Command center + exports" },
@@ -190,13 +194,22 @@ export default function Pricing() {
         </motion.section>
 
         <motion.section variants={revealItem} aria-labelledby="faq-heading">
-          <p className="section-eyebrow mb-3 inline-flex items-center gap-2">
-            <HelpCircle aria-hidden className="h-3.5 w-3.5" />
-            {t("pricing.faq", "FAQ")}
-          </p>
-          <h2 id="faq-heading" className="display-2 mb-8 text-foreground">
-            {t("pricing.faqTitle", "Common questions.")}
-          </h2>
+          <div className="mb-8 grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div>
+              <p className="section-eyebrow mb-3 inline-flex items-center gap-2">
+                <HelpCircle aria-hidden className="h-3.5 w-3.5" />
+                {t("pricing.faq", "FAQ")}
+              </p>
+              <h2 id="faq-heading" className="display-2 text-foreground">
+                {t("pricing.faqTitle", "Common questions.")}
+              </h2>
+            </div>
+            <img
+              src={visuals.pageFaqIllustration}
+              alt=""
+              className="hidden h-28 w-full rounded-2xl object-cover object-center opacity-90 lg:block"
+            />
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             {PRICING_FAQ.map((item) => (
               <div key={item.q} className="rounded-2xl border border-border bg-card/40 p-5">

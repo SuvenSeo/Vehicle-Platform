@@ -7,6 +7,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 export default function Docs() {
   const { t } = useAppPreferences();
@@ -19,6 +20,9 @@ export default function Docs() {
         watermarkIcon={FileText}
         title={<>{t("docs.title", "Platform docs.")}</>}
         description={t("docs.description", "How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers.")}
+        mediaSrc={visuals.pageBlogHeader}
+        mediaPosition="center 40%"
+        mediaTone="brand"
         highlights={[
           { label: "Sections", value: String(DOCS_SECTIONS.length), hint: "Platform methodology" },
           { label: "Pulse", value: "Live", hint: "Government import signals" },

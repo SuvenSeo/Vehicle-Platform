@@ -12,6 +12,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 import type { HybridBandsData, PriceTrendPoint } from "@/types/car";
 import {
   getExciseRatePerCc,
@@ -130,6 +131,9 @@ export default function Trends() {
         watermarkIcon={BarChart3}
         title={<>{t("trends.title", "Price trends.")}</>}
         description={t("trends.description", "Track median price movement for any vehicle lane across Sri Lanka.")}
+        mediaSrc={visuals.priceIntelligenceBg}
+        mediaPosition="center"
+        mediaTone="brand"
         highlights={[
           { label: "Coverage", value: "All LK", hint: "District-level price lanes" },
           { label: "Hybrid lens", value: "Tax bands", hint: "Excise cliff intelligence" },

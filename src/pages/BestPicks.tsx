@@ -22,6 +22,7 @@ import {
   freePlanCopy,
   hasFullPlatformAccess,
 } from "@/lib/planLimits";
+import { visuals } from "@/lib/visualAssets";
 
 const PICKS_PAGES = 4;
 const MIN_DEAL_SCORE = 8;
@@ -126,6 +127,9 @@ export default function BestPicks() {
         description={loading ? t("picks.scanning", "Scanning inventory...") : fullAccess
           ? `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`
           : `${ranked.length} free teaser picks scored ${MIN_DEAL_SCORE}+ — upgrade for the full board.`}
+        mediaSrc={visuals.altCategorySuvWhite}
+        mediaPosition="center 40%"
+        mediaTone="light"
         highlights={[
           { label: "Min score", value: `${MIN_DEAL_SCORE}+`, hint: "Strict deal-score floor" },
           { label: "Inventory", value: loading ? "…" : String(ranked.length), hint: fullAccess ? "Vehicles in this shortlist" : "Free teaser shortlist" },

@@ -7,6 +7,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem, springSoft } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 const LANES = [
   { name: "Toyota Aqua", listings: 824, median: "Rs. 7.8M", district: "Colombo" },
@@ -53,6 +54,9 @@ export default function ProPreview() {
           "pro.previewBody",
           "See the depth of lane drill-downs, district profiles, and export packs before you sign in.",
         )}
+        mediaSrc={visuals.pageProPremium}
+        mediaPosition="center 35%"
+        mediaTone="brand"
         highlights={[
           { label: t("pro.lanes", "Lanes"), value: "4+", hint: t("pro.lanesHint", "Model-level drill downs") },
           { label: t("pro.exports", "Exports"), value: String(REPORTS.length), hint: t("pro.exportsHint", "Report formats in Pro") },

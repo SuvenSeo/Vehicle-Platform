@@ -28,6 +28,7 @@ import { useAppPreferences } from '@/lib/appPreferences';
 import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
 import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
+import { visuals } from '@/lib/visualAssets';
 
 function formatToken(value: string | null | undefined): string {
   if (!value) return 'Unknown';
@@ -227,6 +228,14 @@ export default function ListingDetail() {
       className="min-h-screen relative overflow-hidden bg-background"
     >
       {/* Decorative Blur Orbs — token-based, adapt to both themes */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <img
+          src={visuals.pageListingDetail}
+          alt=""
+          className="h-[28rem] w-full object-cover object-[center_30%] opacity-[0.18]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background to-background" />
+      </div>
       <div aria-hidden className="pointer-events-none absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px]" />
       <div aria-hidden className="pointer-events-none absolute bottom-[20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-primary/5 blur-[150px]" />
 

@@ -21,6 +21,7 @@ import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 const EV_MODULE_DEFS = [
   { icon: Battery, step: "01", titleKey: "ev.module.battery", titleFb: "Battery health", descFb: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
@@ -107,6 +108,9 @@ export default function EVHub() {
         watermarkIcon={Battery}
         title={<>{t("ev.title", "EV buying signals.")}</>}
         description={t("ev.description", "Battery health, charging fit, and duty signals for the Sri Lankan EV market.")}
+        mediaSrc={visuals.alt2HeroUltrawidePanorama}
+        mediaPosition="center 45%"
+        mediaTone="brand"
         highlights={liveStats.slice(0, 3).map((stat) => ({
           label: stat.label,
           value: stat.value,

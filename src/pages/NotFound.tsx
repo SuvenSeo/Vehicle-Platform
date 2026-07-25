@@ -8,6 +8,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem, springSnappy } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 const NotFound = () => {
   const { t } = useAppPreferences();
@@ -43,6 +44,9 @@ const NotFound = () => {
         eyebrow={t("notFound.eyebrow", "404")}
         title={<>{t("notFound.title", "Page not found.")}</>}
         description={t("notFound.description", "This route doesn't exist. Try one of the links below.")}
+        mediaSrc={visuals.lostCarFork404}
+        mediaPosition="center"
+        mediaTone="brand"
         highlights={[
           { label: t("notFound.inventory", "Inventory"), value: t("common.live", "Live"), hint: t("notFound.inventoryDesc", "Browse every live listing, ranked against the market.") },
           { label: t("notFound.trends", "Price trends"), value: "Open", hint: t("notFound.trendsDesc", "Track how values move, week over week.") },

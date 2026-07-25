@@ -12,6 +12,7 @@ import { PageHero } from "@/components/PageHero";
 import { AlertTriangle, BarChart3, Gauge, ShieldCheck, TrendingUp } from "lucide-react";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 type EstimateForm = {
   make: string;
@@ -122,6 +123,9 @@ export default function Estimate() {
         watermarkIcon={BarChart3}
         title={<>{t("estimate.title", "What's your car worth?")}</>}
         description={t("estimate.description", "District-aware fair value ranges, trend projection, and seller ask guidance from live Sri Lanka inventory.")}
+        mediaSrc={visuals.alt2HeroOrangeSunset}
+        mediaPosition="center 40%"
+        mediaTone="brand"
         highlights={[
           { label: t("estimate.highlight.method", "Method"), value: t("estimate.highlight.methodValue", "Comps"), hint: t("estimate.highlight.methodHint", "Comparable listing median") },
           { label: t("estimate.highlight.trend", "Trend aware"), value: t("estimate.highlight.trendValue", "12 mo"), hint: t("estimate.highlight.trendHint", "Price trajectory projection") },

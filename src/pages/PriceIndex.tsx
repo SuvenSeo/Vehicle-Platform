@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, LineChart, Info } from "lucide-react";
 import { getPriceIndex } from "@/services/api";
 import type { PriceIndex, PriceIndexPoint } from "@/types/car";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -60,9 +61,17 @@ export default function PriceIndexPage() {
 
   return (
     <motion.div initial="hidden" animate="show" variants={containerVariants} className="min-h-screen relative overflow-hidden bg-background">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <img
+          src={visuals.priceIntelligenceBg}
+          alt=""
+          className="h-full w-full object-cover object-center opacity-[0.22]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/92 to-background" />
+      </div>
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
+      <motion.section variants={itemVariants} className="border-b border-border bg-surface/40 backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">{t("index.eyebrow", "Market benchmark")}</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">

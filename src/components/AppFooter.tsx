@@ -1,5 +1,6 @@
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { visuals } from "@/lib/visualAssets";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { useMemo } from "react";
@@ -112,10 +113,16 @@ export function AppFooter() {
         transition={{ duration: 0.8, ease: EASE }}
         className="app-footer__panel relative mx-auto max-w-[1680px] overflow-hidden rounded-[30px] border border-white/[0.1] px-5 py-12 shadow-[0_-24px_90px_rgba(8,47,73,0.28)] sm:px-8 md:rounded-[42px] md:px-14 md:py-16 lg:px-20"
       >
-        {/* Atmosphere — cyan / blue gradient field */}
+        {/* Atmosphere — cyan / blue gradient field + texture */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(10,122,255,0.22),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(34,211,238,0.16),transparent_50%),linear-gradient(160deg,#030914_0%,#04101f_42%,#02060d_100%)]"
+        />
+        <img
+          aria-hidden="true"
+          src={visuals.pageFooterTexture}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-[0.14]"
         />
         <div
           aria-hidden="true"

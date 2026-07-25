@@ -18,6 +18,7 @@ import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { HeroSideSignals } from "@/components/HeroSideSignals";
 import { RevealSection } from "@/components/RevealSection";
 import { SectionHeader } from "@/components/SectionHeader";
+import { visuals } from "@/lib/visualAssets";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TrendingDown,
@@ -599,6 +600,15 @@ export default function Dashboard() {
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section id="overview" className="relative -mt-16 overflow-hidden border-b border-border bg-surface pt-16">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <img
+            src={visuals.pageSearchHero}
+            alt=""
+            className="h-full w-full object-cover object-[center_35%] opacity-[0.34]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-surface/90 via-surface/78 to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-surface/55" />
+        </div>
         <div aria-hidden className="pointer-events-none absolute left-[20%] top-[-20%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[130px]" />
         <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
 
@@ -757,6 +767,34 @@ export default function Dashboard() {
                 <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
               </Suspense>
             </ProFeatureLock>
+          </div>
+
+          {/* Categories + trust atmosphere — one visual job each */}
+          <div className="mt-10 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
+              <img
+                src={visuals.categoriesLineup}
+                alt=""
+                className="h-36 w-full object-cover object-center sm:h-40"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Vehicle types</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Browse cars, vans, and SUVs across the live index.</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
+              <img
+                src={visuals.trustVerification}
+                alt=""
+                className="h-36 w-full object-cover object-[center_30%] sm:h-40"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Verified signals</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">Deal scores and seller trust baked into every listing.</p>
+              </div>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -978,7 +1016,12 @@ export default function Dashboard() {
                   </button>
                 </div>
               ) : listings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-4 py-16 text-center">
+                  <img
+                    src={visuals.emptyState}
+                    alt=""
+                    className="mb-5 h-28 w-auto max-w-[220px] object-contain opacity-90"
+                  />
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("home.noResults", "No results")}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}

@@ -33,6 +33,7 @@ import {
   buildTurnoverSeries,
 } from "@/lib/dealerDashboardData";
 import { DEALER_PLAYBOOK, DEALER_QUICK_TOOLS } from "@/lib/dealerPlaybook";
+import { visuals } from "@/lib/visualAssets";
 
 type WidgetKey = "turnover" | "priceGap" | "districtDemand" | "inventoryBenchmark";
 
@@ -514,6 +515,9 @@ export default function DealerDashboard() {
         watermarkIcon={BarChart3}
         title={<>{t("dealer.commandCenter", "Dealer command center")}<span className="text-sheen">.</span></>}
         description={t("dealer.description", "Arbitrage, demand mapping, and lead flow intelligence.")}
+        mediaSrc={visuals.pageAdminBg}
+        mediaPosition="center"
+        mediaTone="brand"
         highlights={[
           { label: t("common.inventory", "Inventory"), value: t("common.live", "Live"), hint: "Public market browse" },
           { label: "Pulse", value: "Gov", hint: "Official import signals" },
