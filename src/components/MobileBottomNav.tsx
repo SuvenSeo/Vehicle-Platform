@@ -79,7 +79,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      aria-label={t("nav.primaryNavigation", "Primary navigation")}
+      aria-label={t("nav.mobileNavigation", "Mobile bottom navigation")}
       className="md:hidden fixed inset-x-0 bottom-0 z-[999] pointer-events-auto"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >

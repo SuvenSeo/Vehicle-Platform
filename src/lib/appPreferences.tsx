@@ -144,12 +144,24 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
   return <AppPreferencesContext.Provider value={value}>{children}</AppPreferencesContext.Provider>;
 }
 
+const FALLBACK_PREFERENCES: AppPreferencesContextValue = {
+  themeMode: DEFAULT_THEME_MODE,
+  resolvedTheme: "dark",
+  setThemeMode: () => {},
+  language: "en",
+  setLanguage: () => {},
+  localeTag: LOCALE_TAGS.en,
+  t: (key, fallback, vars) => {
+    const raw = DICTIONARIES.en[key] || fallback || key;
+    return interpolate(raw, vars);
+  },
+};
+
 export function useAppPreferences() {
   const context = useContext(AppPreferencesContext);
-  if (!context) {
-    throw new Error("useAppPreferences must be used inside AppPreferencesProvider");
-  }
-  return context;
+  // Fall back to English defaults outside the provider (unit tests that mount
+  // pages/components directly). Production always wraps via main.tsx.
+  return context ?? FALLBACK_PREFERENCES;
 }
 
 export type { Language };

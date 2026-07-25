@@ -26,11 +26,14 @@ const CHART_DATA = [
 const REPORTS = ["Executive PDF", "Editable Word brief", "CSV data pack", "JSON API snapshot", "Print-ready report"];
 
 function LockedOverlay() {
+  const { t } = useAppPreferences();
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-background/70 backdrop-blur-[3px]">
       <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-center shadow-soft">
         <Lock aria-hidden className="mx-auto mb-1.5 h-4 w-4 text-primary" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright">Unlock with Pro</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright">
+          {t("pro.unlockWithPro", "Unlock with Pro")}
+        </p>
       </div>
     </div>
   );
@@ -42,15 +45,18 @@ export default function ProPreview() {
     <PageCanvas>
       <PageHero
         theme="default"
-        eyebrow={t("pro.previewTitle", "Pro preview.")}
+        eyebrow={t("pro.previewEyebrow", "Pro Preview")}
         eyebrowIcon={Crown}
         watermarkIcon={BarChart3}
-        title={<>{t("pro.previewTitle", "Pro preview.")}</>}
-        description={t("pro.previewBody", "Explore the locked Pro terminal layout. Subscribe to unlock live drill-downs and exports.")}
+        title={<>{t("pro.previewTitle", "Pro workspace preview.")}<span className="text-sheen">.</span></>}
+        description={t(
+          "pro.previewBody",
+          "See the depth of lane drill-downs, district profiles, and export packs before you sign in.",
+        )}
         highlights={[
-          { label: "Lanes", value: "4+", hint: "Model-level drill downs" },
-          { label: "Exports", value: String(REPORTS.length), hint: "Report formats in Pro" },
-          { label: "Districts", value: "25", hint: "Regional demand profiles" },
+          { label: t("pro.lanes", "Lanes"), value: "4+", hint: t("pro.lanesHint", "Model-level drill downs") },
+          { label: t("pro.exports", "Exports"), value: String(REPORTS.length), hint: t("pro.exportsHint", "Report formats in Pro") },
+          { label: t("pro.districts", "Districts"), value: "25", hint: t("pro.districtsHint", "Regional demand profiles") },
         ]}
         actions={
           <>
@@ -58,19 +64,19 @@ export default function ProPreview() {
               to="/sign-in"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <ShieldCheck aria-hidden className="h-4 w-4" /> Sign in to unlock
+              <ShieldCheck aria-hidden className="h-4 w-4" /> {t("pro.signInToUnlock", "Sign in to unlock")}
             </Link>
             <Link
               to="/pricing"
               className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              See pricing
+              {t("pro.seePricing", "See pricing")}
             </Link>
             <Link
               to="/sign-up"
               className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              Have an invite?
+              {t("pro.haveInvite", "Have an invite?")}
             </Link>
           </>
         }

@@ -279,7 +279,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
       {loading && (
         <div
           aria-busy="true"
-          aria-label={t("common.loading", "Loading")}
+          aria-label={t("trends.hybridLoadingAria", "Loading hybrid band data")}
           className="space-y-3"
         >
           {[1, 2, 3].map((i) => (

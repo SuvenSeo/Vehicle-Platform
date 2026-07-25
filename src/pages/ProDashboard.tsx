@@ -567,6 +567,10 @@ export default function ProDashboard() {
   }, [t]);
 
   useEffect(() => {
+    loadWorkspace();
+  }, [loadWorkspace]);
+
+  useEffect(() => {
     if (!trendLaneKey) {
       setTrendDetail(null);
       return;
