@@ -444,6 +444,7 @@ export const en = {
   "fuel.petrol": "Petrol",
   "fuel.pluginHybrid": "Plug-in Hybrid",
   "hero.body": "live listings from {sources} sources across {districts} districts — real-time pricing, deal scores, and the market intelligence dealers keep to themselves.",
+  "hero.bodyShort": "live listings across {sources} sources — pricing, deal scores, and market intel in one place.",
   "hero.explore": "Explore Market",
   "hero.eyebrow": "Vehicle Intelligence · Sri Lanka",
   "hero.title": "Sri Lanka's entire vehicle market,",

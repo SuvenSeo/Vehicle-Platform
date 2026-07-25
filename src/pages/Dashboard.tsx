@@ -20,7 +20,6 @@ import { HeroSideSignals } from "@/components/HeroSideSignals";
 import { HeroVariantPicker, useHeroVariantLab } from "@/components/HeroVariantPicker";
 import { RevealSection } from "@/components/RevealSection";
 import { SectionHeader } from "@/components/SectionHeader";
-import { BRAND } from "@/lib/brand";
 import { visuals } from "@/lib/visualAssets";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -130,6 +129,14 @@ const MobileFilterSheet = lazyWithRetry(() =>
 );
 
 const EMPTY_VELOCITY_POINTS: DistrictVelocityPoint[] = [];
+
+const HERO_POPULAR_SCANS = [
+  { label: "Toyota Aqua", make: "Toyota", model: "Aqua" },
+  { label: "Honda Vezel", make: "Honda", model: "Vezel" },
+  { label: "Wagon R", make: "Suzuki", model: "Wagon R" },
+  { label: "Nissan Leaf", make: "Nissan", model: "Leaf" },
+  { label: "Toyota Axio", make: "Toyota", model: "Axio" },
+] as const;
 
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
 
@@ -319,8 +326,9 @@ export default function Dashboard() {
   useEffect(() => {
     const query = heroSearch.trim();
     if (!query) {
-      setHeroSuggestions([]); setHeroSuggestionsOpen(false);
-      setHeroSuggestionsLoading(false); setHeroSearchMessage(null);
+      setHeroSuggestions([]);
+      setHeroSuggestionsLoading(false);
+      setHeroSearchMessage(null);
       return;
     }
     let cancelled = false;
@@ -585,10 +593,11 @@ export default function Dashboard() {
     ].filter(Boolean) as string[],
     [filters, t],
   );
-    const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroSearch.trim().length > 0;
+    const heroQuery = heroSearch.trim();
+  const showHeroPopular = heroSuggestionsOpen && heroQuery.length === 0;
+  const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroQuery.length > 0;
 
   const marketPulseListings = Number(liveMarketSnapshot?.priced_listings ?? stats?.total_listings ?? total ?? 0);
-  const marketPulseDistricts = Number(stats?.district_count || 0);
   const marketPulseSources = Number(stats?.source_count || liveMarketSnapshot?.source_status?.length || 0);
   const isPriceUnavailableMode = filters.price_availability === "unavailable";
   const listingFreshnessAt = liveMarketSnapshot?.latest_listing_at ?? stats?.last_updated ?? null;
@@ -599,8 +608,6 @@ export default function Dashboard() {
       : heroVariant.align === "right"
         ? "ml-auto max-w-xl text-left lg:max-w-2xl"
         : "mx-auto max-w-3xl text-center";
-  const heroJustify =
-    heroVariant.align === "center" ? "justify-center" : "justify-start";
   const heroCopyTone =
     heroVariant.tone === "dark"
       ? "text-white"
@@ -609,10 +616,6 @@ export default function Dashboard() {
     heroVariant.tone === "dark"
       ? "text-white/75"
       : "text-foreground/80 [text-shadow:0_1px_14px_hsl(var(--background)/0.45)]";
-  const heroChipClass =
-    heroVariant.tone === "dark"
-      ? "border-white/15 bg-white/10 text-white/80"
-      : "border-border/80 bg-card/90 text-foreground/85 shadow-soft backdrop-blur-md";
   const heroSearchShellClass =
     heroVariant.tone === "dark"
       ? "border-white/20 bg-white/10 shadow-soft-lg backdrop-blur-md focus-within:border-primary/50"
@@ -623,12 +626,8 @@ export default function Dashboard() {
       : "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden";
   const heroPopularBtnClass =
     heroVariant.tone === "dark"
-      ? "rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white/80 transition-all hover:border-primary/40 hover:bg-white/15 hover:text-white active:scale-[0.97]"
-      : "rounded-full border border-border bg-card/90 px-3 py-1.5 text-[11px] font-bold text-foreground/75 transition-all hover:border-primary/40 hover:bg-card hover:text-foreground active:scale-[0.97]";
-  const heroCopyPanelClass =
-    heroVariant.tone === "dark"
-      ? ""
-      : "rounded-2xl bg-background/55 p-5 shadow-[0_20px_60px_-28px_hsl(var(--background)/0.65)] backdrop-blur-md sm:bg-background/40 sm:p-6 lg:bg-background/35";
+      ? "w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10"
+      : "w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-foreground transition-colors hover:bg-surface";
 
   // ═════════════════════════════════════════════════════════════════
   // RENDER
@@ -641,7 +640,7 @@ export default function Dashboard() {
         <HeroVariantPicker activeId={heroVariant.id} onSelect={setHeroVariantId} />
       ) : null}
 
-      {/* ── HERO ─────────────────────────────────────────────────── */}
+      {/* ── HERO — brand, headline, one line, search ─────────────── */}
       <section
         id="overview"
         className={`relative -mt-16 overflow-hidden border-b border-border pt-16 ${
@@ -690,35 +689,17 @@ export default function Dashboard() {
             />
           ) : null}
 
-          {/* ── Editorial headline (center or left by lab variant) ── */}
-          <div className={`relative ${heroAlignClass} ${heroCopyPanelClass}`}>
+          <div className={`relative ${heroAlignClass}`}>
             <motion.p
               variants={heroItemVariants}
-              className={`font-display text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl ${heroCopyTone}`}
+              className={`brand-wordmark font-display text-5xl font-extrabold italic tracking-[-0.045em] sm:text-6xl lg:text-7xl ${heroCopyTone}`}
             >
-              {BRAND.name}
+              Motor<span className="text-primary">mila</span>
             </motion.p>
-
-            <motion.div
-              variants={heroItemVariants}
-              className={`mt-4 flex ${heroJustify}`}
-            >
-              <div
-                className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 shadow-soft backdrop-blur-md ${heroChipClass}`}
-              >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span aria-hidden className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-                  <span aria-hidden className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-                </span>
-                <p className="section-eyebrow text-[10px] tracking-[0.2em]">
-                  {t("hero.eyebrow", "Vehicle Intelligence · Sri Lanka")}
-                </p>
-              </div>
-            </motion.div>
 
             <motion.h1
               variants={heroItemVariants}
-              className={`display-hero mt-6 max-w-5xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroCopyTone}`}
+              className={`display-1 mt-5 max-w-3xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroCopyTone}`}
             >
               {t("hero.title", "Sri Lanka's entire vehicle market,")}
               <span className="text-sheen"> {t("hero.titleAccent", "decoded.")}</span>
@@ -726,27 +707,18 @@ export default function Dashboard() {
 
             <motion.p
               variants={heroItemVariants}
-              className={`text-body-lg mt-6 max-w-xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroMutedTone}`}
+              className={`text-body-lg mt-4 max-w-lg ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroMutedTone}`}
             >
               <span className={`font-bold num ${heroCopyTone}`}>
                 {marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}
               </span>{" "}
-              {t("hero.body", "live listings from {sources} sources across {districts} districts — real-time pricing, deal scores, and the market intelligence dealers keep to themselves.")
-                .replace("{sources}", String(marketPulseSources || 10))
-                .replace("{districts}", String(marketPulseDistricts || 25))}
+              {t(
+                "hero.bodyShort",
+                "live listings across {sources} sources — pricing, deal scores, and market intel in one place.",
+              ).replace("{sources}", String(marketPulseSources || 10))}
             </motion.p>
 
-            <motion.div
-              variants={heroItemVariants}
-              className={`mt-4 flex ${heroJustify}`}
-            >
-              <DataFreshnessIndicator
-                latestListingAt={liveMarketSnapshot?.latest_listing_at}
-                lastUpdated={stats?.last_updated}
-              />
-            </motion.div>
-
-            {/* Search */}
+            {/* Search — sole interactive card in the hero */}
             <motion.div variants={heroItemVariants} className="mt-8 max-w-2xl text-left">
                 <div className="relative">
                   <div className={`flex items-center gap-2 rounded-xl border transition-all ${heroSearchShellClass}`}>
@@ -756,9 +728,32 @@ export default function Dashboard() {
                       id="hero-search"
                       value={heroSearch}
                       onChange={(e) => { setHeroSearch(e.target.value); setHeroSearchMessage(null); setHeroActiveIdx(-1); }}
-                      onFocus={() => { if (heroSuggestions.length) setHeroSuggestionsOpen(true); }}
+                      onFocus={() => setHeroSuggestionsOpen(true)}
                       onBlur={() => { window.setTimeout(() => { setHeroSuggestionsOpen(false); setHeroActiveIdx(-1); }, 120); }}
                       onKeyDown={(e) => {
+                        if (showHeroPopular) {
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setHeroActiveIdx((i) => (i + 1) % HERO_POPULAR_SCANS.length);
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            setHeroActiveIdx((i) => (i <= 0 ? HERO_POPULAR_SCANS.length - 1 : i - 1));
+                          } else if (e.key === "Escape") {
+                            setHeroSuggestionsOpen(false);
+                            setHeroActiveIdx(-1);
+                          } else if (e.key === "Enter") {
+                            e.preventDefault();
+                            const pick = heroActiveIdx >= 0 ? HERO_POPULAR_SCANS[heroActiveIdx] : null;
+                            if (pick) {
+                              setHeroSearch(pick.label);
+                              setHeroSuggestionsOpen(false);
+                              focusModel(pick.make, pick.model);
+                            } else {
+                              runHeroSearch();
+                            }
+                          }
+                          return;
+                        }
                         if (e.key === "ArrowDown" && heroSuggestions.length) {
                           e.preventDefault();
                           setHeroSuggestionsOpen(true);
@@ -780,7 +775,7 @@ export default function Dashboard() {
                       autoCorrect="off"
                       autoCapitalize="none"
                       role="combobox"
-                      aria-expanded={showHeroSuggestions}
+                      aria-expanded={showHeroSuggestions || showHeroPopular}
                       aria-controls="hero-suggestions"
                       aria-autocomplete="list"
                       aria-activedescendant={heroActiveIdx >= 0 ? `hero-suggestion-${heroActiveIdx}` : undefined}
@@ -792,6 +787,32 @@ export default function Dashboard() {
                       {t("common.search", "Search")}
                     </button>
                   </div>
+
+                  {showHeroPopular ? (
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-border bg-card/95 p-1 shadow-soft-xl backdrop-blur-xl">
+                      <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                        {t("home.popular", "Popular")}
+                      </p>
+                      {HERO_POPULAR_SCANS.map((item, idx) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          role="option"
+                          id={`hero-suggestion-${idx}`}
+                          aria-selected={idx === heroActiveIdx}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setHeroSearch(item.label);
+                            setHeroSuggestionsOpen(false);
+                            focusModel(item.make, item.model);
+                          }}
+                          className={`${heroPopularBtnClass} ${idx === heroActiveIdx ? "bg-surface" : ""}`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
 
                   {showHeroSuggestions && (
                     <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-border bg-card/95 p-1 shadow-soft-xl backdrop-blur-xl">
@@ -822,63 +843,50 @@ export default function Dashboard() {
                 {heroSearchMessage && (
                   <p className="mt-2 text-[11px] font-medium text-primary-bright">{heroSearchMessage}</p>
                 )}
-
-                {/* Quick scans */}
-                <div className={`mt-5 flex flex-wrap items-center gap-1.5 ${heroJustify}`}>
-                  <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${heroVariant.tone === "dark" ? "text-white/55" : "text-muted-foreground/80"}`}>{t("home.popular", "Popular")}</span>
-                  {([
-                    { label: "Toyota Aqua", make: "Toyota", model: "Aqua" },
-                    { label: "Honda Vezel", make: "Honda", model: "Vezel" },
-                    { label: "Wagon R", make: "Suzuki", model: "Wagon R" },
-                    { label: "Nissan Leaf", make: "Nissan", model: "Leaf" },
-                    { label: "Toyota Axio", make: "Toyota", model: "Axio" },
-                  ] as const).map((item) => (
-                    <button key={item.label} type="button"
-                      onClick={() => { setHeroSearch(item.label); focusModel(item.make, item.model); }}
-                      className={heroPopularBtnClass}
-                    >{item.label}</button>
-                  ))}
-                </div>
             </motion.div>
           </div>
-
-          {/* ── Full-width live intelligence console ── */}
-          <div className="mt-12 lg:mt-16">
-            <ProFeatureLock label={t("home.liveIntelLock", "Live intelligence console")}>
-              <Suspense fallback={null}>
-                <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
-              </Suspense>
-            </ProFeatureLock>
-          </div>
-
-          {/* Categories + trust atmosphere — one visual job each */}
-          <div className="mt-10 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-              <AtmosphericImage
-                src={visuals.categoriesLineup.src}
-                srcSm={visuals.categoriesLineup.srcSm}
-                className="h-36 w-full object-cover object-center sm:h-40"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Vehicle types</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">Browse cars, vans, and SUVs across the live index.</p>
-              </div>
-            </div>
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-              <AtmosphericImage
-                src={visuals.trustVerification.src}
-                srcSm={visuals.trustVerification.srcSm}
-                className="h-36 w-full object-cover object-[center_30%] sm:h-40"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Verified signals</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">Deal scores and seller trust baked into every listing.</p>
-              </div>
-            </div>
-          </div>
         </motion.div>
+      </section>
+
+      {/* ── Live intelligence (post-hero) ─────────────────────────── */}
+      <section className="border-b border-border bg-background">
+        <div className="mx-auto max-w-[1560px] px-5 py-10 sm:px-6 lg:py-14">
+          <ProFeatureLock label={t("home.liveIntelLock", "Live intelligence console")}>
+            <Suspense fallback={null}>
+              <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+            </Suspense>
+          </ProFeatureLock>
+        </div>
+      </section>
+
+      {/* Categories + trust — one visual job each, outside hero */}
+      <section className="border-b border-border bg-surface">
+        <div className="mx-auto grid max-w-[1560px] gap-4 px-5 py-8 sm:px-6 lg:grid-cols-[1.4fr_1fr] lg:py-10">
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
+            <AtmosphericImage
+              src={visuals.categoriesLineup.src}
+              srcSm={visuals.categoriesLineup.srcSm}
+              className="h-36 w-full object-cover object-center sm:h-40"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Vehicle types</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">Browse cars, vans, and SUVs across the live index.</p>
+            </div>
+          </div>
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
+            <AtmosphericImage
+              src={visuals.trustVerification.src}
+              srcSm={visuals.trustVerification.srcSm}
+              className="h-36 w-full object-cover object-[center_30%] sm:h-40"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Verified signals</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">Deal scores and seller trust baked into every listing.</p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ── INVENTORY ───────────────────────────────────────────── */}
