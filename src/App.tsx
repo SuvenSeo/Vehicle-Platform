@@ -13,7 +13,6 @@ import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
-import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { AuthProvider } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -122,15 +121,14 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-      <AppPreferencesProvider>
         <TooltipProvider>
-      <MotionConfig reducedMotion="user">
-          <ScrollProgressBar />
-          <Sonner />
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <ScrollRestoration />
-            <RouteMeta />
-            <Routes>
+          <MotionConfig reducedMotion="user">
+            <ScrollProgressBar />
+            <Sonner />
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <ScrollRestoration />
+              <RouteMeta />
+              <Routes>
                 <Route element={<MainLayout chatMounted={chatMounted} />}>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dealer" element={<DealerDashboard />} />
@@ -182,10 +180,9 @@ const App = () => {
                   </Suspense>
                 } />
               </Routes>
-          </BrowserRouter>
-              </MotionConfig>
-    </TooltipProvider>
-      </AppPreferencesProvider>
+            </BrowserRouter>
+          </MotionConfig>
+        </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

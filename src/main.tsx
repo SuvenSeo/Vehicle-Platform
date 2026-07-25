@@ -9,6 +9,7 @@ import "@fontsource/geist-mono/latin-600.css";
 import "@fontsource/geist-mono/latin-700.css";
 import "./index.css";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { Analytics } from "@vercel/analytics/react";
 
 // Error tracking — dynamically imported so the bundle only pays for Sentry
@@ -25,8 +26,10 @@ if (sentryDsn) {
 }
 
 createRoot(document.getElementById("root")!).render(
-	<AppErrorBoundary>
-		<App />
-		<Analytics />
-	</AppErrorBoundary>
+	<AppPreferencesProvider>
+		<AppErrorBoundary>
+			<App />
+			<Analytics />
+		</AppErrorBoundary>
+	</AppPreferencesProvider>
 );

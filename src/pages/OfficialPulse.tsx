@@ -32,14 +32,14 @@ import { useAppPreferences } from "@/lib/appPreferences";
 
 type SourceFilter = "all" | string;
 
-function signalTitle(signal: MarketSignal): string {
+function signalTitle(signal: MarketSignal, marketSignalLabel: string): string {
   const guide = matchPulseGuide(signal.source, signal.signal_type);
-  return guide?.title || signal.category || signal.metric.replace(/_/g, " ") || "Market signal";
+  return guide?.title || signal.category || signal.metric.replace(/_/g, " ") || marketSignalLabel;
 }
 
 function SignalCard({ signal }: { signal: MarketSignal }) {
   const { t } = useAppPreferences();
-  const title = signalTitle(signal);
+  const title = signalTitle(signal, t("pulse.marketSignal", "Market signal"));
   const period = formatPulsePeriod(signal.period_year, signal.period_month);
   const value = formatPulseValue(signal.value_numeric, signal.unit, signal.metric);
   const hasSourceUrl = Boolean(signal.source_url?.trim());
@@ -111,9 +111,21 @@ export default function OfficialPulse() {
         title={<>{t("pulse.title", "Official pulse.")}</>}
         description={t("pulse.description", "Government & import market signals, explained in-platform.")}
         highlights={[
-          { label: "Signals", value: signalsQuery.isPending ? "…" : String(signals.length), hint: "Indexed official metrics" },
-          { label: "Sources", value: String(sourceChips.length || "—"), hint: "Government and import feeds" },
-          { label: "Guides", value: String(PULSE_SOURCE_GUIDES.length), hint: "Explainer cards in-platform" },
+          {
+            label: t("pulse.signals", "Signals"),
+            value: signalsQuery.isPending ? "…" : String(signals.length),
+            hint: t("pulse.signalsHint", "Indexed official metrics"),
+          },
+          {
+            label: t("pulse.sources", "Sources"),
+            value: String(sourceChips.length || "—"),
+            hint: t("pulse.sourcesHint", "Government and import feeds"),
+          },
+          {
+            label: t("pulse.guides", "Guides"),
+            value: String(PULSE_SOURCE_GUIDES.length),
+            hint: t("pulse.guidesHint", "Explainer cards in-platform"),
+          },
         ]}
         actions={
           <>
@@ -254,8 +266,15 @@ export default function OfficialPulse() {
               <p className="mt-3 text-[14px] font-semibold text-foreground">{t("pulse.empty", "No signals yet")}</p>
               <p className="mx-auto mt-2 max-w-md text-[12px] text-muted-foreground">
                 {sourceFilter === "all"
-                  ? "Official registration, transfer, tender, and import-cost signals will appear here after the market-signals sync runs."
-                  : `No live signals for ${labelPulseSource(sourceFilter)} in the latest batch. Try another source chip.`}
+                  ? t(
+                      "pulse.emptyBody",
+                      "Official registration, transfer, tender, and import-cost signals will appear here after the market-signals sync runs.",
+                    )
+                  : t(
+                      "pulse.emptyFiltered",
+                      "No live signals for {source} in the latest batch. Try another source chip.",
+                      { source: labelPulseSource(sourceFilter) },
+                    )}
               </p>
             </div>
           ) : (
