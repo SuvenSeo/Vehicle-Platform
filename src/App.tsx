@@ -50,6 +50,7 @@ const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
 const OfficialPulse = lazyWithRetry(() => import("./pages/OfficialPulse"));
 const OfficialPulseDetail = lazyWithRetry(() => import("./pages/OfficialPulseDetail"));
 const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuide"));
+const HeroLab = lazyWithRetry(() => import("./pages/HeroLab"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -167,6 +168,11 @@ const App = () => {
                 <Route path="/sign-up" element={
                   <Suspense fallback={<MinimalLoader />}>
                     <SignUp />
+                  </Suspense>
+                } />
+                <Route path="/hero-lab" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <HeroLab />
                   </Suspense>
                 } />
                 <Route path="/pro-preview" element={

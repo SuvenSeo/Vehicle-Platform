@@ -44,7 +44,7 @@ const NotFound = () => {
         eyebrow={t("notFound.eyebrow", "404")}
         title={<>{t("notFound.title", "Page not found.")}</>}
         description={t("notFound.description", "This route doesn't exist. Try one of the links below.")}
-        mediaSrc={visuals.lostCarFork404}
+        media={visuals.lostCarFork404}
         mediaPosition="center"
         mediaTone="brand"
         highlights={[

@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, ArrowRight, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { DEMO_ACCOUNT_SUMMARY, DEMO_AUTH_ENABLED, useAuth } from "@/lib/authContext";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
@@ -54,10 +55,12 @@ export default function SignIn() {
     >
       {/* Full-bleed cinematic garage — car/light stay on the right */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <img
-          src={visuals.darkGarageSilhouette}
-          alt=""
+        <AtmosphericImage
+          src={visuals.darkGarageSilhouette.src}
+          srcSm={visuals.darkGarageSilhouette.srcSm}
           className="h-full w-full object-cover object-[72%_center] sm:object-[68%_center] lg:object-[62%_center]"
+          priority
+          sizes="100vw"
         />
         {/* Left negative-space wash for the auth panel; keep right luminous */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/72 to-black/25 sm:via-black/65 sm:to-black/15 lg:from-black/90 lg:via-black/45 lg:to-transparent" />

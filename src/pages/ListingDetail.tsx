@@ -28,6 +28,7 @@ import { useAppPreferences } from '@/lib/appPreferences';
 import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
 import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
+import { AtmosphericImage } from '@/components/AtmosphericImage';
 import { visuals } from '@/lib/visualAssets';
 
 function formatToken(value: string | null | undefined): string {
@@ -229,10 +230,11 @@ export default function ListingDetail() {
     >
       {/* Decorative Blur Orbs — token-based, adapt to both themes */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <img
-          src={visuals.pageListingDetail}
-          alt=""
+        <AtmosphericImage
+          src={visuals.pageListingDetail.src}
+          srcSm={visuals.pageListingDetail.srcSm}
           className="h-[28rem] w-full object-cover object-[center_30%] opacity-[0.18]"
+          sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background to-background" />
       </div>

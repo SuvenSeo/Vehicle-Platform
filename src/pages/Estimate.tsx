@@ -123,7 +123,7 @@ export default function Estimate() {
         watermarkIcon={BarChart3}
         title={<>{t("estimate.title", "What's your car worth?")}</>}
         description={t("estimate.description", "District-aware fair value ranges, trend projection, and seller ask guidance from live Sri Lanka inventory.")}
-        mediaSrc={visuals.alt2HeroOrangeSunset}
+        media={visuals.alt2HeroOrangeSunset}
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[

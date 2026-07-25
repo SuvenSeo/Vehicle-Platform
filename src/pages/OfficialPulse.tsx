@@ -111,7 +111,7 @@ export default function OfficialPulse() {
         watermarkIcon={Radio}
         title={<>{t("pulse.title", "Official pulse.")}</>}
         description={t("pulse.description", "Government & import market signals, explained in-platform.")}
-        mediaSrc={visuals.alt2BlogTeaPlantation}
+        media={visuals.alt2BlogTeaPlantation}
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[

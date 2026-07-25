@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import type { VisualAsset } from "@/lib/visualAssets";
 
 export type PageTheme =
   | "default"
@@ -35,7 +37,10 @@ type PageHeroProps = {
   align?: "left" | "center";
   className?: string;
   /** Optional full-bleed photographic atmosphere (cover). */
+  media?: VisualAsset;
+  /** @deprecated Prefer `media` with responsive pair. */
   mediaSrc?: string;
+  mediaSrcSm?: string;
   /** CSS object-position, e.g. "center right". */
   mediaPosition?: string;
   /** Softens photo under copy — default "brand". */
@@ -69,11 +74,16 @@ export function PageHero({
   children,
   align = "left",
   className,
+  media,
   mediaSrc,
+  mediaSrcSm,
   mediaPosition = "center",
   mediaTone = "brand",
 }: PageHeroProps) {
   const centered = align === "center";
+  const photoSrc = media?.src ?? mediaSrc;
+  const photoSm = media?.srcSm ?? mediaSrcSm;
+  const hasMedia = Boolean(photoSrc);
 
   return (
     <motion.section
@@ -81,19 +91,21 @@ export function PageHero({
       className={cn(
         "page-hero platform-hero",
         `page-hero--${theme}`,
-        mediaSrc && "page-hero--media",
-        mediaSrc && `page-hero--media-${mediaTone}`,
+        hasMedia && "page-hero--media",
+        hasMedia && `page-hero--media-${mediaTone}`,
         className,
       )}
     >
       <div className="page-hero__atmosphere" aria-hidden>
-        {mediaSrc ? (
+        {photoSrc ? (
           <>
-            <img
-              src={mediaSrc}
-              alt=""
+            <AtmosphericImage
+              src={photoSrc}
+              srcSm={photoSm}
               className="page-hero__media"
               style={{ objectPosition: mediaPosition }}
+              priority
+              sizes="100vw"
             />
             <div className="page-hero__media-veil" />
           </>

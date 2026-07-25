@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, LineChart, Info } from "lucide-react";
 import { getPriceIndex } from "@/services/api";
 import type { PriceIndex, PriceIndexPoint } from "@/types/car";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { visuals } from "@/lib/visualAssets";
 
 const containerVariants = {
@@ -62,10 +63,11 @@ export default function PriceIndexPage() {
   return (
     <motion.div initial="hidden" animate="show" variants={containerVariants} className="min-h-screen relative overflow-hidden bg-background">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <img
-          src={visuals.priceIntelligenceBg}
-          alt=""
+        <AtmosphericImage
+          src={visuals.priceIntelligenceBg.src}
+          srcSm={visuals.priceIntelligenceBg.srcSm}
           className="h-full w-full object-cover object-center opacity-[0.22]"
+          sizes="100vw"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/92 to-background" />
       </div>

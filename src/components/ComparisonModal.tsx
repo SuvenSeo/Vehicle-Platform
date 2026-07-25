@@ -28,6 +28,7 @@ import {
 import { getListingDealLabel, getListingImageUrl } from "@/lib/listing-card-meta";
 import { isReasonableListingPrice } from "@/lib/formatting";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { visuals } from "@/lib/visualAssets";
 import { cn } from "@/lib/utils";
 
@@ -339,10 +340,11 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
       <DialogContent className="flex max-h-[min(92vh,900px)] w-[min(96vw,1120px)] max-w-[1120px] flex-col gap-0 overflow-hidden border-border bg-card p-0 text-foreground sm:rounded-2xl">
         <DialogHeader className="relative shrink-0 overflow-hidden border-b border-border px-5 pb-4 pt-5 text-left md:px-6 md:pt-6">
           <div aria-hidden className="pointer-events-none absolute inset-0">
-            <img
-              src={visuals.pageCompareHero}
-              alt=""
+            <AtmosphericImage
+              src={visuals.pageCompareHero.src}
+              srcSm={visuals.pageCompareHero.srcSm}
               className="h-full w-full object-cover object-[center_40%] opacity-30"
+              sizes="1120px"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-card via-card/92 to-card/75" />
           </div>
