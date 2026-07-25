@@ -67,7 +67,7 @@ export function HeroVariantPicker({
           Hero lab · local only
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          Flip versions, then tell me which ID to keep before we commit.
+          Local preview only. Production ships <code className="text-foreground">ultrawide-day</code>.
         </p>
         <div className="mt-2 grid max-h-[42vh] gap-1.5 overflow-y-auto pr-1">
           {HERO_VARIANTS.map((v) => {

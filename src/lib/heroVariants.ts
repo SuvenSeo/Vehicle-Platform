@@ -96,16 +96,16 @@ export const HERO_VARIANTS: HeroVariant[] = [
     label: "5 · Ultrawide day",
     blurb: "Bright bay panorama + red supercar — airy left space.",
     image: visuals.alt2HeroUltrawidePanorama,
-    objectPosition: "68% 45%",
-    imageOpacity: "opacity-[0.7]",
+    // Bias right so the car stays visible; slightly left of 68% on narrow crops
+    objectPosition: "62% 42%",
+    imageOpacity: "opacity-[0.86]",
     align: "left",
     tone: "light",
     hideSideSignals: true,
     scrims: [
-      // Dense left wash so Motormila + headline stay crisp on the bright sky/water
-      "bg-gradient-to-r from-background via-background/92 to-background/35 sm:to-transparent",
-      "bg-gradient-to-r from-background/80 via-background/45 to-transparent",
-      "bg-gradient-to-b from-background/55 via-transparent to-background",
+      // Lighter left wash — photo stays dominant; type uses text-shadow for contrast
+      "bg-gradient-to-r from-background/82 via-background/45 to-transparent",
+      "bg-gradient-to-b from-background/25 via-transparent to-background/90",
     ],
   },
   {
