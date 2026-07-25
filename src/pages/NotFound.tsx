@@ -7,49 +7,52 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem, springSnappy } from "@/lib/motion";
-
-const links = [
-  {
-    to: "/",
-    label: "Inventory",
-    description: "Browse every live listing, ranked against the market.",
-    icon: TrendingUp,
-    featured: true,
-  },
-  {
-    to: "/trends",
-    label: "Price trends",
-    description: "Track how values move, week over week.",
-    icon: BarChart3,
-    featured: false,
-  },
-  {
-    to: "/calculator",
-    label: "Import calculator",
-    description: "Break down duty, tax, and landed cost.",
-    icon: MapPin,
-    featured: false,
-  },
-] as const;
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const NotFound = () => {
+  const { t } = useAppPreferences();
+
+  const links = [
+    {
+      to: "/",
+      label: t("notFound.inventory", "Inventory"),
+      description: t("notFound.inventoryDesc", "Browse every live listing, ranked against the market."),
+      icon: TrendingUp,
+      featured: true,
+    },
+    {
+      to: "/trends",
+      label: t("notFound.trends", "Price trends"),
+      description: t("notFound.trendsDesc", "Track how values move, week over week."),
+      icon: BarChart3,
+      featured: false,
+    },
+    {
+      to: "/calculator",
+      label: t("notFound.calculator", "Import calculator"),
+      description: t("notFound.calculatorDesc", "Break down duty, tax, and landed cost."),
+      icon: MapPin,
+      featured: false,
+    },
+  ] as const;
+
   return (
     <PageCanvas ambient="subtle">
       <PageHero
         theme="default"
-        eyebrow="404"
-        title={<>Page not found<span className="text-sheen">.</span></>}
-        description="This route doesn't exist. Try one of the links below."
+        eyebrow={t("notFound.eyebrow", "404")}
+        title={<>{t("notFound.title", "Page not found.")}</>}
+        description={t("notFound.description", "This route doesn't exist. Try one of the links below.")}
         highlights={[
-          { label: "Inventory", value: "Live", hint: "Browse the full market" },
-          { label: "Trends", value: "Open", hint: "Price movement studio" },
-          { label: "Calculator", value: "Ready", hint: "Import and TCO tools" },
+          { label: t("notFound.inventory", "Inventory"), value: t("common.live", "Live"), hint: t("notFound.inventoryDesc", "Browse every live listing, ranked against the market.") },
+          { label: t("notFound.trends", "Price trends"), value: "Open", hint: t("notFound.trendsDesc", "Track how values move, week over week.") },
+          { label: t("notFound.calculator", "Import calculator"), value: "Ready", hint: t("notFound.calculatorDesc", "Break down duty, tax, and landed cost.") },
         ]}
         actions={
           <Button asChild size="lg" variant="outline">
             <Link to="/">
               <ArrowLeft className="h-4 w-4" aria-hidden />
-              Back to dashboard
+              {t("common.backToDashboard", "Back to dashboard")}
             </Link>
           </Button>
         }
@@ -58,8 +61,8 @@ const NotFound = () => {
       <PageBody className="pb-20 lg:pb-28">
           <motion.div variants={revealItem}>
             <SectionHeader
-              eyebrow="Popular destinations"
-              title="Pick up where you left off"
+              eyebrow={t("notFound.destinations", "Popular destinations")}
+              title={t("notFound.pickUp", "Pick up where you left off")}
             />
           </motion.div>
 

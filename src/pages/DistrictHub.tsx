@@ -13,6 +13,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const SITE = BRAND.siteName;
 const ORIGIN = BRAND.origin;
@@ -25,6 +26,7 @@ function toTitleCase(str: string): string {
 }
 
 export default function DistrictHub() {
+  const { t } = useAppPreferences();
   const { district: districtParam = "" } = useParams<{ district: string }>();
   const districtDisplay = toTitleCase(decodeURIComponent(districtParam));
 
@@ -81,11 +83,11 @@ export default function DistrictHub() {
     <PageCanvas>
       <PageHero
         theme="default"
-        eyebrow="District hub"
+        eyebrow={t("districtHub.eyebrow", "District hub")}
         eyebrowIcon={MapPin}
         watermarkIcon={MapPin}
         title={isPending ? districtDisplay : canonicalDistrict}
-        description={`Live inventory, average prices, and top models in ${canonicalDistrict}.`}
+        description={t("districtHub.description", "Live inventory, average prices, and top models in {district}.", { district: canonicalDistrict })}
       />
 
       <PageBody className="space-y-16 lg:space-y-24">
@@ -93,15 +95,15 @@ export default function DistrictHub() {
           <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft sm:grid-cols-3">
             {[
               {
-                label: "Live listings",
-                value: isPending ? "…" : insight ? insight.listing_count.toLocaleString() : "N/A",
+                label: t("makeHub.liveListings", "Live listings"),
+                value: isPending ? "…" : insight ? insight.listing_count.toLocaleString() : t("common.na", "N/A"),
               },
               {
-                label: "Average price",
+                label: t("makeHub.avgPrice", "Average price"),
                 value: isPending ? "…" : formatPrice(insight?.avg_price_lkr ?? null),
               },
               {
-                label: "Median price",
+                label: t("makeHub.medianPrice", "Median price"),
                 value: isPending ? "…" : formatPrice(insight?.median_price_lkr ?? null),
               },
             ].map((card) => (
@@ -117,7 +119,7 @@ export default function DistrictHub() {
 
         {insight && insight.top_models.length > 0 && (
           <motion.section variants={revealItem}>
-            <SectionHeader eyebrow="Models" title={`Popular in ${canonicalDistrict}`} className="mb-8" />
+            <SectionHeader eyebrow={t("makeHub.models", "Models")} title={t("districtHub.popular", "Popular in {district}", { district: canonicalDistrict })} className="mb-8" />
             <motion.div variants={revealContainer} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {insight.top_models.map((entry) => (
                 <Link
@@ -129,10 +131,10 @@ export default function DistrictHub() {
                     {entry.make} {entry.model}
                   </p>
                   <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                    {entry.listing_count} listing{entry.listing_count !== 1 ? "s" : ""}
+                    {entry.listing_count} {t("common.listings", "listings")}
                   </p>
                   <p className="num mt-3 text-lg font-bold text-foreground">
-                    {entry.avg_price_lkr ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
+                    {entry.avg_price_lkr ? formatPrice(entry.avg_price_lkr) : t("common.priceNa", "Price N/A")}
                   </p>
                 </Link>
               ))}
@@ -142,7 +144,7 @@ export default function DistrictHub() {
 
         {recentListings.length > 0 && (
           <motion.section variants={revealItem}>
-            <SectionHeader eyebrow="Live inventory" title="Recent listings" className="mb-8" />
+            <SectionHeader eyebrow={t("makeHub.liveInventory", "Live inventory")} title={t("districtHub.recent", "Recent listings")} className="mb-8" />
             <motion.div variants={revealContainer} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {recentListings.map((listing) => (
                 <motion.div key={listing.id} variants={revealItem}>
@@ -155,7 +157,7 @@ export default function DistrictHub() {
 
         <Button asChild className="w-full sm:w-auto">
           <Link to={`/?district=${encodeURIComponent(districtParam)}#market`}>
-            Browse {canonicalDistrict} listings <ArrowRight className="h-4 w-4" aria-hidden />
+            {t("districtHub.browse", "Browse {district} listings", { district: canonicalDistrict })} <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </Button>
       </PageBody>

@@ -11,6 +11,7 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
+import { useAppPreferences } from "@/lib/appPreferences";
 import type { HybridBandsData, PriceTrendPoint } from "@/types/car";
 import {
   getExciseRatePerCc,
@@ -45,6 +46,7 @@ function bandColor(index: number): { bar: string; badge: string; text: string } 
 }
 
 export default function Trends() {
+  const { t } = useAppPreferences();
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [modelsList, setModelsList] = useState<{ model: string; count: number }[]>([]);
   const [selectedMake, setSelectedMake] = useState("");
@@ -80,10 +82,16 @@ export default function Trends() {
     setLoading(true); setError(null);
     getPriceTrendSeries(selectedMake, selectedModel, condition !== "all" ? condition : undefined, district !== "all" ? district : undefined)
       .then((s) => { if (!c) { setTrendData(s.points); setCoverageNote(s.coverage_note); } })
-      .catch(() => { if (!c) { setTrendData([]); setCoverageNote("Trend data temporarily unavailable."); setError("Unable to load trend data."); } })
+      .catch(() => {
+        if (!c) {
+          setTrendData([]);
+          setCoverageNote(t("trends.tempUnavailable", "Trend data temporarily unavailable."));
+          setError(t("trends.loadError", "Unable to load trend data."));
+        }
+      })
       .finally(() => { if (!c) setLoading(false); });
     return () => { c = true; };
-  }, [selectedMake, selectedModel, condition, district]);
+  }, [selectedMake, selectedModel, condition, district, t]);
 
   useEffect(() => {
     let c = false;
@@ -91,14 +99,24 @@ export default function Trends() {
     setHybridError(null);
     getHybridBands()
       .then((data) => { if (!c) setHybridBands(data); })
-      .catch(() => { if (!c) setHybridError("Hybrid band data temporarily unavailable."); })
+      .catch(() => { if (!c) setHybridError(t("trends.hybridError", "Hybrid band data temporarily unavailable.")); })
       .finally(() => { if (!c) setHybridLoading(false); });
     return () => { c = true; };
-  }, []);
+  }, [t]);
 
-  const chartTitle = selectedMake && selectedModel ? `${selectedMake} ${selectedModel}` : "Select a lane";
-  const emptyMessage = !selectedMake || !selectedModel ? "Select make and model to load price history." : error || "No trend data for this combination yet.";
+  const chartTitle = selectedMake && selectedModel ? `${selectedMake} ${selectedModel}` : t("trends.selectLane", "Select a lane");
+  const emptyMessage = !selectedMake || !selectedModel
+    ? t("trends.selectToLoad", "Select make and model to load price history.")
+    : error || t("trends.noData", "No trend data for this combination yet.");
   const hasNarrow = district !== "all" || condition !== "all";
+
+  const conditionLabel = (value: string) => {
+    if (value === "all") return t("common.any", "Any");
+    if (value === "used") return t("condition.used", "Used");
+    if (value === "reconditioned") return t("condition.reconditioned", "Reconditioned");
+    if (value === "brand_new") return t("condition.brandNew", "Brand New");
+    return value;
+  };
 
   const selectTriggerClass = "h-11 rounded-xl border-border bg-surface text-sm text-foreground";
   const selectContentClass = "border-border bg-popover text-popover-foreground";
@@ -108,10 +126,10 @@ export default function Trends() {
     <PageCanvas>
       <PageHero
         theme="trends"
-        eyebrow="Trend studio"
+        eyebrow={t("trends.eyebrow", "Trend studio")}
         watermarkIcon={BarChart3}
-        title={<>Price trends<span className="text-sheen">.</span></>}
-        description="Track median price movement for any vehicle lane across Sri Lanka."
+        title={<>{t("trends.title", "Price trends.")}</>}
+        description={t("trends.description", "Track median price movement for any vehicle lane across Sri Lanka.")}
         highlights={[
           { label: "Coverage", value: "All LK", hint: "District-level price lanes" },
           { label: "Hybrid lens", value: "Tax bands", hint: "Excise cliff intelligence" },
@@ -124,39 +142,41 @@ export default function Trends() {
         <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <label htmlFor="t-make" className={fieldLabelClass}>Make</label>
+              <label htmlFor="t-make" className={fieldLabelClass}>{t("common.make", "Make")}</label>
               <Select value={selectedMake} onValueChange={setSelectedMake}>
-                <SelectTrigger id="t-make" className={selectTriggerClass}><SelectValue placeholder="Select make" /></SelectTrigger>
+                <SelectTrigger id="t-make" className={selectTriggerClass}><SelectValue placeholder={t("common.selectMake", "Select make")} /></SelectTrigger>
                 <SelectContent className={selectContentClass}>
                   {makes.map((m) => <SelectItem key={m.make} value={m.make}>{m.make}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-model" className={fieldLabelClass}>Model</label>
+              <label htmlFor="t-model" className={fieldLabelClass}>{t("common.model", "Model")}</label>
               <Select value={selectedModel} onValueChange={setSelectedModel} disabled={!selectedMake || !modelsList.length}>
-                <SelectTrigger id="t-model" className={selectTriggerClass}><SelectValue placeholder="Select model" /></SelectTrigger>
+                <SelectTrigger id="t-model" className={selectTriggerClass}><SelectValue placeholder={t("common.selectModel", "Select model")} /></SelectTrigger>
                 <SelectContent className={selectContentClass}>
                   {modelsList.map((m) => <SelectItem key={m.model} value={m.model}>{m.model}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-cond" className={fieldLabelClass}>Condition</label>
+              <label htmlFor="t-cond" className={fieldLabelClass}>{t("common.condition", "Condition")}</label>
               <Select value={condition} onValueChange={setCondition}>
                 <SelectTrigger id="t-cond" className={selectTriggerClass}><SelectValue /></SelectTrigger>
                 <SelectContent className={selectContentClass}>
-                  <SelectItem value="all">Any</SelectItem><SelectItem value="used">Used</SelectItem>
-                  <SelectItem value="reconditioned">Reconditioned</SelectItem><SelectItem value="brand_new">Brand new</SelectItem>
+                  <SelectItem value="all">{t("common.any", "Any")}</SelectItem>
+                  <SelectItem value="used">{t("condition.used", "Used")}</SelectItem>
+                  <SelectItem value="reconditioned">{t("condition.reconditioned", "Reconditioned")}</SelectItem>
+                  <SelectItem value="brand_new">{t("condition.brandNew", "Brand New")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label htmlFor="t-dist" className={fieldLabelClass}>District</label>
+              <label htmlFor="t-dist" className={fieldLabelClass}>{t("common.district", "District")}</label>
               <Select value={district} onValueChange={setDistrict}>
                 <SelectTrigger id="t-dist" className={selectTriggerClass}><SelectValue /></SelectTrigger>
                 <SelectContent className={selectContentClass}>
-                  <SelectItem value="all">All districts</SelectItem>
+                  <SelectItem value="all">{t("common.allDistricts", "All districts")}</SelectItem>
                   {SRI_LANKA_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -164,11 +184,11 @@ export default function Trends() {
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <span className={fieldLabelClass}>Lane:</span>
+            <span className={fieldLabelClass}>{t("trends.lane", "Lane:")}</span>
             {[
               { id: "make", label: selectedMake || "—" },
               { id: "model", label: selectedModel || "—" },
-              { id: "condition", label: condition === "all" ? "Any" : condition },
+              { id: "condition", label: conditionLabel(condition) },
               { id: "district", label: district === "all" ? "All LK" : district },
             ].map((chip) => (
               <span key={chip.id} className="rounded-full border border-border bg-surface px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">{chip.label}</span>
@@ -181,7 +201,7 @@ export default function Trends() {
                 onClick={() => { setDistrict("all"); setCondition("all"); }}
                 className="ml-auto h-8 gap-1.5 px-3 text-xs font-semibold text-muted-foreground"
               >
-                <RotateCcw aria-hidden /> Reset filters
+                <RotateCcw aria-hidden /> {t("trends.resetFilters", "Reset filters")}
               </Button>
             )}
           </div>
@@ -189,14 +209,16 @@ export default function Trends() {
 
         {/* Chart — PriceHistoryChart owns its own theme-aware surface + Recharts */}
         <motion.div variants={revealItem}>
-          <PriceHistoryChart title={chartTitle} points={trendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? "Broaden filters" : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
+          <PriceHistoryChart title={chartTitle} points={trendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? t("trends.broadenFilters", "Broaden filters") : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
         </motion.div>
 
         <motion.div variants={revealItem} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
           <p className="text-[11px] font-medium text-muted-foreground">
-            {selectedMake && selectedModel ? "Median advertised prices grouped by month from the public Sri Lanka snapshot." : "Choose a make and model to render the trajectory."}
+            {selectedMake && selectedModel
+              ? t("trends.medianNote", "Median advertised prices grouped by month from the public Sri Lanka snapshot.")
+              : t("trends.chooseLane", "Choose a make and model to render the trajectory.")}
           </p>
-          <span className="shrink-0 text-[10px] font-semibold text-primary-bright num">Public data</span>
+          <span className="shrink-0 text-[10px] font-semibold text-primary-bright num">{t("common.publicData", "Public data")}</span>
         </motion.div>
 
         {/* ── HYBRID TAX ARBITRAGE ──────────────────────────────── */}
@@ -225,6 +247,7 @@ interface HybridTaxArbitrageSectionProps {
 }
 
 function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageSectionProps) {
+  const { t } = useAppPreferences();
   const cliffInsight = getHybridExciseCliffInsight();
 
   const bands = data?.bands ?? [];
@@ -239,17 +262,16 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
         <div className="max-w-2xl">
           <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
             <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
-            Import tax intelligence
+            {t("trends.hybridEyebrow", "Import tax intelligence")}
           </p>
           <h2
             id="hybrid-tax-heading"
             className="display-2 mt-2 text-foreground"
           >
-            Hybrid tax arbitrage bands
+            {t("trends.hybridTitle", "Hybrid tax arbitrage bands")}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Median market prices vs excise duty across three engine-cc bands.
-            The 1,500 cc cliff creates a pricing discontinuity worth exploiting.
+            {t("trends.hybridBody", "Median market prices vs excise duty across three engine-cc bands. The 1,500 cc cliff creates a pricing discontinuity worth exploiting.")}
           </p>
         </div>
       </div>
@@ -257,7 +279,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
       {loading && (
         <div
           aria-busy="true"
-          aria-label="Loading hybrid band data"
+          aria-label={t("common.loading", "Loading")}
           className="space-y-3"
         >
           {[1, 2, 3].map((i) => (
@@ -270,14 +292,14 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
         <div className="rounded-lg border border-border bg-surface px-4 py-6 text-center">
           <p className="text-[12px] text-muted-foreground">{error}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Excise cliff insight is still available below from the static tax model.
+            {t("trends.hybridErrorHint", "Excise cliff insight is still available below from the static tax model.")}
           </p>
         </div>
       )}
 
       {!loading && !error && bands.length === 0 && (
         <div className="rounded-lg border border-border bg-surface px-4 py-6 text-center">
-          <p className="text-[12px] text-muted-foreground">No hybrid band data available yet.</p>
+          <p className="text-[12px] text-muted-foreground">{t("trends.hybridEmpty", "No hybrid band data available yet.")}</p>
         </div>
       )}
 
@@ -304,13 +326,13 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
                     </span>
                     {isCliffBand && (
                       <span className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-400">
-                        Tax cliff ↓
+                        {t("trends.taxCliff", "Tax cliff ↓")}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 text-right">
                     <span className="text-[11px] text-muted-foreground num">
-                      {band.count.toLocaleString()} listings
+                      {band.count.toLocaleString()} {t("common.listings", "listings")}
                     </span>
                     {band.median_price_lkr !== null && (
                       <span className="text-[13px] font-bold text-foreground num">
@@ -332,13 +354,13 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
 
                 {/* Excise note */}
                 <p className="text-[11px] text-muted-foreground">
-                  Excise duty:{" "}
+                  {t("trends.exciseDuty", "Excise duty:")}{" "}
                   <span className={`font-semibold ${colors.text}`}>
                     {exciseLabelFor(band.cc_max)}
                   </span>
                   {isCliffBand && (
                     <span className="ml-2 text-emerald-700 dark:text-emerald-400">
-                      · lowest hybrid rate
+                      {t("trends.lowestHybridRate", "· lowest hybrid rate")}
                     </span>
                   )}
                 </p>
@@ -353,7 +375,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
         <div className="mb-2 flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
-            1,500 cc excise cliff
+            {t("trends.cliffTitle", "1,500 cc excise cliff")}
           </p>
         </div>
         <p className="text-[13px] text-muted-foreground leading-relaxed">
@@ -390,7 +412,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
         <p className="text-[11px] text-muted-foreground">
           Median prices from live market snapshot · excise rates from the 2025–2026 import tax model.
         </p>
-        <span className="shrink-0 text-[10px] font-semibold text-amber-700 dark:text-amber-400 num">Tax model</span>
+        <span className="shrink-0 text-[10px] font-semibold text-amber-700 dark:text-amber-400 num">{t("trends.taxModel", "Tax model")}</span>
       </div>
     </section>
   );

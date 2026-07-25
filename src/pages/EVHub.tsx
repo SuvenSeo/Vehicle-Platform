@@ -20,24 +20,26 @@ import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { QUERY_STALE } from "@/lib/queryPolicy";
+import { useAppPreferences } from "@/lib/appPreferences";
 
-const evModules = [
-  { icon: Battery, step: "01", title: "Battery health", desc: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
-  { icon: ShieldCheck, step: "02", title: "Duty & policy", desc: "Sri Lanka EV import duty rates, exemptions, and policy outlook." },
-  { icon: PlugZap, step: "03", title: "Charging fit", desc: "Home vs public charging, range per use case, and cost comparison." },
-];
+const EV_MODULE_DEFS = [
+  { icon: Battery, step: "01", titleKey: "ev.module.battery", titleFb: "Battery health", descFb: "Degradation patterns, SoH benchmarks, and what to inspect before buying." },
+  { icon: ShieldCheck, step: "02", titleKey: "ev.module.duty", titleFb: "Duty & policy", descFb: "Sri Lanka EV import duty rates, exemptions, and policy outlook." },
+  { icon: PlugZap, step: "03", titleKey: "ev.module.charging", titleFb: "Charging fit", descFb: "Home vs public charging, range per use case, and cost comparison." },
+] as const;
 
-const ownershipChecks = [
+const OWNERSHIP_CHECK_DEFS = [
   { label: "Battery reserve", value: "20-30%", note: "Guideline: keep this much SoH headroom when buying used" },
   { label: "Home charging", value: "Priority", note: "Guideline: overnight charging beats public-charger dependence" },
   { label: "Resale proof", value: "Records", note: "Guideline: battery reports protect resale value" },
-];
+] as const;
 
 const TCO_FUEL_COST_PER_KM_PETROL_LKR = 28;
 const TCO_FUEL_COST_PER_KM_EV_LKR = 6;
 const TCO_KM_PER_YEAR = 20_000;
 
 export default function EVHub() {
+  const { t } = useAppPreferences();
   const insightQuery = useQuery({
     queryKey: ["ev-insight"],
     queryFn: getEvInsight,
@@ -63,23 +65,36 @@ export default function EVHub() {
       ? Math.ceil(evPremiumLkr / annualFuelSavingLkr)
       : null;
 
+  const na = t("common.na", "N/A");
   const liveStats = [
     {
-      label: "Electric listings live",
-      value: pending ? "…" : evCount !== null ? evCount.toLocaleString() : "N/A",
-      note: "Active EV inventory tracked across all sources",
+      label: t("ev.liveElectricLabel", "Electric listings live"),
+      value: pending ? "…" : evCount !== null ? evCount.toLocaleString() : na,
+      note: t("ev.liveElectricNote", "Active EV inventory tracked across all sources"),
     },
     {
-      label: "EV market share",
-      value: pending ? "…" : evPct !== null ? `${evPct.toFixed(1)}%` : "N/A",
-      note: "Share of all tracked listings that are electric",
+      label: t("ev.marketShareLabel", "EV market share"),
+      value: pending ? "…" : evPct !== null ? `${evPct.toFixed(1)}%` : na,
+      note: t("ev.marketShareNote", "Share of all tracked listings that are electric"),
     },
     {
-      label: "Median EV price",
-      value: pending ? "…" : medianEvPrice !== null ? formatPrice(medianEvPrice) : "N/A",
-      note: "Median price across all priced EV listings",
+      label: t("ev.medianPriceLabel", "Median EV price"),
+      value: pending ? "…" : medianEvPrice !== null ? formatPrice(medianEvPrice) : na,
+      note: t("ev.medianPriceNote", "Median price across all priced EV listings"),
     },
   ];
+
+  const evModules = EV_MODULE_DEFS.map((m) => ({
+    ...m,
+    title: t(m.titleKey, m.titleFb),
+    desc: t(`${m.titleKey}Desc`, m.descFb),
+  }));
+
+  const ownershipChecks = OWNERSHIP_CHECK_DEFS.map((c) => ({
+    ...c,
+    label: t(`ev.ownership.${c.label.replace(" ", "")}`, c.label),
+    note: t(`ev.ownershipNote.${c.label.replace(" ", "")}`, c.note),
+  }));
 
   const [featureStat, ...secondaryStats] = liveStats;
 
@@ -87,11 +102,11 @@ export default function EVHub() {
     <PageCanvas ambient="subtle">
       <PageHero
         theme="ev"
-        eyebrow="EV intelligence"
+        eyebrow={t("ev.eyebrow", "EV intelligence")}
         eyebrowIcon={Zap}
         watermarkIcon={Battery}
-        title={<>EV buying signals<span className="text-sheen">.</span></>}
-        description="Battery health, charging fit, and duty signals for the Sri Lankan EV market."
+        title={<>{t("ev.title", "EV buying signals.")}</>}
+        description={t("ev.description", "Battery health, charging fit, and duty signals for the Sri Lankan EV market.")}
         highlights={liveStats.slice(0, 3).map((stat) => ({
           label: stat.label,
           value: stat.value,
@@ -102,7 +117,7 @@ export default function EVHub() {
       <PageBody className="space-y-16 lg:space-y-24">
         {/* Live inventory pulse — one number towers */}
         <motion.section variants={revealItem}>
-          <SectionHeader title="Live EV inventory" className="mb-8" />
+          <SectionHeader title={t("ev.liveInventory", "Live EV inventory")} className="mb-8" />
           <div className="space-y-3">
             <div className="data-card flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
               <div>
@@ -126,7 +141,7 @@ export default function EVHub() {
         {/* Top EV models — feature the leading model */}
         {(pending || topModels.length > 0) && (
           <motion.section variants={revealItem}>
-            <SectionHeader title="Top EV models" className="mb-8" />
+            <SectionHeader title={t("ev.topModels", "Top EV models")} className="mb-8" />
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {pending
                 ? Array.from({ length: 5 }).map((_, i) => (
@@ -182,9 +197,9 @@ export default function EVHub() {
               <div className="min-w-0 flex-1">
                 <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">
                   <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
-                  TCO comparison
+                  {t("ev.tcoEyebrow", "TCO comparison")}
                 </p>
-                <h3 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">EV vs. Toyota Aqua hybrid — real running cost</h3>
+                <h3 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">{t("ev.tcoTitle", "EV vs. Toyota Aqua hybrid — real running cost")}</h3>
                 <p className="mt-3 max-w-2xl text-[14px] font-medium leading-relaxed text-muted-foreground">
                   Fuel saving estimated at <span className="num font-bold text-foreground">Rs.{annualFuelSavingLkr.toLocaleString()}/yr</span> (LKR {TCO_FUEL_COST_PER_KM_EV_LKR} vs LKR {TCO_FUEL_COST_PER_KM_PETROL_LKR} per km, {(TCO_KM_PER_YEAR / 1000).toFixed(0)}k km/yr).
                 </p>
@@ -226,7 +241,7 @@ export default function EVHub() {
 
         {/* Decision modules */}
         <motion.section variants={revealItem}>
-          <SectionHeader title="Decision modules" className="mb-8" />
+          <SectionHeader title={t("ev.decisionModules", "Decision modules")} className="mb-8" />
           <div className="grid gap-3 md:grid-cols-3">
             {evModules.map((m) => {
               const Icon = m.icon;
@@ -249,8 +264,8 @@ export default function EVHub() {
         {/* Market action */}
         <motion.section variants={revealItem} className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
           <div className="data-card p-6 sm:p-8">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Ownership checks</p>
-            <h3 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">Buyer guidelines</h3>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">{t("ev.ownershipChecks", "Ownership checks")}</p>
+            <h3 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">{t("ev.buyerGuidelines", "Buyer guidelines")}</h3>
             <div className="mt-7 grid gap-3 sm:grid-cols-3">
               {ownershipChecks.map((c) => (
                 <div key={c.label} className="metric-tile p-4">
@@ -266,10 +281,14 @@ export default function EVHub() {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface">
               <Car className="h-5 w-5 text-primary" aria-hidden />
             </div>
-            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Market action</p>
-            <h3 className="mt-2 text-lg font-bold text-foreground">Browse EV inventory</h3>
+            <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">{t("ev.marketAction", "Market action")}</p>
+            <h3 className="mt-2 text-lg font-bold text-foreground">{t("ev.browseTitle", "Browse EV inventory")}</h3>
             <ul className="mt-5 flex flex-wrap gap-2">
-              {["Filter electric inventory", "Check finance baseline", "Compare resale pressure"].map((a) => (
+              {[
+                t("ev.action.filter", "Filter electric inventory"),
+                t("ev.action.finance", "Check finance baseline"),
+                t("ev.action.resale", "Compare resale pressure"),
+              ].map((a) => (
                 <li key={a} className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-[10px] font-bold text-muted-foreground">
                   <CheckCircle2 className="h-3 w-3 text-primary" aria-hidden /> {a}
                 </li>
@@ -277,7 +296,7 @@ export default function EVHub() {
             </ul>
             <Button asChild size="lg" className="mt-auto w-full">
               <Link to="/?fuel_type=electric#market">
-                Browse electric inventory <ArrowRight className="h-4 w-4" aria-hidden />
+                {t("ev.browseCta", "Browse electric inventory")} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           </div>

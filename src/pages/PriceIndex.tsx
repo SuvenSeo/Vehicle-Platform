@@ -4,6 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ArrowDownRight, ArrowUpRight, LineChart, Info } from "lucide-react";
 import { getPriceIndex } from "@/services/api";
 import type { PriceIndex, PriceIndexPoint } from "@/types/car";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,6 +28,7 @@ function formatPct(v: number | null): string {
 }
 
 export default function PriceIndexPage() {
+  const { t } = useAppPreferences();
   const [data, setData] = useState<PriceIndex | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -62,13 +64,12 @@ export default function PriceIndexPage() {
 
       <motion.section variants={itemVariants} className="border-b border-white/[0.04] bg-white/[0.01] backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">Market benchmark</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">{t("index.eyebrow", "Market benchmark")}</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
-            SL Used Vehicle Price Index.
+            {t("index.title", "SL Used Vehicle Price Index.")}
           </h1>
           <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted-foreground font-medium">
-            One number for the whole used-car market, mix-adjusted so it tracks real price movement — not
-            whichever cars happened to be for sale that month.
+            {t("index.description", "One number for the whole used-car market, mix-adjusted so it tracks real price movement — not whichever cars happened to be for sale that month.")}
           </p>
         </div>
       </motion.section>
@@ -80,8 +81,7 @@ export default function PriceIndexPage() {
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-white/10 py-16 text-center">
             <LineChart className="h-5 w-5 text-muted-foreground" />
             <p className="max-w-md text-[13px] text-muted-foreground font-medium">
-              The index needs a few months of accumulated market aggregates before it can plot a like-for-like
-              trend. It will populate as daily scans build history.
+              {t("index.empty", "The index needs a few months of accumulated market aggregates before it can plot a like-for-like trend. It will populate as daily scans build history.")}
             </p>
           </div>
         ) : (
@@ -89,22 +89,22 @@ export default function PriceIndexPage() {
             {/* Headline stats */}
             <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Current index</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("index.current", "Current index")}</p>
                 <p className="num mt-2 text-3xl font-bold text-white">{latest?.index_value.toFixed(1)}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">
-                  base {data.base_period ? formatPeriod(data.base_period) : "—"} = 100
+                  {t("index.baseEquals100", "base {period} = 100", { period: data.base_period ? formatPeriod(data.base_period) : "—" })}
                 </p>
               </div>
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Since base</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("index.sinceBase", "Since base")}</p>
                 <p className={`num mt-2 flex items-center gap-1.5 text-3xl font-bold ${up ? "text-emerald-400" : "text-rose-400"}`}>
                   {up ? <ArrowUpRight className="h-6 w-6" /> : <ArrowDownRight className="h-6 w-6" />}
                   {formatPct(totalChange)}
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground font-medium">whole tracked window</p>
+                <p className="mt-1 text-[11px] text-muted-foreground font-medium">{t("index.wholeWindow", "whole tracked window")}</p>
               </div>
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Month-on-month</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("index.mom", "Month-on-month")}</p>
                 <p className="num mt-2 text-3xl font-bold text-white">{formatPct(latest?.mom_change_pct ?? null)}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">
                   latest: {latest ? formatPeriod(latest.period) : "—"}
@@ -114,7 +114,7 @@ export default function PriceIndexPage() {
 
             {/* Segment switcher */}
             {segmentKeys.length > 1 && (
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Index segment">
+              <div className="flex flex-wrap gap-2" role="group" aria-label={t("index.segmentAria", "Index segment")}>
                 {segmentKeys.map((seg) => (
                   <button
                     key={seg}
@@ -127,7 +127,7 @@ export default function PriceIndexPage() {
                         : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
                     }`}
                   >
-                    {seg === "overall" ? "All vehicles" : seg}
+                    {seg === "overall" ? t("index.allVehicles", "All vehicles") : seg}
                   </button>
                 ))}
               </div>
@@ -170,7 +170,7 @@ export default function PriceIndexPage() {
               <div className="flex items-start gap-2.5">
                 <Info className="h-4 w-4 text-primary-bright shrink-0 mt-0.5" />
                 <div>
-                  <h2 className="text-[13px] font-bold text-white">Methodology</h2>
+                  <h2 className="text-[13px] font-bold text-white">{t("index.methodology", "Methodology")}</h2>
                   <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground font-medium">{data.methodology}</p>
                 </div>
               </div>

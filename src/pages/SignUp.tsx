@@ -8,6 +8,7 @@ import { ArrowRight, Eye, EyeOff, KeyRound, Mail, ShieldCheck, Sparkles } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/authContext";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { API_BASE, resolveFetchCredentials } from "@/services/api";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 import { BRAND } from "@/lib/brand";
@@ -20,23 +21,9 @@ type InvitePreview = {
   expiresAt?: string;
 };
 
-const PLAN_COPY: Record<string, { title: string; detail: string }> = {
-  free: {
-    title: "Free access",
-    detail: "Browse the market cockpit. Pro lanes and exports stay locked until upgraded.",
-  },
-  pro: {
-    title: "Pro access",
-    detail: "Full terminal — lane intelligence, district depth, and export packs.",
-  },
-  enterprise: {
-    title: "Enterprise access",
-    detail: "Operator-grade access with admin capabilities where provisioned.",
-  },
-};
-
 export default function SignUp() {
   const { signup, isAuthenticated, authReady } = useAuth();
+  const { t } = useAppPreferences();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = (params.get("token") || "").trim();
@@ -50,12 +37,12 @@ export default function SignUp() {
 
   const schema = z
     .object({
-      name: z.string().min(1, "Name is required").max(120),
-      password: z.string().min(8, "Password must be at least 8 characters"),
-      confirm: z.string().min(1, "Confirm your password"),
+      name: z.string().min(1, t("signup.nameRequired", "Name is required")).max(120),
+      password: z.string().min(8, t("signup.passwordMin", "Password must be at least 8 characters")),
+      confirm: z.string().min(1, t("signup.confirmRequired", "Confirm your password")),
     })
     .refine((values) => values.password === values.confirm, {
-      message: "Passwords do not match",
+      message: t("signup.passwordMismatch", "Passwords do not match"),
       path: ["confirm"],
     });
 
@@ -68,7 +55,7 @@ export default function SignUp() {
   useEffect(() => {
     if (!token) {
       setInviteLoading(false);
-      setInviteError("This sign-up link is missing an invite token. Ask your Motormila admin for a new invite.");
+      setInviteError(t("signup.missingToken", "This sign-up link is missing an invite token. Ask your Motormila admin for a new invite."));
       return;
     }
 
@@ -88,8 +75,8 @@ export default function SignUp() {
         if (!response.ok) {
           const detail =
             response.status === 410
-              ? "This invite has expired or was already used."
-              : "Invite not found. Ask your admin to send a new one.";
+              ? t("signup.expired", "This invite has expired or was already used.")
+              : t("signup.notFound", "Invite not found. Ask your admin to send a new one.");
           setInviteError(detail);
           setInvite(null);
           return;
@@ -97,7 +84,7 @@ export default function SignUp() {
         const data = (await response.json()) as InvitePreview;
         setInvite(data);
       } catch {
-        if (!cancelled) setInviteError("Could not verify invite. Try again shortly.");
+        if (!cancelled) setInviteError(t("signup.verifyFailed", "Could not verify invite. Try again shortly."));
       } finally {
         if (!cancelled) setInviteLoading(false);
       }
@@ -106,7 +93,7 @@ export default function SignUp() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, t]);
 
   const onSubmit = async (values: FormValues) => {
     if (!token) return;
@@ -118,14 +105,34 @@ export default function SignUp() {
       navigate("/", { replace: true });
       return;
     }
-    setServerError(result.error || "Sign-up failed");
+    setServerError(result.error || t("signup.failed", "Sign-up failed"));
   };
 
   if (authReady && isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
-  const planMeta = PLAN_COPY[invite?.plan || ""] || PLAN_COPY.free;
+  const planKey = invite?.plan === "pro" || invite?.plan === "enterprise" ? invite.plan : "free";
+  const planMeta = {
+    free: {
+      title: t("signup.plan.free.title", "Free access"),
+      detail: t("signup.plan.free.detail", "Browse the market cockpit. Pro lanes and exports stay locked until upgraded."),
+    },
+    pro: {
+      title: t("signup.plan.pro.title", "Pro access"),
+      detail: t("signup.plan.pro.detail", "Full terminal — lane intelligence, district depth, and export packs."),
+    },
+    enterprise: {
+      title: t("signup.plan.enterprise.title", "Enterprise access"),
+      detail: t("signup.plan.enterprise.detail", "Operator-grade access with admin capabilities where provisioned."),
+    },
+  }[planKey];
+
+  const bullets = [
+    t("signup.bullet1", "Closed platform — no public self-serve signup"),
+    t("signup.bullet2", "Your plan is set by the Motormila admin"),
+    t("signup.bullet3", "Credentials stay private to your organisation"),
+  ];
 
   return (
     <motion.div
@@ -144,20 +151,16 @@ export default function SignUp() {
           <motion.div variants={revealItem} className="hidden lg:block">
             <p className="section-eyebrow mb-4 inline-flex items-center gap-2">
               <KeyRound className="h-3.5 w-3.5" aria-hidden />
-              Invitation
+              {t("signup.invitation", "Invitation")}
             </p>
             <h1 className="display-1 max-w-[12ch] text-foreground">
-              Activate your Motormila seat<span className="text-sheen">.</span>
+              {t("signup.heroTitle", "Activate your Motormila seat.")}
             </h1>
             <p className="mt-4 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
               {BRAND.vision}
             </p>
             <div className="mt-8 space-y-3">
-              {[
-                "Closed platform — no public self-serve signup",
-                "Your plan is set by the Motormila admin",
-                "Credentials stay private to your organisation",
-              ].map((line) => (
+              {bullets.map((line) => (
                 <div key={line} className="flex items-start gap-3 rounded-xl border border-border bg-card/50 px-4 py-3">
                   <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                   <p className="text-[13px] font-medium text-foreground/90">{line}</p>
@@ -176,19 +179,19 @@ export default function SignUp() {
 
             <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
               <ShieldCheck className="h-3 w-3 text-primary" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Invite only</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("signup.inviteOnly", "Invite only")}</span>
             </div>
             <h2 className="font-display text-[1.85rem] font-semibold tracking-tight text-foreground sm:text-[2.1rem]">
-              Create your account
+              {t("signup.createAccount", "Create your account")}
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              Motormila is closed to the public. Complete signup with the invite your admin sent you.
+              {t("signup.subtitle", "Motormila is closed to the public. Complete signup with the invite your admin sent you.")}
             </p>
 
             {inviteLoading && (
               <div className="mt-8 flex items-center gap-3 text-sm text-muted-foreground" role="status">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                Verifying invite…
+                {t("signup.verifying", "Verifying invite…")}
               </div>
             )}
 
@@ -196,9 +199,9 @@ export default function SignUp() {
               <div className="mt-7 rounded-2xl border border-rose-500/20 bg-rose-500/5 px-4 py-4 text-[13px] font-medium text-rose-600 dark:text-rose-300">
                 {inviteError}
                 <p className="mt-3 text-muted-foreground">
-                  Already registered?{" "}
+                  {t("signup.alreadyRegistered", "Already registered?")}{" "}
                   <Link to="/sign-in" className="font-semibold text-foreground underline underline-offset-4">
-                    Sign in
+                    {t("common.signIn", "Sign in")}
                   </Link>
                 </p>
               </div>
@@ -212,7 +215,7 @@ export default function SignUp() {
                       <Mail className="h-4 w-4 text-primary" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Invited as</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("signup.invitedAs", "Invited as")}</p>
                       <p className="truncate text-[14px] font-semibold text-foreground">{invite.email}</p>
                     </div>
                     <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-primary-bright">
@@ -227,12 +230,12 @@ export default function SignUp() {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="name" className="field-label">Full name</Label>
+                    <Label htmlFor="name" className="field-label">{t("signup.fullName", "Full name")}</Label>
                     <Input id="name" autoComplete="name" {...register("name")} className="h-12 rounded-xl bg-surface" />
                     {errors.name && <p className="text-[11px] font-semibold text-rose-600">{errors.name.message}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="password" className="field-label">Password</Label>
+                    <Label htmlFor="password" className="field-label">{t("signup.password", "Password")}</Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -245,7 +248,7 @@ export default function SignUp() {
                         type="button"
                         onClick={() => setShowPassword((s) => !s)}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? t("signup.hidePassword", "Hide password") : t("signup.showPassword", "Show password")}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
@@ -253,7 +256,7 @@ export default function SignUp() {
                     {errors.password && <p className="text-[11px] font-semibold text-rose-600">{errors.password.message}</p>}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="confirm" className="field-label">Confirm password</Label>
+                    <Label htmlFor="confirm" className="field-label">{t("signup.confirmPassword", "Confirm password")}</Label>
                     <Input id="confirm" type="password" autoComplete="new-password" {...register("confirm")} className="h-12 rounded-xl bg-surface" />
                     {errors.confirm && <p className="text-[11px] font-semibold text-rose-600">{errors.confirm.message}</p>}
                   </div>
@@ -269,9 +272,9 @@ export default function SignUp() {
                     transition={springSoft}
                     className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-soft disabled:opacity-50"
                   >
-                    {loading ? "Creating account…" : (
+                    {loading ? t("signup.creating", "Creating account…") : (
                       <>
-                        <span>Activate account</span>
+                        <span>{t("signup.activate", "Activate account")}</span>
                         <ArrowRight className="h-4 w-4" aria-hidden />
                       </>
                     )}
