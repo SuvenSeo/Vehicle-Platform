@@ -54,7 +54,7 @@ export default function ProPreview() {
           "pro.previewBody",
           "See the depth of lane drill-downs, district profiles, and export packs before you sign in.",
         )}
-        mediaSrc={visuals.pageProPremium}
+        media={visuals.pageProPremium}
         mediaPosition="center 35%"
         mediaTone="brand"
         highlights={[

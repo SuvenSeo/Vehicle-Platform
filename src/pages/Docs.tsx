@@ -20,7 +20,7 @@ export default function Docs() {
         watermarkIcon={FileText}
         title={<>{t("docs.title", "Platform docs.")}</>}
         description={t("docs.description", "How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers.")}
-        mediaSrc={visuals.pageBlogHeader}
+        media={visuals.pageBlogHeader}
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[

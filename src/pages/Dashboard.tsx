@@ -15,9 +15,12 @@ import { FilterSidebar } from "@/components/FilterSidebar";
 import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
 import { FuelMixStrip } from "@/components/FuelMixStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { HeroSideSignals } from "@/components/HeroSideSignals";
+import { HeroVariantPicker, useHeroVariantLab } from "@/components/HeroVariantPicker";
 import { RevealSection } from "@/components/RevealSection";
 import { SectionHeader } from "@/components/SectionHeader";
+import { BRAND } from "@/lib/brand";
 import { visuals } from "@/lib/visualAssets";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -589,6 +592,43 @@ export default function Dashboard() {
   const marketPulseSources = Number(stats?.source_count || liveMarketSnapshot?.source_status?.length || 0);
   const isPriceUnavailableMode = filters.price_availability === "unavailable";
   const listingFreshnessAt = liveMarketSnapshot?.latest_listing_at ?? stats?.last_updated ?? null;
+  const { variant: heroVariant, setVariantId: setHeroVariantId, showPicker: showHeroLab } = useHeroVariantLab();
+  const heroAlignClass =
+    heroVariant.align === "left"
+      ? "mr-auto max-w-xl text-left lg:max-w-2xl"
+      : heroVariant.align === "right"
+        ? "ml-auto max-w-xl text-left lg:max-w-2xl"
+        : "mx-auto max-w-3xl text-center";
+  const heroJustify =
+    heroVariant.align === "center" ? "justify-center" : "justify-start";
+  const heroCopyTone =
+    heroVariant.tone === "dark"
+      ? "text-white"
+      : "text-foreground [text-shadow:0_1px_18px_hsl(var(--background)/0.55)]";
+  const heroMutedTone =
+    heroVariant.tone === "dark"
+      ? "text-white/75"
+      : "text-foreground/80 [text-shadow:0_1px_14px_hsl(var(--background)/0.45)]";
+  const heroChipClass =
+    heroVariant.tone === "dark"
+      ? "border-white/15 bg-white/10 text-white/80"
+      : "border-border/80 bg-card/90 text-foreground/85 shadow-soft backdrop-blur-md";
+  const heroSearchShellClass =
+    heroVariant.tone === "dark"
+      ? "border-white/20 bg-white/10 shadow-soft-lg backdrop-blur-md focus-within:border-primary/50"
+      : "border-border bg-card/95 shadow-soft-lg backdrop-blur-md focus-within:border-primary/40 focus-within:shadow-gold-glow";
+  const heroInputClass =
+    heroVariant.tone === "dark"
+      ? "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder:text-white/45 outline-none [&::-webkit-search-cancel-button]:hidden"
+      : "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden";
+  const heroPopularBtnClass =
+    heroVariant.tone === "dark"
+      ? "rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold text-white/80 transition-all hover:border-primary/40 hover:bg-white/15 hover:text-white active:scale-[0.97]"
+      : "rounded-full border border-border bg-card/90 px-3 py-1.5 text-[11px] font-bold text-foreground/75 transition-all hover:border-primary/40 hover:bg-card hover:text-foreground active:scale-[0.97]";
+  const heroCopyPanelClass =
+    heroVariant.tone === "dark"
+      ? ""
+      : "rounded-2xl bg-background/55 p-5 shadow-[0_20px_60px_-28px_hsl(var(--background)/0.65)] backdrop-blur-md sm:bg-background/40 sm:p-6 lg:bg-background/35";
 
   // ═════════════════════════════════════════════════════════════════
   // RENDER
@@ -597,44 +637,75 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen">
       <FreePlanBanner />
+      {showHeroLab ? (
+        <HeroVariantPicker activeId={heroVariant.id} onSelect={setHeroVariantId} />
+      ) : null}
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section id="overview" className="relative -mt-16 overflow-hidden border-b border-border bg-surface pt-16">
+      <section
+        id="overview"
+        className={`relative -mt-16 overflow-hidden border-b border-border pt-16 ${
+          heroVariant.tone === "dark" ? "bg-background" : "bg-surface"
+        }`}
+      >
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <img
-            src={visuals.pageSearchHero}
-            alt=""
-            className="h-full w-full object-cover object-[center_35%] opacity-[0.34]"
+          <AtmosphericImage
+            src={heroVariant.image.src}
+            srcSm={heroVariant.image.srcSm}
+            className={`h-full w-full object-cover ${heroVariant.imageOpacity}`}
+            style={{ objectPosition: heroVariant.objectPosition }}
+            priority
+            sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-surface/90 via-surface/78 to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-surface/55" />
+          {heroVariant.scrims.map((scrim) => (
+            <div key={scrim} className={`absolute inset-0 ${scrim}`} />
+          ))}
         </div>
-        <div aria-hidden className="pointer-events-none absolute left-[20%] top-[-20%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[130px]" />
-        <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
+        {heroVariant.tone !== "dark" ? (
+          <>
+            <div aria-hidden className="pointer-events-none absolute left-[20%] top-[-20%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[130px]" />
+            <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
+          </>
+        ) : null}
 
         <motion.div
+          key={heroVariant.id}
           initial="hidden"
           animate="show"
           variants={heroContainerVariants}
           className="relative z-10 mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
         >
-          <HeroSideSignals
-            trending={trendingModels[0] ?? null}
-            hotDeal={hotDeals[0] ?? null}
-            priceDrop={heroPriceDrop}
-            newListings24h={heroNewListings24h}
-            goodDealsCount={heroGoodDealsCount}
-            onTrendingClick={() => {
-              const row = trendingModels[0];
-              if (row) focusModel(row.make, row.model);
-            }}
-            onBrowseNewest={browseNewestListings}
-          />
+          {!heroVariant.hideSideSignals ? (
+            <HeroSideSignals
+              trending={trendingModels[0] ?? null}
+              hotDeal={hotDeals[0] ?? null}
+              priceDrop={heroPriceDrop}
+              newListings24h={heroNewListings24h}
+              goodDealsCount={heroGoodDealsCount}
+              onTrendingClick={() => {
+                const row = trendingModels[0];
+                if (row) focusModel(row.make, row.model);
+              }}
+              onBrowseNewest={browseNewestListings}
+            />
+          ) : null}
 
-          {/* ── Centered editorial headline ── */}
-          <div className="relative mx-auto max-w-3xl text-center">
-            <motion.div variants={heroItemVariants} className="flex justify-center">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 shadow-soft backdrop-blur-md">
+          {/* ── Editorial headline (center or left by lab variant) ── */}
+          <div className={`relative ${heroAlignClass} ${heroCopyPanelClass}`}>
+            <motion.p
+              variants={heroItemVariants}
+              className={`font-display text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl ${heroCopyTone}`}
+            >
+              {BRAND.name}
+            </motion.p>
+
+            <motion.div
+              variants={heroItemVariants}
+              className={`mt-4 flex ${heroJustify}`}
+            >
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 shadow-soft backdrop-blur-md ${heroChipClass}`}
+              >
                 <span className="relative flex h-1.5 w-1.5">
                   <span aria-hidden className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
                   <span aria-hidden className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
@@ -645,30 +716,41 @@ export default function Dashboard() {
               </div>
             </motion.div>
 
-            <motion.h1 variants={heroItemVariants} className="display-hero mx-auto mt-6 max-w-5xl text-foreground">
+            <motion.h1
+              variants={heroItemVariants}
+              className={`display-hero mt-6 max-w-5xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroCopyTone}`}
+            >
               {t("hero.title", "Sri Lanka's entire vehicle market,")}
               <span className="text-sheen"> {t("hero.titleAccent", "decoded.")}</span>
             </motion.h1>
 
-            <motion.p variants={heroItemVariants} className="text-body-lg mx-auto mt-6 max-w-xl">
-              <span className="font-bold text-foreground num">{marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}</span>{" "}
+            <motion.p
+              variants={heroItemVariants}
+              className={`text-body-lg mt-6 max-w-xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroMutedTone}`}
+            >
+              <span className={`font-bold num ${heroCopyTone}`}>
+                {marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}
+              </span>{" "}
               {t("hero.body", "live listings from {sources} sources across {districts} districts — real-time pricing, deal scores, and the market intelligence dealers keep to themselves.")
                 .replace("{sources}", String(marketPulseSources || 10))
                 .replace("{districts}", String(marketPulseDistricts || 25))}
             </motion.p>
 
-            <motion.div variants={heroItemVariants} className="mx-auto mt-4 flex justify-center">
+            <motion.div
+              variants={heroItemVariants}
+              className={`mt-4 flex ${heroJustify}`}
+            >
               <DataFreshnessIndicator
                 latestListingAt={liveMarketSnapshot?.latest_listing_at}
                 lastUpdated={stats?.last_updated}
               />
             </motion.div>
 
-            {/* Search (centered) */}
-            <motion.div variants={heroItemVariants} className="mx-auto mt-8 max-w-2xl text-left">
+            {/* Search */}
+            <motion.div variants={heroItemVariants} className="mt-8 max-w-2xl text-left">
                 <div className="relative">
-                  <div className="flex items-center gap-2 rounded-xl border border-border bg-card shadow-soft-lg backdrop-blur-md transition-all focus-within:border-primary/40 focus-within:shadow-gold-glow">
-                    <Search aria-hidden className="ml-4 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className={`flex items-center gap-2 rounded-xl border transition-all ${heroSearchShellClass}`}>
+                    <Search aria-hidden className={`ml-4 h-5 w-5 shrink-0 ${heroVariant.tone === "dark" ? "text-white/55" : "text-muted-foreground"}`} />
                     <label htmlFor="hero-search" className="sr-only">{t("common.search", "Search")} vehicles</label>
                     <input
                       id="hero-search"
@@ -704,7 +786,7 @@ export default function Dashboard() {
                       aria-activedescendant={heroActiveIdx >= 0 ? `hero-suggestion-${heroActiveIdx}` : undefined}
                       type="search"
                       enterKeyHint="search"
-                      className="h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
+                      className={heroInputClass}
                     />
                     <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
                       {t("common.search", "Search")}
@@ -742,8 +824,8 @@ export default function Dashboard() {
                 )}
 
                 {/* Quick scans */}
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("home.popular", "Popular")}</span>
+                <div className={`mt-5 flex flex-wrap items-center gap-1.5 ${heroJustify}`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${heroVariant.tone === "dark" ? "text-white/55" : "text-muted-foreground/80"}`}>{t("home.popular", "Popular")}</span>
                   {([
                     { label: "Toyota Aqua", make: "Toyota", model: "Aqua" },
                     { label: "Honda Vezel", make: "Honda", model: "Vezel" },
@@ -753,7 +835,7 @@ export default function Dashboard() {
                   ] as const).map((item) => (
                     <button key={item.label} type="button"
                       onClick={() => { setHeroSearch(item.label); focusModel(item.make, item.model); }}
-                      className="rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-bold text-muted-foreground transition-all hover:border-primary/40 hover:bg-surface hover:text-foreground active:scale-[0.97]"
+                      className={heroPopularBtnClass}
                     >{item.label}</button>
                   ))}
                 </div>
@@ -772,9 +854,9 @@ export default function Dashboard() {
           {/* Categories + trust atmosphere — one visual job each */}
           <div className="mt-10 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-              <img
-                src={visuals.categoriesLineup}
-                alt=""
+              <AtmosphericImage
+                src={visuals.categoriesLineup.src}
+                srcSm={visuals.categoriesLineup.srcSm}
                 className="h-36 w-full object-cover object-center sm:h-40"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
@@ -784,9 +866,9 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-              <img
-                src={visuals.trustVerification}
-                alt=""
+              <AtmosphericImage
+                src={visuals.trustVerification.src}
+                srcSm={visuals.trustVerification.srcSm}
                 className="h-36 w-full object-cover object-[center_30%] sm:h-40"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
@@ -1017,10 +1099,11 @@ export default function Dashboard() {
                 </div>
               ) : listings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-4 py-16 text-center">
-                  <img
-                    src={visuals.emptyState}
-                    alt=""
+                  <AtmosphericImage
+                    src={visuals.emptyState.src}
+                    srcSm={visuals.emptyState.srcSm}
                     className="mb-5 h-28 w-auto max-w-[220px] object-contain opacity-90"
+                    sizes="220px"
                   />
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("home.noResults", "No results")}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>

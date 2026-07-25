@@ -131,7 +131,7 @@ export default function Trends() {
         watermarkIcon={BarChart3}
         title={<>{t("trends.title", "Price trends.")}</>}
         description={t("trends.description", "Track median price movement for any vehicle lane across Sri Lanka.")}
-        mediaSrc={visuals.priceIntelligenceBg}
+        media={visuals.priceIntelligenceBg}
         mediaPosition="center"
         mediaTone="brand"
         highlights={[

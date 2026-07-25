@@ -6,6 +6,7 @@ import { ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS } from "@/lib/pricingContent";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { visuals } from "@/lib/visualAssets";
@@ -48,7 +49,7 @@ export default function Pricing() {
         watermarkIcon={Users}
         title={<>{t("pricing.title", "Pricing that funds the pipeline")}<span className="text-sheen">.</span></>}
         description={t("pricing.body", "Free browse stays free. Pro and Dealer fund scrapes, scores, and workspaces.")}
-        mediaSrc={visuals.alt2PagePricingBg}
+        media={visuals.alt2PagePricingBg}
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[
@@ -204,10 +205,11 @@ export default function Pricing() {
                 {t("pricing.faqTitle", "Common questions.")}
               </h2>
             </div>
-            <img
-              src={visuals.pageFaqIllustration}
-              alt=""
+            <AtmosphericImage
+              src={visuals.pageFaqIllustration.src}
+              srcSm={visuals.pageFaqIllustration.srcSm}
               className="hidden h-28 w-full rounded-2xl object-cover object-center opacity-90 lg:block"
+              sizes="220px"
             />
           </div>
           <div className="grid gap-4 md:grid-cols-2">

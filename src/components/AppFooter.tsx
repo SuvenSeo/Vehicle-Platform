@@ -1,5 +1,6 @@
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { visuals } from "@/lib/visualAssets";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
@@ -118,11 +119,11 @@ export function AppFooter() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(10,122,255,0.22),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(34,211,238,0.16),transparent_50%),linear-gradient(160deg,#030914_0%,#04101f_42%,#02060d_100%)]"
         />
-        <img
-          aria-hidden="true"
-          src={visuals.pageFooterTexture}
-          alt=""
+        <AtmosphericImage
+          src={visuals.pageFooterTexture.src}
+          srcSm={visuals.pageFooterTexture.srcSm}
           className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-[0.14]"
+          sizes="100vw"
         />
         <div
           aria-hidden="true"

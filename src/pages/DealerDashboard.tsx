@@ -515,7 +515,7 @@ export default function DealerDashboard() {
         watermarkIcon={BarChart3}
         title={<>{t("dealer.commandCenter", "Dealer command center")}<span className="text-sheen">.</span></>}
         description={t("dealer.description", "Arbitrage, demand mapping, and lead flow intelligence.")}
-        mediaSrc={visuals.pageAdminBg}
+        media={visuals.pageAdminBg}
         mediaPosition="center"
         mediaTone="brand"
         highlights={[

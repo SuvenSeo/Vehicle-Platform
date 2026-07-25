@@ -108,7 +108,7 @@ export default function EVHub() {
         watermarkIcon={Battery}
         title={<>{t("ev.title", "EV buying signals.")}</>}
         description={t("ev.description", "Battery health, charging fit, and duty signals for the Sri Lankan EV market.")}
-        mediaSrc={visuals.alt2HeroUltrawidePanorama}
+        media={visuals.alt2HeroUltrawidePanorama}
         mediaPosition="center 45%"
         mediaTone="brand"
         highlights={liveStats.slice(0, 3).map((stat) => ({

@@ -307,7 +307,7 @@ export default function Calculator() {
         watermarkIcon={Banknote}
         title={<>{t("calc.title", "Mobility & Tax Calculators")}<span className="text-sheen">.</span></>}
         description={t("calc.description", "Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.")}
-        mediaSrc={visuals.alt2PageInsuranceFinance}
+        media={visuals.alt2PageInsuranceFinance}
         mediaPosition="center 30%"
         mediaTone="brand"
         highlights={[

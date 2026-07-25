@@ -127,7 +127,7 @@ export default function BestPicks() {
         description={loading ? t("picks.scanning", "Scanning inventory...") : fullAccess
           ? `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`
           : `${ranked.length} free teaser picks scored ${MIN_DEAL_SCORE}+ — upgrade for the full board.`}
-        mediaSrc={visuals.altCategorySuvWhite}
+        media={visuals.altCategorySuvWhite}
         mediaPosition="center 40%"
         mediaTone="light"
         highlights={[
