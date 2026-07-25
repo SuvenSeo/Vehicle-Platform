@@ -73,6 +73,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PRO_EXPORTS_ENFORCED, useAuth } from "@/lib/authContext";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { customizeProReport } from "@/lib/proReportCustomize";
 import { formatPriceLkrMillions, formatRelativeTime } from "@/lib/formatting";
 import {
@@ -111,13 +112,13 @@ const EXPORT_FORMATS: Array<{ format: ProExportFormat; label: string }> = [
   { format: "print", label: "Print" },
 ];
 
-const TAB_CONFIG: Array<{ id: WorkspaceTab; label: string; icon: React.ElementType }> = [
-  { id: "overview", label: "Overview", icon: BarChart3 },
-  { id: "vehicles", label: "Vehicles", icon: Car },
-  { id: "areas", label: "Areas", icon: MapPin },
-  { id: "trends", label: "Trends", icon: TrendingUp },
-  { id: "sources", label: "Sources", icon: Database },
-  { id: "reports", label: "Reports", icon: FileBarChart },
+const TAB_CONFIG: Array<{ id: WorkspaceTab; labelKey: string; fallback: string; icon: React.ElementType }> = [
+  { id: "overview", labelKey: "pro.tab.overview", fallback: "Overview", icon: BarChart3 },
+  { id: "vehicles", labelKey: "pro.tab.vehicles", fallback: "Vehicles", icon: Car },
+  { id: "areas", labelKey: "pro.tab.areas", fallback: "Areas", icon: MapPin },
+  { id: "trends", labelKey: "pro.tab.trends", fallback: "Trends", icon: TrendingUp },
+  { id: "sources", labelKey: "pro.tab.sources", fallback: "Sources", icon: Database },
+  { id: "reports", labelKey: "pro.tab.reports", fallback: "Reports", icon: FileBarChart },
 ];
 
 const LANE_FOCUS_OPTIONS: Array<{ value: LaneFocus; label: string }> = [
@@ -501,6 +502,7 @@ function DetailDialog({
 
 export default function ProDashboard() {
   const { user, logout } = useAuth();
+  const { t } = useAppPreferences();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const [snapshot, setSnapshot] = useState<ProMarketSnapshot | null>(null);
@@ -557,12 +559,12 @@ export default function ProDashboard() {
       setDistricts(nextDistricts);
       setTrendLaneKey((current) => current || (nextLanes[0] ? `${nextLanes[0].make}|||${nextLanes[0].model}` : ""));
     } catch {
-      setError("Unable to load the Pro workspace. Refresh or check the API connection.");
+      setError(t("pro.loadError", "Unable to load the Pro workspace. Refresh or check the API connection."));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadWorkspace();
@@ -854,7 +856,7 @@ export default function ProDashboard() {
             <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-md ring-1 ring-border" />
             <div>
               <p className="text-[13px] font-bold text-foreground">Motormila</p>
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Pro Workspace</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
@@ -876,22 +878,21 @@ export default function ProDashboard() {
           <div className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-end">
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
-                <Lock className="h-3 w-3" aria-hidden="true" /> Professional intelligence
+                <Lock className="h-3 w-3" aria-hidden="true" /> {t("pro.eyebrow", "Professional intelligence")}
               </span>
               <h1 className="display-hero mt-5 text-foreground">
-                Pro dashboard.
+                {t("pro.title", "Pro dashboard.")}
               </h1>
               <p className="text-body-lg mt-5 max-w-xl">
-                The entire Sri Lankan market as a live terminal — priced inventory, lane-level trends,
-                cross-district arbitrage, and board-ready exports in one workspace.
+                {t("pro.description", "The entire Sri Lankan market as a live terminal — priced inventory, lane-level trends, cross-district arbitrage, and board-ready exports in one workspace.")}
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-              <p className="tech-label text-primary">Data freshness</p>
+              <p className="tech-label text-primary">{t("pro.dataFreshness", "Data freshness")}</p>
               <p className="mt-2 text-2xl font-bold text-foreground num">
-                {snapshot?.last_updated ? formatRelativeTime(snapshot.last_updated) : "Loading"}
+                {snapshot?.last_updated ? formatRelativeTime(snapshot.last_updated) : t("pro.loading", "Loading")}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground font-semibold">Generated {snapshot ? fmtDate(snapshot.generated_at) : "pending"}</p>
+              <p className="mt-1 text-xs text-muted-foreground font-semibold">{t("pro.generated", "Generated {date}", { date: snapshot ? fmtDate(snapshot.generated_at) : t("pro.pending", "pending") })}</p>
               <div className="mt-4">
                 <ExportButtons report={activeMarketReport} />
               </div>
@@ -908,10 +909,10 @@ export default function ProDashboard() {
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as WorkspaceTab)} className="space-y-6">
           {/* Canonical workspace-mode switcher: one rich command nav covering all 6 modes */}
           <TabsList
-            aria-label="Pro workspace mode"
+            aria-label={t("pro.modeAria", "Pro workspace mode")}
             className="grid h-auto w-full grid-cols-2 gap-3 bg-transparent p-0 md:grid-cols-3 xl:grid-cols-6"
           >
-            {TAB_CONFIG.map(({ id, label, icon: Icon }) => (
+            {TAB_CONFIG.map(({ id, labelKey, fallback, icon: Icon }) => (
               <TabsTrigger
                 key={id}
                 value={id}
@@ -923,7 +924,7 @@ export default function ProDashboard() {
                     <Icon className="h-4 w-4" aria-hidden="true" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-foreground">{label}</span>
+                    <span className="block truncate text-sm font-bold text-foreground">{t(labelKey, fallback)}</span>
                     <span className="mt-0.5 block truncate text-xs font-semibold leading-5 text-muted-foreground/80">{getModeDetail(id)}</span>
                   </span>
                 </span>
@@ -937,17 +938,17 @@ export default function ProDashboard() {
                 Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-32 rounded-xl bg-foreground/[0.03]" />)
               ) : (
                 <>
-                  <MetricCard label="Priced Listings" value={fmtCount(snapshot?.total_listings)} detail="Non-outlier market depth" icon={Database} />
-                  <MetricCard label="Median Price" value={fmtMoney(snapshot?.median_price_lkr)} detail="Current market center" icon={BarChart3} />
-                  <MetricCard label="New 7 Days" value={fmtCount(snapshot?.new_listings_7d)} detail="Fresh supply signal" icon={Activity} />
-                  <MetricCard label="Hot Deals" value={fmtCount(snapshot?.hot_deal_count)} detail="Deal score qualified" icon={ShieldCheck} />
+                  <MetricCard label={t("pro.metric.pricedListings", "Priced Listings")} value={fmtCount(snapshot?.total_listings)} detail="Non-outlier market depth" icon={Database} />
+                  <MetricCard label={t("pro.metric.medianPrice", "Median Price")} value={fmtMoney(snapshot?.median_price_lkr)} detail="Current market center" icon={BarChart3} />
+                  <MetricCard label={t("pro.metric.new7Days", "New 7 Days")} value={fmtCount(snapshot?.new_listings_7d)} detail="Fresh supply signal" icon={Activity} />
+                  <MetricCard label={t("pro.metric.hotDeals", "Hot Deals")} value={fmtCount(snapshot?.hot_deal_count)} detail="Deal score qualified" icon={ShieldCheck} />
                 </>
               )}
             </div>
 
             <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
               <section className="page-panel rounded-xl p-5">
-                <SectionTitle eyebrow="Professional scan" title="Top opportunities" />
+                <SectionTitle eyebrow="Professional scan" title={t("pro.topOpportunities", "Top opportunities")} />
                 <div className="space-y-2">
                   {loading ? (
                     Array.from({ length: 6 }).map((_, index) => (

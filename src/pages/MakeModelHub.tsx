@@ -14,6 +14,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const SITE = BRAND.siteName;
 const ORIGIN = BRAND.origin;
@@ -26,6 +27,7 @@ function toTitleCase(str: string): string {
 }
 
 export default function MakeModelHub() {
+  const { t } = useAppPreferences();
   const { make: makeParam = "", model: modelParam = "" } = useParams<{
     make: string;
     model: string;
@@ -53,10 +55,28 @@ export default function MakeModelHub() {
   const insight = insightQuery.data;
   const canonicalMake = insight?.make ?? makeDisplay;
   const canonicalModel = insight?.model ?? modelDisplay;
-  const title = `${canonicalMake} ${canonicalModel} — Prices & Listings in Sri Lanka | ${SITE}`;
+  const vehicle = `${canonicalMake} ${canonicalModel}`.trim();
+  const title = t(
+    "seo.hubTitle",
+    "{vehicle} — Prices & Listings in Sri Lanka | {site}",
+    { vehicle, site: SITE },
+  );
   const description = insight
-    ? `${insight.total} ${canonicalMake} ${canonicalModel} listings in Sri Lanka. Average price ${formatPrice(insight.avg_price_lkr)}, median ${formatPrice(insight.median_price_lkr)}. Browse live market data on Motormila.`
-    : `Browse ${vehicleLabel} prices, listings, and market intelligence for the Sri Lankan vehicle market on Motormila.`;
+    ? t(
+        "seo.hubListingsDesc",
+        "{count} {vehicle} listings in Sri Lanka. Average price {avg}, median {median}. Browse live market data on Motormila.",
+        {
+          count: insight.total,
+          vehicle,
+          avg: formatPrice(insight.avg_price_lkr),
+          median: formatPrice(insight.median_price_lkr),
+        },
+      )
+    : t(
+        "seo.hubBrowseDesc",
+        "Browse {vehicle} prices, listings, and market intelligence for the Sri Lankan vehicle market on Motormila.",
+        { vehicle: vehicleLabel },
+      );
 
   useEffect(() => {
     document.title = title;
@@ -114,12 +134,12 @@ export default function MakeModelHub() {
     setJsonLd({
       "@context": "https://schema.org",
       "@type": "ItemList",
-      name: `${canonicalMake} ${canonicalModel} listings in Sri Lanka`,
+      name: t("hub.jsonLdName", "{vehicle} listings in Sri Lanka", { vehicle }),
       description,
       url: `${ORIGIN}${pathname}`,
       numberOfItems: insight?.total ?? undefined,
     });
-  }, [title, description, makeParam, modelParam, insight, canonicalMake, canonicalModel]);
+  }, [title, description, makeParam, modelParam, insight, vehicle, t]);
 
   const isPending = insightQuery.isPending;
   const isError = insightQuery.isError && !insightQuery.data;
@@ -128,19 +148,19 @@ export default function MakeModelHub() {
 
   const statsCards = [
     {
-      label: "Live listings",
-      value: isPending ? "…" : insight ? insight.total.toLocaleString() : "N/A",
-      note: `${canonicalMake} ${canonicalModel} listings tracked now`,
+      label: t("hub.liveListings", "Live listings"),
+      value: isPending ? "…" : insight ? insight.total.toLocaleString() : t("common.na", "N/A"),
+      note: t("hub.listingsTracked", "{vehicle} listings tracked now", { vehicle }),
     },
     {
-      label: "Average price",
+      label: t("hub.avgPrice", "Average price"),
       value: isPending ? "…" : formatPrice(insight?.avg_price_lkr ?? null),
-      note: "Mean across priced listings",
+      note: t("hub.avgNote", "Mean across priced listings"),
     },
     {
-      label: "Median price",
+      label: t("hub.medianPrice", "Median price"),
       value: isPending ? "…" : formatPrice(insight?.median_price_lkr ?? null),
-      note: "Midpoint of priced listings",
+      note: t("hub.medianNote", "Midpoint of priced listings"),
     },
   ];
 
@@ -148,32 +168,46 @@ export default function MakeModelHub() {
     <PageCanvas>
       <PageHero
         theme="default"
-        eyebrow="Market hub"
+        eyebrow={t("hub.eyebrow", "Make · model hub")}
         eyebrowIcon={Car}
         watermarkIcon={BarChart2}
-        title={isPending ? vehicleLabel : `${canonicalMake} ${canonicalModel}`}
+        title={isPending ? vehicleLabel : vehicle}
         description={
           <>
-            Prices, district breakdown, and live listings for the Sri Lankan market.{" "}
+            {t("hub.description", "Live prices, district demand, and inventory for {vehicle} in Sri Lanka.", {
+              vehicle,
+            })}{" "}
             <Link
               to={`/cars/${encodeURIComponent(makeParam)}`}
               className="font-semibold text-primary underline-offset-2 hover:underline"
             >
-              All {canonicalMake} models
+              {t("hub.allMakeModels", "All {make} models", { make: canonicalMake })}
             </Link>
           </>
         }
         highlights={[
-          { label: "Market hub", value: "Live", hint: "Sri Lanka inventory lane" },
-          { label: "Districts", value: "25+", hint: "Geographic breakdown" },
-          { label: "Listings", value: "Indexed", hint: "Live inventory lane" },
+          {
+            label: t("hub.eyebrow", "Make · model hub"),
+            value: t("common.live", "Live"),
+            hint: t("hub.inventoryHint", "Sri Lanka inventory lane"),
+          },
+          {
+            label: t("hub.districts", "Districts"),
+            value: "25+",
+            hint: t("hub.geoHint", "Geographic breakdown"),
+          },
+          {
+            label: t("hub.listingsHighlight", "Listings"),
+            value: t("hub.indexed", "Indexed"),
+            hint: t("hub.inventoryHint", "Sri Lanka inventory lane"),
+          },
         ]}
       >
         <div className="mt-10 sm:mt-12">
           <div className="flex items-center gap-2.5">
             <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-live-dot" />
             <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Market snapshot
+              {t("hub.snapshot", "Market snapshot")}
             </h2>
           </div>
           <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft sm:grid-cols-3">
@@ -200,16 +234,18 @@ export default function MakeModelHub() {
             variants={revealItem}
             className="rounded-2xl border border-border bg-card p-6 text-[13px] font-medium text-muted-foreground shadow-soft"
           >
-            Could not load market data for this vehicle. Try browsing listings directly.
+            {t(
+              "hub.loadError",
+              "Could not load market data for this vehicle. Try browsing listings directly.",
+            )}
           </motion.div>
         )}
 
-        {/* District breakdown */}
         {(isPending || (insight && insight.top_districts.length > 0)) && (
           <motion.section variants={revealItem}>
             <SectionHeader
-              eyebrow="Geography"
-              title="District breakdown"
+              eyebrow={t("hub.geography", "Geography")}
+              title={t("hub.topDistricts", "Top districts")}
               className="mb-8"
             />
             {isPending ? (
@@ -237,13 +273,20 @@ export default function MakeModelHub() {
                           {entry.district}
                         </p>
                         <span className="num shrink-0 rounded-full border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                          {entry.count} listing{entry.count !== 1 ? "s" : ""}
+                          {entry.count}{" "}
+                          {entry.count !== 1
+                            ? t("common.listings", "listings")
+                            : t("common.listing", "listing")}
                         </span>
                       </div>
                       <p className="num mt-3 text-lg font-bold tracking-tight text-foreground">
-                        {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
+                        {entry.avg_price_lkr != null
+                          ? formatPrice(entry.avg_price_lkr)
+                          : t("common.priceNa", "Price N/A")}
                         {entry.avg_price_lkr != null && (
-                          <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">avg</span>
+                          <span className="ml-1.5 text-[10px] font-medium text-muted-foreground">
+                            {t("hub.avgShort", "avg")}
+                          </span>
                         )}
                       </p>
                     </Link>
@@ -258,12 +301,11 @@ export default function MakeModelHub() {
           <ModelPriceTimeMachine make={makeParam} model={modelParam} />
         </motion.div>
 
-        {/* Recent listings — photo-forward tiles, reusing the shared ListingCard */}
         {recentListings.length > 0 && (
           <motion.section variants={revealItem}>
             <SectionHeader
-              eyebrow="Live inventory"
-              title="Recent listings"
+              eyebrow={t("makeHub.liveInventory", "Live inventory")}
+              title={t("hub.recent", "Recent listings")}
               className="mb-8"
             />
             <motion.div
@@ -279,7 +321,6 @@ export default function MakeModelHub() {
           </motion.section>
         )}
 
-        {/* Explore — deeper tools for this model */}
         <motion.div variants={revealContainer} className="grid gap-4 lg:grid-cols-3">
           <motion.div
             variants={revealItem}
@@ -289,14 +330,18 @@ export default function MakeModelHub() {
               <BarChart2 className="h-4 w-4 text-primary" aria-hidden />
             </div>
             <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Browse all listings
+              {t("hub.browseAll", "Browse all {vehicle} listings", { vehicle })}
             </p>
             <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
-              See every live {canonicalMake} {canonicalModel} on the market, with price filters, district drill-down, and deal scoring.
+              {t(
+                "hub.browseAllDesc",
+                "See every live {vehicle} on the market, with price filters, district drill-down, and deal scoring.",
+                { vehicle },
+              )}
             </p>
             <Button asChild className="mt-6 w-full">
               <Link to={`/?make=${encodeURIComponent(makeParam)}&model=${encodeURIComponent(modelParam)}#market`}>
-                Browse listings <ArrowRight className="h-4 w-4" aria-hidden />
+                {t("hub.browseListingsCta", "Browse listings")} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           </motion.div>
@@ -309,14 +354,18 @@ export default function MakeModelHub() {
               <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
             </div>
             <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Price trends
+              {t("hub.priceHistory", "Price history")}
             </p>
             <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
-              Track how {canonicalMake} {canonicalModel} prices have moved month-over-month in Sri Lanka.
+              {t(
+                "hub.priceTrendsDesc",
+                "Track how {vehicle} prices have moved month-over-month in Sri Lanka.",
+                { vehicle },
+              )}
             </p>
             <Button asChild variant="outline" className="mt-6 w-full">
               <Link to={`/trends?make=${encodeURIComponent(makeParam)}&model=${encodeURIComponent(modelParam)}`}>
-                View price trends <ArrowRight className="h-4 w-4" aria-hidden />
+                {t("hub.viewPriceTrends", "View price trends")} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           </motion.div>
@@ -329,14 +378,18 @@ export default function MakeModelHub() {
               <Car className="h-4 w-4 text-primary" aria-hidden />
             </div>
             <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Estimate value
+              {t("hub.marketDepth", "Market depth")}
             </p>
             <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
-              Get a market valuation for a specific {canonicalMake} {canonicalModel} using live comparable data.
+              {t(
+                "hub.estimateDesc",
+                "Get a market valuation for a specific {vehicle} using live comparable data.",
+                { vehicle },
+              )}
             </p>
             <Button asChild variant="outline" className="mt-6 w-full">
               <Link to={`/estimate?make=${encodeURIComponent(makeParam)}&model=${encodeURIComponent(modelParam)}`}>
-                Estimate price <ArrowRight className="h-4 w-4" aria-hidden />
+                {t("hub.estimateCta", "Estimate price")} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
           </motion.div>

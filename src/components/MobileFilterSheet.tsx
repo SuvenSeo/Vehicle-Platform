@@ -17,16 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const ALL = "__all";
 const MIN_PRICE = 500_000;
 const MAX_PRICE = 100_000_000;
 
-const PRICE_PRESETS: { label: string; min: number; max: number }[] = [
-  { label: "Under 3M", min: MIN_PRICE, max: 3_000_000 },
-  { label: "3M–6M", min: 3_000_000, max: 6_000_000 },
-  { label: "6M–10M", min: 6_000_000, max: 10_000_000 },
-  { label: "10M+", min: 10_000_000, max: MAX_PRICE },
+const PRICE_PRESET_VALUES: { key: string; fallback: string; min: number; max: number }[] = [
+  { key: "filter.presetUnder3m", fallback: "Under 3M", min: MIN_PRICE, max: 3_000_000 },
+  { key: "filter.preset3to6", fallback: "3M–6M", min: 3_000_000, max: 6_000_000 },
+  { key: "filter.preset6to10", fallback: "6M–10M", min: 6_000_000, max: 10_000_000 },
+  { key: "filter.preset10plus", fallback: "10M+", min: 10_000_000, max: MAX_PRICE },
 ];
 
 const QUICK_MAKES = ["Toyota", "Suzuki", "Honda", "Nissan"];
@@ -85,6 +86,7 @@ export function MobileFilterSheet({
   filters,
   onFiltersChange,
 }: MobileFilterSheetProps) {
+  const { t } = useAppPreferences();
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [modelsList, setModelsList] = useState<{ model: string; count: number }[]>([]);
 
@@ -183,6 +185,11 @@ export function MobileFilterSheet({
 
   const isPriceHidden = filters.price_availability === "unavailable";
 
+  const pricePresets = useMemo(
+    () => PRICE_PRESET_VALUES.map((preset) => ({ ...preset, label: t(preset.key, preset.fallback) })),
+    [t],
+  );
+
   const selectTriggerClass =
     "h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
   const selectContentClass =
@@ -197,10 +204,10 @@ export function MobileFilterSheet({
         <SheetHeader className="border-b border-border px-5 pb-4 pt-5">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-              Quick Filters
+              {t("filter.quickFilters", "Quick Filters")}
               {activeCount > 0 && (
                 <span
-                  aria-label={`${activeCount} active filters`}
+                  aria-label={t("filter.activeCountAria", "{count} active filters", { count: activeCount })}
                   className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground"
                 >
                   {activeCount}
@@ -211,17 +218,17 @@ export function MobileFilterSheet({
               type="button"
               onClick={handleClear}
               className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Clear all filters"
+              aria-label={t("filter.clearAllAria", "Clear all filters")}
             >
-              Clear all
+              {t("common.clearAll", "Clear all")}
             </button>
           </div>
         </SheetHeader>
 
         <div className="space-y-4 px-5 py-5">
           {/* Make */}
-          <FilterSection label="Make">
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Quick make selection">
+          <FilterSection label={t("common.make", "Make")}>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("filter.quickMakeAria", "Quick make selection")}>
               {QUICK_MAKES.map((make) => (
                 <PillBtn
                   key={make}
@@ -243,11 +250,11 @@ export function MobileFilterSheet({
                 setLocalModel("");
               }}
             >
-              <SelectTrigger className={selectTriggerClass} aria-label="Select make">
-                <SelectValue placeholder="All makes" />
+              <SelectTrigger className={selectTriggerClass} aria-label={t("common.selectMake", "Select make")}>
+                <SelectValue placeholder={t("common.allMakes", "All makes")} />
               </SelectTrigger>
               <SelectContent className={selectContentClass}>
-                <SelectItem value={ALL}>All makes</SelectItem>
+                <SelectItem value={ALL}>{t("common.allMakes", "All makes")}</SelectItem>
                 {makes.map((m) => (
                   <SelectItem key={m.make} value={m.make}>
                     {m.make} ({m.count})
@@ -259,16 +266,16 @@ export function MobileFilterSheet({
 
           {/* Model — shown only when a make is selected and models are available */}
           {localMake && modelsList.length > 0 && (
-            <FilterSection label="Model">
+            <FilterSection label={t("common.model", "Model")}>
               <Select
                 value={localModel || ALL}
                 onValueChange={(v) => setLocalModel(v === ALL ? "" : v)}
               >
-                <SelectTrigger className={selectTriggerClass} aria-label="Select model">
-                  <SelectValue placeholder="All models" />
+                <SelectTrigger className={selectTriggerClass} aria-label={t("common.selectModel", "Select model")}>
+                  <SelectValue placeholder={t("common.allModels", "All models")} />
                 </SelectTrigger>
                 <SelectContent className={selectContentClass}>
-                  <SelectItem value={ALL}>All models</SelectItem>
+                  <SelectItem value={ALL}>{t("common.allModels", "All models")}</SelectItem>
                   {modelsList.map((m) => (
                     <SelectItem key={m.model} value={m.model}>
                       {m.model} ({m.count})
@@ -281,9 +288,9 @@ export function MobileFilterSheet({
 
           {/* Price — hidden in price-unavailable mode */}
           {!isPriceHidden && (
-            <FilterSection label="Price range">
-              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Price range presets">
-                {PRICE_PRESETS.map((preset) => {
+            <FilterSection label={t("filter.priceRange", "Price range")}>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("filter.pricePresetsAria", "Price range presets")}>
+                {pricePresets.map((preset) => {
                   const isActive =
                     localPriceMin === String(preset.min) &&
                     localPriceMax === String(preset.max);
@@ -313,8 +320,8 @@ export function MobileFilterSheet({
                     setLocalPriceMin(e.target.value.replace(/[^\d]/g, ""))
                   }
                   inputMode="numeric"
-                  placeholder="Min LKR"
-                  aria-label="Minimum price"
+                  placeholder={t("filter.minLkr", "Min LKR")}
+                  aria-label={t("filter.minPriceAria", "Minimum price")}
                   className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
                 <Input
@@ -323,8 +330,8 @@ export function MobileFilterSheet({
                     setLocalPriceMax(e.target.value.replace(/[^\d]/g, ""))
                   }
                   inputMode="numeric"
-                  placeholder="Max LKR"
-                  aria-label="Maximum price"
+                  placeholder={t("filter.maxLkr", "Max LKR")}
+                  aria-label={t("filter.maxPriceAria", "Maximum price")}
                   className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
               </div>
@@ -332,16 +339,16 @@ export function MobileFilterSheet({
           )}
 
           {/* District */}
-          <FilterSection label="District">
+          <FilterSection label={t("common.district", "District")}>
             <Select
               value={localDistrict || ALL}
               onValueChange={(v) => setLocalDistrict(v === ALL ? "" : v)}
             >
-              <SelectTrigger className={selectTriggerClass} aria-label="Select district">
-                <SelectValue placeholder="All districts" />
+              <SelectTrigger className={selectTriggerClass} aria-label={t("common.district", "District")}>
+                <SelectValue placeholder={t("common.allDistricts", "All districts")} />
               </SelectTrigger>
               <SelectContent className={selectContentClass}>
-                <SelectItem value={ALL}>All districts</SelectItem>
+                <SelectItem value={ALL}>{t("common.allDistricts", "All districts")}</SelectItem>
                 {SRI_LANKA_DISTRICTS.map((d) => (
                   <SelectItem key={d} value={d}>
                     {d}
@@ -362,14 +369,14 @@ export function MobileFilterSheet({
             onClick={() => onOpenChange(false)}
             className="flex-1 rounded-xl border border-border py-3 text-[13px] font-semibold text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:text-foreground active:scale-[0.98]"
           >
-            Cancel
+            {t("common.cancel", "Cancel")}
           </button>
           <button
             type="button"
             onClick={handleApply}
             className="flex-1 rounded-xl bg-primary py-3 text-[13px] font-bold text-primary-foreground shadow-soft transition-all duration-150 hover:bg-primary/95 active:scale-[0.98]"
           >
-            Apply filters
+            {t("filter.apply", "Apply filters")}
           </button>
         </div>
       </SheetContent>

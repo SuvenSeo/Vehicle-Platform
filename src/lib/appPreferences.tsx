@@ -1,9 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  DICTIONARIES,
+  LOCALE_TAGS,
+  interpolate,
+  type Language,
+} from "@/locales";
 
 type ThemeMode = "system" | "dark" | "light";
-type Language = "en" | "si" | "ta";
 
-type Dictionary = Record<string, string>;
+type TranslateVars = Record<string, string | number | null | undefined>;
 
 type AppPreferencesContextValue = {
   themeMode: ThemeMode;
@@ -11,591 +16,13 @@ type AppPreferencesContextValue = {
   setThemeMode: (mode: ThemeMode) => void;
   language: Language;
   setLanguage: (language: Language) => void;
-  t: (key: string, fallback?: string) => string;
+  localeTag: string;
+  t: (key: string, fallback?: string, vars?: TranslateVars) => string;
 };
 
 const THEME_STORAGE_KEY = "autolens_theme_mode";
 const LANGUAGE_STORAGE_KEY = "autolens_language";
 const DEFAULT_THEME_MODE: ThemeMode = "dark";
-
-const DICTIONARIES: Record<Language, Dictionary> = {
-  en: {
-    "ui.theme": "Theme",
-    "ui.language": "Language",
-    "theme.system": "System",
-    "theme.dark": "Dark",
-    "theme.light": "Light",
-    "language.en": "English",
-    "language.si": "Sinhala",
-    "language.ta": "Tamil",
-
-    "nav.home": "Home",
-    "nav.overview": "Overview",
-    "nav.quickInsights": "Quick Insights",
-    "nav.trends": "Trends",
-    "nav.market": "Market",
-    "nav.alerts": "Alerts",
-    "nav.bestPicks": "Best Picks",
-    "nav.pro": "Pro",
-    "nav.blog": "Blog",
-    "nav.map": "Map",
-    "nav.valuation": "Valuation",
-    "nav.aiValue": "AI Value",
-    "nav.source": "Source",
-    "nav.settings": "Settings",
-    "nav.live": "Live",
-    "nav.syncing": "Syncing",
-    "nav.delayed": "Delayed",
-    "nav.awaiting": "Awaiting sync",
-
-    "common.search": "Search",
-    "common.save": "Save",
-    "common.alerts": "Alerts",
-    "common.searching": "Searching...",
-    "common.saved": "Saved",
-    "common.saveAlert": "Save alert",
-    "common.inventory": "Inventory",
-    "common.unpricedInventory": "Unpriced inventory",
-
-    "currency.lkr": "LKR",
-
-    "district.colombo": "Colombo",
-    "district.gampaha": "Gampaha",
-    "district.kalutara": "Kalutara",
-    "district.kandy": "Kandy",
-    "district.galle": "Galle",
-    "district.matara": "Matara",
-    "district.kurunegala": "Kurunegala",
-    "district.ratnapura": "Ratnapura",
-    "district.badulla": "Badulla",
-    "district.anuradhapura": "Anuradhapura",
-
-    "settings.title": "Personalize Motormila",
-    "settings.subtitle": "Move language and theme controls out of the main nav so the dashboard stays clean and focused.",
-    "settings.backToDashboard": "Back to dashboard",
-    "settings.languageHint": "Set display language for navigation and labels",
-    "settings.themeHint": "Choose visual style for the entire app",
-    "settings.activeTheme": "Active theme",
-
-    "hero.explore": "Explore Market",
-    "hero.value": "Value my car",
-    "hero.eyebrow": "Vehicle Intelligence · Sri Lanka",
-    "hero.title": "Sri Lanka's entire vehicle market,",
-    "hero.titleAccent": "decoded.",
-    "hero.body": "live listings from {sources} sources across {districts} districts — real-time pricing, deal scores, and the market intelligence dealers keep to themselves.",
-
-    "alerts.title": "Market Alerts",
-    "alerts.description": "Get notified when vehicles matching your criteria appear on the market.",
-    "alerts.active": "Active alerts",
-    "alerts.notifyWhatsapp": "WhatsApp (optional)",
-
-    "calc.title": "Mobility & Tax Calculators",
-    "calc.tab.landed": "Landed Cost",
-    "calc.notifySurcharge": "Notify me when the surcharge drops",
-    "calc.reminderOn": "Reminder on — tap to clear",
-
-    "makeHub.eyebrow": "Make hub",
-    "makeHub.liveListings": "Live listings",
-    "makeHub.avgPrice": "Average price",
-    "makeHub.medianPrice": "Median price",
-
-    "valuation.title": "Custom Vehicle Valuation.",
-    "valuation.subtitle": "Enter your vehicle details and compare against live listings.",
-    "valuation.cta": "Value My Car",
-    "valuation.loading": "Thinking...",
-    "valuation.select": "Select",
-    "valuation.selectDistrict": "Select District",
-    "valuation.askingOptional": "Optional asking price",
-
-    "valuation.field.brand": "Brand",
-    "valuation.field.model": "Model",
-    "valuation.field.condition": "Condition",
-    "valuation.field.transmission": "Transmission",
-    "valuation.field.fuel": "Fuel Type",
-    "valuation.field.body": "Body Type",
-    "valuation.field.year": "Year",
-    "valuation.field.mileage": "Mileage (KM)",
-    "valuation.field.district": "District",
-    "valuation.field.asking": "Asking Price (LKR)",
-
-    "valuation.result.caption": "Custom Vehicle Valuation",
-    "valuation.ready": "Ready for Input",
-    "valuation.marketVerdict": "Market verdict",
-    "valuation.confidence": "confidence",
-    "valuation.vsMarketMedian": "vs market median",
-    "valuation.lowBand": "Low band",
-    "valuation.medianBand": "Median band",
-    "valuation.highBand": "High band",
-    "valuation.comparableListings": "Comparable listings",
-    "valuation.matches": "matches",
-    "valuation.topComparables": "Top comparables",
-    "valuation.liveListings": "Live listings",
-    "valuation.priceUnavailable": "Price unavailable",
-    "valuation.inputPrice": "Input Price",
-    "valuation.openListing": "Open listing",
-    "valuation.next.title": "What to do next",
-    "valuation.next.path": "Action path",
-
-    "valuation.next.list": "List Your Car",
-    "valuation.next.listDesc": "Publish your ad on a major marketplace with your valuation range in hand.",
-    "valuation.next.buyers": "Find Buyers Now",
-    "valuation.next.buyersDesc": "Jump to matching listings in this app to benchmark and position your asking price.",
-    "valuation.next.inspect": "Get Inspection",
-    "valuation.next.inspectDesc": "Book a certified inspection and add the report to increase buyer trust.",
-
-    "chat.tooltip.title": "Ask Motormila Copilot",
-    "chat.tooltip.subtitle": "Find, value, compare, and inspect cars",
-    "chat.header.title": "Motormila Copilot",
-    "chat.header.status": "Live market assistant",
-    "chat.intro": "Ask the market copilot before you decide.",
-    "chat.introBody": "I can search live listings, explain fair value, compare options, surface deal risk, and read pipeline freshness.",
-    "chat.placeholder": "Ask about budget, value, listings, or seller risk...",
-    "chat.thinking": "Reading live market context...",
-    "chat.error.serviceUnavailable": "AI service is temporarily unavailable. Please try again in a moment.",
-    "chat.error.connection": "Connection issue. Please try again.",
-    "chat.card.priceUnavailable": "Price unavailable",
-    "chat.card.inputPrice": "Input Price",
-    "chat.card.openListing": "Open Listing",
-    "chat.card.source": "Source",
-    "chat.copy": "Copy",
-    "chat.copied": "Copied",
-    "chat.enterHint": "Enter to send · Shift+Enter for new line",
-    "chat.quick.snapshot": "Snapshot",
-    "chat.quick.deals": "Best Deals",
-    "chat.quick.clear": "Clear",
-    "chat.quick.liveSnapshot": "Live Snapshot",
-    "chat.quick.topDeals": "Top Deals",
-    "chat.quick.toyota": "Toyota Trend",
-    "chat.quick.colombo": "Colombo Prices",
-    "chat.quick.honda": "Honda Pricing",
-    "chat.quick.budget": "Budget Picks",
-
-    "nav.signIn": "Sign In",
-    "nav.signOut": "Sign out",
-    "nav.statusUnknown": "Status unknown",
-    "nav.statusUnavailable": "Unavailable",
-    "nav.proDashboard": "Pro Dashboard",
-    "nav.proPreview": "Pro Preview",
-    "nav.settingsDetail": "Language and theme",
-    "nav.proDetail": "Paid market terminal",
-    "nav.proPreviewDetail": "Locked terminal layout",
-    "signin.eyebrow": "Pro Access",
-    "signin.title": "Sign in",
-    "signin.submit": "Sign in",
-    "signin.loading": "Signing in...",
-    "signin.invalidEmail": "Invalid email",
-    "signin.required": "Required",
-    "signin.failed": "Login failed",
-    "proGate.title": "Pro is locked.",
-    "proGate.body": "Lane intelligence, district profiles, and exports unlock with an active Pro subscription.",
-    "proGate.preview": "Preview Pro",
-    "proGate.lockedHint": "Locked until Pro subscription is active.",
-    "dealer.commandCenter": "Dealer command center",
-    "dealer.claimYard": "Claim your yard",
-    "dealer.profile": "Dealer profile",
-    "dealer.claimHint": "Claim a seller name so Motormila can match your live inventory and show pricing vs market.",
-    "dealer.verified": "Verified dealer",
-    "dealer.turnover": "Inventory Turnover",
-    "dealer.priceGaps": "Price Gaps",
-    "dealer.districtDemand": "District Demand",
-    "dealer.benchmark": "Inventory Benchmark",
-    "listing.fmv": "Fair market value",
-    "listing.sellerInfo": "Seller information",
-    "listing.marketPeers": "Market peers",
-    "listing.share": "Share",
-    "listing.copied": "Link copied",
-    "pricing.eyebrow": "Plans",
-    "pricing.title": "Pricing that funds the pipeline",
-    "pricing.body": "Free browse stays free. Pro and Dealer fund scrapes, scores, and workspaces.",
-    "home.marketPulse": "Market pulse",
-    "home.whatsMoving": "What's moving right now",
-    "home.deeperIntel": "Deeper intelligence",
-  },
-  si: {
-    "ui.theme": "තේමාව",
-    "ui.language": "භාෂාව",
-    "theme.system": "පද්ධති",
-    "theme.dark": "අඳුරු",
-    "theme.light": "ආලෝක",
-    "language.en": "ඉංග්‍රීසි",
-    "language.si": "සිංහල",
-    "language.ta": "දෙමළ",
-
-    "nav.home": "මුල් පිටුව",
-    "nav.overview": "සාරාංශය",
-    "nav.quickInsights": "ඉක්මන් අවබෝධ",
-    "nav.trends": "ප්‍රවණතා",
-    "nav.market": "වෙළඳපොළ",
-    "nav.alerts": "ඇඟවීම්",
-    "nav.bestPicks": "හොඳම තෝරාගැනීම්",
-    "nav.pro": "ප්‍රෝ",
-    "nav.blog": "බ්ලොග්",
-    "nav.map": "නක්ෂාය",
-    "nav.valuation": "වටිනාකම",
-    "nav.aiValue": "AI අගය",
-    "nav.source": "මූලාශ්‍රය",
-    "nav.settings": "සැකසුම්",
-    "nav.live": "සජීවී",
-    "nav.syncing": "සමමුහුර්ත කරමින්",
-    "nav.delayed": "ප්‍රමාදයි",
-    "nav.awaiting": "සමමුහුර්තය බලාසිටී",
-
-    "common.search": "සොයන්න",
-    "common.save": "සුරකින්න",
-    "common.alerts": "ඇඟවීම්",
-    "common.searching": "සොයමින්...",
-    "common.saved": "සුරකින ලදී",
-    "common.saveAlert": "ඇඟවීම සුරකින්න",
-    "common.inventory": "තොගය",
-    "common.unpricedInventory": "මිල නොමැති තොගය",
-
-    "currency.lkr": "රු",
-
-    "district.colombo": "කොළඹ",
-    "district.gampaha": "ගම්පහ",
-    "district.kalutara": "කළුතර",
-    "district.kandy": "මහනුවර",
-    "district.galle": "ගාල්ල",
-    "district.matara": "මාතර",
-    "district.kurunegala": "කුරුණෑගල",
-    "district.ratnapura": "රත්නපුරය",
-    "district.badulla": "බදුල්ල",
-    "district.anuradhapura": "අනුරාධපුරය",
-
-    "settings.title": "Motormila ඔබට ගැලපෙන ලෙස සකසන්න",
-    "settings.subtitle": "ඩෑෂ්බෝඩ් එක පැහැදිලි සහ අවධානයෙන් තබාගැනීමට භාෂා සහ තේමා පාලන ප්‍රධාන නාවිකයෙන් වෙන් කර ඇත.",
-    "settings.backToDashboard": "ඩෑෂ්බෝඩ් වෙත ආපසු",
-    "settings.languageHint": "නාවිකරණය සහ ලේබල් සඳහා පෙන්වන භාෂාව තෝරන්න",
-    "settings.themeHint": "සම්පූර්ණ යෙදුම සඳහා දෘශ්‍ය රටාව තෝරන්න",
-    "settings.activeTheme": "සක්‍රීය තේමාව",
-
-    "hero.explore": "වෙළඳපොළ බලන්න",
-    "hero.value": "මගේ කාර් වටිනාකම",
-    "hero.eyebrow": "වාහන බුද්ධිය · ශ්‍රී ලංකාව",
-    "hero.title": "ශ්‍රී ලංකාවේ සමස්ත වාහන වෙළඳපොළ,",
-    "hero.titleAccent": "විකේතනය කළා.",
-    "hero.body": "මූලාශ්‍ර {sources} කින් දිස්ත්‍රික්ක {districts} ක පුරා සජීවී ලැයිස්තු — තත්කාලීන මිල, ගනුදෙනු ලකුණු සහ වෙළඳපොළ බුද්ධිය.",
-
-    "alerts.title": "වෙළඳපොළ ඇඟවීම්",
-    "alerts.description": "ඔබේ නිර්ණායකවලට ගැලපෙන වාහන පෙනෙන විට දැනුම් දෙන්න.",
-    "alerts.active": "සක්‍රීය ඇඟවීම්",
-    "alerts.notifyWhatsapp": "WhatsApp (විකල්ප)",
-
-    "calc.title": "ගමනාගමන සහ බදු ගණක යන්ත්‍ර",
-    "calc.tab.landed": "ගොඩබෑමේ පිරිවැය",
-    "calc.notifySurcharge": "අධිභාරය අඩු වූ විට දැනුම් දෙන්න",
-    "calc.reminderOn": "මතක් කිරීම සක්‍රීයයි — ඉවත් කිරීමට තට්ටු කරන්න",
-
-    "makeHub.eyebrow": "වෙළඳ නාම කේන්ද්‍රය",
-    "makeHub.liveListings": "සජීවී ලැයිස්තු",
-    "makeHub.avgPrice": "සාමාන්‍ය මිල",
-    "makeHub.medianPrice": "මධ්‍ය මිල",
-
-    "valuation.title": "අභිරුචි වාහන වටිනාකම.",
-    "valuation.subtitle": "ඔබේ වාහනය ඇතුල් කර සජීවී ලැයිස්තු සමඟ සසඳන්න.",
-    "valuation.cta": "වටිනාකම ගන්න",
-    "valuation.loading": "ගණනය වෙමින්...",
-    "valuation.select": "තෝරන්න",
-    "valuation.selectDistrict": "දිස්ත්‍රික්කය තෝරන්න",
-    "valuation.askingOptional": "විකිණීමේ මිල (විකල්ප)",
-
-    "valuation.field.brand": "බ්‍රෑන්ඩ්",
-    "valuation.field.model": "මාදිලිය",
-    "valuation.field.condition": "තත්ත්වය",
-    "valuation.field.transmission": "ගියර් පද්ධතිය",
-    "valuation.field.fuel": "ඉන්ධන වර්ගය",
-    "valuation.field.body": "බොඩි වර්ගය",
-    "valuation.field.year": "වසර",
-    "valuation.field.mileage": "දුර (KM)",
-    "valuation.field.district": "දිස්ත්‍රික්කය",
-    "valuation.field.asking": "ඉල්ලා සිටින මිල (LKR)",
-
-    "valuation.result.caption": "අභිරුචි වාහන වටිනාකම",
-    "valuation.ready": "තොරතුරු සඳහා සූදානම්",
-    "valuation.marketVerdict": "වෙළඳපොළ තීරණය",
-    "valuation.confidence": "විශ්වාසය",
-    "valuation.vsMarketMedian": "වෙළඳපොළ මධ්‍යමයට සාපේක්ෂව",
-    "valuation.lowBand": "පහළ පරාසය",
-    "valuation.medianBand": "මධ්‍ය පරාසය",
-    "valuation.highBand": "ඉහළ පරාසය",
-    "valuation.comparableListings": "සසඳන ලැයිස්තු",
-    "valuation.matches": "ගැලපීම්",
-    "valuation.topComparables": "ඉහළ සසඳන දත්ත",
-    "valuation.liveListings": "සජීවී ලැයිස්තු",
-    "valuation.priceUnavailable": "මිල නොමැත",
-    "valuation.inputPrice": "මිල ඇතුල් කරන්න",
-    "valuation.openListing": "ලැයිස්තුව විවෘත කරන්න",
-    "valuation.next.title": "ඊළඟට කරන්න",
-    "valuation.next.path": "ක්‍රියා මාර්ගය",
-
-    "valuation.next.list": "ඔබේ කාර්යය ලැයිස්තුගත කරන්න",
-    "valuation.next.listDesc": "ඔබේ වටිනාකම පරාසය සමඟ ප්‍රධාන වෙළඳපොළක දැන්වීම පළ කරන්න.",
-    "valuation.next.buyers": "ගැනුම්කරුවන් සොයන්න",
-    "valuation.next.buyersDesc": "මෙම යෙදුමේ ගැළපෙන ලැයිස්තු බලලා ඔබේ මිල ස්ථාපනය කරන්න.",
-    "valuation.next.inspect": "පරීක්ෂාවක් ගන්න",
-    "valuation.next.inspectDesc": "සහතික පරීක්ෂාවක් කර වාර්තාව එකතු කර විශ්වාසය වැඩි කරන්න.",
-
-    "chat.tooltip.title": "Motormila Copilot අහන්න",
-    "chat.tooltip.subtitle": "සජීවී වෙළඳපොළ මිල දැන්",
-    "chat.header.title": "Motormila Copilot",
-    "chat.header.status": "Live market assistant",
-    "chat.intro": "Motormila Copilot සමඟ කතා කරන්න",
-    "chat.introBody": "සජීවී snapshot, හොඳ deals, make trend, දිස්ත්‍රික්ක මිල ගැන අහන්න.",
-    "chat.placeholder": "කාර් ගැන අහන්න...",
-    "chat.thinking": "Motormila සිතමින්...",
-    "chat.error.serviceUnavailable": "AI සේවාව තාවකාලිකව නොමැත. කරුණාකර මොහොතකින් නැවත උත්සාහ කරන්න.",
-    "chat.error.connection": "සම්බන්ධතා දෝෂයක්. කරුණාකර නැවත උත්සාහ කරන්න.",
-    "chat.card.priceUnavailable": "මිල නොමැත",
-    "chat.card.inputPrice": "මිල ඇතුල් කරන්න",
-    "chat.card.openListing": "ලැයිස්තුව විවෘත කරන්න",
-    "chat.card.source": "මූලාශ්‍රය",
-    "chat.copy": "පිටපත්",
-    "chat.copied": "පිටපත් කළා",
-    "chat.enterHint": "යවන්න Enter · නව පේළියට Shift+Enter",
-    "chat.quick.snapshot": "Snapshot",
-    "chat.quick.deals": "හොඳ Deals",
-    "chat.quick.clear": "මකන්න",
-    "chat.quick.liveSnapshot": "Live Snapshot",
-    "chat.quick.topDeals": "Top Deals",
-    "chat.quick.toyota": "Toyota Trend",
-    "chat.quick.colombo": "Colombo Prices",
-    "chat.quick.honda": "Honda Pricing",
-    "chat.quick.budget": "Budget Picks",
-
-    "nav.signIn": "පිවිසෙන්න",
-    "nav.signOut": "ඉවත් වන්න",
-    "nav.statusUnknown": "තත්ත්වය නොදනී",
-    "nav.statusUnavailable": "ලබාගත නොහැක",
-    "nav.proDashboard": "ප්‍රෝ ඩෑෂ්බෝඩ්",
-    "nav.proPreview": "ප්‍රෝ පෙරදසුන",
-    "nav.settingsDetail": "භාෂාව සහ තේමාව",
-    "nav.proDetail": "ගෙවූ වෙළඳපොළ ටර්මිනල්",
-    "nav.proPreviewDetail": "අගුළු දැමූ ටර්මිනල් පෙනුම",
-    "signin.eyebrow": "ප්‍රෝ ප්‍රවේශය",
-    "signin.title": "පිවිසෙන්න",
-    "signin.submit": "පිවිසෙන්න",
-    "signin.loading": "පිවිසෙමින්...",
-    "signin.invalidEmail": "වලංගු නොවන විද්‍යුත් තැපෑල",
-    "signin.required": "අවශ්‍යයි",
-    "signin.failed": "පිවිසුම අසාර්ථකයි",
-    "proGate.title": "ප්‍රෝ අගුළු දමා ඇත.",
-    "proGate.body": "ලේන් බුද්ධිය, දිස්ත්‍රික් පැතිකඩ සහ අපනයන සක්‍රීය ප්‍රෝ දායකත්වයකින් විවෘත වේ.",
-    "proGate.preview": "ප්‍රෝ පෙරදසුන",
-    "proGate.lockedHint": "ප්‍රෝ දායකත්වය සක්‍රීය වන තුරු අගුළු දමා ඇත.",
-    "dealer.commandCenter": "වෙළෙන්දා කමාන්ඩ් මධ්‍යස්ථානය",
-    "dealer.claimYard": "ඔබේ යාඩ් හිමිකම් කියන්න",
-    "dealer.profile": "වෙළෙන්දා පැතිකඩ",
-    "dealer.claimHint": "සජීවී තොග ගැලපීමට විකුණුම්කරු නාමයක් හිමිකම් කියන්න.",
-    "dealer.verified": "සත්‍යාපිත වෙළෙන්දා",
-    "dealer.turnover": "තොග පිරිවැටුම",
-    "dealer.priceGaps": "මිල පරතර",
-    "dealer.districtDemand": "දිස්ත්‍රික් ඉල්ලුම",
-    "dealer.benchmark": "තොග සැසඳුම",
-    "listing.fmv": "සාධාරණ වෙළඳපොළ වටිනාකම",
-    "listing.sellerInfo": "විකුණුම්කරු තොරතුරු",
-    "listing.marketPeers": "වෙළඳපොළ සමකාලීන",
-    "listing.share": "බෙදාගන්න",
-    "listing.copied": "සබැඳිය පිටපත් විය",
-    "pricing.eyebrow": "සැලසුම්",
-    "pricing.title": "පයිප්ලයින් තබාගන්නා මිලකරණය",
-    "pricing.body": "නොමිලේ බ්‍රවුස් කිරීම නොමිලේමයි. ප්‍රෝ සහ වෙළෙන්දා ස්ක්‍රේප්, ලකුණු සහ වැඩබිම් අරමුදල් කරයි.",
-    "home.marketPulse": "වෙළඳපොළ ස්පන්දනය",
-    "home.whatsMoving": "දැන් චලනය වන්නේ කුමක්ද",
-    "home.deeperIntel": "ගැඹුරු බුද්ධිය",
-  },
-  ta: {
-    "ui.theme": "தீம்",
-    "ui.language": "மொழி",
-    "theme.system": "சிஸ்டம்",
-    "theme.dark": "இருள்",
-    "theme.light": "ஒளி",
-    "language.en": "ஆங்கிலம்",
-    "language.si": "சிங்களம்",
-    "language.ta": "தமிழ்",
-
-    "nav.home": "முகப்பு",
-    "nav.overview": "கண்ணோட்டம்",
-    "nav.quickInsights": "விரைவு பார்வைகள்",
-    "nav.trends": "போக்குகள்",
-    "nav.market": "சந்தை",
-    "nav.alerts": "விழிப்பூட்டல்கள்",
-    "nav.bestPicks": "சிறந்த தேர்வுகள்",
-    "nav.pro": "ப்ரோ",
-    "nav.blog": "வலைப்பதிவு",
-    "nav.map": "வரைபடம்",
-    "nav.valuation": "மதிப்பீடு",
-    "nav.aiValue": "AI மதிப்பு",
-    "nav.source": "மூலம்",
-    "nav.settings": "அமைப்புகள்",
-    "nav.live": "நேரடி",
-    "nav.syncing": "ஒத்திசைக்கிறது",
-    "nav.delayed": "தாமதம்",
-    "nav.awaiting": "ஒத்திசைவை காத்திருக்கிறது",
-
-    "common.search": "தேடு",
-    "common.save": "சேமி",
-    "common.alerts": "விழிப்பூட்டல்கள்",
-    "common.searching": "தேடுகிறது...",
-    "common.saved": "சேமிக்கப்பட்டது",
-    "common.saveAlert": "விழிப்பூட்டலை சேமி",
-    "common.inventory": "சரக்கு",
-    "common.unpricedInventory": "விலையில்லா சரக்கு",
-
-    "currency.lkr": "இலங்கை ரூபாய்",
-
-    "district.colombo": "கொழும்பு",
-    "district.gampaha": "கம்பஹா",
-    "district.kalutara": "களுத்துறை",
-    "district.kandy": "கண்டி",
-    "district.galle": "காலி",
-    "district.matara": "மாத்தறை",
-    "district.kurunegala": "குருநாகல்",
-    "district.ratnapura": "இரத்தினபுரி",
-    "district.badulla": "பதுளை",
-    "district.anuradhapura": "அனுராதபுரம்",
-
-    "settings.title": "Motormila-வை தனிப்பயனாக்குங்கள்",
-    "settings.subtitle": "டாஷ்போர்டு சுத்தமாகவும் கவனச்சிதறலின்றியும் இருக்க, மொழி மற்றும் தீம் கட்டுப்பாடுகள் பிரதான வழிசெலுத்தலிலிருந்து மாற்றப்பட்டுள்ளன.",
-    "settings.backToDashboard": "டாஷ்போர்டுக்கு திரும்பு",
-    "settings.languageHint": "வழிசெலுத்தலும் லேபிள்களும் காட்டும் மொழியை அமைக்கவும்",
-    "settings.themeHint": "முழு பயன்பாட்டிற்கான காட்சி பாணியை தேர்வு செய்யவும்",
-    "settings.activeTheme": "செயலில் உள்ள தீம்",
-
-    "hero.explore": "சந்தையை பார்க்க",
-    "hero.value": "என் காரை மதிப்பிடு",
-    "hero.eyebrow": "வாகன நுண்ணறிவு · இலங்கை",
-    "hero.title": "இலங்கையின் முழு வாகன சந்தை,",
-    "hero.titleAccent": "விளக்கப்பட்டது.",
-    "hero.body": "{sources} மூலங்களிலிருந்து {districts} மாவட்டங்களில் நேரடி பட்டியல்கள் — நேரடி விலை, ஒப்பந்த மதிப்பெண்கள், சந்தை நுண்ணறிவு.",
-
-    "alerts.title": "சந்தை விழிப்பூட்டல்கள்",
-    "alerts.description": "உங்கள் நிபந்தனைகளுக்கு பொருந்தும் வாகனங்கள் வரும்போது அறிவிப்பு பெறுங்கள்.",
-    "alerts.active": "செயலில் உள்ள விழிப்பூட்டல்கள்",
-    "alerts.notifyWhatsapp": "WhatsApp (விருப்பம்)",
-
-    "calc.title": "போக்குவரத்து & வரி கணிப்பான்கள்",
-    "calc.tab.landed": "இறக்குமதி செலவு",
-    "calc.notifySurcharge": "கூடுதல் வரி குறையும்போது அறிவி",
-    "calc.reminderOn": "நினைவூட்டல் இயக்கம் — அகற்ற தட்டவும்",
-
-    "makeHub.eyebrow": "பிராண்ட் மையம்",
-    "makeHub.liveListings": "நேரடி பட்டியல்கள்",
-    "makeHub.avgPrice": "சராசரி விலை",
-    "makeHub.medianPrice": "மத்திய விலை",
-
-    "valuation.title": "தனிப்பயன் வாகன மதிப்பீடு.",
-    "valuation.subtitle": "உங்கள் வாகன விவரங்களை உள்ளிட்டு live listings-ஐ ஒப்பிடுங்கள்.",
-    "valuation.cta": "வாகனத்தை மதிப்பிடு",
-    "valuation.loading": "கணக்கிடுகிறது...",
-    "valuation.select": "தேர்வு செய்",
-    "valuation.selectDistrict": "மாவட்டத்தைத் தேர்வு செய்",
-    "valuation.askingOptional": "கோரிக்கை விலை (விருப்பம்)",
-
-    "valuation.field.brand": "பிராண்ட்",
-    "valuation.field.model": "மாடல்",
-    "valuation.field.condition": "நிலை",
-    "valuation.field.transmission": "கியர் வகை",
-    "valuation.field.fuel": "எரிபொருள் வகை",
-    "valuation.field.body": "உடல் வகை",
-    "valuation.field.year": "ஆண்டு",
-    "valuation.field.mileage": "மைலேஜ் (KM)",
-    "valuation.field.district": "மாவட்டம்",
-    "valuation.field.asking": "கோரிக்கை விலை (LKR)",
-
-    "valuation.result.caption": "தனிப்பயன் வாகன மதிப்பீடு",
-    "valuation.ready": "உள்ளீட்டிற்கு தயாராக உள்ளது",
-    "valuation.marketVerdict": "சந்தை தீர்ப்பு",
-    "valuation.confidence": "நம்பிக்கை",
-    "valuation.vsMarketMedian": "சந்தை மத்திய விலையுடன் ஒப்பிடுகையில்",
-    "valuation.lowBand": "குறைந்த வரம்பு",
-    "valuation.medianBand": "மத்திய வரம்பு",
-    "valuation.highBand": "உயர் வரம்பு",
-    "valuation.comparableListings": "ஒப்பிடத்தக்க பட்டியல்கள்",
-    "valuation.matches": "பொருத்தங்கள்",
-    "valuation.topComparables": "சிறந்த ஒப்பீடுகள்",
-    "valuation.liveListings": "நேரடி பட்டியல்கள்",
-    "valuation.priceUnavailable": "விலை இல்லை",
-    "valuation.inputPrice": "விலையை உள்ளிடு",
-    "valuation.openListing": "பட்டியலை திற",
-    "valuation.next.title": "அடுத்து என்ன செய்யலாம்",
-    "valuation.next.path": "செயல் பாதை",
-
-    "valuation.next.list": "உங்கள் காரை பட்டியலிடுங்கள்",
-    "valuation.next.listDesc": "உங்கள் மதிப்பீட்டு வரம்புடன் பெரிய சந்தையில் விளம்பரம் வெளியிடுங்கள்.",
-    "valuation.next.buyers": "வாங்குபவர்களை கண்டுபிடி",
-    "valuation.next.buyersDesc": "இந்த பயன்பாட்டில் பொருந்தும் பட்டியல்களைப் பார்த்து உங்கள் விலையை அமைக்கவும்.",
-    "valuation.next.inspect": "ஆய்வு பெறுங்கள்",
-    "valuation.next.inspectDesc": "சான்றளிக்கப்பட்ட ஆய்வு செய்து அறிக்கையை சேர்த்து நம்பிக்கையை உயர்த்துங்கள்.",
-
-    "chat.tooltip.title": "Motormila Copilot-ஐ கேளுங்கள்",
-    "chat.tooltip.subtitle": "உடனடி live சந்தை விலை",
-    "chat.header.title": "Motormila Copilot",
-    "chat.header.status": "Live market assistant",
-    "chat.intro": "Motormila Copilot உடன் பேசுங்கள்",
-    "chat.introBody": "Live snapshot, top deals, trend, district pricing குறித்து கேளுங்கள்.",
-    "chat.placeholder": "கார்கள் பற்றி கேளுங்கள்...",
-    "chat.thinking": "Motormila யோசிக்கிறது...",
-    "chat.error.serviceUnavailable": "AI சேவை தற்காலிகமாக கிடைக்கவில்லை. சில நொடிகளில் மீண்டும் முயற்சிக்கவும்.",
-    "chat.error.connection": "இணைப்பு சிக்கல். மீண்டும் முயற்சிக்கவும்.",
-    "chat.card.priceUnavailable": "விலை இல்லை",
-    "chat.card.inputPrice": "விலையை உள்ளிடு",
-    "chat.card.openListing": "பட்டியலை திற",
-    "chat.card.source": "மூலம்",
-    "chat.copy": "நகலெடு",
-    "chat.copied": "நகலெடுக்கப்பட்டது",
-    "chat.enterHint": "அனுப்ப Enter · புதிய வரிக்கு Shift+Enter",
-    "chat.quick.snapshot": "Snapshot",
-    "chat.quick.deals": "Best Deals",
-    "chat.quick.clear": "அழி",
-    "chat.quick.liveSnapshot": "Live Snapshot",
-    "chat.quick.topDeals": "Top Deals",
-    "chat.quick.toyota": "Toyota Trend",
-    "chat.quick.colombo": "Colombo Prices",
-    "chat.quick.honda": "Honda Pricing",
-    "chat.quick.budget": "Budget Picks",
-
-    "nav.signIn": "உள்நுழை",
-    "nav.signOut": "வெளியேறு",
-    "nav.statusUnknown": "நிலை தெரியவில்லை",
-    "nav.statusUnavailable": "கிடைக்கவில்லை",
-    "nav.proDashboard": "ப்ரோ டாஷ்போர்டு",
-    "nav.proPreview": "ப்ரோ முன்னோட்டம்",
-    "nav.settingsDetail": "மொழி மற்றும் தீம்",
-    "nav.proDetail": "கட்டண சந்தை முனையம்",
-    "nav.proPreviewDetail": "பூட்டிய முனைய தோற்றம்",
-    "signin.eyebrow": "ப்ரோ அணுகல்",
-    "signin.title": "உள்நுழை",
-    "signin.submit": "உள்நுழை",
-    "signin.loading": "உள்நுழைகிறது...",
-    "signin.invalidEmail": "தவறான மின்னஞ்சல்",
-    "signin.required": "தேவை",
-    "signin.failed": "உள்நுழைவு தோல்வி",
-    "proGate.title": "ப்ரோ பூட்டப்பட்டுள்ளது.",
-    "proGate.body": "லேன் நுண்ணறிவு, மாவட்ட சுயவிவரங்கள் மற்றும் ஏற்றுமதிகள் செயலில் உள்ள ப்ரோ சந்தாவுடன் திறக்கும்.",
-    "proGate.preview": "ப்ரோ முன்னோட்டம்",
-    "proGate.lockedHint": "ப்ரோ சந்தா செயலில் இருக்கும் வரை பூட்டப்பட்டுள்ளது.",
-    "dealer.commandCenter": "டீலர் கட்டளை மையம்",
-    "dealer.claimYard": "உங்கள் முற்றத்தை கோருங்கள்",
-    "dealer.profile": "டீலர் சுயவிவரம்",
-    "dealer.claimHint": "நேரடி சரக்கை பொருத்த விற்பனையாளர் பெயரை கோருங்கள்.",
-    "dealer.verified": "சரிபார்க்கப்பட்ட டீலர்",
-    "dealer.turnover": "சரக்கு சுழற்சி",
-    "dealer.priceGaps": "விலை இடைவெளிகள்",
-    "dealer.districtDemand": "மாவட்ட தேவை",
-    "dealer.benchmark": "சரக்கு ஒப்பீடு",
-    "listing.fmv": "நியாயமான சந்தை மதிப்பு",
-    "listing.sellerInfo": "விற்பனையாளர் தகவல்",
-    "listing.marketPeers": "சந்தை சகாக்கள்",
-    "listing.share": "பகிர்",
-    "listing.copied": "இணைப்பு நகலெடுக்கப்பட்டது",
-    "pricing.eyebrow": "திட்டங்கள்",
-    "pricing.title": "பைப்லைனை நிதியளிக்கும் விலை",
-    "pricing.body": "இலவச உலாவல் இலவசமாகவே இருக்கும். ப்ரோ மற்றும் டீலர் ஸ்க்ரேப், மதிப்பெண்கள் மற்றும் பணியிடங்களுக்கு நிதி அளிக்கிறது.",
-    "home.marketPulse": "சந்தை துடிப்பு",
-    "home.whatsMoving": "இப்போது நகருவது என்ன",
-    "home.deeperIntel": "ஆழமான நுண்ணறிவு",
-  },
-};
 
 const AppPreferencesContext = createContext<AppPreferencesContextValue | null>(null);
 
@@ -637,6 +64,10 @@ function writeStorage(key: string, value: string) {
   }
 }
 
+function isLanguage(value: string | null): value is Language {
+  return value === "en" || value === "si" || value === "ta";
+}
+
 export function AppPreferencesProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(DEFAULT_THEME_MODE);
   const [language, setLanguageState] = useState<Language>("en");
@@ -644,7 +75,8 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     const savedTheme = (readStorage(THEME_STORAGE_KEY) as ThemeMode | null) || DEFAULT_THEME_MODE;
-    const savedLanguage = (readStorage(LANGUAGE_STORAGE_KEY) as Language | null) || "en";
+    const savedLanguageRaw = readStorage(LANGUAGE_STORAGE_KEY);
+    const savedLanguage = isLanguage(savedLanguageRaw) ? savedLanguageRaw : "en";
     setThemeModeState(savedTheme);
     setLanguageState(savedLanguage);
   }, []);
@@ -685,13 +117,14 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
     writeStorage(LANGUAGE_STORAGE_KEY, nextLanguage);
   };
 
+  const localeTag = LOCALE_TAGS[language];
+
   const t = useMemo(() => {
-    return (key: string, fallback?: string) => {
+    return (key: string, fallback?: string, vars?: TranslateVars) => {
       const selected = DICTIONARIES[language][key];
-      if (selected) return selected;
       const english = DICTIONARIES.en[key];
-      if (english) return english;
-      return fallback || key;
+      const raw = selected || english || fallback || key;
+      return interpolate(raw, vars);
     };
   }, [language]);
 
@@ -702,18 +135,33 @@ export function AppPreferencesProvider({ children }: { children: React.ReactNode
       setThemeMode,
       language,
       setLanguage,
+      localeTag,
       t,
     }),
-    [language, resolvedTheme, t, themeMode],
+    [language, localeTag, resolvedTheme, t, themeMode],
   );
 
   return <AppPreferencesContext.Provider value={value}>{children}</AppPreferencesContext.Provider>;
 }
 
+const FALLBACK_PREFERENCES: AppPreferencesContextValue = {
+  themeMode: DEFAULT_THEME_MODE,
+  resolvedTheme: "dark",
+  setThemeMode: () => {},
+  language: "en",
+  setLanguage: () => {},
+  localeTag: LOCALE_TAGS.en,
+  t: (key, fallback, vars) => {
+    const raw = DICTIONARIES.en[key] || fallback || key;
+    return interpolate(raw, vars);
+  },
+};
+
 export function useAppPreferences() {
   const context = useContext(AppPreferencesContext);
-  if (!context) {
-    throw new Error("useAppPreferences must be used inside AppPreferencesProvider");
-  }
-  return context;
+  // Fall back to English defaults outside the provider (unit tests that mount
+  // pages/components directly). Production always wraps via main.tsx.
+  return context ?? FALLBACK_PREFERENCES;
 }
+
+export type { Language };

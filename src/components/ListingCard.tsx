@@ -16,6 +16,7 @@ import { MileageTrustChip } from "@/components/MileageTrustChip";
 import { summarizeFmv } from "@/lib/fmv";
 import { useAuth } from "@/lib/authContext";
 import { hasFullPlatformAccess } from "@/lib/planLimits";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -68,6 +69,7 @@ export const ListingCard = memo(function ListingCard({
   onWatchlistToggle,
   isWatchlisted,
 }: ListingCardProps) {
+  const { t } = useAppPreferences();
   const { hasProAccess, isAdmin } = useAuth();
   const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   // null deal_score = rating suppressed server-side (thin cohort, old vehicle,
@@ -92,13 +94,13 @@ export const ListingCard = memo(function ListingCard({
   return (
     <article
       role="article"
-      aria-label={`${listingTitle || "Vehicle"} listing card`}
+      aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
       className="group relative isolate h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg"
     >
       <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" />
       <Link
         to={`/listing/${listing.id}`}
-        aria-label={`Open ${listingTitle || "vehicle listing"}`}
+        aria-label={t("listingCard.openAria", "Open {title}", { title: listingTitle || "vehicle listing" })}
         className="absolute inset-0 z-10 rounded-2xl"
       />
 
@@ -131,7 +133,7 @@ export const ListingCard = memo(function ListingCard({
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
                 }`}
-                aria-label={isWatchlisted ? "Remove from watchlist" : "Add to watchlist"}
+                aria-label={isWatchlisted ? t("listingCard.removeWatchlist", "Remove from watchlist") : t("listingCard.addWatchlist", "Add to watchlist")}
               >
                 <Heart className={`w-3.5 h-3.5 ${isWatchlisted ? "fill-current" : ""}`} />
               </button>
@@ -145,7 +147,7 @@ export const ListingCard = memo(function ListingCard({
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
                 }`}
-                aria-label={isComparing ? "Remove from comparison" : "Add to comparison"}
+                aria-label={isComparing ? t("listingCard.removeCompare", "Remove from comparison") : t("listingCard.addCompare", "Add to comparison")}
               >
                 {isComparing ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
               </button>
@@ -160,19 +162,19 @@ export const ListingCard = memo(function ListingCard({
               </p>
             ) : (
               <PriceUnavailableBadge
-                label="Price unavailable"
+                label={t("listingCard.priceUnavailable", "Price unavailable")}
                 className="bg-black/75 border-primary/40 text-primary-bright px-2 py-0.5 text-[10px] tracking-[0.1em]"
               />
             )}
             {hasDealScore && (
               <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
-                {dealScore >= 0 ? "+" : ""}{dealScore.toFixed(0)} deal
+                {t("listingCard.deal", "{score} deal", { score: `${dealScore >= 0 ? "+" : ""}${dealScore.toFixed(0)}` })}
               </span>
             )}
             {!fullAccess && (
               <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white/85 backdrop-blur-md">
                 <Lock className="h-2.5 w-2.5" aria-hidden />
-                Pro score
+                {t("listingCard.proScore", "Pro score")}
               </span>
             )}          </div>
         </div>
@@ -183,7 +185,7 @@ export const ListingCard = memo(function ListingCard({
             <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary truncate">
               {listingTitle}
             </h3>
-            <span className="shrink-0 text-[13px] font-semibold text-muted-foreground num">{listing.year || "N/A"}</span>
+            <span className="shrink-0 text-[13px] font-semibold text-muted-foreground num">{listing.year || t("common.na", "N/A")}</span>
           </div>
 
           {/* Spec grid */}
@@ -192,9 +194,9 @@ export const ListingCard = memo(function ListingCard({
               <Gauge className="h-3 w-3 text-muted-foreground/70" />
               {formatToken(listing.transmission)}
             </span>
-            <span className="num">{formatMileage(listing.mileage_km)}</span>
+            <span className="num">{Number.isFinite(listing.mileage_km) ? formatMileage(listing.mileage_km) : t("listingCard.mileageNa", "Mileage N/A")}</span>
             <span>{formatToken(listing.fuel_type)}</span>
-            <span className="num">{formatEngineCc(listing.engine_cc)}</span>
+            <span className="num">{(Number.isFinite(listing.engine_cc) && Number(listing.engine_cc) > 0) ? formatEngineCc(listing.engine_cc) : t("listingCard.ccNa", "CC N/A")}</span>
           </div>
           <HybridCliffBadge
             fuelType={listing.fuel_type}
@@ -212,7 +214,7 @@ export const ListingCard = memo(function ListingCard({
           <div className="rounded-xl border border-border bg-surface p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                Fair market value
+                {t("listingCard.fmv", "Fair market value")}
               </p>
               <p className={`text-[11px] font-semibold num ${
                 fmv == null
@@ -223,7 +225,7 @@ export const ListingCard = memo(function ListingCard({
                       ? "text-rose-600 dark:text-rose-400"
                       : "text-foreground"
               }`}>
-                {fmv == null ? "Pending" : fmv.label}
+                {fmv == null ? t("listingCard.pending", "Pending") : fmv.label}
               </p>
             </div>
             {fmv != null && (
@@ -252,7 +254,7 @@ export const ListingCard = memo(function ListingCard({
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
-                {listing.district || "District N/A"}
+                {listing.district || t("listingCard.districtNa", "District N/A")}
               </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
                 {listing.source}

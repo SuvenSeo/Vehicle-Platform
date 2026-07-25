@@ -162,13 +162,13 @@ export default function Calculator() {
           }
         })
         .catch(() => {
-          toast.error("Network error", {
-            description: "Failed to load permit prices. Showing benchmark rates.",
+          toast.error(t("calc.networkErrorToast", "Network error"), {
+            description: t("calc.permitsLoadError", "Failed to load permit prices. Showing benchmark rates."),
           });
         })
         .finally(() => setPermitsLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, t]);
 
   // Run calculations automatically or on submit
   const runLandedCostCalc = async () => {
@@ -289,10 +289,10 @@ export default function Calculator() {
   const copyShareLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied", { description: "This calculation is now shareable." });
+      toast.success(t("calc.linkCopied", "Link copied"), { description: t("calc.linkCopiedDesc", "This calculation is now shareable.") });
     } catch {
-      toast.error("Copy failed", {
-        description: "Copy the address bar URL to share this calculation.",
+      toast.error(t("calc.copyFailed", "Copy failed"), {
+        description: t("calc.copyFailedDesc", "Copy the address bar URL to share this calculation."),
       });
     }
   };
@@ -301,11 +301,11 @@ export default function Calculator() {
     <PageCanvas>
       <PageHero
         theme="calculator"
-        eyebrow="Motormila Intelligence Hub"
+        eyebrow={t("calc.eyebrow", "Motormila Intelligence Hub")}
         eyebrowIcon={Compass}
         watermarkIcon={Banknote}
         title={<>{t("calc.title", "Mobility & Tax Calculators")}<span className="text-sheen">.</span></>}
-        description="Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves."
+        description={t("calc.description", "Verify import tax gazettes, map Total Cost of Ownership (TCO), track black market permits, and assess retention curves.")}
         highlights={[
           { label: "Import duty", value: "Live", hint: "Gazette-aligned landed cost" },
           { label: "Ownership", value: "TCO", hint: "Fuel, lease, and service map" },
@@ -318,10 +318,10 @@ export default function Calculator() {
         <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-full border border-border bg-card p-1.5 shadow-soft snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
           {[
             { id: "landed-cost", label: t("calc.tab.landed", "Landed Cost"), icon: Banknote },
-            { id: "lease", label: "Lease Scenario", icon: WalletCards },
-            { id: "tco", label: "Ownership TCO", icon: Gauge },
-            { id: "permits", label: "Permit Tracker", icon: FileText },
-            { id: "depreciation", label: "Retention Curves", icon: TrendingDown },
+            { id: "lease", label: t("calc.tab.lease", "Lease Scenario"), icon: WalletCards },
+            { id: "tco", label: t("calc.tab.tco", "Ownership TCO"), icon: Gauge },
+            { id: "permits", label: t("calc.tab.permits", "Permit Tracker"), icon: FileText },
+            { id: "depreciation", label: t("calc.tab.depreciation", "Retention Curves"), icon: TrendingDown },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -351,10 +351,10 @@ export default function Calculator() {
         <button
           onClick={() => void copyShareLink()}
           className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-semibold tracking-wide text-muted-foreground shadow-soft transition-colors hover:text-foreground active:scale-[0.97]"
-          title="Copy a shareable link to this calculation"
+          title={t("calc.shareTitle", "Copy a shareable link to this calculation")}
         >
           <Link2 className="h-3.5 w-3.5" />
-          Share
+          {t("calc.share", "Share")}
         </button>
       </motion.div>
 
@@ -376,14 +376,14 @@ export default function Calculator() {
                     <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
                       {surchargeCountdown.expired
-                        ? "The 50% CID surcharge's gazetted 3-month period has ended"
-                        : `50% CID surcharge in force — set to lapse in ${surchargeCountdown.daysLeft} day${surchargeCountdown.daysLeft === 1 ? "" : "s"}`}
+                        ? t("calc.surchargeExpired", "The 50% CID surcharge's gazetted 3-month period has ended")
+                        : t("calc.surchargeActive", "50% CID surcharge in force — set to lapse in {days} day(s)", { days: surchargeCountdown.daysLeft })}
                     </span>
                   </div>
                   <span className="text-[10px] font-semibold text-muted-foreground">
                     {surchargeCountdown.expired
-                      ? "No extension has been gazetted as of our last review — verify current customs rates before committing an import."
-                      : `Gazetted expiry ${surchargeCountdown.expiryLabel} · no extension decision announced · LCs opened on or before 15 May 2026 are exempt`}
+                      ? t("calc.surchargeExpiredHint", "No extension has been gazetted as of our last review — verify current customs rates before committing an import.")
+                      : t("calc.surchargeActiveHint", "Gazetted expiry {date} · no extension decision announced · LCs opened on or before 15 May 2026 are exempt", { date: surchargeCountdown.expiryLabel })}
                   </span>
                   {!surchargeCountdown.expired && (
                     <button
@@ -414,7 +414,7 @@ export default function Calculator() {
                         transition={{ duration: 0.18 }}
                         className="w-full text-center sm:w-auto sm:text-left sm:ml-auto rounded-full border border-emerald-500/25 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num"
                       >
-                        This import lands {formatPrice(lcLapseSavings)} cheaper if it lapses
+                        {t("calc.lapseSavings", "This import lands {amount} cheaper if it lapses", { amount: formatPrice(lcLapseSavings) })}
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -428,25 +428,25 @@ export default function Calculator() {
                     <Banknote className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-[14px] font-bold text-foreground">Import Configuration</h2>
-                    <p className="text-[10px] text-muted-foreground font-semibold">Taxes compounding on CIF valuation</p>
+                    <h2 className="text-[14px] font-bold text-foreground">{t("calc.importConfig", "Import Configuration")}</h2>
+                    <p className="text-[10px] text-muted-foreground font-semibold">{t("calc.importConfigHint", "Taxes compounding on CIF valuation")}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-cif" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">CIF Price (USD)</label>
+                      <label htmlFor="lc-cif" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.cifUsd", "CIF Price (USD)")}</label>
                       <Input id="lc-cif" type="number" value={cifUsd} onChange={(e) => setCifUsd(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-fx" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Exchange Rate (LKR)</label>
+                      <label htmlFor="lc-fx" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.exchangeRate", "Exchange Rate (LKR)")}</label>
                       <Input id="lc-fx" type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Fuel Category</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.fuelCategory", "Fuel Category")}</label>
                     <div className="grid grid-cols-4 gap-1.5">
                       {(["petrol", "diesel", "hybrid", "electric"] as const).map((fuel) => (
                         <button
@@ -467,7 +467,7 @@ export default function Calculator() {
 
                   {lcFuelType !== "electric" ? (
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
+                      <label htmlFor="lc-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.engineCc", "Engine Capacity (CC)")}</label>
                       <Input id="lc-cc" type="number" value={lcEngineCc} onChange={(e) => setLcEngineCc(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                       {lcFuelType === "hybrid" && lcEngineCc > 1500 && (
                         <p className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">
@@ -478,7 +478,7 @@ export default function Calculator() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-kw" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Motor Power (kW)</label>
+                      <label htmlFor="lc-kw" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.motorKw", "Motor Power (kW)")}</label>
                       <Input id="lc-kw" type="number" value={lcMotorKw} onChange={(e) => setLcMotorKw(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                   )}
@@ -499,8 +499,8 @@ export default function Calculator() {
               {/* Landed Cost Results — the number is the hero */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft-lg space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Landed Cost breakdown</h3>
-                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Indicative tax components based on 2026 gazette calculations</p>
+                  <h3 className="text-sm font-bold text-foreground">{t("calc.breakdown", "Landed Cost breakdown")}</h3>
+                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{t("calc.breakdownHint", "Indicative tax components based on 2026 gazette calculations")}</p>
                 </div>
 
                 {lcLoading && !lcResult ? (
@@ -511,32 +511,32 @@ export default function Calculator() {
                   <div className={`space-y-5 transition-opacity duration-200 ${lcLoading ? "opacity-60" : "opacity-100"}`}>
                     <div className="space-y-3 border-b border-border pb-4">
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Base CIF LKR Equivalent</span>
+                        <span>{t("calc.baseCif", "Base CIF LKR Equivalent")}</span>
                         <span className="font-semibold text-foreground num">{formatPrice(lcResult.cif_lkr)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Customs Import Duty (20%)</span>
+                        <span>{t("calc.cid", "Customs Import Duty (20%)")}</span>
                         <span className="font-semibold text-foreground num">{formatPrice(lcResult.cid)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Surcharge on CID (50% Surcharge)</span>
+                        <span>{t("calc.surchargeOnCid", "Surcharge on CID (50% Surcharge)")}</span>
                         <span className="font-semibold text-foreground num">{formatPrice(lcResult.surcharge)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Excise Duty (Capacity Banded)</span>
+                        <span>{t("calc.excise", "Excise Duty (Capacity Banded)")}</span>
                         <span className="font-semibold text-foreground num">{formatPrice(lcResult.excise)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>SSCL (2.5%)</span>
+                        <span>{t("calc.sscl", "SSCL (2.5%)")}</span>
                         <span className="font-semibold text-foreground num">{formatPrice(lcResult.sscl)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>VAT (18% Compounded)</span>
+                        <span>{t("calc.vat", "VAT (18% Compounded)")}</span>
                         <span className="font-semibold text-foreground num">{formatPrice(lcResult.vat)}</span>
                       </div>
                       {lcResult.luxury_tax > 0 && (
                         <div className="flex justify-between text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                          <span>Luxury Tax (Excess Portion)</span>
+                          <span>{t("calc.luxuryTax", "Luxury Tax (Excess Portion)")}</span>
                           <span className="num">{formatPrice(lcResult.luxury_tax)}</span>
                         </div>
                       )}
@@ -544,7 +544,7 @@ export default function Calculator() {
 
                     {/* Featured readout — landed cost towers, total taxes demoted below it */}
                     <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-5 sm:p-6 shadow-soft">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Est. Landed Cost</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("calc.estLanded", "Est. Landed Cost")}</span>
                       <p className="display-1 text-foreground num mt-2">{formatPrice(lcResult.landed_cost)}</p>
                       <div className="mt-4 flex items-center gap-3 border-t border-primary/15 pt-3">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Taxes &amp; Duties</span>
@@ -578,19 +578,19 @@ export default function Calculator() {
                     <WalletCards className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-[14px] font-bold text-foreground">Lease Assumptions</h2>
-                    <p className="text-[10px] text-muted-foreground font-semibold">Bases for loan to value margins</p>
+                    <h2 className="text-[14px] font-bold text-foreground">{t("calc.leaseAssumptions", "Lease Assumptions")}</h2>
+                    <p className="text-[10px] text-muted-foreground font-semibold">{t("calc.leaseAssumptionsHint", "Bases for loan to value margins")}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="lease-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Vehicle Valuation (LKR)</label>
+                    <label htmlFor="lease-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.vehicleValuation", "Vehicle Valuation (LKR)")}</label>
                     <Input id="lease-price" type="number" value={leasePrice} onChange={(e) => setLeasePrice(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40 font-semibold text-foreground text-base" />
                     <p className="text-[10px] text-muted-foreground font-semibold num">{formatPrice(leasePrice)}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="lease-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Engine Capacity (CC)</label>
+                    <label htmlFor="lease-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.engineCc", "Engine Capacity (CC)")}</label>
                     <Input id="lease-cc" type="number" value={leaseCc} onChange={(e) => setLeaseCc(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
@@ -617,7 +617,7 @@ export default function Calculator() {
                       <div className="flex items-start gap-2.5">
                         <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <div className="space-y-1.5">
-                          <p className="text-xs font-bold text-foreground">The 40/60 rule is working in your favour on used cars</p>
+                          <p className="text-xs font-bold text-foreground">{t("calc.ltvTitle", "The 40/60 rule is working in your favour on used cars")}</p>
                           <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
                             CBSL caps financing at <span className="font-bold text-foreground">40%</span> for brand-new or unregistered vehicles but{" "}
                             <span className="font-bold text-foreground">60%</span> for registered used (&gt;1yr). For this{" "}
@@ -637,11 +637,11 @@ export default function Calculator() {
                 })()}
                 </AnimatePresence>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cash requirements</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("calc.cashRequirements", "Cash requirements")}</span>
                   <CashToOwnStrip priceLkr={leasePrice} financeClass="registered_used" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Lease Scenario modeling</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("calc.leaseModeling", "Lease Scenario modeling")}</span>
                   <LeaseCalculator price={leasePrice} financeClass="registered_used" />
                 </div>
               </div>
@@ -664,18 +664,18 @@ export default function Calculator() {
                     <Gauge className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-[14px] font-bold text-foreground">TCO Assumptions</h2>
-                    <p className="text-[10px] text-muted-foreground font-semibold">Commute, service, and amortization</p>
+                    <h2 className="text-[14px] font-bold text-foreground">{t("calc.tcoAssumptions", "TCO Assumptions")}</h2>
+                    <p className="text-[10px] text-muted-foreground font-semibold">{t("calc.tcoAssumptionsHint", "Commute, service, and amortization")}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-km" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Daily Commute (KM)</label>
+                    <label htmlFor="tco-km" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.dailyCommute", "Daily Commute (KM)")}</label>
                     <Input id="tco-km" type="number" value={tcoDailyKm} onChange={(e) => setTcoDailyKm(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-kmpl" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Fuel Efficiency (KMPL)</label>
+                    <label htmlFor="tco-kmpl" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.fuelEfficiency", "Fuel Efficiency (KMPL)")}</label>
                     <Input id="tco-kmpl" type="number" value={tcoKmpl} onChange={(e) => setTcoKmpl(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
@@ -701,28 +701,28 @@ export default function Calculator() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="tco-lease" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Monthly Lease (LKR)</label>
+                  <label htmlFor="tco-lease" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.monthlyLease", "Monthly Lease (LKR)")}</label>
                   <Input id="tco-lease" type="number" value={tcoLease} onChange={(e) => setTcoLease(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-ins" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Insurance</label>
+                    <label htmlFor="tco-ins" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualInsurance", "Annual Insurance")}</label>
                     <Input id="tco-ins" type="number" value={tcoInsurance} onChange={(e) => setTcoInsurance(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-svc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Service</label>
+                    <label htmlFor="tco-svc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualService", "Annual Service")}</label>
                     <Input id="tco-svc" type="number" value={tcoService} onChange={(e) => setTcoService(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-tyres" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Tyres</label>
+                    <label htmlFor="tco-tyres" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualTyres", "Annual Tyres")}</label>
                     <Input id="tco-tyres" type="number" value={tcoTyres} onChange={(e) => setTcoTyres(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-dep" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Annual Resale Loss</label>
+                    <label htmlFor="tco-dep" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualResaleLoss", "Annual Resale Loss")}</label>
                     <Input id="tco-dep" type="number" value={tcoDepreciation} onChange={(e) => setTcoDepreciation(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
@@ -731,8 +731,8 @@ export default function Calculator() {
               {/* TCO Results — monthly cost is the hero number */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft-lg space-y-6">
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Monthly Cost of Ownership breakdown</h3>
-                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Calculated using live Octane API price metrics</p>
+                  <h3 className="text-sm font-bold text-foreground">{t("calc.tcoBreakdown", "Monthly Cost of Ownership breakdown")}</h3>
+                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{t("calc.tcoBreakdownHint", "Calculated using live Octane API price metrics")}</p>
                 </div>
 
                 {tcoLoading && !tcoResult ? (
@@ -761,7 +761,7 @@ export default function Calculator() {
                     </div>
 
                     <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center shadow-soft">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Total ownership cost / month</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("calc.tcoTotal", "Total ownership cost / month")}</span>
                       <p className="display-1 text-foreground mt-2 num">{formatPrice(tcoResult.total_tco_monthly)}</p>
                     </div>
 
@@ -786,8 +786,8 @@ export default function Calculator() {
             >
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft">
                 <div className="mb-4">
-                  <h3 className="text-sm font-bold text-foreground">Live Permit Black Market Tracker</h3>
-                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Indicative values of transferable and EV remittance import licenses</p>
+                  <h3 className="text-sm font-bold text-foreground">{t("calc.permitsTitle", "Live Permit Black Market Tracker")}</h3>
+                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{t("calc.permitsHint", "Indicative values of transferable and EV remittance import licenses")}</p>
                 </div>
 
                 {permitsLoading ? (
@@ -799,9 +799,9 @@ export default function Calculator() {
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
                         <tr className="border-b border-border text-muted-foreground uppercase tracking-wider text-[9px] font-bold">
-                          <th className="py-3 px-4">Permit Name</th>
-                          <th className="py-3 px-4">Type</th>
-                          <th className="py-3 px-4 text-right">Premium Value (LKR)</th>
+                          <th className="py-3 px-4">{t("calc.permitName", "Permit Name")}</th>
+                          <th className="py-3 px-4">{t("calc.permitType", "Type")}</th>
+                          <th className="py-3 px-4 text-right">{t("calc.permitPremium", "Premium Value (LKR)")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -831,8 +831,8 @@ export default function Calculator() {
             >
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft">
                 <div className="mb-6">
-                  <h3 className="text-sm font-bold text-foreground">Sri Lanka Value Retention Curves</h3>
-                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Asset retention curves demonstrating how specific models retain value in the local market</p>
+                  <h3 className="text-sm font-bold text-foreground">{t("calc.retentionTitle", "Sri Lanka Value Retention Curves")}</h3>
+                  <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">{t("calc.retentionHint", "Asset retention curves demonstrating how specific models retain value in the local market")}</p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -849,15 +849,15 @@ export default function Calculator() {
 
                         <div className="mt-4 space-y-2 border-b border-border pb-4">
                           <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Year 1</span>
+                            <span className="text-muted-foreground">{t("calc.year1", "Year 1")}</span>
                             <span className={`font-bold num ${curve.tone}`}>{curve.values[0]}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Year 3</span>
+                            <span className="text-muted-foreground">{t("calc.year3", "Year 3")}</span>
                             <span className={`font-bold num ${curve.tone}`}>{curve.values[1]}</span>
                           </div>
                           <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Year 5</span>
+                            <span className="text-muted-foreground">{t("calc.year5", "Year 5")}</span>
                             <span className={`font-bold num ${curve.tone}`}>{curve.values[2]}</span>
                           </div>
                         </div>

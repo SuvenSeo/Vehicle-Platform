@@ -75,9 +75,11 @@ function TabItem({ tab }: { tab: NavTab }) {
 }
 
 export function MobileBottomNav() {
+  const { t } = useAppPreferences();
+
   return (
     <nav
-      aria-label="Mobile bottom navigation"
+      aria-label={t("nav.mobileNavigation", "Mobile bottom navigation")}
       className="md:hidden fixed inset-x-0 bottom-0 z-[999] pointer-events-auto"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >

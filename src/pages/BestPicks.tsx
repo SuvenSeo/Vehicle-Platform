@@ -15,6 +15,7 @@ import { PageHero } from "@/components/PageHero";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { useAuth } from "@/lib/authContext";
+import { useAppPreferences } from "@/lib/appPreferences";
 import {
   FREE_BEST_PICKS_LIMIT,
   FREE_PRICE_DROPS_LIMIT,
@@ -33,9 +34,9 @@ function dealBand(score: number): "elite" | "strong" | "watch" {
   return "watch";
 }
 
-function dealBandLabel(score: number): string {
+function dealBandLabel(score: number, t: (key: string, fallback?: string) => string): string {
   const b = dealBand(score);
-  return b === "elite" ? "Elite" : b === "strong" ? "Strong" : "Watch";
+  return b === "elite" ? t("picks.bandElite", "Elite") : b === "strong" ? t("picks.bandStrong", "Strong") : t("picks.bandWatch", "Watch");
 }
 
 function dealBandChip(score: number): string {
@@ -63,6 +64,7 @@ function sortPicks(listings: CarListing[], mode: BestPicksSortMode): CarListing[
 }
 
 export default function BestPicks() {
+  const { t } = useAppPreferences();
   const { hasProAccess, isAdmin } = useAuth();
   const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [loading, setLoading] = useState(true);
@@ -96,11 +98,11 @@ export default function BestPicks() {
           .sort((a, b) => Number(b.deal_score || 0) - Number(a.deal_score || 0))
           .forEach((l) => { if (!unique.has(l.id)) unique.set(l.id, l); });
         setPicks(Array.from(unique.values()));
-      } catch { if (!cancelled) setError("Unable to load best picks."); }
+      } catch { if (!cancelled) setError(t("picks.loadError", "Unable to load best picks.")); }
       finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [fullAccess]);
+  }, [fullAccess, t]);
 
   const ranked = useMemo(() => {
     const sorted = sortPicks(picks, sortMode);
@@ -117,11 +119,11 @@ export default function BestPicks() {
     <PageCanvas>
       <PageHero
         theme="deals"
-        eyebrow="Best picks"
+        eyebrow={t("picks.eyebrow", "Best picks")}
         eyebrowIcon={Star}
         watermarkIcon={Star}
-        title={<>Deal-score picks<span className="text-sheen">.</span></>}
-        description={loading ? "Scanning inventory..." : fullAccess
+        title={<>{t("picks.title", "Deal-score picks.")}</>}
+        description={loading ? t("picks.scanning", "Scanning inventory...") : fullAccess
           ? `${ranked.length} vehicles scored ${MIN_DEAL_SCORE}+ from ${PICKS_PAGES} pages, ${rankCaption}.`
           : `${ranked.length} free teaser picks scored ${MIN_DEAL_SCORE}+ — upgrade for the full board.`}
         highlights={[
@@ -131,7 +133,7 @@ export default function BestPicks() {
         ]}
       >
         {!loading && !error && picks.length > 0 && (
-          <div className="mt-8 flex flex-wrap gap-2.5" role="group" aria-label="Sort best picks">
+          <div className="mt-8 flex flex-wrap gap-2.5" role="group" aria-label={t("picks.sortAria", "Sort best picks")}>
               <button
                 type="button"
                 onClick={() => setSortMode("deal_score")}
@@ -142,7 +144,7 @@ export default function BestPicks() {
                     : "border-border bg-card text-muted-foreground hover:bg-surface hover:text-foreground"
                 }`}
               >
-                Deal score
+                {t("picks.sortDealScore", "Deal score")}
               </button>
               <button
                 type="button"
@@ -154,7 +156,7 @@ export default function BestPicks() {
                     : "border-border bg-card text-muted-foreground hover:bg-surface hover:text-foreground"
                 }`}
               >
-                Affordability
+                {t("picks.sortAffordability", "Affordability")}
               </button>
             </div>
           )}
@@ -168,8 +170,8 @@ export default function BestPicks() {
                 <TrendingDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
               </div>
               <div>
-                <h2 className="text-[15px] font-bold tracking-tight text-foreground">Biggest cuts this week</h2>
-                <p className="text-[11px] text-muted-foreground font-semibold">Sellers who moved their asking price down — tracked scan-over-scan</p>
+                <h2 className="text-[15px] font-bold tracking-tight text-foreground">{t("picks.cutsTitle", "Biggest cuts this week")}</h2>
+                <p className="text-[11px] text-muted-foreground font-semibold">{t("picks.cutsSubtitle", "Sellers who moved their asking price down — tracked scan-over-scan")}</p>
               </div>
             </div>
             {!dropsLoaded ? (
@@ -180,7 +182,7 @@ export default function BestPicks() {
               </div>
             ) : drops.length === 0 ? (
               <p className="pt-4 text-[13px] text-muted-foreground font-medium">
-                No cuts recorded in the last 7 days yet — price tracking is scan-over-scan, so drops appear here as our daily scans catch sellers moving their asking prices.
+                {t("picks.cutsEmpty", "No cuts recorded in the last 7 days yet — price tracking is scan-over-scan, so drops appear here as our daily scans catch sellers moving their asking prices.")}
               </p>
             ) : (
               <div className="grid grid-flow-col auto-cols-[78%] gap-2.5 pt-4 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid-flow-row sm:auto-cols-auto sm:overflow-visible sm:grid-cols-2 lg:grid-cols-4">
@@ -222,13 +224,13 @@ export default function BestPicks() {
           <motion.div variants={revealItem} className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-16 text-center">
             <SearchX className="h-5 w-5 text-muted-foreground" aria-hidden />
             <p className="text-[13px] text-muted-foreground font-medium">{error}</p>
-            <Link to="/#market" className="rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]">Open inventory</Link>
+            <Link to="/#market" className="rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]">{t("common.openInventory", "Open inventory")}</Link>
           </motion.div>
         ) : ranked.length === 0 ? (
           <motion.div variants={revealItem} className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-16 text-center">
             <TrendingUp className="h-5 w-5 text-muted-foreground" aria-hidden />
-            <p className="text-[13px] text-muted-foreground font-medium">No vehicles meet the deal-score gate right now.</p>
-            <Link to="/#market" className="rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]">Browse inventory</Link>
+            <p className="text-[13px] text-muted-foreground font-medium">{t("picks.empty", "No vehicles meet the deal-score gate right now.")}</p>
+            <Link to="/#market" className="rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]">{t("common.browseInventory", "Browse inventory")}</Link>
           </motion.div>
         ) : (
           <>
@@ -248,19 +250,19 @@ export default function BestPicks() {
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{featured.source}</span>
                         <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
-                          <Star className="mr-1 inline h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />{dealBandLabel(score)}
+                          <Star className="mr-1 inline h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />{dealBandLabel(score, t)}
                         </span>
                       </div>
                       <Link to={`/listing/${featured.id}`} className="block no-underline">
                         <h2 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl group-hover:text-primary transition-colors">{featured.make} {featured.model}</h2>
-                        <p className="mt-1.5 text-[12px] text-muted-foreground font-medium">{featured.year || "N/A"} · {featured.district || "LK"}</p>
+                        <p className="mt-1.5 text-[12px] text-muted-foreground font-medium">{featured.year || t("common.na", "N/A")} · {featured.district || "LK"}</p>
                       </Link>
                       <div className="flex items-baseline justify-between border-t border-border pt-4">
                         <p className="num text-3xl font-bold tracking-tight text-foreground">{formatPrice(Number(featured.price_lkr || 0))}</p>
                         {sortMode === "affordability" && cashDown != null ? (
-                          <p className="num text-[12px] font-bold text-primary-bright">{formatPrice(cashDown)} down</p>
+                          <p className="num text-[12px] font-bold text-primary-bright">{t("picks.down", "{price} down", { price: formatPrice(cashDown) })}</p>
                         ) : (
-                          <p className="num text-[12px] font-bold text-emerald-600 dark:text-emerald-400">+{score.toFixed(0)} deal</p>
+                          <p className="num text-[12px] font-bold text-emerald-600 dark:text-emerald-400">{t("picks.deal", "+{score} deal", { score: score.toFixed(0) })}</p>
                         )}
                       </div>
                       <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08]">
@@ -268,10 +270,10 @@ export default function BestPicks() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Link to={`/listing/${featured.id}`} className="flex h-11 flex-1 items-center justify-center rounded-full bg-primary text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">Open detail</Link>
+                      <Link to={`/listing/${featured.id}`} className="flex h-11 flex-1 items-center justify-center rounded-full bg-primary text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">{t("picks.openDetail", "Open detail")}</Link>
                       {featured.external_url && (
                         <a href={featured.external_url} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center gap-1 rounded-full border border-border bg-card px-4 text-[11px] font-semibold text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
-                          Source <ExternalLink className="h-3 w-3" aria-hidden />
+                          {t("common.source", "Source")} <ExternalLink className="h-3 w-3" aria-hidden />
                         </a>
                       )}
                     </div>
@@ -284,10 +286,10 @@ export default function BestPicks() {
             {rest.length > 0 && (
               <div>
                 <SectionHeader
-                  eyebrow="The shortlist"
-                  title={sortMode === "affordability" ? "Lowest cash down" : "Ranked picks"}
+                  eyebrow={t("picks.shortlist", "The shortlist")}
+                  title={sortMode === "affordability" ? t("picks.lowestCashDown", "Lowest cash down") : t("picks.ranked", "Ranked picks")}
                   className="mb-8"
-                  actions={<span className="text-[11px] font-bold text-muted-foreground num">{rest.length} more</span>}
+                  actions={<span className="text-[11px] font-bold text-muted-foreground num">{t("picks.more", "{n} more", { n: rest.length })}</span>}
                 />
                 <motion.div variants={revealContainer} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {rest.map((listing, idx) => {
@@ -304,16 +306,16 @@ export default function BestPicks() {
                         <div className="flex flex-1 flex-col gap-3 p-4">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{listing.source}</span>
-                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score)}</span>
+                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score, t)}</span>
                           </div>
                           <Link to={`/listing/${listing.id}`} className="block no-underline">
                             <h3 className="font-display text-[15px] font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors truncate">{listing.make} {listing.model}</h3>
-                            <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">{listing.year || "N/A"} · {listing.district || "LK"}</p>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground font-medium">{listing.year || t("common.na", "N/A")} · {listing.district || "LK"}</p>
                           </Link>
                           <div className="flex items-baseline justify-between">
                             <span className="num text-base font-bold text-foreground">{formatPrice(Number(listing.price_lkr || 0))}</span>
                             {sortMode === "affordability" && cashDown != null ? (
-                              <span className="num text-[10px] font-bold text-primary-bright">{formatPrice(cashDown)} down</span>
+                              <span className="num text-[10px] font-bold text-primary-bright">{t("picks.down", "{price} down", { price: formatPrice(cashDown) })}</span>
                             ) : (
                               <span className="num text-[10px] font-bold text-emerald-600 dark:text-emerald-400">+{score.toFixed(0)}</span>
                             )}
@@ -333,8 +335,8 @@ export default function BestPicks() {
 
         {!fullAccess && !loading && !error && (hiddenPickCount > 0 || picks.length > 0) && (
           <UpgradePrompt
-            title={freePlanCopy.picksTitle}
-            body={freePlanCopy.picksBody}
+            title={t("plan.picksTitle", freePlanCopy.picksTitle)}
+            body={t("plan.picksBody", freePlanCopy.picksBody)}
           />
         )}
       </PageBody>

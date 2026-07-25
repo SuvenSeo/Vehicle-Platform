@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 import OfficialPulse from "@/pages/OfficialPulse";
 import OfficialPulseDetail from "@/pages/OfficialPulseDetail";
 import OfficialPulseGuide from "@/pages/OfficialPulseGuide";
@@ -36,15 +37,17 @@ function renderAt(path: string) {
   });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/official-pulse" element={<OfficialPulse />} />
-          <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
-          <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <AppPreferencesProvider>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route path="/official-pulse" element={<OfficialPulse />} />
+            <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
+            <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </AppPreferencesProvider>,
   );
 }
 

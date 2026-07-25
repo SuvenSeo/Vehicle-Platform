@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Route, Routes } from "react-router-dom";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { TestRouter } from "@/test/testUtils";
 import type { MakeModelInsight } from "@/types/car";
 
@@ -34,13 +35,15 @@ function renderHub(make = "toyota", model = "prius") {
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <TestRouter initialEntries={[`/cars/${make}/${model}`]}>
-        <Routes>
-          <Route path="/cars/:make/:model" element={<MakeModelHub />} />
-        </Routes>
-      </TestRouter>
-    </QueryClientProvider>,
+    <AppPreferencesProvider>
+      <QueryClientProvider client={queryClient}>
+        <TestRouter initialEntries={[`/cars/${make}/${model}`]}>
+          <Routes>
+            <Route path="/cars/:make/:model" element={<MakeModelHub />} />
+          </Routes>
+        </TestRouter>
+      </QueryClientProvider>
+    </AppPreferencesProvider>,
   );
 }
 

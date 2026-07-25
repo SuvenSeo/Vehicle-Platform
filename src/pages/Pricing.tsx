@@ -9,16 +9,16 @@ import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
 
-const COMPARE_ROWS: { label: string; free: string; pro: string; dealer: string; enterprise: string }[] = [
-  { label: "Dashboard browse", free: "Yes", pro: "Yes", dealer: "Yes", enterprise: "Yes" },
-  { label: "Official Pulse", free: "Limited", pro: "History", dealer: "History", enterprise: "Custom" },
-  { label: "Pro terminal", free: "—", pro: "Full", dealer: "Full", enterprise: "Full" },
-  { label: "Alerts depth", free: "Basic", pro: "Deep", dealer: "Deep", enterprise: "Custom" },
-  { label: "Exports", free: "—", pro: "Yes", dealer: "Yes", enterprise: "Yes" },
-  { label: "Dealer workspace", free: "—", pro: "—", dealer: "Full", enterprise: "Full" },
-  { label: "Team seats", free: "—", pro: "—", dealer: "Yes", enterprise: "Packs" },
-  { label: "SLA / feeds", free: "—", pro: "—", dealer: "—", enterprise: "Yes" },
-];
+const COMPARE_ROW_DEFS = [
+  { labelKey: "pricing.compare.dashboard", labelFb: "Dashboard browse", freeKey: "pricing.val.yes", freeFb: "Yes", proKey: "pricing.val.yes", proFb: "Yes", dealerKey: "pricing.val.yes", dealerFb: "Yes", enterpriseKey: "pricing.val.yes", enterpriseFb: "Yes" },
+  { labelKey: "pricing.compare.pulse", labelFb: "Official Pulse", freeKey: "pricing.val.limited", freeFb: "Limited", proKey: "pricing.val.history", proFb: "History", dealerKey: "pricing.val.history", dealerFb: "History", enterpriseKey: "pricing.val.custom", enterpriseFb: "Custom" },
+  { labelKey: "pricing.compare.terminal", labelFb: "Pro terminal", freeKey: "", freeFb: "—", proKey: "pricing.val.full", proFb: "Full", dealerKey: "pricing.val.full", dealerFb: "Full", enterpriseKey: "pricing.val.full", enterpriseFb: "Full" },
+  { labelKey: "pricing.compare.alerts", labelFb: "Alerts depth", freeKey: "pricing.val.basic", freeFb: "Basic", proKey: "pricing.val.deep", proFb: "Deep", dealerKey: "pricing.val.deep", dealerFb: "Deep", enterpriseKey: "pricing.val.custom", enterpriseFb: "Custom" },
+  { labelKey: "pricing.compare.exports", labelFb: "Exports", freeKey: "", freeFb: "—", proKey: "pricing.val.yes", proFb: "Yes", dealerKey: "pricing.val.yes", dealerFb: "Yes", enterpriseKey: "pricing.val.yes", enterpriseFb: "Yes" },
+  { labelKey: "pricing.compare.dealer", labelFb: "Dealer workspace", freeKey: "", freeFb: "—", proKey: "", proFb: "—", dealerKey: "pricing.val.full", dealerFb: "Full", enterpriseKey: "pricing.val.full", enterpriseFb: "Full" },
+  { labelKey: "pricing.compare.seats", labelFb: "Team seats", freeKey: "", freeFb: "—", proKey: "", proFb: "—", dealerKey: "pricing.val.yes", dealerFb: "Yes", enterpriseKey: "pricing.val.packs", enterpriseFb: "Packs" },
+  { labelKey: "pricing.compare.sla", labelFb: "SLA / feeds", freeKey: "", freeFb: "—", proKey: "", proFb: "—", dealerKey: "", dealerFb: "—", enterpriseKey: "pricing.val.yes", enterpriseFb: "Yes" },
+] as const;
 
 const CTA_CLASS = (highlight?: boolean) =>
   `mt-6 inline-flex h-10 items-center justify-center rounded-full px-4 text-[12px] font-semibold no-underline transition-all active:scale-[0.98] ${
@@ -30,6 +30,14 @@ const CTA_CLASS = (highlight?: boolean) =>
 
 export default function Pricing() {
   const { t } = useAppPreferences();
+  const cell = (key: string, fb: string) => (key ? t(key, fb) : fb);
+  const COMPARE_ROWS = COMPARE_ROW_DEFS.map((row) => ({
+    label: t(row.labelKey, row.labelFb),
+    free: cell(row.freeKey, row.freeFb),
+    pro: cell(row.proKey, row.proFb),
+    dealer: cell(row.dealerKey, row.dealerFb),
+    enterprise: cell(row.enterpriseKey, row.enterpriseFb),
+  }));
   return (
     <PageCanvas>
       <PageHero
@@ -50,21 +58,21 @@ export default function Pricing() {
               to="/sign-in"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              Sign in
+              {t("common.signIn", "Sign in")}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </Link>
             <Link
               to="/dealer"
               className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              Dealer workspace
+              {t("pricing.dealerWorkspace", "Dealer workspace")}
             </Link>
             <Link
               to="/docs"
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <BookOpen aria-hidden className="h-4 w-4" />
-              Docs
+              {t("common.docs", "Docs")}
             </Link>
           </>
         }
@@ -76,10 +84,10 @@ export default function Pricing() {
             <div>
               <p className="section-eyebrow mb-3 inline-flex items-center gap-2">
                 <Users aria-hidden className="h-3.5 w-3.5" />
-                Who it’s for
+                {t("pricing.whoFor", "Who it's for")}
               </p>
               <h2 id="icp-heading" className="display-2 text-foreground">
-                Built around real Sri Lanka operators.
+                {t("pricing.icpTitle", "Built around real Sri Lanka operators.")}
               </h2>
             </div>
           </div>
@@ -100,9 +108,9 @@ export default function Pricing() {
         </motion.section>
 
         <motion.section variants={revealItem} aria-labelledby="tiers-heading">
-          <p className="section-eyebrow mb-3">Plans</p>
+          <p className="section-eyebrow mb-3">{t("pricing.plansEyebrow", "Plans")}</p>
           <h2 id="tiers-heading" className="display-2 mb-8 text-foreground">
-            Choose the depth you need.
+            {t("pricing.tiersTitle", "Choose the depth you need.")}
           </h2>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {PRICING_TIERS.map((tier) => (
@@ -116,7 +124,7 @@ export default function Pricing() {
               >
                 {tier.highlight && (
                   <span className="absolute -top-2.5 right-4 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-primary-bright">
-                    Recommended
+                    {t("pricing.recommended", "Recommended")}
                   </span>
                 )}
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{tier.name}</p>
@@ -151,19 +159,19 @@ export default function Pricing() {
         </motion.section>
 
         <motion.section variants={revealItem} aria-labelledby="compare-heading">
-          <p className="section-eyebrow mb-3">Compare</p>
+          <p className="section-eyebrow mb-3">{t("pricing.compare", "Compare")}</p>
           <h2 id="compare-heading" className="display-2 mb-6 text-foreground">
-            Feature snapshot.
+            {t("pricing.featureSnapshot", "Feature snapshot.")}
           </h2>
           <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[640px] text-left text-[12px]">
               <thead>
                 <tr className="bg-surface">
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Capability</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Free</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Pro</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-primary-bright">Dealer</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">Custom</th>
+                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("pricing.capability", "Capability")}</th>
+                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("common.free", "Free")}</th>
+                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("common.pro", "Pro")}</th>
+                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-primary-bright">{t("nav.dealer", "Dealer")}</th>
+                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("pricing.val.custom", "Custom")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,10 +192,10 @@ export default function Pricing() {
         <motion.section variants={revealItem} aria-labelledby="faq-heading">
           <p className="section-eyebrow mb-3 inline-flex items-center gap-2">
             <HelpCircle aria-hidden className="h-3.5 w-3.5" />
-            FAQ
+            {t("pricing.faq", "FAQ")}
           </p>
           <h2 id="faq-heading" className="display-2 mb-8 text-foreground">
-            Common questions.
+            {t("pricing.faqTitle", "Common questions.")}
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             {PRICING_FAQ.map((item) => (
@@ -204,33 +212,33 @@ export default function Pricing() {
           className="flex flex-col gap-4 rounded-2xl border border-primary/25 bg-primary/[0.06] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
         >
           <div>
-            <p className="section-eyebrow mb-2">Get started</p>
-            <h3 className="text-lg font-bold text-foreground">Sign in, open Dealer, or read the docs.</h3>
+            <p className="section-eyebrow mb-2">{t("pricing.getStarted", "Get started")}</p>
+            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Sign in, open Dealer, or read the docs.")}</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               to="/sign-in"
               className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline"
             >
-              Sign in
+              {t("common.signIn", "Sign in")}
             </Link>
             <Link
               to="/dealer"
               className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
             >
-              Dealer workspace
+              {t("pricing.dealerWorkspace", "Dealer workspace")}
             </Link>
             <Link
               to="/docs"
               className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
             >
-              Docs
+              {t("common.docs", "Docs")}
             </Link>
             <a
               href={BRAND.contactMailto}
               className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
             >
-              Message us
+              {t("common.messageUs", "Message us")}
             </a>
           </div>
         </motion.div>

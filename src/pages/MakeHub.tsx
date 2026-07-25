@@ -99,7 +99,7 @@ export default function MakeHub() {
         eyebrowIcon={Car}
         watermarkIcon={BarChart2}
         title={isPending ? makeDisplay : canonicalMake}
-        description={`Used ${canonicalMake} prices, popular models, and district demand across Sri Lanka.`}
+        description={t("makeHub.description", "Used {make} prices, popular models, and district demand across Sri Lanka.", { make: canonicalMake })}
       />
 
       <PageBody className="space-y-16 lg:space-y-24">
@@ -108,7 +108,7 @@ export default function MakeHub() {
             {[
               {
                 label: t("makeHub.liveListings", "Live listings"),
-                value: isPending ? "…" : insight ? insight.total.toLocaleString() : "N/A",
+                value: isPending ? "…" : insight ? insight.total.toLocaleString() : t("common.na", "N/A"),
               },
               {
                 label: t("makeHub.avgPrice", "Average price"),
@@ -131,7 +131,7 @@ export default function MakeHub() {
 
         {insight && insight.top_models.length > 0 && (
           <motion.section variants={revealItem}>
-            <SectionHeader eyebrow="Models" title={`Popular ${canonicalMake} models`} className="mb-8" />
+            <SectionHeader eyebrow={t("makeHub.models", "Models")} title={t("makeHub.popularModels", "Popular {make} models", { make: canonicalMake })} className="mb-8" />
             <motion.div variants={revealContainer} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {insight.top_models.map((entry) => (
                 <Link
@@ -146,7 +146,7 @@ export default function MakeHub() {
                     </span>
                   </div>
                   <p className="num mt-3 text-lg font-bold tracking-tight text-foreground">
-                    {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
+                    {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : t("common.priceNa", "Price N/A")}
                   </p>
                 </Link>
               ))}
@@ -156,7 +156,7 @@ export default function MakeHub() {
 
         {insight && insight.top_districts.length > 0 && (
           <motion.section variants={revealItem}>
-            <SectionHeader eyebrow="Geography" title="Top districts" className="mb-8" />
+            <SectionHeader eyebrow={t("makeHub.geography", "Geography")} title={t("makeHub.topDistricts", "Top districts")} className="mb-8" />
             <motion.div variants={revealContainer} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {insight.top_districts.map((entry) => (
                 <Link
@@ -169,7 +169,7 @@ export default function MakeHub() {
                     <p className="text-[14px] font-bold text-foreground">{entry.district}</p>
                   </div>
                   <p className="num mt-3 text-lg font-bold text-foreground">
-                    {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : "Price N/A"}
+                    {entry.avg_price_lkr != null ? formatPrice(entry.avg_price_lkr) : t("common.priceNa", "Price N/A")}
                   </p>
                 </Link>
               ))}
@@ -179,7 +179,7 @@ export default function MakeHub() {
 
         {recentListings.length > 0 && (
           <motion.section variants={revealItem}>
-            <SectionHeader eyebrow="Live inventory" title="Recent listings" className="mb-8" />
+            <SectionHeader eyebrow={t("makeHub.liveInventory", "Live inventory")} title={t("makeHub.recent", "Recent listings")} className="mb-8" />
             <motion.div variants={revealContainer} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {recentListings.map((listing) => (
                 <motion.div key={listing.id} variants={revealItem}>
@@ -192,7 +192,7 @@ export default function MakeHub() {
 
         <Button asChild className="w-full sm:w-auto">
           <Link to={`/?make=${encodeURIComponent(makeParam)}#market`}>
-            Browse all {canonicalMake} listings <ArrowRight className="h-4 w-4" aria-hidden />
+            {t("makeHub.browseAll", "Browse all {make} listings", { make: canonicalMake })} <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </Button>
       </PageBody>

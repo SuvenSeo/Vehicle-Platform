@@ -3,6 +3,7 @@ import { StatsOverview } from "@/types/car";
 import { formatPrice } from "@/services/api";
 import { useEffect, useState, useRef } from "react";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 interface StatsBarProps {
   stats: StatsOverview;
@@ -27,7 +28,6 @@ function useCountUp(target: number, duration = 1200): number {
       const next = Math.round(from + (target - from) * eased);
       currentValue.current = next;
       setValue(next);
-      if (t < 1) rafRef.current = requestAnimationFrame(tick);
     };
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
@@ -38,11 +38,15 @@ function useCountUp(target: number, duration = 1200): number {
 }
 
 export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: StatsBarProps) {
+  const { t } = useAppPreferences();
   const totalCount = useCountUp(stats.total_listings);
   const avgPrice = useCountUp(stats.avg_price_lkr);
   const dealsCount = useCountUp(stats.good_deals_count);
   const momChange = stats.price_change_mom;
-  const sourceLabel = stats.source_count > 0 ? `${stats.source_count} sources` : "source scan pending";
+  const sourceLabel =
+    stats.source_count > 0
+      ? t("stats.sources", "{n} sources", { n: stats.source_count })
+      : t("stats.sourceScanPending", "source scan pending");
 
   return (
     <div className="mb-0">
@@ -52,7 +56,7 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
         <div className="cinematic-panel motion-card rounded-xl p-8 lg:col-span-2 group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
           <div className="relative z-10 flex flex-col justify-between h-full space-y-8">
-            <p className="tech-label tracking-[0.18em]">Average Index Price</p>
+            <p className="tech-label tracking-[0.18em]">{t("stats.avgIndexPrice", "Average Index Price")}</p>
             <div>
               <p className="text-5xl font-semibold leading-none text-foreground num lg:text-7xl">
                 {formatPrice(avgPrice)}
@@ -65,11 +69,11 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
                     : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
               }`}>
                 {momChange == null ? (
-                  "Building history"
+                  t("stats.buildingHistory", "Building history")
                 ) : (
                   <>
                     <span>{momChange < 0 ? "▼" : "▲"}</span>
-                    {Math.abs(momChange)}% Movement vs month-0
+                    {Math.abs(momChange)}{t("stats.movementVsMonth0", "% Movement vs month-0")}
                   </>
                 )}
               </div>
@@ -79,26 +83,26 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
 
         {/* Listings Count */}
         <div className="cinematic-panel motion-card rounded-xl p-8 flex flex-col justify-between group">
-          <p className="tech-label tracking-[0.18em]">Total Depth</p>
+          <p className="tech-label tracking-[0.18em]">{t("stats.totalDepth", "Total Depth")}</p>
           <div>
             <p className="text-4xl font-semibold leading-none text-foreground num lg:text-5xl">
               {totalCount.toLocaleString()}
             </p>
             <p className="mt-4 flex items-center gap-2 tech-label text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Priced listings
+              {t("stats.pricedListings", "Priced listings")}
             </p>
           </div>
         </div>
 
         {/* Good Deals */}
         <div className="cinematic-panel motion-card rounded-xl p-8 flex flex-col justify-between group">
-          <p className="tech-label tracking-[0.18em]">Opportunities</p>
+          <p className="tech-label tracking-[0.18em]">{t("stats.opportunities", "Opportunities")}</p>
           <div>
             <p className="text-4xl font-semibold leading-none text-primary num lg:text-5xl">
               {dealsCount}+
             </p>
-            <p className="mt-4 tech-label text-muted-foreground">Arbitrage Deals</p>
+            <p className="mt-4 tech-label text-muted-foreground">{t("stats.arbitrageDeals", "Arbitrage Deals")}</p>
           </div>
         </div>
 
@@ -107,7 +111,9 @@ export const StatsBar = memo(function StatsBar({ stats, latestListingAt }: Stats
       {/* Subline Data */}
       <div className="mt-8 flex flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-2 opacity-80">
-          <p className="tech-label text-muted-foreground">Multi-platform Aggregate · {sourceLabel}</p>
+          <p className="tech-label text-muted-foreground">
+            {t("stats.multiPlatform", "Multi-platform Aggregate · {sources}", { sources: sourceLabel })}
+          </p>
           <DataFreshnessIndicator
             latestListingAt={latestListingAt}
             lastUpdated={stats.last_updated}

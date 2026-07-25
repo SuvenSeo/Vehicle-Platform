@@ -6,17 +6,19 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem } from "@/lib/motion";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 export default function Docs() {
+  const { t } = useAppPreferences();
   return (
     <PageCanvas>
       <PageHero
         theme="docs"
-        eyebrow="Documentation"
+        eyebrow={t("docs.eyebrow", "Documentation")}
         eyebrowIcon={BookOpen}
         watermarkIcon={FileText}
-        title={<>Platform docs<span className="text-sheen">.</span></>}
-        description="How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers."
+        title={<>{t("docs.title", "Platform docs.")}</>}
+        description={t("docs.description", "How Motormila works — data sources, deal scores, Official Pulse, workspaces, and access tiers.")}
         highlights={[
           { label: "Sections", value: String(DOCS_SECTIONS.length), hint: "Platform methodology" },
           { label: "Pulse", value: "Live", hint: "Government import signals" },
@@ -28,7 +30,7 @@ export default function Docs() {
               to="/pricing"
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              View pricing
+              {t("common.viewPricing", "View pricing")}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </Link>
             <Link
@@ -36,7 +38,7 @@ export default function Docs() {
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Radio aria-hidden className="h-4 w-4" />
-              Official Pulse
+              {t("nav.officialPulse", "Official Pulse")}
             </Link>
           </>
         }
@@ -45,8 +47,8 @@ export default function Docs() {
       <PageBody>
         <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-14">
           <motion.aside variants={revealItem} className="lg:sticky lg:top-24 lg:self-start">
-            <p className="section-eyebrow mb-4">On this page</p>
-            <nav aria-label="Documentation sections" className="flex flex-row gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
+            <p className="section-eyebrow mb-4">{t("docs.onThisPage", "On this page")}</p>
+            <nav aria-label={t("docs.sectionsAria", "Documentation sections")} className="flex flex-row gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
               {DOCS_SECTIONS.map((section) => (
                 <a
                   key={section.id}
@@ -119,10 +121,10 @@ export default function Docs() {
               className="flex flex-col gap-4 rounded-2xl border border-primary/25 bg-primary/[0.06] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
             >
               <div>
-                <p className="section-eyebrow mb-2">Next step</p>
-                <h3 className="text-lg font-bold text-foreground">Ready for Pulse depth or Dealer seats?</h3>
+                <p className="section-eyebrow mb-2">{t("docs.nextStep", "Next step")}</p>
+                <h3 className="text-lg font-bold text-foreground">{t("docs.ctaTitle", "Ready for Pulse depth or Dealer seats?")}</h3>
                 <p className="mt-1 max-w-md text-[13px] text-muted-foreground">
-                  Compare tiers, then open Official Pulse or the dealer workspace.
+                  {t("docs.ctaBody", "Compare tiers, then open Official Pulse or the dealer workspace.")}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -130,13 +132,13 @@ export default function Docs() {
                   to="/pricing"
                   className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline"
                 >
-                  Pricing
+                  {t("nav.pricing", "Pricing")}
                 </Link>
                 <Link
                   to="/official-pulse"
                   className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
                 >
-                  Official Pulse
+                  {t("nav.officialPulse", "Official Pulse")}
                 </Link>
               </div>
             </motion.div>

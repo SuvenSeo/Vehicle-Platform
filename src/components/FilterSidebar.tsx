@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SlidersHorizontal, X } from "lucide-react";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 interface FilterSidebarProps {
   filters: FilterState;
@@ -25,50 +26,50 @@ const MILEAGE_STEP = 10_000;
 
 const QUICK_MAKES = ["Toyota", "Suzuki", "Honda", "Nissan"];
 
-const VEHICLE_CATEGORY_OPTIONS: Array<{ value: VehicleCategory; label: string }> = [
-  { value: "cars", label: "Cars" },
-  { value: "motorbikes", label: "Bikes" },
-  { value: "three-wheelers", label: "Tuks" },
-  { value: "vans", label: "Vans" },
-  { value: "buses", label: "Buses" },
-  { value: "lorries", label: "Lorries" },
-  { value: "heavy-duty", label: "Heavy" },
-  { value: "tractors", label: "Tractors" },
-  { value: "boats", label: "Boats" },
-  { value: "bicycles", label: "Cycles" },
-  { value: "others", label: "Other" },
+const VEHICLE_CATEGORY_VALUES: Array<{ value: VehicleCategory; key: string; fallback: string }> = [
+  { value: "cars", key: "vehicle.cars", fallback: "Cars" },
+  { value: "motorbikes", key: "vehicle.bikes", fallback: "Bikes" },
+  { value: "three-wheelers", key: "vehicle.tuks", fallback: "Tuks" },
+  { value: "vans", key: "vehicle.vans", fallback: "Vans" },
+  { value: "buses", key: "vehicle.buses", fallback: "Buses" },
+  { value: "lorries", key: "vehicle.lorries", fallback: "Lorries" },
+  { value: "heavy-duty", key: "vehicle.heavy", fallback: "Heavy" },
+  { value: "tractors", key: "vehicle.tractors", fallback: "Tractors" },
+  { value: "boats", key: "vehicle.boats", fallback: "Boats" },
+  { value: "bicycles", key: "vehicle.cycles", fallback: "Cycles" },
+  { value: "others", key: "vehicle.other", fallback: "Other" },
 ];
 
-const CAR_BODY_OPTIONS: Array<{ value: BodyType | undefined; label: string }> = [
-  { value: undefined, label: "All" },
-  { value: "sedan", label: "Sedan" },
-  { value: "suv", label: "SUV" },
-  { value: "hatchback", label: "Hatch" },
-  { value: "crossover", label: "Crossover" },
-  { value: "mpv", label: "MPV" },
-  { value: "jeep", label: "Jeep" },
-  { value: "mini", label: "Mini" },
-  { value: "luxury", label: "Luxury" },
-  { value: "van", label: "Van" },
-  { value: "pickup", label: "Pickup" },
-  { value: "wagon", label: "Wagon" },
-  { value: "coupe", label: "Coupe" },
-  { value: "convertible", label: "Cabrio" },
+const CAR_BODY_VALUES: Array<{ value: BodyType | undefined; key: string; fallback: string }> = [
+  { value: undefined, key: "common.all", fallback: "All" },
+  { value: "sedan", key: "body.sedan", fallback: "Sedan" },
+  { value: "suv", key: "body.suv", fallback: "SUV" },
+  { value: "hatchback", key: "body.hatch", fallback: "Hatch" },
+  { value: "crossover", key: "body.crossover", fallback: "Crossover" },
+  { value: "mpv", key: "body.mpv", fallback: "MPV" },
+  { value: "jeep", key: "body.jeep", fallback: "Jeep" },
+  { value: "mini", key: "body.mini", fallback: "Mini" },
+  { value: "luxury", key: "body.luxury", fallback: "Luxury" },
+  { value: "van", key: "body.van", fallback: "Van" },
+  { value: "pickup", key: "body.pickup", fallback: "Pickup" },
+  { value: "wagon", key: "body.wagon", fallback: "Wagon" },
+  { value: "coupe", key: "body.coupe", fallback: "Coupe" },
+  { value: "convertible", key: "body.cabrio", fallback: "Cabrio" },
 ];
 
-const PRICE_PRESETS: Array<{ label: string; min: number; max: number }> = [
-  { label: "Under 3M", min: MIN_PRICE, max: 3_000_000 },
-  { label: "3M–6M", min: 3_000_000, max: 6_000_000 },
-  { label: "6M–10M", min: 6_000_000, max: 10_000_000 },
-  { label: "10M+", min: 10_000_000, max: MAX_PRICE },
+const PRICE_PRESET_VALUES: Array<{ key: string; fallback: string; min: number; max: number }> = [
+  { key: "filter.presetUnder3m", fallback: "Under 3M", min: MIN_PRICE, max: 3_000_000 },
+  { key: "filter.preset3to6", fallback: "3M–6M", min: 3_000_000, max: 6_000_000 },
+  { key: "filter.preset6to10", fallback: "6M–10M", min: 6_000_000, max: 10_000_000 },
+  { key: "filter.preset10plus", fallback: "10M+", min: 10_000_000, max: MAX_PRICE },
 ];
 
-const ALL_SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "newest", label: "Newest" },
-  { value: "deal_score", label: "Best deal" },
-  { value: "price_asc", label: "Price ↑" },
-  { value: "price_desc", label: "Price ↓" },
-  { value: "mileage_asc", label: "Low mileage" },
+const ALL_SORT_VALUES: { value: SortOption; key: string; fallback: string }[] = [
+  { value: "newest", key: "filter.sortNewest", fallback: "Newest" },
+  { value: "deal_score", key: "filter.sortBestDeal", fallback: "Best deal" },
+  { value: "price_asc", key: "filter.sortPriceAsc", fallback: "Price ↑" },
+  { value: "price_desc", key: "filter.sortPriceDesc", fallback: "Price ↓" },
+  { value: "mileage_asc", key: "filter.sortLowMileage", fallback: "Low mileage" },
 ];
 
 const UNAVAILABLE_PRICE_SORTS = new Set<SortOption>(["deal_score", "price_asc", "price_desc"]);
@@ -84,8 +85,8 @@ function parseOptionalInteger(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function formatMileage(value?: number) {
-  if (!value) return "Any";
+function formatMileage(value?: number, anyLabel = "Any") {
+  if (!value) return anyLabel;
   return `${Math.round(value / 1000)}k km`;
 }
 
@@ -131,6 +132,7 @@ function selectContentClass() {
 }
 
 function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
+  const { t } = useAppPreferences();
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [modelsList, setModelsList] = useState<{ model: string; count: number }[]>([]);
   const [sourceOptions, setSourceOptions] = useState<ListingSourceStat[]>([]);
@@ -198,12 +200,60 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
   }, [modelSearchQuery, modelsList]);
 
   const priceAvailability = filters.price_availability === "unavailable" ? "unavailable" : "priced";
+
+  const vehicleCategoryOptions = useMemo(
+    () => VEHICLE_CATEGORY_VALUES.map((option) => ({ ...option, label: t(option.key, option.fallback) })),
+    [t],
+  );
+  const carBodyOptions = useMemo(
+    () => CAR_BODY_VALUES.map((option) => ({ ...option, label: t(option.key, option.fallback) })),
+    [t],
+  );
+  const pricePresets = useMemo(
+    () => PRICE_PRESET_VALUES.map((preset) => ({ ...preset, label: t(preset.key, preset.fallback) })),
+    [t],
+  );
+  const fuelOptions = useMemo(
+    () =>
+      [
+        { value: undefined as FuelType | undefined, label: t("common.all", "All") },
+        { value: "petrol" as FuelType, label: t("fuel.petrol", "Petrol") },
+        { value: "diesel" as FuelType, label: t("fuel.diesel", "Diesel") },
+        { value: "hybrid" as FuelType, label: t("fuel.hybrid", "Hybrid") },
+        { value: "electric" as FuelType, label: t("fuel.electric", "Electric") },
+      ],
+    [t],
+  );
+  const transmissionOptions = useMemo(
+    () =>
+      [
+        { value: undefined as Transmission | undefined, label: t("common.all", "All") },
+        { value: "automatic" as Transmission, label: t("trans.automatic", "Automatic") },
+        { value: "manual" as Transmission, label: t("trans.manual", "Manual") },
+        { value: "cvt" as Transmission, label: t("trans.cvt", "CVT") },
+      ],
+    [t],
+  );
+  const conditionOptions = useMemo(
+    () =>
+      [
+        { value: undefined as Condition | undefined, label: t("common.all", "All") },
+        { value: "brand_new" as Condition, label: t("condition.newShort", "New") },
+        { value: "reconditioned" as Condition, label: t("condition.reconShort", "Recon") },
+        { value: "used" as Condition, label: t("condition.used", "Used") },
+      ],
+    [t],
+  );
+  const allSortOptions = useMemo(
+    () => ALL_SORT_VALUES.map((option) => ({ value: option.value, label: t(option.key, option.fallback) })),
+    [t],
+  );
   const sortOptions = useMemo(
     () =>
       priceAvailability === "unavailable"
-        ? ALL_SORT_OPTIONS.filter((option) => !UNAVAILABLE_PRICE_SORTS.has(option.value))
-        : ALL_SORT_OPTIONS,
-    [priceAvailability],
+        ? allSortOptions.filter((option) => !UNAVAILABLE_PRICE_SORTS.has(option.value))
+        : allSortOptions,
+    [allSortOptions, priceAvailability],
   );
 
   const update = useCallback(
@@ -295,7 +345,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     if (filters.q) chips.push({ key: "q", label: filters.q, onRemove: () => update({ q: undefined }) });
     if (activeCategory !== "cars") {
       const categoryLabel =
-        VEHICLE_CATEGORY_OPTIONS.find((option) => option.value === activeCategory)?.label || activeCategory;
+        vehicleCategoryOptions.find((option) => option.value === activeCategory)?.label || activeCategory;
       chips.push({
         key: "category",
         label: categoryLabel,
@@ -319,7 +369,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     }
     if (filters.source) chips.push({ key: "source", label: filters.source, onRemove: () => update({ source: undefined }) });
     if (priceAvailability === "unavailable") {
-      chips.push({ key: "inv", label: "No price", onRemove: () => setInventoryMode("priced") });
+      chips.push({ key: "inv", label: t("filter.noPrice", "No price"), onRemove: () => setInventoryMode("priced") });
     }
     if (filters.year_min || filters.year_max) {
       chips.push({
@@ -344,7 +394,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     }
 
     return chips;
-  }, [activeCategory, filters, priceAvailability, setInventoryMode, setVehicleCategory, update]);
+  }, [activeCategory, filters, priceAvailability, setInventoryMode, setVehicleCategory, t, update, vehicleCategoryOptions]);
 
   const sliderClass =
     "py-1 [&>span:first-child]:h-2 [&>span:first-child]:bg-secondary [&>span:first-child>span]:bg-gradient-to-r [&>span:first-child>span]:from-primary [&>span:first-child>span]:to-primary";
@@ -353,14 +403,14 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
     <div className="space-y-3 px-3 py-3 text-sm">
       <div className="sticky top-0 z-10 space-y-3 rounded-xl border border-border bg-card/85 px-3.5 py-3 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-foreground">Filters</p>
+          <p className="text-sm font-semibold text-foreground">{t("filter.title", "Filters")}</p>
           {activeChips.length > 0 ? (
             <button
               type="button"
               onClick={clear}
               className="text-caption font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              Clear all
+              {t("common.clearAll", "Clear all")}
             </button>
           ) : null}
         </div>
@@ -389,7 +439,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               priceAvailability === "priced" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            With price
+            {t("filter.withPrice", "With price")}
           </button>
           <button
             type="button"
@@ -398,14 +448,14 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               priceAvailability === "unavailable" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            No price
+            {t("filter.noPrice", "No price")}
           </button>
         </div>
       </div>
 
-      <FilterGroup label="Vehicle">
+      <FilterGroup label={t("filter.vehicle", "Vehicle")}>
         <div className="flex flex-wrap gap-1.5">
-          {VEHICLE_CATEGORY_OPTIONS.map((option) => (
+          {vehicleCategoryOptions.map((option) => (
             <PillButton
               key={option.value}
               active={activeCategory === option.value}
@@ -417,7 +467,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </div>
       </FilterGroup>
 
-      <FilterGroup label="Search">
+      <FilterGroup label={t("filter.search", "Search")}>
         <Input
           value={keywordInput}
           onChange={(event) => setKeywordInput(event.target.value)}
@@ -428,13 +478,13 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               commitKeyword();
             }
           }}
-          placeholder="Make, model, year…"
-          aria-label="Search listings"
+          placeholder={t("filter.searchPlaceholder", "Make, model, year…")}
+          aria-label={t("filter.searchAria", "Search listings")}
           className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
         />
       </FilterGroup>
 
-      <FilterGroup label="Make">
+      <FilterGroup label={t("common.make", "Make")}>
         <div className="mb-2 flex flex-wrap gap-1.5">
           {QUICK_MAKES.map((make) => (
             <PillButton key={make} active={filters.make === make} onClick={() => update({ make, model: undefined })}>
@@ -446,11 +496,11 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           value={filters.make || ALL_OPTION}
           onValueChange={(value) => update({ make: value === ALL_OPTION ? undefined : value, model: undefined })}
         >
-          <SelectTrigger aria-label="Filter by make" className={selectTriggerClass()}>
-            <SelectValue placeholder="All makes" />
+          <SelectTrigger aria-label={t("filter.byMakeAria", "Filter by make")} className={selectTriggerClass()}>
+            <SelectValue placeholder={t("common.allMakes", "All makes")} />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
-            <SelectItem value={ALL_OPTION}>All makes</SelectItem>
+            <SelectItem value={ALL_OPTION}>{t("common.allMakes", "All makes")}</SelectItem>
             {makes.map((make) => (
               <SelectItem key={make.make} value={make.make}>
                 {make.make} ({make.count})
@@ -461,23 +511,23 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
       </FilterGroup>
 
       {filters.make ? (
-        <FilterGroup label="Model">
+        <FilterGroup label={t("common.model", "Model")}>
           <div className="space-y-2">
             {modelsList.length > 8 ? (
               <Input
                 value={modelSearchQuery}
                 onChange={(event) => setModelSearchQuery(event.target.value)}
-                placeholder="Find model…"
-                aria-label="Search model"
+                placeholder={t("filter.findModel", "Find model…")}
+                aria-label={t("common.model", "Model")}
                 className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
-              <SelectTrigger aria-label="Filter by model" className={selectTriggerClass()}>
-                <SelectValue placeholder="All models" />
+              <SelectTrigger aria-label={t("filter.byModelAria", "Filter by model")} className={selectTriggerClass()}>
+                <SelectValue placeholder={t("common.allModels", "All models")} />
               </SelectTrigger>
               <SelectContent className={selectContentClass()}>
-                <SelectItem value={ALL_OPTION}>All models</SelectItem>
+                <SelectItem value={ALL_OPTION}>{t("common.allModels", "All models")}</SelectItem>
                 {filteredModels.map((model) => (
                   <SelectItem key={model.model} value={model.model}>
                     {model.model} ({model.count})
@@ -489,16 +539,16 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </FilterGroup>
       ) : null}
 
-      <FilterGroup label="Price">
+      <FilterGroup label={t("filter.price", "Price")}>
         {priceAvailability === "unavailable" ? (
-          <p className="text-caption text-muted-foreground">Switch to &ldquo;With price&rdquo; to filter by budget.</p>
+          <p className="text-caption text-muted-foreground">{t("filter.priceUnavailableHint", "Switch to \"With price\" to filter by budget.")}</p>
         ) : (
           <div className="space-y-2.5">
             <p className="num text-caption font-medium text-foreground">
               {formatPrice(priceRange[0])} – {formatPrice(priceRange[1])}
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {PRICE_PRESETS.map((preset) => {
+              {pricePresets.map((preset) => {
                 const active = priceRange[0] === preset.min && priceRange[1] === preset.max;
                 return (
                   <PillButton
@@ -531,8 +581,8 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                   }
                 }}
                 inputMode="numeric"
-                placeholder="Min LKR"
-                aria-label="Minimum price"
+                placeholder={t("filter.minLkr", "Min LKR")}
+                aria-label={t("filter.minPriceAria", "Minimum price")}
                 className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
               />
               <Input
@@ -546,13 +596,13 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                   }
                 }}
                 inputMode="numeric"
-                placeholder="Max LKR"
-                aria-label="Maximum price"
+                placeholder={t("filter.maxLkr", "Max LKR")}
+                aria-label={t("filter.maxPriceAria", "Maximum price")}
                 className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
               />
             </div>
             <Slider
-              thumbLabels={["Minimum price slider", "Maximum price slider"]}
+              thumbLabels={[t("filter.minPriceSlider", "Minimum price slider"), t("filter.maxPriceSlider", "Maximum price slider")]}
               min={MIN_PRICE}
               max={MAX_PRICE}
               step={PRICE_STEP}
@@ -575,12 +625,12 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         )}
       </FilterGroup>
 
-      <FilterGroup label="Year">
+      <FilterGroup label={t("common.year", "Year")}>
         <p className="num mb-2 text-caption font-medium text-foreground">
           {yearRange[0]} – {yearRange[1]}
         </p>
         <Slider
-          thumbLabels={["From year slider", "To year slider"]}
+          thumbLabels={[t("filter.fromYearSlider", "From year slider"), t("filter.toYearSlider", "To year slider")]}
           min={MIN_YEAR}
           max={MAX_YEAR}
           step={1}
@@ -596,46 +646,41 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         />
       </FilterGroup>
 
-      <FilterGroup label="Fuel">
+      <FilterGroup label={t("common.fuel", "Fuel")}>
         <div className="flex flex-wrap gap-1.5">
-          {[undefined, "petrol", "diesel", "hybrid", "electric"].map((value) => (
+          {fuelOptions.map((option) => (
             <PillButton
-              key={value ?? "all"}
-              active={filters.fuel_type === value || (!filters.fuel_type && !value)}
-              onClick={() => update({ fuel_type: value as FuelType | undefined })}
+              key={option.value ?? "all"}
+              active={filters.fuel_type === option.value || (!filters.fuel_type && !option.value)}
+              onClick={() => update({ fuel_type: option.value })}
             >
-              {value ? value.charAt(0).toUpperCase() + value.slice(1) : "All"}
+              {option.label}
             </PillButton>
           ))}
         </div>
       </FilterGroup>
 
-      <FilterGroup label="Transmission">
+      <FilterGroup label={t("common.transmission", "Transmission")}>
         <div className="flex flex-wrap gap-1.5">
-          {[undefined, "automatic", "manual", "cvt"].map((value) => (
+          {transmissionOptions.map((option) => (
             <PillButton
-              key={value ?? "all"}
-              active={filters.transmission === value || (!filters.transmission && !value)}
-              onClick={() => update({ transmission: value as Transmission | undefined })}
+              key={option.value ?? "all"}
+              active={filters.transmission === option.value || (!filters.transmission && !option.value)}
+              onClick={() => update({ transmission: option.value })}
             >
-              {value ? value.charAt(0).toUpperCase() + value.slice(1) : "All"}
+              {option.label}
             </PillButton>
           ))}
         </div>
       </FilterGroup>
 
-      <FilterGroup label="Condition">
+      <FilterGroup label={t("common.condition", "Condition")}>
         <div className="flex flex-wrap gap-1.5">
-          {[
-            { value: undefined, label: "All" },
-            { value: "brand_new", label: "New" },
-            { value: "reconditioned", label: "Recon" },
-            { value: "used", label: "Used" },
-          ].map((option) => (
+          {conditionOptions.map((option) => (
             <PillButton
               key={option.label}
               active={filters.condition === option.value}
-              onClick={() => update({ condition: option.value as Condition | undefined })}
+              onClick={() => update({ condition: option.value })}
             >
               {option.label}
             </PillButton>
@@ -644,9 +689,9 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
       </FilterGroup>
 
       {showCarBodyFilters ? (
-        <FilterGroup label="Body / style">
+        <FilterGroup label={t("filter.bodyStyle", "Body / style")}>
           <div className="flex flex-wrap gap-1.5">
-            {CAR_BODY_OPTIONS.map((option) => (
+            {carBodyOptions.map((option) => (
               <PillButton
                 key={option.label}
                 active={filters.body_type === option.value || (!filters.body_type && !option.value)}
@@ -659,7 +704,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </FilterGroup>
       ) : null}
 
-      <FilterGroup label="Mileage">
+      <FilterGroup label={t("common.mileage", "Mileage")}>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <Input
@@ -673,14 +718,14 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 }
               }}
               inputMode="numeric"
-              placeholder="Max km"
-              aria-label="Maximum mileage"
+              placeholder={t("filter.maxKm", "Max km")}
+              aria-label={t("filter.maxMileageAria", "Maximum mileage")}
               className="h-9 flex-1 rounded-lg border-border bg-surface text-sm text-foreground"
             />
-            <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue)}</span>
+            <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue === MAX_MILEAGE ? undefined : mileageValue, t("filter.anyMileage", "Any"))}</span>
           </div>
           <Slider
-            thumbLabel="Maximum mileage slider"
+            thumbLabel={t("filter.maxMileageSlider", "Maximum mileage slider")}
             min={0}
             max={MAX_MILEAGE}
             step={MILEAGE_STEP}
@@ -696,13 +741,13 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </div>
       </FilterGroup>
 
-      <FilterGroup label="District">
+      <FilterGroup label={t("common.district", "District")}>
         <Select value={filters.district || ALL_OPTION} onValueChange={(value) => update({ district: value === ALL_OPTION ? undefined : value })}>
-          <SelectTrigger aria-label="Filter by district" className={selectTriggerClass()}>
-            <SelectValue placeholder="All districts" />
+          <SelectTrigger aria-label={t("filter.byDistrictAria", "Filter by district")} className={selectTriggerClass()}>
+            <SelectValue placeholder={t("common.allDistricts", "All districts")} />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
-            <SelectItem value={ALL_OPTION}>All districts</SelectItem>
+            <SelectItem value={ALL_OPTION}>{t("common.allDistricts", "All districts")}</SelectItem>
             {SRI_LANKA_DISTRICTS.map((district) => (
               <SelectItem key={district} value={district}>
                 {district}
@@ -712,13 +757,13 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </Select>
       </FilterGroup>
 
-      <FilterGroup label="Source">
+      <FilterGroup label={t("common.source", "Source")}>
         <Select value={filters.source || ALL_OPTION} onValueChange={(value) => update({ source: value === ALL_OPTION ? undefined : value })}>
-          <SelectTrigger aria-label="Filter by source" className={selectTriggerClass()}>
-            <SelectValue placeholder="All sources" />
+          <SelectTrigger aria-label={t("filter.bySourceAria", "Filter by source")} className={selectTriggerClass()}>
+            <SelectValue placeholder={t("common.allSources", "All sources")} />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
-            <SelectItem value={ALL_OPTION}>All sources</SelectItem>
+            <SelectItem value={ALL_OPTION}>{t("common.allSources", "All sources")}</SelectItem>
             {sourceOptions.map((source) => (
               <SelectItem key={source.source} value={source.source}>
                 {source.label} ({source.count})
@@ -728,9 +773,9 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
         </Select>
       </FilterGroup>
 
-      <FilterGroup label="Sort">
+      <FilterGroup label={t("filter.sort", "Sort")}>
         <Select value={filters.sort} onValueChange={(value) => update({ sort: value as SortOption })}>
-          <SelectTrigger aria-label="Sort listings" className={selectTriggerClass()}>
+          <SelectTrigger aria-label={t("filter.sortAria", "Sort listings")} className={selectTriggerClass()}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent className={selectContentClass()}>
@@ -747,6 +792,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 }
 
 export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersChange }: FilterSidebarProps) {
+  const { t } = useAppPreferences();
   return (
     <>
       <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-xl lg:block">
@@ -758,12 +804,12 @@ export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersCha
           <SheetTrigger asChild>
             <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-foreground transition-colors hover:bg-foreground/[0.05] active:scale-[0.97]">
               <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              {t("filter.title", "Filters")}
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="command-surface w-[min(100vw-2rem,320px)] overflow-y-auto p-0">
             <SheetHeader className="px-4 pt-4 pb-0">
-              <SheetTitle className="text-base text-foreground">Filters</SheetTitle>
+              <SheetTitle className="text-base text-foreground">{t("filter.title", "Filters")}</SheetTitle>
             </SheetHeader>
             <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
           </SheetContent>

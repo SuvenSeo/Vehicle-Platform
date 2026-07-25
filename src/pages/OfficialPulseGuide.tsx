@@ -22,8 +22,10 @@ import {
 } from "@/lib/officialPulseContent";
 import { getMarketSignals } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 function GuideNotFound() {
+  const { t } = useAppPreferences();
   return (
     <motion.div
       initial="hidden"
@@ -37,17 +39,21 @@ function GuideNotFound() {
       />
       <motion.div variants={revealItem} className="relative z-10 max-w-md text-center">
         <Landmark aria-hidden className="mx-auto h-7 w-7 text-muted-foreground" />
-        <p className="section-eyebrow mt-4 text-primary-bright">Unavailable</p>
-        <h1 className="mt-3 font-display text-xl font-semibold text-foreground">Guide not found</h1>
+        <p className="section-eyebrow mt-4 text-primary-bright">
+          {t("nav.statusUnavailable", "Unavailable")}
+        </p>
+        <h1 className="mt-3 font-display text-xl font-semibold text-foreground">
+          {t("pulse.guideNotFound", "Guide not found")}
+        </h1>
         <p className="mt-2 text-[13px] text-muted-foreground">
-          That pulse guide key is not in the in-platform catalog.
+          {t("pulse.guideNotFoundBody", "That pulse guide key is not in the in-platform catalog.")}
         </p>
         <Link
           to="/official-pulse"
           className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98]"
         >
           <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
-          Back to Official pulse
+          {t("pulse.backToPulse", "Back to Official Pulse")}
         </Link>
       </motion.div>
     </motion.div>
@@ -55,8 +61,13 @@ function GuideNotFound() {
 }
 
 function RelatedSignalCard({ signal }: { signal: MarketSignal }) {
+  const { t } = useAppPreferences();
   const guide = matchPulseGuide(signal.source, signal.signal_type);
-  const title = guide?.title || signal.category || signal.metric.replace(/_/g, " ") || "Market signal";
+  const title =
+    guide?.title ||
+    signal.category ||
+    signal.metric.replace(/_/g, " ") ||
+    t("pulse.marketSignal", "Market signal");
   const period = formatPulsePeriod(signal.period_year, signal.period_month);
   const value = formatPulseValue(signal.value_numeric, signal.unit, signal.metric);
 
@@ -74,10 +85,12 @@ function RelatedSignalCard({ signal }: { signal: MarketSignal }) {
         <h3 className="mt-2 text-sm font-semibold text-foreground group-hover:text-primary">{title}</h3>
         <p className="num mt-4 text-2xl font-bold tracking-tight text-foreground">{value}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {period ? `Period ${period}` : "Latest official pulse"}
+          {period
+            ? t("pulse.period", "Period {period}", { period })
+            : t("pulse.latest", "Latest official pulse")}
         </p>
         <span className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-          Open signal
+          {t("pulse.openSignal", "Open signal")}
           <ArrowRight aria-hidden className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
@@ -86,6 +99,7 @@ function RelatedSignalCard({ signal }: { signal: MarketSignal }) {
 }
 
 function GuideBody({ guide }: { guide: PulseSourceGuide }) {
+  const { t } = useAppPreferences();
   const signalsQuery = useQuery({
     queryKey: ["market-signals", 48, guide.source, guide.signalType],
     queryFn: () => getMarketSignals(48),
@@ -121,7 +135,7 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
             className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
           >
             <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
-            Official pulse
+            {t("pulse.eyebrow", "Official pulse")}
           </Link>
           <div className="section-eyebrow mb-5 mt-6 inline-flex items-center gap-2">
             <Landmark aria-hidden className="h-3.5 w-3.5" />
@@ -137,7 +151,9 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
           <motion.section variants={revealItem} className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-7">
             <div className="mb-5 flex items-center gap-2">
               <Sparkles aria-hidden className="h-4 w-4 text-primary" />
-              <h2 className="font-display text-[15px] font-bold text-foreground">Why it matters</h2>
+              <h2 className="font-display text-[15px] font-bold text-foreground">
+                {t("pulse.whyMatters", "Why it matters")}
+              </h2>
             </div>
             <ul className="space-y-3.5">
               {guide.whyItMatters.map((item) => (
@@ -152,7 +168,9 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
           <motion.section variants={revealItem} className="rounded-2xl border border-border bg-card p-6 shadow-soft sm:p-7">
             <div className="mb-5 flex items-center gap-2">
               <ListChecks aria-hidden className="h-4 w-4 text-primary" />
-              <h2 className="font-display text-[15px] font-bold text-foreground">How we read it</h2>
+              <h2 className="font-display text-[15px] font-bold text-foreground">
+                {t("pulse.howWeRead", "How we read it")}
+              </h2>
             </div>
             <ul className="space-y-3.5">
               {guide.howWeReadIt.map((item) => (
@@ -171,7 +189,9 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
         >
           <div className="mb-3 flex items-center gap-2">
             <Lightbulb aria-hidden className="h-4 w-4 text-primary" />
-            <h2 className="font-display text-[15px] font-bold text-foreground">Dealer tip</h2>
+            <h2 className="font-display text-[15px] font-bold text-foreground">
+              {t("pulse.dealerTip", "Dealer tip")}
+            </h2>
           </div>
           <p className="max-w-3xl text-[14px] font-medium leading-relaxed text-foreground/90">
             {guide.dealerTip}
@@ -180,9 +200,14 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
 
         <motion.section variants={revealItem}>
           <SectionHeader
-            eyebrow="Live related"
-            title={`Related ${guide.shortLabel.toLowerCase()} signals`}
-            description={`Recent observations matching ${labelPulseSource(guide.source)} · ${guide.signalType.replace(/_/g, " ")}.`}
+            eyebrow={t("pulse.liveRelated", "Live related")}
+            title={t("pulse.relatedSignals", "Related {label} signals", {
+              label: guide.shortLabel.toLowerCase(),
+            })}
+            description={t("pulse.relatedDesc", "Recent observations matching {source} · {type}.", {
+              source: labelPulseSource(guide.source),
+              type: guide.signalType.replace(/_/g, " "),
+            })}
             className="mb-8"
           />
 
@@ -197,14 +222,22 @@ function GuideBody({ guide }: { guide: PulseSourceGuide }) {
             </div>
           ) : signalsQuery.isError ? (
             <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 text-[13px] text-muted-foreground">
-              Could not load related live signals. The guide content above remains available offline.
+              {t(
+                "pulse.relatedLoadError",
+                "Could not load related live signals. The guide content above remains available offline.",
+              )}
             </div>
           ) : relatedSignals.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/60 px-6 py-12 text-center">
-              <p className="text-[14px] font-semibold text-foreground">No related live signals yet</p>
+              <p className="text-[14px] font-semibold text-foreground">
+                {t("pulse.noRelated", "No related live signals yet")}
+              </p>
               <p className="mx-auto mt-2 max-w-md text-[12px] text-muted-foreground">
-                When the market-signals sync records {guide.shortLabel.toLowerCase()} activity, those
-                observations will appear here.
+                {t(
+                  "pulse.noRelatedBody",
+                  "When the market-signals sync records {label} activity, those observations will appear here.",
+                  { label: guide.shortLabel.toLowerCase() },
+                )}
               </p>
             </div>
           ) : (

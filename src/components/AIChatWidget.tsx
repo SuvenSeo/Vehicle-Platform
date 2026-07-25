@@ -199,6 +199,7 @@ function formatMessage(content: string) {
 }
 
 function ListingResults({ messageId, listings }: { messageId: string; listings?: ChatListingResult[] }) {
+  const { t } = useAppPreferences();
   if (!Array.isArray(listings) || listings.length === 0) return null;
 
   return (
@@ -209,7 +210,7 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
           <div key={`${messageId}-${item.id}`} className="rounded-xl border border-border bg-surface p-3 transition-colors hover:border-primary/40">
             <p className="line-clamp-2 text-xs font-bold leading-snug text-foreground">{item.title}</p>
             <p className="mt-1 ui-caption num text-muted-foreground">
-              {item.price_lkr ? formatPrice(item.price_lkr) : "Price unavailable"}
+              {item.price_lkr ? formatPrice(item.price_lkr) : t("chat.card.priceUnavailable", "Price unavailable")}
               {item.district ? ` · ${item.district}` : ""}
               {typeof item.deal_score === "number" ? ` · ${item.deal_score.toFixed(0)} score` : ""}
             </p>
@@ -219,7 +220,7 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
                   to={item.detail_url}
                   className="tech-label font-bold text-primary no-underline hover:text-primary"
                 >
-                  Open listing
+                  {t("chat.card.openListing", "Open Listing")}
                 </Link>
               )}
               {sourceUrl && (
@@ -229,7 +230,7 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 tech-label font-bold text-muted-foreground no-underline hover:text-foreground"
                 >
-                  Source
+                  {t("chat.card.source", "Source")}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               )}
@@ -442,7 +443,7 @@ export function AIChatWidget() {
           role="dialog"
           aria-modal="false"
           className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-xl border border-border bg-card text-foreground shadow-soft-xl`}
-          aria-label="Motormila Copilot"
+          aria-label={t("chat.header.title", "Motormila Copilot")}
         >
           <header className="border-b border-border px-4 py-4">
             <div className="flex items-center justify-between gap-3">
@@ -466,7 +467,7 @@ export function AIChatWidget() {
                       ? "border-primary/35 bg-primary/12 text-primary"
                       : "border-border bg-surface text-muted-foreground hover:text-foreground"
                   }`}
-                  aria-label="Show assistant guide"
+                  aria-label={t("chat.header.title", "Motormila Copilot")}
                 >
                   <Settings2 className="h-4 w-4" />
                 </button>

@@ -28,16 +28,18 @@ import { cn } from "@/lib/utils";
 import { getMarketSignals } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
 import { QUERY_STALE } from "@/lib/queryPolicy";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 type SourceFilter = "all" | string;
 
-function signalTitle(signal: MarketSignal): string {
+function signalTitle(signal: MarketSignal, marketSignalLabel: string): string {
   const guide = matchPulseGuide(signal.source, signal.signal_type);
-  return guide?.title || signal.category || signal.metric.replace(/_/g, " ") || "Market signal";
+  return guide?.title || signal.category || signal.metric.replace(/_/g, " ") || marketSignalLabel;
 }
 
 function SignalCard({ signal }: { signal: MarketSignal }) {
-  const title = signalTitle(signal);
+  const { t } = useAppPreferences();
+  const title = signalTitle(signal, t("pulse.marketSignal", "Market signal"));
   const period = formatPulsePeriod(signal.period_year, signal.period_month);
   const value = formatPulseValue(signal.value_numeric, signal.unit, signal.metric);
   const hasSourceUrl = Boolean(signal.source_url?.trim());
@@ -58,11 +60,11 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
         </h3>
         <p className="num mt-4 text-2xl font-bold tracking-tight text-foreground">{value}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {period ? `Period ${period}` : "Latest official pulse"}
+          {period ? t("pulse.period", "Period {period}", { period }) : t("pulse.latest", "Latest official pulse")}
           {signal.metric ? ` · ${signal.metric.replace(/_/g, " ")}` : null}
         </p>
         <span className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-          Open in-platform
+          {t("pulse.openInPlatform", "Open in-platform")}
           <ArrowRight aria-hidden className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
@@ -74,7 +76,7 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
           className="mt-4 inline-flex items-center gap-1.5 self-start text-[10px] font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
         >
           <ExternalLink aria-hidden className="h-3 w-3" />
-          View original source
+          {t("pulse.viewOriginal", "View original source")}
         </a>
       ) : null}
     </motion.article>
@@ -82,6 +84,7 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
 }
 
 export default function OfficialPulse() {
+  const { t } = useAppPreferences();
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   const signalsQuery = useQuery({
@@ -102,15 +105,27 @@ export default function OfficialPulse() {
     <PageCanvas>
       <PageHero
         theme="official"
-        eyebrow="Official pulse"
+        eyebrow={t("pulse.eyebrow", "Official pulse")}
         eyebrowIcon={Landmark}
         watermarkIcon={Radio}
-        title={<>Official pulse<span className="text-sheen">.</span></>}
-        description="Government & import market signals, explained in-platform."
+        title={<>{t("pulse.title", "Official pulse.")}</>}
+        description={t("pulse.description", "Government & import market signals, explained in-platform.")}
         highlights={[
-          { label: "Signals", value: signalsQuery.isPending ? "…" : String(signals.length), hint: "Indexed official metrics" },
-          { label: "Sources", value: String(sourceChips.length || "—"), hint: "Government and import feeds" },
-          { label: "Guides", value: String(PULSE_SOURCE_GUIDES.length), hint: "Explainer cards in-platform" },
+          {
+            label: t("pulse.signals", "Signals"),
+            value: signalsQuery.isPending ? "…" : String(signals.length),
+            hint: t("pulse.signalsHint", "Indexed official metrics"),
+          },
+          {
+            label: t("pulse.sources", "Sources"),
+            value: String(sourceChips.length || "—"),
+            hint: t("pulse.sourcesHint", "Government and import feeds"),
+          },
+          {
+            label: t("pulse.guides", "Guides"),
+            value: String(PULSE_SOURCE_GUIDES.length),
+            hint: t("pulse.guidesHint", "Explainer cards in-platform"),
+          },
         ]}
         actions={
           <>
@@ -119,13 +134,13 @@ export default function OfficialPulse() {
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <BookOpen aria-hidden className="h-4 w-4" />
-              Read the docs
+              {t("pulse.readDocs", "Read the docs")}
             </Link>
             <Link
               to="/pricing"
               className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              View pricing
+              {t("common.viewPricing", "View pricing")}
             </Link>
           </>
         }
@@ -134,9 +149,9 @@ export default function OfficialPulse() {
       <PageBody className="space-y-16 lg:space-y-24">
         <motion.section variants={revealItem}>
           <SectionHeader
-            eyebrow="How to read it"
-            title="Signal guides"
-            description="Each source is explained in Motormila so you can act without leaving for a government site first."
+            eyebrow={t("pulse.guidesEyebrow", "How to read it")}
+            title={t("pulse.guidesTitle", "Signal guides")}
+            description={t("pulse.guidesDesc", "Each source is explained in Motormila so you can act without leaving for a government site first.")}
             className="mb-8"
           />
           <motion.div
@@ -160,7 +175,7 @@ export default function OfficialPulse() {
                   </p>
                   <span className="mt-5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary">
                     <FileText aria-hidden className="h-3.5 w-3.5" />
-                    Open guide
+                    {t("pulse.openGuide", "Open guide")}
                     <ArrowRight
                       aria-hidden
                       className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
@@ -174,20 +189,20 @@ export default function OfficialPulse() {
 
         <motion.section variants={revealItem}>
           <SectionHeader
-            eyebrow="Live feed"
-            title="Recent market signals"
-            description="Latest DMT, Customs, and import-parity observations synced into Motormila."
+            eyebrow={t("pulse.feedEyebrow", "Live feed")}
+            title={t("pulse.feedTitle", "Recent market signals")}
+            description={t("pulse.feedDesc", "Latest DMT, Customs, and import-parity observations synced into Motormila.")}
             className="mb-8"
             actions={
               <div className="inline-flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
                 <Radio aria-hidden className="h-3.5 w-3.5 text-primary" />
-                Last 48 observations
+                {t("pulse.last48", "Last 48 observations")}
               </div>
             }
           />
 
           {sourceChips.length > 0 ? (
-            <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Filter by source">
+            <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label={t("pulse.filterAria", "Filter by source")}>
               <button
                 type="button"
                 onClick={() => setSourceFilter("all")}
@@ -198,7 +213,7 @@ export default function OfficialPulse() {
                     : "border-border bg-surface text-muted-foreground hover:border-primary/30 hover:text-foreground",
                 )}
               >
-                All sources
+                {t("pulse.allSources", "All sources")}
               </button>
               {sourceChips.map((source) => (
                 <button
@@ -231,10 +246,10 @@ export default function OfficialPulse() {
             <div className="flex flex-col items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6">
               <div className="flex items-center gap-2">
                 <Loader2 aria-hidden className="h-4 w-4 text-rose-500" />
-                <p className="text-[13px] font-semibold text-foreground">Could not load live signals</p>
+                <p className="text-[13px] font-semibold text-foreground">{t("pulse.loadError", "Could not load live signals")}</p>
               </div>
               <p className="text-[12px] text-muted-foreground">
-                The market-signals feed is temporarily unavailable. Retry in a moment.
+                {t("pulse.loadErrorBody", "The market-signals feed is temporarily unavailable. Retry in a moment.")}
               </p>
               <button
                 type="button"
@@ -242,17 +257,24 @@ export default function OfficialPulse() {
                 className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.97]"
               >
                 <RefreshCw aria-hidden className="h-3.5 w-3.5" />
-                Retry
+                {t("common.retry", "Retry")}
               </button>
             </div>
           ) : filteredSignals.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/60 px-6 py-14 text-center">
               <Landmark aria-hidden className="mx-auto h-6 w-6 text-muted-foreground" />
-              <p className="mt-3 text-[14px] font-semibold text-foreground">No signals yet</p>
+              <p className="mt-3 text-[14px] font-semibold text-foreground">{t("pulse.empty", "No signals yet")}</p>
               <p className="mx-auto mt-2 max-w-md text-[12px] text-muted-foreground">
                 {sourceFilter === "all"
-                  ? "Official registration, transfer, tender, and import-cost signals will appear here after the market-signals sync runs."
-                  : `No live signals for ${labelPulseSource(sourceFilter)} in the latest batch. Try another source chip.`}
+                  ? t(
+                      "pulse.emptyBody",
+                      "Official registration, transfer, tender, and import-cost signals will appear here after the market-signals sync runs.",
+                    )
+                  : t(
+                      "pulse.emptyFiltered",
+                      "No live signals for {source} in the latest batch. Try another source chip.",
+                      { source: labelPulseSource(sourceFilter) },
+                    )}
               </p>
             </div>
           ) : (

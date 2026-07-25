@@ -1,6 +1,8 @@
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
+import { useAppPreferences } from "@/lib/appPreferences";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -12,48 +14,6 @@ function GitHubIcon({ className }: { className?: string }) {
     </svg>
   );
 }
-
-const platformLinks = [
-  { label: "Home", to: "/" },
-  { label: "Market", to: "/#market" },
-  { label: "Trends", to: "/trends" },
-  { label: "Calculator", to: "/calculator" },
-];
-
-const toolLinks = [
-  { label: "EV Hub", to: "/ev-hub" },
-  { label: "Valuation", to: "/estimate" },
-  { label: "Pricing", to: "/pricing" },
-  { label: "Docs", to: "/docs" },
-];
-
-const moreLinks = [
-  { label: "Official Pulse", to: "/official-pulse" },
-  { label: "Dealer", to: "/dealer" },
-  { label: "Best Picks", to: "/best-picks" },
-  { label: "Price Index", to: "/price-index" },
-  { label: "Pro Preview", to: "/pro-preview" },
-  { label: "Alerts", to: "/alerts" },
-  { label: "Settings", to: "/settings" },
-];
-
-const studioLinks = [
-  { label: "Ardeno Studio", href: "https://ardeno-studio-website.vercel.app/", external: true },
-  { label: "GitHub", href: "https://github.com/SuvenSeo/Vehicle-Platform", external: true },
-];
-
-const socialLinks = [
-  {
-    label: "GitHub",
-    href: "https://github.com/SuvenSeo/Vehicle-Platform",
-    icon: GitHubIcon,
-  },
-  {
-    label: "Ardeno Studio",
-    href: "https://ardeno-studio-website.vercel.app/",
-    icon: ExternalLink,
-  },
-];
 
 function FooterColumn({ title, links }: { title: string; links: Array<{ label: string; to: string }> }) {
   return (
@@ -79,6 +39,66 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ label: s
 export function AppFooter() {
   const year = new Date().getFullYear();
   const reduceMotion = useReducedMotion() ?? prefersReducedMotion();
+  const { t } = useAppPreferences();
+
+  const platformLinks = useMemo(
+    () => [
+      { label: t("nav.home", "Home"), to: "/" },
+      { label: t("nav.market", "Market"), to: "/#market" },
+      { label: t("nav.trends", "Trends"), to: "/trends" },
+      { label: t("nav.calculator", "Calculator"), to: "/calculator" },
+    ],
+    [t],
+  );
+
+  const toolLinks = useMemo(
+    () => [
+      { label: t("nav.evHub", "EV Hub"), to: "/ev-hub" },
+      { label: t("nav.valuation", "Valuation"), to: "/estimate" },
+      { label: t("nav.pricing", "Pricing"), to: "/pricing" },
+      { label: t("nav.docs", "Docs"), to: "/docs" },
+    ],
+    [t],
+  );
+
+  const moreLinks = useMemo(
+    () => [
+      { label: t("nav.officialPulse", "Official Pulse"), to: "/official-pulse" },
+      { label: t("nav.dealer", "Dealer"), to: "/dealer" },
+      { label: t("nav.bestPicks", "Best Picks"), to: "/best-picks" },
+      { label: t("nav.priceIndex", "Price Index"), to: "/price-index" },
+      { label: t("nav.proPreview", "Pro Preview"), to: "/pro-preview" },
+      { label: t("nav.alerts", "Alerts"), to: "/alerts" },
+      { label: t("nav.settings", "Settings"), to: "/settings" },
+    ],
+    [t],
+  );
+
+  const studioLinks = useMemo(
+    () => [
+      { label: t("footer.ardenoStudio", "Ardeno Studio"), href: "https://ardeno-studio-website.vercel.app/", external: true },
+      { label: t("nav.github", "GitHub"), href: "https://github.com/SuvenSeo/Vehicle-Platform", external: true },
+    ],
+    [t],
+  );
+
+  const socialLinks = useMemo(
+    () => [
+      {
+        label: t("nav.github", "GitHub"),
+        href: "https://github.com/SuvenSeo/Vehicle-Platform",
+        icon: GitHubIcon,
+      },
+      {
+        label: t("footer.ardenoStudio", "Ardeno Studio"),
+        href: "https://ardeno-studio-website.vercel.app/",
+        icon: ExternalLink,
+      },
+    ],
+    [t],
+  );
+
+  const githubLabel = t("nav.github", "GitHub");
 
   return (
     <footer
@@ -126,7 +146,7 @@ export function AppFooter() {
             <Link
               to="/"
               className="group inline-flex items-center gap-3 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
-              aria-label="Go to Motormila home"
+              aria-label={t("footer.homeAria", "Go to Motormila home")}
             >
               <img
                 src="/logo.png"
@@ -141,13 +161,16 @@ export function AppFooter() {
                   Motor<span className="bg-gradient-to-r from-sky-300 via-cyan-300 to-teal-300 bg-clip-text text-transparent">mila</span>
                 </span>
                 <span className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-100/45">
-                  Market Intelligence
+                  {t("footer.tagline", "Market Intelligence")}
                 </span>
               </span>
             </Link>
 
             <p className="mt-6 text-[14px] leading-7 text-zinc-400">
-              Sri Lanka vehicle market intelligence — live listings, fair-value signals, and tools built for buyers and dealers.
+              {t(
+                "footer.body",
+                "Sri Lanka vehicle market intelligence — live listings, fair-value signals, and tools built for buyers and dealers.",
+              )}
             </p>
 
             <motion.div whileHover={reduceMotion ? undefined : { y: -2 }} whileTap={reduceMotion ? undefined : { scale: 0.98 }}>
@@ -155,19 +178,19 @@ export function AppFooter() {
                 to="/pricing"
                 className="mt-8 inline-flex items-center gap-2 rounded-[14px] bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-300 px-6 py-4 text-[13px] font-semibold text-[#04101f] no-underline shadow-[0_10px_40px_rgba(34,211,238,0.25)] transition-[filter] duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
               >
-                Explore Pro
+                {t("footer.explorePro", "Explore Pro")}
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </motion.div>
           </div>
 
-          <nav aria-label="Footer navigation" className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4">
-            <FooterColumn title="Platform" links={platformLinks} />
-            <FooterColumn title="Tools" links={toolLinks} />
-            <FooterColumn title="More" links={moreLinks} />
+          <nav aria-label={t("footer.navAria", "Footer navigation")} className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4">
+            <FooterColumn title={t("footer.platform", "Platform")} links={platformLinks} />
+            <FooterColumn title={t("footer.tools", "Tools")} links={toolLinks} />
+            <FooterColumn title={t("footer.more", "More")} links={moreLinks} />
 
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">Studio</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">{t("footer.studio", "Studio")}</p>
               <ul className="mt-6 space-y-4">
                 {studioLinks.map((link) => (
                   <li key={link.label}>
@@ -177,7 +200,7 @@ export function AppFooter() {
                       rel="noopener noreferrer"
                       className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
                     >
-                      {link.label === "GitHub" && <GitHubIcon className="h-3.5 w-3.5" />}
+                      {link.label === githubLabel && <GitHubIcon className="h-3.5 w-3.5" />}
                       <span>{link.label}</span>
                       <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
                     </a>
@@ -189,7 +212,9 @@ export function AppFooter() {
         </div>
 
         <div className="relative z-10 mt-16 flex flex-col gap-5 border-t border-white/[0.08] pt-8 md:flex-row md:items-center md:justify-between">
-          <p className="text-[12px] text-zinc-500">&copy; {year} Ardeno Studio. Built in Sri Lanka.</p>
+          <p className="text-[12px] text-zinc-500">
+            {t("footer.copyright", "© {year} Ardeno Studio. Built in Sri Lanka.", { year })}
+          </p>
 
           <div className="flex flex-wrap items-center gap-2.5">
             {socialLinks.map(({ icon: Icon, label, href }) => (
@@ -215,7 +240,7 @@ export function AppFooter() {
               onClick={() => window.scrollTo({ top: 0, behavior: scrollBehavior() })}
               className="ml-1 rounded-[11px] border border-white/[0.1] bg-white/[0.04] px-3.5 py-2 text-[12px] font-medium text-zinc-400 transition-colors duration-200 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
             >
-              Back to top
+              {t("footer.backToTop", "Back to top")}
             </button>
           </div>
         </div>
