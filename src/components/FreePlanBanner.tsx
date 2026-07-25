@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { Crown, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 /** Compact plan callout for free users browsing the gated product. */
 export function FreePlanBanner() {
   const { user, hasProAccess, isAdmin } = useAuth();
+  const { t } = useAppPreferences();
   if (!user || hasProAccess || isAdmin) return null;
 
   return (
@@ -15,7 +17,7 @@ export function FreePlanBanner() {
             <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
           </span>
           <span>
-            You&apos;re on the <span className="font-bold">Free</span> plan — Pro lanes, exports, and deep analytics stay locked.
+            {t("freeBanner.body", "You're on the Free plan — Pro lanes, exports, and deep analytics stay locked.")}
           </span>
         </p>
         <Link
@@ -23,7 +25,7 @@ export function FreePlanBanner() {
           className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
         >
           <Crown className="h-3.5 w-3.5" aria-hidden />
-          Upgrade
+          {t("common.upgrade", "Upgrade")}
         </Link>
       </div>
     </div>

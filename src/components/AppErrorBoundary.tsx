@@ -80,6 +80,8 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    // AppErrorBoundary wraps <App /> in main.tsx, outside AppPreferencesProvider —
+    // keep English chrome here (errorBoundary.* keys exist for when this is moved inside).
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <motion.div

@@ -6,6 +6,7 @@ import { formatCompactAge, getListingDataFreshness } from "@/lib/dataFreshness";
 import { isReasonableListingPrice } from "@/lib/formatting";
 import { useCountUp } from "@/hooks/useCountUp";
 import type { DashboardInsights, LiveMarketSnapshot, StatsOverview } from "@/types/car";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 interface MarketIntelligencePanelProps {
   snapshot: LiveMarketSnapshot | null;
@@ -80,6 +81,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   stats,
   insights,
 }: MarketIntelligencePanelProps) {
+  const { t } = useAppPreferences();
   const totalIndexed = Number(snapshot?.total_listings ?? stats?.total_listings ?? 0);
   const pricedListings = Number(snapshot?.priced_listings ?? 0);
   const unavailableCount = Number(
@@ -114,7 +116,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
       ? liveCount.toLocaleString()
       : liveListings === 0
         ? "0"
-        : "No indexed listings";
+        : t("intel.noIndexed", "No indexed listings");
 
   // Live incoming feed — prefer real scrape runs, fall back to scored deals.
   const feed = useMemo<FeedRow[]>(() => {
@@ -170,7 +172,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
           />
           <div className="relative flex h-full flex-col">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Live listings</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">{t("intel.liveListings", "Live listings")}</p>
               <DataFreshnessIndicator
                 latestListingAt={snapshot?.latest_listing_at}
                 lastUpdated={stats?.last_updated}
@@ -186,16 +188,18 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
 
             {unavailableCount > 0 && totalIndexed > pricedListings ? (
               <p className="mt-2 text-[12px] font-medium text-muted-foreground">
-                <span className="num text-muted-foreground">{totalIndexed.toLocaleString()}</span> total indexed ·{" "}
-                <span className="num text-muted-foreground">{unavailableCount.toLocaleString()}</span> awaiting price
+                {t("intel.totalIndexed", "{n} total indexed · {u} awaiting price", {
+                  n: totalIndexed.toLocaleString(),
+                  u: unavailableCount.toLocaleString(),
+                })}
               </p>
             ) : null}
 
             <p className="mt-3 text-[13px] font-medium text-muted-foreground">
-              Across{" "}
-              <span className="font-semibold text-foreground num">{sourceCount > 0 ? sourceCount : 10}</span> live sources and{" "}
-              <span className="font-semibold text-foreground num">{districtCount > 0 ? districtCount : 25}</span> districts —
-              indexed continuously, scored against market medians.
+              {t("intel.acrossSources", "Across {sources} live sources and {districts} districts — indexed continuously, scored against market medians.", {
+                sources: sourceCount > 0 ? sourceCount : 10,
+                districts: districtCount > 0 ? districtCount : 25,
+              })}
             </p>
 
             {/* Source badges */}
@@ -212,14 +216,14 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
         </div>
 
         {/* Supporting metric cells */}
-        <MetricCell label="Avg price" value={avgPrice > 0 ? formatPrice(avgCount) : "—"} />
+        <MetricCell label={t("intel.avgPrice", "Avg price")} value={avgPrice > 0 ? formatPrice(avgCount) : "—"} />
         <MetricCell
-          label="MoM change"
-          value={momChange == null ? "Building history" : `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`}
+          label={t("intel.momChange", "MoM change")}
+          value={momChange == null ? t("stats.buildingHistory", "Building history") : `${momChange >= 0 ? "+" : ""}${momChange.toFixed(1)}%`}
           tone={momChange == null ? undefined : momChange > 0 ? "up" : momChange < 0 ? "down" : undefined}
         />
         <MetricCell
-          label="New · 24h"
+          label={t("intel.new24h", "New · 24h")}
           value={
             new24h == null
               ? "—"
@@ -228,7 +232,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
                 : "0"
           }
         />
-        <MetricCell label="Good deals" value={goodDeals > 0 ? dealsCount.toLocaleString() : "—"} />
+        <MetricCell label={t("intel.goodDeals", "Good deals")} value={goodDeals > 0 ? dealsCount.toLocaleString() : "—"} />
       </div>
 
       {/* ── Live incoming feed ── */}
@@ -236,14 +240,14 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
             <Activity className="h-3.5 w-3.5 text-primary/70" />
-            Live incoming feed
+            {t("intel.liveFeed", "Live incoming feed")}
           </p>
           <span
             className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground"
             title={feedSyncAt ? freshness.absoluteLabel : undefined}
           >
             <Radio className="h-3 w-3 text-primary/70" />
-            {awaitingFeedSync ? "Awaiting sync" : `Synced ${feedSyncLabel}`}
+            {awaitingFeedSync ? t("intel.awaitingSync", "Awaiting sync") : t("intel.synced", "Synced {age}", { age: feedSyncLabel })}
           </span>
         </div>
         <div className="divide-y divide-border">
@@ -256,9 +260,9 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
                 </div>
                 <div className="flex shrink-0 items-center gap-4">
                   {row.found > 0 ? (
-                    <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400/90 num">+{row.fresh.toLocaleString()} new</span>
+                    <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400/90 num">{t("intel.newSuffix", "+{n} new", { n: row.fresh.toLocaleString() })}</span>
                   ) : (
-                    <span className="text-[12px] font-bold text-primary/80 num">+{row.fresh.toFixed(0)} deal</span>
+                    <span className="text-[12px] font-bold text-primary/80 num">{t("intel.dealSuffix", "+{n} deal", { n: row.fresh.toFixed(0) })}</span>
                   )}
                   <span className="w-8 text-right text-[11px] text-muted-foreground num">{row.time}</span>
                 </div>
@@ -266,7 +270,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             ))
           ) : (
             <p className="px-5 py-8 text-center text-[12px] text-muted-foreground">
-              {awaitingFeedSync ? "Awaiting live sync" : "No recent scrape activity"}
+              {awaitingFeedSync ? t("intel.awaitingLiveSync", "Awaiting live sync") : t("intel.noScrapeActivity", "No recent scrape activity")}
             </p>
           )}
         </div>
@@ -288,12 +292,12 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
           >
             {freshness.dataAsOfLabel}
             {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
-              <span> · stats refreshed {formatCompactAge(freshness.statsAt)} ago</span>
+              <span>{t("intel.statsRefreshed", "· stats refreshed {age} ago", { age: formatCompactAge(freshness.statsAt) })}</span>
             ) : null}
           </p>
           {snapshot?.generated_at ? (
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
-              Snapshot {formatCompactAge(snapshot.generated_at)} ago
+              {t("intel.snapshotAgo", "Snapshot {age} ago", { age: formatCompactAge(snapshot.generated_at) })}
             </p>
           ) : null}
         </div>

@@ -6,6 +6,7 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { revealItem, springSoft } from "@/lib/motion";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 const LANES = [
   { name: "Toyota Aqua", listings: 824, median: "Rs. 7.8M", district: "Colombo" },
@@ -36,15 +37,16 @@ function LockedOverlay() {
 }
 
 export default function ProPreview() {
+  const { t } = useAppPreferences();
   return (
     <PageCanvas>
       <PageHero
         theme="default"
-        eyebrow="Pro Preview"
+        eyebrow={t("pro.previewTitle", "Pro preview.")}
         eyebrowIcon={Crown}
         watermarkIcon={BarChart3}
-        title={<>Pro workspace preview<span className="text-sheen">.</span></>}
-        description="See the depth of lane drill-downs, district profiles, and export packs before you sign in."
+        title={<>{t("pro.previewTitle", "Pro preview.")}</>}
+        description={t("pro.previewBody", "Explore the locked Pro terminal layout. Subscribe to unlock live drill-downs and exports.")}
         highlights={[
           { label: "Lanes", value: "4+", hint: "Model-level drill downs" },
           { label: "Exports", value: String(REPORTS.length), hint: "Report formats in Pro" },

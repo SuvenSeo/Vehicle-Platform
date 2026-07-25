@@ -38,6 +38,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { BRAND } from "@/lib/brand";
+import { useAppPreferences } from "@/lib/appPreferences";
 
 function formatCount(value: number | undefined) {
   return Number(value || 0).toLocaleString();
@@ -72,6 +73,7 @@ function MetricTile({
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { t } = useAppPreferences();
   const queryClient = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePlan, setInvitePlan] = useState<"free" | "pro" | "enterprise">("free");
@@ -166,14 +168,13 @@ export default function AdminDashboard() {
           <div className="max-w-2xl">
             <p className="section-eyebrow mb-3 inline-flex items-center gap-2">
               <Shield className="h-3.5 w-3.5" aria-hidden />
-              Admin console
+              {t("admin.eyebrow", "Admin console")}
             </p>
             <h1 className="display-1 text-foreground">
-              {BRAND.name} control<span className="text-sheen">.</span>
+              {t("admin.title", "{brand} control.", { brand: BRAND.name })}
             </h1>
             <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground">
-              Signed in as <span className="font-semibold text-foreground">{user?.email}</span>.
-              Provision seats, set free or Pro access, and monitor the live market pipeline.
+              {t("admin.subtitle", "Signed in as {email}. Provision seats, set free or Pro access, and monitor the live market pipeline.", { email: user?.email || "" })}
             </p>
           </div>
           <Button
@@ -187,7 +188,7 @@ export default function AdminDashboard() {
             }}
           >
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            Refresh
+            {t("common.refresh", "Refresh")}
           </Button>
         </motion.header>
 
@@ -197,25 +198,25 @@ export default function AdminDashboard() {
           ) : (
             <>
               <MetricTile
-                label="Live listings"
+                label={t("admin.liveListings", "Live listings")}
                 value={formatCount(overview?.listings.live)}
                 hint={`${formatCount(overview?.listings.total)} total scraped`}
                 icon={Car}
               />
               <MetricTile
-                label="Seated users"
+                label={t("admin.seatedUsers", "Seated users")}
                 value={formatCount(overview?.users.total)}
                 hint={`${formatCount(overview?.users.free)} free · ${formatCount(overview?.users.pro)} pro`}
                 icon={Users}
               />
               <MetricTile
-                label="Pending invites"
+                label={t("admin.pendingInvites", "Pending invites")}
                 value={formatCount(overview?.invites.pending)}
                 hint={`${formatCount(overview?.users.admins)} admins`}
                 icon={MailPlus}
               />
               <MetricTile
-                label="Open feedback"
+                label={t("admin.openFeedback", "Open feedback")}
                 value={formatCount(overview?.feedback.open)}
                 hint={`${formatCount(overview?.dealers.verified)} verified dealers`}
                 icon={Activity}
@@ -231,8 +232,8 @@ export default function AdminDashboard() {
                 <MailPlus className="h-4 w-4 text-primary" aria-hidden />
               </div>
               <div>
-                <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">Invite by email</h2>
-                <p className="text-[12px] text-muted-foreground">Only invited addresses can create an account.</p>
+                <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">{t("admin.inviteByEmail", "Invite by email")}</h2>
+                <p className="text-[12px] text-muted-foreground">{t("admin.inviteHint", "Only invited addresses can create an account.")}</p>
               </div>
             </div>
 
@@ -243,7 +244,7 @@ export default function AdminDashboard() {
 
             <form onSubmit={onInvite} className="mt-6 space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="invite-email" className="field-label">Email</Label>
+                <Label htmlFor="invite-email" className="field-label">{t("admin.email", "Email")}</Label>
                 <Input
                   id="invite-email"
                   type="email"
@@ -255,7 +256,7 @@ export default function AdminDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="field-label">Plan</Label>
+                  <Label className="field-label">{t("admin.plan", "Plan")}</Label>
                   <Select value={invitePlan} onValueChange={(value) => setInvitePlan(value as typeof invitePlan)}>
                     <SelectTrigger className="h-11 rounded-xl bg-surface">
                       <SelectValue />
@@ -268,7 +269,7 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="field-label">Role</Label>
+                  <Label className="field-label">{t("admin.role", "Role")}</Label>
                   <Select value={inviteRole} onValueChange={(value) => setInviteRole(value as typeof inviteRole)}>
                     <SelectTrigger className="h-11 rounded-xl bg-surface">
                       <SelectValue />
@@ -282,13 +283,13 @@ export default function AdminDashboard() {
               </div>
               <Button type="submit" disabled={inviteMutation.isPending} className="h-11 w-full gap-2 rounded-full text-[12px] font-bold uppercase tracking-[0.1em]">
                 <Crown className="h-3.5 w-3.5" aria-hidden />
-                {inviteMutation.isPending ? "Creating…" : "Create invite"}
+                {inviteMutation.isPending ? t("admin.creating", "Creating…") : t("admin.createInvite", "Create invite")}
               </Button>
             </form>
 
             {lastInviteLink ? (
               <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/[0.06] p-4">
-                <p className="tech-label text-primary-bright">Share this link</p>
+                <p className="tech-label text-primary-bright">{t("admin.shareLink", "Share this link")}</p>
                 <p className="mt-2 break-all text-[12px] font-medium leading-relaxed text-foreground">{lastInviteLink}</p>
                 <Button type="button" variant="outline" size="sm" className="mt-3 h-9 gap-1.5 rounded-full" onClick={() => void copyLink(lastInviteLink)}>
                   <Copy className="h-3 w-3" aria-hidden />
@@ -299,7 +300,7 @@ export default function AdminDashboard() {
 
             <div className="mt-8 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="tech-label text-muted-foreground">Pending invites</h3>
+                <h3 className="tech-label text-muted-foreground">{t("admin.pendingInvites", "Pending invites")}</h3>
                 <span className="rounded-full border border-border bg-surface px-2.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground">
                   {pendingInvites.length}
                 </span>
@@ -309,7 +310,7 @@ export default function AdminDashboard() {
               ) : pendingInvites.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-surface/60 px-4 py-6 text-center">
                   <Sparkles className="mx-auto h-4 w-4 text-primary/60" aria-hidden />
-                  <p className="mt-2 text-[13px] text-muted-foreground">No pending invites.</p>
+                  <p className="mt-2 text-[13px] text-muted-foreground">{t("admin.noPendingInvites", "No pending invites.")}</p>
                 </div>
               ) : (
                 pendingInvites.map((invite: AdminInvite) => {
@@ -349,7 +350,7 @@ export default function AdminDashboard() {
             <div className="data-card p-6">
               <div className="mb-5 flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary" aria-hidden />
-                <h2 className="font-display text-lg font-semibold tracking-tight">Top makes · live</h2>
+                <h2 className="font-display text-lg font-semibold tracking-tight">{t("admin.topMakes", "Top makes · live")}</h2>
               </div>
               <div className="space-y-2">
                 {(overview?.topMakes || []).length === 0 ? (
@@ -376,7 +377,7 @@ export default function AdminDashboard() {
             <div className="data-card p-6">
               <div className="mb-5 flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" aria-hidden />
-                <h2 className="font-display text-lg font-semibold tracking-tight">Recent scrapes</h2>
+                <h2 className="font-display text-lg font-semibold tracking-tight">{t("admin.recentScrapes", "Recent scrapes")}</h2>
               </div>
               <div className="space-y-2">
                 {(overview?.recentScrapes || []).length === 0 ? (
@@ -405,7 +406,7 @@ export default function AdminDashboard() {
           <div className="border-b border-border px-6 py-5 sm:px-7">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-primary" aria-hidden />
-              <h2 className="font-display text-lg font-semibold tracking-tight">Users & plans</h2>
+              <h2 className="font-display text-lg font-semibold tracking-tight">{t("admin.usersPlans", "Users & plans")}</h2>
             </div>
             <p className="mt-1 text-[12px] text-muted-foreground">
               Upgrade free seats to Pro instantly — changes apply on their next session refresh.
@@ -416,7 +417,7 @@ export default function AdminDashboard() {
               <Skeleton className="h-44 rounded-2xl" />
             ) : (usersQuery.data?.users || []).length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-surface/50 px-5 py-10 text-center">
-                <p className="text-[14px] font-medium text-foreground">No database users yet</p>
+                <p className="text-[14px] font-medium text-foreground">{t("admin.noUsers", "No database users yet")}</p>
                 <p className="mx-auto mt-2 max-w-md text-[13px] text-muted-foreground">
                   Sign in once with an AUTH_USERS bootstrap admin to sync, or create your first invite above.
                 </p>
@@ -476,7 +477,7 @@ export default function AdminDashboard() {
                         <td className="py-4 pr-3">
                           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
                             {row.isActive ? <Check className="h-3.5 w-3.5 text-primary" /> : null}
-                            {row.isActive ? "Active" : "Disabled"} · {row.subscriptionStatus}
+                            {row.isActive ? t("admin.active", "Active") : t("admin.disabled", "Disabled")} · {row.subscriptionStatus}
                           </span>
                         </td>
                         <td className="py-4">
@@ -493,7 +494,7 @@ export default function AdminDashboard() {
                               })
                             }
                           >
-                            {row.isActive ? "Disable" : "Enable"}
+                            {row.isActive ? t("admin.disable", "Disable") : t("admin.enable", "Enable")}
                           </Button>
                         </td>
                       </tr>

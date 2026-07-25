@@ -142,7 +142,7 @@ function ClaimYardCard() {
 
   const handleClaim = async () => {
     if (!displayName.trim()) {
-      setError("Yard / seller name is required.");
+      setError(t("dealer.yardRequired", "Yard / seller name is required."));
       return;
     }
     setSaving(true);
@@ -158,7 +158,7 @@ function ClaimYardCard() {
       storeDealerClaimToken(data.claim_token);
       setProfile(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Claim failed");
+      setError(err instanceof Error ? err.message : t("dealer.claimFailed", "Claim failed"));
     } finally {
       setSaving(false);
     }
@@ -249,13 +249,14 @@ function ClaimYardCard() {
         disabled={saving}
         className="mt-4 inline-flex h-9 items-center rounded-full bg-primary px-4 text-[11px] font-bold text-white disabled:opacity-40"
       >
-        {saving ? "Saving…" : profile ? "Update claim" : "Claim profile"}
+        {saving ? t("common.saving", "Saving…") : profile ? t("dealer.updateClaim", "Update claim") : t("dealer.claimProfile", "Claim profile")}
       </button>
     </section>
   );
 }
 
 function InventoryBenchmark() {
+  const { t } = useAppPreferences();
   const [urlsText, setUrlsText] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UrlBenchmarkResult[] | null>(null);
@@ -302,7 +303,7 @@ function InventoryBenchmark() {
           className="w-full resize-none rounded-xl border border-border bg-card px-3 py-2.5 text-[12px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary/40"
         />
         <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-[10px] text-muted-foreground font-bold num">{urlCount > 0 ? `${urlCount} URL${urlCount === 1 ? "" : "s"}` : "Paste URLs above"}</span>
+          <span className="text-[10px] text-muted-foreground font-bold num">{urlCount > 0 ? `${urlCount} URL${urlCount === 1 ? "" : "s"}` : t("dealer.pasteUrls", "Paste URLs above")}</span>
           <div className="flex items-center gap-2">
             {(results !== null || urlsText) && (
               <button
@@ -408,13 +409,14 @@ function InventoryBenchmark() {
       )}
 
       {results !== null && results.length === 0 && (
-        <p className="py-6 text-center text-[11px] text-muted-foreground">No results returned.</p>
+        <p className="py-6 text-center text-[11px] text-muted-foreground">{t("dealer.noResults", "No results returned.")}</p>
       )}
     </div>
   );
 }
 
 export default function DealerDashboard() {
+  const { t } = useAppPreferences();
   const [collapsed, setCollapsed] = useState<Record<WidgetKey, boolean>>({ turnover: false, priceGap: false, districtDemand: false, inventoryBenchmark: false });
   const [notifIdx, setNotifIdx] = useState(0);
   const hasAuthToken = Boolean(getStoredAuthToken());
@@ -478,13 +480,13 @@ export default function DealerDashboard() {
   const dashboardLoading = statsQuery.isPending || insightsQuery.isPending || districtsQuery.isPending;
   const dashboardError =
     statsQuery.isError && insightsQuery.isError && districtsQuery.isError
-      ? "Unable to load dealer intelligence."
+      ? t("dealer.loadError", "Unable to load dealer intelligence.")
       : null;
 
   useEffect(() => {
     if (notifications.length <= 1) return undefined;
-    const t = window.setInterval(() => setNotifIdx((i) => (i + 1) % notifications.length), 5500);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(() => setNotifIdx((i) => (i + 1) % notifications.length), 5500);
+    return () => window.clearInterval(timer);
   }, [notifications.length]);
 
   useEffect(() => {
@@ -496,7 +498,6 @@ export default function DealerDashboard() {
     notifications[0] ??
     "Market intelligence syncs from live listing data when available.";
   const toggle = (k: WidgetKey) => setCollapsed((p) => ({ ...p, [k]: !p[k] }));
-  const { t } = useAppPreferences();
 
   const retryAll = () => {
     void statsQuery.refetch();
@@ -509,18 +510,18 @@ export default function DealerDashboard() {
     <PageCanvas>
       <PageHero
         theme="dealer"
-        eyebrow="Dealer workspace"
+        eyebrow={t("dealer.eyebrow", "Dealer workspace")}
         watermarkIcon={BarChart3}
         title={<>{t("dealer.commandCenter", "Dealer command center")}<span className="text-sheen">.</span></>}
-        description="Arbitrage, demand mapping, and lead flow intelligence."
+        description={t("dealer.description", "Arbitrage, demand mapping, and lead flow intelligence.")}
         highlights={[
-          { label: "Inventory", value: "Live", hint: "Public market browse" },
+          { label: t("common.inventory", "Inventory"), value: t("common.live", "Live"), hint: "Public market browse" },
           { label: "Pulse", value: "Gov", hint: "Official import signals" },
-          { label: "Plans", value: "Pro", hint: "Dealer workspace tiers" },
+          { label: t("dealer.plans", "Dealer plans"), value: t("common.pro", "Pro"), hint: "Dealer workspace tiers" },
         ]}
         actions={
           <>
-            <Link to="/#market" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Open public inventory</Link>
+            <Link to="/#market" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">{t("dealer.openPublicInventory", "Open public inventory")}</Link>
             <Link to="/pricing" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Dealer plans</Link>
             <Link to="/official-pulse" className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground no-underline shadow-soft transition-all hover:border-primary/40 hover:text-foreground hover:bg-surface active:scale-[0.98]">Official pulse</Link>
           </>
@@ -532,7 +533,7 @@ export default function DealerDashboard() {
           <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500 dark:text-rose-400" />
             <div className="min-w-0">
-              <p className="text-[12px] font-bold text-foreground">Dealer data unavailable</p>
+              <p className="text-[12px] font-bold text-foreground">{t("dealer.unavailable", "Dealer data unavailable")}</p>
               <p className="mt-1 text-[11px] text-muted-foreground font-medium">{dashboardError}</p>
               <button type="button" onClick={retryAll} className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[10px] font-bold text-foreground transition-all hover:border-primary/40 hover:bg-card active:scale-[0.97]">
                 <RefreshCw className="h-3 w-3" /> Retry
@@ -550,12 +551,12 @@ export default function DealerDashboard() {
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">Motormila</p>
               <h2 className="mt-2 font-display text-lg font-bold tracking-tight text-foreground">Command stack</h2>
-              <nav className="mt-4 space-y-1" aria-label="Dealer command stack">
+              <nav className="mt-4 space-y-1" aria-label={t("dealer.commandStack", "Command stack")}>
                 {[
                   { label: t("dealer.turnover", "Inventory Turnover"), meta: turnoverData.length ? `${turnoverData.length} models` : "—" },
-                  { label: "Price Gap Scanner", meta: priceGaps.length ? `${priceGaps.length} districts` : "—" },
+                  { label: t("dealer.priceGapScanner", "Price Gap Scanner"), meta: priceGaps.length ? `${priceGaps.length} districts` : "—" },
                   { label: t("dealer.districtDemand", "District Demand"), meta: districtDemand.length ? `${districtDemand.length} zones` : "—" },
-                  { label: "Lead Notifications", meta: notifications.length > 1 ? "live" : "standby" },
+                  { label: t("dealer.leadNotifications", "Lead Notifications"), meta: notifications.length > 1 ? t("common.live", "Live").toLowerCase() : "standby" },
                   { label: t("dealer.benchmark", "Inventory Benchmark"), meta: "URL upload" },
                 ].map((i) => (
                   <div key={i.label} className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2 transition-all hover:border-primary/40 hover:bg-card">
@@ -564,7 +565,7 @@ export default function DealerDashboard() {
                   </div>
                 ))}
                 <div className="pt-3">
-                  <p className="mb-2 px-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Quick tools</p>
+                  <p className="mb-2 px-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("dealer.quickTools", "Quick tools")}</p>
                   {DEALER_QUICK_TOOLS.map((tool) => (
                     <Link
                       key={tool.id}
@@ -581,7 +582,7 @@ export default function DealerDashboard() {
               </nav>
             </motion.div>
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-4 shadow-soft">
-              <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary-bright" /><p className="text-[10px] font-bold text-primary-bright">Trust tier</p></div>
+              <div className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-primary-bright" /><p className="text-[10px] font-bold text-primary-bright">{t("dealer.trustTier", "Trust tier")}</p></div>
               {dashboardLoading ? (
                 <div className="mt-3 h-8 animate-pulse rounded-md bg-surface" />
               ) : (

@@ -342,13 +342,13 @@ export default function Dashboard() {
         rows.forEach((r) => { if (r?.id) map.set(r.id, r); });
         const hydrated = watchlistIds.map((id) => map.get(id)).filter((r): r is CarListing => Boolean(r));
         setSavedListings(hydrated);
-        if (!hydrated.length) setSavedListingsError("Saved listings are currently unavailable.");
-        else if (hydrated.length < watchlistIds.length) setSavedListingsError("Some saved listings are no longer available.");
+        if (!hydrated.length) setSavedListingsError(t("home.savedUnavailable", "Saved listings are currently unavailable."));
+        else if (hydrated.length < watchlistIds.length) setSavedListingsError(t("home.someSavedGone", "Some saved listings are no longer available."));
       })
-      .catch(() => { if (!cancelled) { setSavedListings([]); setSavedListingsError("Unable to load saved listings."); } })
+      .catch(() => { if (!cancelled) { setSavedListings([]); setSavedListingsError(t("home.loadSavedFailed", "Unable to load saved listings.")); } })
       .finally(() => { if (!cancelled) setSavedListingsLoading(false); });
     return () => { cancelled = true; };
-  }, [showSavedListings, watchlistIds]);
+  }, [showSavedListings, watchlistIds, t]);
 
   useEffect(() => {
     const latestAt = liveMarketSnapshot?.latest_listing_at || null;
@@ -509,9 +509,9 @@ export default function Dashboard() {
       setFilters((prev) => ({ ...prev, q: query, make: makeMatch?.make ?? prev.make, model: makeMatch ? undefined : prev.model, page: 1 }));
     });
     setHeroSuggestionsOpen(false);
-    setHeroSearchMessage(makeMatch ? null : "Searching vehicle index only.");
+    setHeroSearchMessage(makeMatch ? null : t("home.searchingIndexOnly", "Searching vehicle index only."));
     scrollToMarket();
-  }, [applyHeroSuggestion, heroSearch, heroSuggestions, makes, scrollToMarket]);
+  }, [applyHeroSuggestion, heroSearch, heroSuggestions, makes, scrollToMarket, t]);
 
   const focusModel = useCallback((make: string, model?: string) => {
     startTransition(() => { setFilters((prev) => ({ ...prev, q: undefined, make, model: model || undefined, page: 1 })); });
@@ -567,7 +567,7 @@ export default function Dashboard() {
 
   const activeFilterLabels = useMemo(
     () => [
-      filters.price_availability === "unavailable" ? "Missing prices" : undefined,
+      filters.price_availability === "unavailable" ? t("home.missingPrices", "Missing prices") : undefined,
       filters.vehicle_category && filters.vehicle_category !== "cars" ? filters.vehicle_category : undefined,
       filters.q ? `"${filters.q}"` : undefined,
       filters.source,
@@ -579,7 +579,7 @@ export default function Dashboard() {
       filters.fuel_type,
       filters.transmission,
     ].filter(Boolean) as string[],
-    [filters],
+    [filters, t],
   );
     const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroSearch.trim().length > 0;
 
@@ -722,7 +722,7 @@ export default function Dashboard() {
                             </button>
                           ))}
                         </div>
-                      ) : <p className="px-3 py-2 text-[11px] text-muted-foreground">No matches.</p>}
+                      ) : <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("home.noMatches", "No matches.")}</p>}
                     </div>
                   )}
                 </div>
@@ -733,7 +733,7 @@ export default function Dashboard() {
 
                 {/* Quick scans */}
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Popular</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("home.popular", "Popular")}</span>
                   {([
                     { label: "Toyota Aqua", make: "Toyota", model: "Aqua" },
                     { label: "Honda Vezel", make: "Honda", model: "Vezel" },
@@ -752,7 +752,7 @@ export default function Dashboard() {
 
           {/* ── Full-width live intelligence console ── */}
           <div className="mt-12 lg:mt-16">
-            <ProFeatureLock label="Live intelligence console">
+            <ProFeatureLock label={t("home.liveIntelLock", "Live intelligence console")}>
               <Suspense fallback={null}>
                 <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
               </Suspense>
@@ -768,10 +768,9 @@ export default function Dashboard() {
           <SectionHeader eyebrow={t("home.marketPulse", "Market pulse")} title={t("home.whatsMoving", "What's moving right now")} />
           <div className="grid gap-10 lg:grid-cols-3">
 
-            {/* Trending models */}
             <div>
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="font-display text-base font-semibold tracking-tight text-foreground">Trending models</h3>
+                <h3 className="font-display text-base font-semibold tracking-tight text-foreground">{t("home.trendingModels", "Trending models")}</h3>
                 <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
                   All trends <ArrowUpRight className="h-3 w-3" />
                 </Link>
@@ -794,12 +793,12 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-muted-foreground">Awaiting data</p>
+                <p className="text-[11px] text-muted-foreground">{t("home.awaitingData", "Awaiting data")}</p>
               )}
             </div>
 
             {/* Hot deals */}
-            <ProFeatureLock label="Best deals scoring">
+            <ProFeatureLock label={t("home.bestDealsLock", "Best deals scoring")}>
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
@@ -829,7 +828,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-muted-foreground">No deals found in current slice</p>
+                <p className="text-[11px] text-muted-foreground">{t("home.noDeals", "No deals found in current slice")}</p>
               )}
             </div>
             </ProFeatureLock>
@@ -914,10 +913,10 @@ export default function Dashboard() {
                 className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
               >{marketAlerts.length} {t("common.alerts", "alerts")}</button>
               <div className="hidden items-center gap-0.5 md:flex">
-                <button type="button" onClick={() => setMarketView("grid")} aria-label="Grid view" aria-pressed={marketView === "grid"}
+                <button type="button" onClick={() => setMarketView("grid")} aria-label={t("home.gridView", "Grid view")} aria-pressed={marketView === "grid"}
                   className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><LayoutGrid className="h-3.5 w-3.5" /></button>
-                <button type="button" onClick={() => setMarketView("list")} aria-label="List view" aria-pressed={marketView === "list"}
+                <button type="button" onClick={() => setMarketView("list")} aria-label={t("home.listView", "List view")} aria-pressed={marketView === "list"}
                   className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "list" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><List className="h-3.5 w-3.5" /></button>
               </div>
@@ -980,8 +979,8 @@ export default function Dashboard() {
                 </div>
               ) : listings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">No results</p>
-                  <p className="mt-2 text-sm text-muted-foreground">Widen your filters or clear them to browse.</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("home.noResults", "No results")}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
                     className="mt-4 rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
                   >Reset filters</button>
@@ -1084,7 +1083,7 @@ export default function Dashboard() {
       {/* ── MARKET PULSE ────────────────────────────────────────── */}
       <RevealSection className="border-t border-border">
         <div className="mx-auto max-w-[1560px] px-5 py-14 sm:px-6 lg:py-20">
-          <SectionHeader eyebrow={t("home.deeperIntel", "Deeper intelligence")} title="Fuel mix, market signals & regional momentum" />
+          <SectionHeader eyebrow={t("home.deeperIntel", "Deeper intelligence")} title={t("home.deeperTitle", "Fuel mix, market signals & regional momentum")} />
           <div className="space-y-6">
             <FuelMixStrip />
             <MarketSignalsStrip />
@@ -1247,7 +1246,7 @@ export default function Dashboard() {
                 <div key={alert.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{alert.label}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : "New listings"}</p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : t("home.newListingsAvailable", "New listings available")}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
@@ -1278,7 +1277,7 @@ export default function Dashboard() {
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Remove</button>
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">{t("home.remove", "Remove")}</button>
                     <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
                       Open <ExternalLink className="h-2.5 w-2.5" />
                     </Link>
