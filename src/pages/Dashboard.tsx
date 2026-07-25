@@ -593,7 +593,7 @@ export default function Dashboard() {
     ].filter(Boolean) as string[],
     [filters, t],
   );
-    const heroQuery = heroSearch.trim();
+  const heroQuery = heroSearch.trim();
   const showHeroPopular = heroSuggestionsOpen && heroQuery.length === 0;
   const showHeroSuggestions = (heroSuggestionsOpen || heroSuggestionsLoading) && heroQuery.length > 0;
 
