@@ -36,3 +36,29 @@ export function formatRelativeTime(iso: string | null | undefined, now: Date = n
 
   return `${Math.floor(diffHours / 24)}d ago`;
 }
+
+type TranslateFn = (
+  key: string,
+  fallback?: string,
+  vars?: Record<string, string | number | null | undefined>,
+) => string;
+
+/** Locale-aware relative time using common.* keys via a translator (e.g. useAppPreferences().t). */
+export function formatRelativeTimeI18n(
+  iso: string | null | undefined,
+  t: TranslateFn,
+  now: Date = new Date(),
+): string {
+  if (!iso) return t("common.never", "never");
+
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return t("common.never", "never");
+
+  const diffMs = now.getTime() - parsed.getTime();
+  if (diffMs < 0 || diffMs < 3600000) return t("common.justNow", "just now");
+
+  const diffHours = Math.floor(diffMs / 3600000);
+  if (diffHours < 24) return t("common.hoursAgo", "{n}h ago", { n: diffHours });
+
+  return t("common.daysAgo", "{n}d ago", { n: Math.floor(diffHours / 24) });
+}

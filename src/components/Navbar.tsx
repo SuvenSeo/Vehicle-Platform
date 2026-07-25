@@ -16,7 +16,7 @@ import {
 import { usePipelineStatus } from "@/hooks/usePipelineStatus";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
-import { formatRelativeTime } from "@/lib/formatting";
+import { formatRelativeTimeI18n } from "@/lib/formatting";
 
 const GITHUB_REPO = "SuvenSeo/Vehicle-Platform";
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
@@ -45,25 +45,25 @@ export function Navbar() {
       { label: t("nav.home", "Home"), href: "/", id: "home", isRoute: true, activeOn: ["overview"] },
       { label: t("nav.market", "Market"), href: "#market", id: "market" },
       { label: t("nav.trends", "Trends"), href: "/trends", id: "trends", isRoute: true },
-      { label: "Calculator", href: "/calculator", id: "calculator", isRoute: true },
-      { label: "EV Hub", href: "/ev-hub", id: "ev-hub", isRoute: true },
+      { label: t("nav.calculator", "Calculator"), href: "/calculator", id: "calculator", isRoute: true },
+      { label: t("nav.evHub", "EV Hub"), href: "/ev-hub", id: "ev-hub", isRoute: true },
       { label: t("nav.valuation", "Valuation"), href: "/estimate", id: "estimate", isRoute: true },
-      { label: "Pricing", href: "/pricing", id: "pricing", isRoute: true },
-      { label: "Docs", href: "/docs", id: "docs", isRoute: true },
+      { label: t("nav.pricing", "Pricing"), href: "/pricing", id: "pricing", isRoute: true },
+      { label: t("nav.docs", "Docs"), href: "/docs", id: "docs", isRoute: true },
     ],
     [t],
   );
 
   const moreSections = useMemo(
     () => [
-      { label: t("nav.bestPicks", "Best Picks"), href: "/best-picks", detail: "Strict deal-score shortlist" },
-      { label: "Price Index", href: "/price-index", detail: "Mix-adjusted market index" },
-      { label: "Official Pulse", href: "/official-pulse", detail: "DMT, Customs & import signals" },
-      { label: "Dealer", href: "/dealer", detail: "Operator command center" },
-      { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: "Saved listing watches" },
+      { label: t("nav.bestPicks", "Best Picks"), href: "/best-picks", detail: t("nav.bestPicksDetail", "Strict deal-score shortlist") },
+      { label: t("nav.priceIndex", "Price Index"), href: "/price-index", detail: t("nav.priceIndexDetail", "Mix-adjusted market index") },
+      { label: t("nav.officialPulse", "Official Pulse"), href: "/official-pulse", detail: t("nav.officialPulseDetail", "DMT, Customs & import signals") },
+      { label: t("nav.dealer", "Dealer"), href: "/dealer", detail: t("nav.dealerDetail", "Operator command center") },
+      { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: t("nav.alertsDetail", "Saved listing watches") },
       { label: t("nav.settings", "Settings"), href: "/settings", detail: t("nav.settingsDetail", "Language and theme") },
       ...(isAdmin
-        ? [{ label: "Admin", href: "/admin", detail: "Invites, plans, analytics" }]
+        ? [{ label: t("nav.admin", "Admin"), href: "/admin", detail: t("nav.adminDetail", "Invites, plans, analytics") }]
         : []),
       isAuthenticated
         ? { label: t("nav.proDashboard", "Pro Dashboard"), href: "/pro", detail: t("nav.proDetail", "Paid market terminal") }
@@ -144,7 +144,7 @@ export function Navbar() {
           ? t("nav.syncing", "Syncing")
           : t("nav.statusUnknown", "Status unknown");
   const liveFreshnessLabel = latestSyncIso
-    ? formatRelativeTime(latestSyncIso)
+    ? formatRelativeTimeI18n(latestSyncIso, t)
     : liveState
       ? t("nav.awaiting", "Awaiting sync")
       : t("nav.statusUnavailable", "Unavailable");
@@ -224,7 +224,7 @@ export function Navbar() {
       <div className="flex justify-center px-2 pt-3 sm:px-3">
         <nav
           className="nav-glass pointer-events-auto w-[min(1480px,calc(100vw-16px))] overflow-visible rounded-full"
-          aria-label="Primary navigation"
+          aria-label={t("nav.primaryNavigation", "Primary navigation")}
         >
           <div className="relative flex min-h-[60px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[62px] sm:gap-2 sm:px-3">
             {/* ── Brand ─────────────────────────────────── */}
@@ -232,7 +232,7 @@ export function Navbar() {
               to="/"
               onClick={onHomeLinkClick}
               className="group flex shrink-0 items-center rounded-full px-2 py-1.5 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-2.5"
-              aria-label="Motormila home"
+              aria-label={t("nav.homeAria", "Motormila home")}
             >
               <span className="relative">
                 <BrandLogo size="nav" showTagline={false} />
@@ -279,10 +279,10 @@ export function Navbar() {
                   <button
                     type="button"
                     className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 md:inline-flex"
-                    aria-label="More workspaces"
+                    aria-label={t("nav.moreWorkspaces", "More workspaces")}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
-                    <span className="text-[12px] font-medium tracking-tight">More</span>
+                    <span className="text-[12px] font-medium tracking-tight">{t("nav.more", "More")}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -290,7 +290,7 @@ export function Navbar() {
                   className="w-60 rounded-3xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
                 >
                   <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Workspaces
+                    {t("nav.workspaces", "Workspaces")}
                   </p>
                   <DropdownMenuSeparator className="bg-border" />
                   {moreSections.map((section) => (
@@ -341,7 +341,7 @@ export function Navbar() {
                       className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-foreground outline-none transition-colors hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       <Shield className="h-3 w-3" />
-                      <span className="text-[12px] font-medium tracking-tight">Admin</span>
+                      <span className="text-[12px] font-medium tracking-tight">{t("nav.admin", "Admin")}</span>
                     </button>
                   ) : null}
                   <button
@@ -350,7 +350,9 @@ export function Navbar() {
                     className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Crown className="h-3 w-3" />
-                    <span className="text-[12px] font-medium tracking-tight">{hasProAccess ? "Pro" : "Upgrade"}</span>
+                    <span className="text-[12px] font-medium tracking-tight">
+                      {hasProAccess ? t("common.pro", "Pro") : t("nav.upgrade", "Upgrade")}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -378,11 +380,11 @@ export function Navbar() {
                 href={GITHUB_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Open Motormila repository"
+                aria-label={t("nav.openRepoAria", "Open Motormila repository")}
                 className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:inline-flex"
               >
                 <ExternalLink className="h-3 w-3" />
-                <span className="text-[12px] font-medium tracking-tight">GitHub</span>
+                <span className="text-[12px] font-medium tracking-tight">{t("nav.github", "GitHub")}</span>
                 {stars !== null && <span className="text-[11px] font-semibold text-muted-foreground num">{stars.toLocaleString()}</span>}
               </a>
 
@@ -392,7 +394,7 @@ export function Navbar() {
                 onClick={() => setMobileOpen((open) => !open)}
                 onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-label={mobileOpen ? t("nav.closeMenu", "Close menu") : t("nav.openMenu", "Open menu")}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
               >
@@ -408,13 +410,13 @@ export function Navbar() {
         <div
           id="mobile-menu"
           className="mx-auto mt-2 w-[min(1480px,calc(100vw-16px))] pointer-events-auto px-2 sm:px-3"
-          aria-label="Navigation menu"
+          aria-label={t("nav.navigationMenu", "Navigation menu")}
           onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
         >
           <div className="overflow-hidden rounded-3xl border border-border bg-popover/95 p-3.5 shadow-soft-lg backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Platform</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("nav.platform", "Platform")}</p>
                 <p className="mt-0.5 text-[11px] font-semibold text-foreground">Motormila</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1">
@@ -490,7 +492,7 @@ export function Navbar() {
             >
               <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
                 <ExternalLink className="h-3 w-3" />
-                Repository
+                {t("nav.repository", "Repository")}
               </span>
               {stars !== null && <span className="text-[11px] font-semibold text-muted-foreground num">{stars.toLocaleString()}</span>}
             </a>
