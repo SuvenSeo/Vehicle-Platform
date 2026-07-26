@@ -125,7 +125,7 @@ function pageContextFor(pathname: string, search: string): PageContext {
       summary: "The user is reviewing deal-score filtered listings and may need help comparing picks or spotting weak signals.",
       prompts: [
         { label: "Rank picks", value: "Rank the current best-pick style options by buyer usefulness." },
-        { label: "Avoid traps", value: "What deal-score traps should I watch for before contacting a seller?" },
+        { label: "Avoid traps", value: "What pricing traps should I watch for before contacting a seller?" },
         { label: "Shortlist", value: "Build a 3-car shortlist from strong value signals." },
       ],
     };
