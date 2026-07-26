@@ -112,15 +112,22 @@ export default function SignUp() {
     return <Navigate to="/" replace />;
   }
 
-  const planKey = invite?.plan === "pro" || invite?.plan === "enterprise" ? invite.plan : "free";
+  const planKey =
+    invite?.plan === "pro" || invite?.plan === "enterprise" || invite?.plan === "dealer"
+      ? invite.plan
+      : "free";
   const planMeta = {
     free: {
       title: t("signup.plan.free.title", "Free access"),
-      detail: t("signup.plan.free.detail", "Browse the market cockpit. Pro lanes and exports stay locked until upgraded."),
+      detail: t("signup.plan.free.detail", "Browse every page with soft limits. Scores, full history, and deep tools unlock on Pro."),
     },
     pro: {
       title: t("signup.plan.pro.title", "Pro access"),
       detail: t("signup.plan.pro.detail", "Full terminal — lane intelligence, district depth, and export packs."),
+    },
+    dealer: {
+      title: t("signup.plan.dealer.title", "Dealer access"),
+      detail: t("signup.plan.dealer.detail", "Everything in Pro plus the full dealer workspace, URL benchmark, and yard tools."),
     },
     enterprise: {
       title: t("signup.plan.enterprise.title", "Enterprise access"),

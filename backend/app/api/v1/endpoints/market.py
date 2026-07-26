@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy import desc, func
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from app.models.schemas import ImportPriceSnapshotRead, MarketSignalRead
 from app.services.rate_limit import RateLimiter
+from app.utils.plan_limits import FREE_PULSE_LIMIT, is_free_browse_plan
+from app.utils.request_access import resolve_request_access
 from db.models import HistoricalPriceObservation, ImportPriceSnapshot, MarketSignal
 from db.session import get_db
 
@@ -29,18 +31,28 @@ def _historical_observation_stats(db: Session) -> dict:
 
 @router.get("/signals", response_model=list[MarketSignalRead])
 def get_market_signals(
+    request: Request,
     source: str | None = None,
     signal_type: str | None = None,
     limit: int = Query(100, ge=1, le=500),
+    authorization: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ):
+    plan, role = resolve_request_access(request, authorization, db)
+    effective_limit = limit
+    if is_free_browse_plan(plan, role=role):
+        effective_limit = min(limit, FREE_PULSE_LIMIT)
+
     query = db.query(MarketSignal)
     if source:
         query = query.filter(func.lower(MarketSignal.source) == source.strip().lower())
     if signal_type:
         query = query.filter(func.lower(MarketSignal.signal_type) == signal_type.strip().lower())
-    return query.order_by(desc(MarketSignal.observed_at), desc(MarketSignal.id)).limit(limit).all()
-
+    return (
+        query.order_by(desc(MarketSignal.observed_at), desc(MarketSignal.id))
+        .limit(effective_limit)
+        .all()
+    )
 
 @router.get("/signals/{signal_id}", response_model=MarketSignalRead)
 def get_market_signal(signal_id: int, db: Session = Depends(get_db)):

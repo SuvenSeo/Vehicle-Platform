@@ -15,6 +15,9 @@ from db.models import CarListing, MarketSignal, PriceAggregate, ScrapeRun
 from db.session import get_db
 from app.services.assistant_context import build_assistant_context
 from app.services.rate_limit import RateLimiter
+from app.utils.plan_limits import is_free_browse_plan
+from app.utils.request_access import resolve_request_access
+from fastapi import Header
 
 router = APIRouter()
 
@@ -219,7 +222,13 @@ def _intent(message: str) -> str:
     return "overview"
 
 
-def _build_groq_prompt(message: str, context: Dict[str, Any], history: List[ChatMessage]) -> List[Dict[str, str]]:
+def _build_groq_prompt(
+    message: str,
+    context: Dict[str, Any],
+    history: List[ChatMessage],
+    *,
+    hide_deal_scores: bool = False,
+) -> List[Dict[str, str]]:
     system_prompt = (
         "You are Motormila Copilot, the Sri Lankan vehicle marketplace assistant. "
         "Use ONLY the provided context and do not invent listings, metrics, or operational states. "
@@ -228,6 +237,11 @@ def _build_groq_prompt(message: str, context: Dict[str, Any], history: List[Chat
         "When user asks for actions that require server-side operations, explain exact steps/commands but do not pretend actions were executed. "
         "Respond in concise plain text with useful bullets."
     )
+    if hide_deal_scores:
+        system_prompt += (
+            " This user is on the Free plan: never mention deal scores, fair-price scores, "
+            "or ranking by deal quality. Suggest upgrading to Pro if they ask about scores."
+        )
 
     history_text = "\n".join([f"{item.role.title()}: {item.content}" for item in history[-8:]]).strip()
 
@@ -381,16 +395,25 @@ def _build_fallback_response(
 
 
 @router.post("", response_model=dict)
-def chat_assistant(payload: ChatRequest, request: Request, db: Session = Depends(get_db)):
+def chat_assistant(
+    payload: ChatRequest,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
     _chat_rate_limiter(request)
     message = payload.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
+    plan, role = resolve_request_access(request, authorization, db)
+    hide_deal_scores = is_free_browse_plan(plan, role=role)
+
     bundle = build_assistant_context(
         db=db,
         message=message,
         page_context=payload.page_context,
+        hide_deal_scores=hide_deal_scores,
     )
     context = bundle["context"]
     listing_cards = bundle["listing_cards"]
@@ -406,7 +429,12 @@ def chat_assistant(payload: ChatRequest, request: Request, db: Session = Depends
             clean_history = clean_history[:-1]
         try:
             ai_response = _call_groq(
-                _build_groq_prompt(message, context, clean_history),
+                _build_groq_prompt(
+                    message,
+                    context,
+                    clean_history,
+                    hide_deal_scores=hide_deal_scores,
+                ),
                 api_key=configured_key,
                 model=configured_model,
             )

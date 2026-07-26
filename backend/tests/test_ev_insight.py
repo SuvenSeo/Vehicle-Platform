@@ -9,6 +9,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.api.v1.endpoints import stats
 from db.models import Base, CarListing
+from unittest.mock import MagicMock
 
 
 def _session():
@@ -60,7 +61,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["ev_count"] == 2
         assert result["ev_pct"] == 50.0
@@ -73,7 +74,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["ev_count"] == 0
         assert result["ev_pct"] == 0.0
@@ -87,7 +88,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["median_ev_price_lkr"] == 7_000_000
 
@@ -99,7 +100,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["median_ev_price_lkr"] == 7_000_000
 
@@ -108,7 +109,7 @@ class TestGetEvInsight:
         db.add(_listing("e1", "electric", price_lkr=None))
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["median_ev_price_lkr"] is None
 
@@ -124,7 +125,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         models = result["top_ev_models"]
         assert len(models) == 3
@@ -139,7 +140,7 @@ class TestGetEvInsight:
             db.add(_listing(f"e{i}", "electric", make="Brand", model=f"Model{i}"))
         db.commit()
 
-        result = stats.get_ev_insight(top_n=3, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=3, db=db)
 
         assert len(result["top_ev_models"]) == 3
 
@@ -151,7 +152,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         leaf = next(m for m in result["top_ev_models"] if m["model"] == "Leaf")
         assert leaf["median_price_lkr"] == 7_000_000
@@ -181,7 +182,7 @@ class TestGetEvInsight:
 
         event.listen(db.bind, "before_cursor_execute", _before_cursor_execute)
         try:
-            result = stats.get_ev_insight(top_n=3, db=db)
+            result = stats.get_ev_insight(request=MagicMock(), top_n=3, db=db)
         finally:
             event.remove(db.bind, "before_cursor_execute", _before_cursor_execute)
 
@@ -201,7 +202,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         bm = result["hybrid_benchmark"]
         assert bm["make"] == "Toyota"
@@ -214,7 +215,7 @@ class TestGetEvInsight:
         db.add(_listing("e1", "electric"))
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["hybrid_benchmark"]["median_price_lkr"] is None
         assert result["hybrid_benchmark"]["listing_count"] == 0
@@ -228,7 +229,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["ev_count"] == 1
 
@@ -241,7 +242,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["ev_count"] == 3
 
@@ -253,14 +254,14 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["median_ev_price_lkr"] == 10_000_000
 
     def test_empty_database_returns_zeros(self):
         db = _session()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["ev_count"] == 0
         assert result["ev_pct"] == 0.0
@@ -273,7 +274,7 @@ class TestGetEvInsight:
         db.add(_listing("e1", "electric"))
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert "ev_count" in result
         assert "ev_pct" in result
@@ -291,7 +292,7 @@ class TestGetEvInsight:
         ])
         db.commit()
 
-        result = stats.get_ev_insight(top_n=5, db=db)
+        result = stats.get_ev_insight(request=MagicMock(), top_n=5, db=db)
 
         assert result["ev_count"] == 0
         ev_models = result["top_ev_models"]

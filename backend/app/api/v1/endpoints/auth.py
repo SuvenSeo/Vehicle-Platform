@@ -49,10 +49,11 @@ router = APIRouter()
 TOKEN_TTL_SECONDS_DEFAULT = 24 * 3600  # 24h — shorter sessions; override with AUTH_TOKEN_TTL_SECONDS
 INVITE_TTL_DAYS_DEFAULT = 14
 SESSION_COOKIE_NAME = "mm_session"
-ALLOWED_PLANS = {"free", "pro", "enterprise"}
+ALLOWED_PLANS = {"free", "pro", "enterprise", "dealer"}
 ALLOWED_SUBSCRIPTION_STATUSES = {"none", "trialing", "active", "past_due", "canceled"}
 ALLOWED_ROLES = {"user", "admin"}
-PRO_PLANS = {"pro", "enterprise"}
+# Dealer includes Pro depth plus yard tools.
+PRO_PLANS = {"pro", "enterprise", "dealer"}
 ACTIVE_PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
 
 

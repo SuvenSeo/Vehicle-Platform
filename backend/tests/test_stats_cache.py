@@ -45,6 +45,7 @@ from app.utils.stats_cache import (
     store_trends_cache,
 )
 from db.models import Base, CarListing, MarketStatsCache, PriceAggregate
+from unittest.mock import MagicMock
 
 
 # ---------------------------------------------------------------------------
@@ -688,7 +689,7 @@ def test_trends_endpoint_returns_cached_on_hit(monkeypatch):
         "_compute_price_trends_payload",
         lambda **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute trends")),
     )
-    result = stats_module.get_price_trends(make="Toyota", model="Vitz", months=12, db=db)
+    result = stats_module.get_price_trends(request=MagicMock(), make="Toyota", model="Vitz", months=12, db=db)
     assert result["coverage_scope"] == "exact"
 
 
@@ -703,7 +704,7 @@ def test_trends_endpoint_stores_on_miss():
     )
     assert get_cached_trends(db, cache_key) is None
 
-    result = stats_module.get_price_trends(make="toyota", model="vitz", months=12, db=db)
+    result = stats_module.get_price_trends(request=MagicMock(), make="toyota", model="vitz", months=12, db=db)
     cached = get_cached_trends(db, cache_key)
     assert isinstance(result, dict)
     assert cached is not None
@@ -734,7 +735,7 @@ def test_trends_endpoint_serves_stale_on_compute_failure(monkeypatch):
         "_compute_price_trends_payload",
         lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
     )
-    result = stats_module.get_price_trends(months=12, db=db)
+    result = stats_module.get_price_trends(request=MagicMock(), months=12, db=db)
     assert result["coverage_note"] == "cached stale"
 
 
@@ -826,7 +827,7 @@ def test_price_index_endpoint_returns_cached_on_hit(monkeypatch):
         "_compute_price_index_payload",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("should not compute price index")),
     )
-    result = stats_module.get_price_index(db=db)
+    result = stats_module.get_price_index(request=MagicMock(), db=db)
     assert "series" in result
 
 
@@ -838,7 +839,7 @@ def test_price_index_endpoint_stores_on_miss(monkeypatch):
         "_compute_price_index_payload",
         lambda *_args, **_kwargs: payload,
     )
-    result = stats_module.get_price_index(db=db)
+    result = stats_module.get_price_index(request=MagicMock(), db=db)
     cached = get_cached_price_index(db)
     assert "series" in result
     assert cached is not None
@@ -861,7 +862,7 @@ def test_price_index_endpoint_serves_stale_on_compute_failure(monkeypatch):
         "_compute_price_index_payload",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
     )
-    result = stats_module.get_price_index(db=db)
+    result = stats_module.get_price_index(request=MagicMock(), db=db)
     assert "top_makes" in result
 
 

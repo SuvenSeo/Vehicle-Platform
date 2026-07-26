@@ -165,7 +165,7 @@ def detect_intent(message: str) -> str:
     return "overview"
 
 
-def _serialize_listing(row: CarListing) -> Dict[str, Any]:
+def _serialize_listing(row: CarListing, *, hide_deal_scores: bool = False) -> Dict[str, Any]:
     title = f"{row.make or ''} {row.model or ''} {f'({row.year})' if row.year else ''}".strip()
     district = row.district
     if not district or str(district).strip().lower() == "sri lanka":
@@ -176,7 +176,11 @@ def _serialize_listing(row: CarListing) -> Dict[str, Any]:
         "title": title or (row.title or "Listing"),
         "price_lkr": float(row.price_lkr) if row.price_lkr is not None else None,
         "district": district,
-        "deal_score": float(row.deal_score) if row.deal_score is not None else None,
+        "deal_score": (
+            None
+            if hide_deal_scores
+            else (float(row.deal_score) if row.deal_score is not None else None)
+        ),
         "source": row.source,
         "detail_url": f"/listing/{row.id}",
         "external_url": row.url,
@@ -263,6 +267,7 @@ def build_assistant_context(
     db: Session,
     message: str,
     page_context: Optional[Dict[str, Any]] = None,
+    hide_deal_scores: bool = False,
 ) -> Dict[str, Any]:
     msg_l = message.lower()
     intent = detect_intent(msg_l)
@@ -397,7 +402,8 @@ def build_assistant_context(
         if len(run_status) >= 8:
             break
 
-    signal_rows = db.query(MarketSignal).order_by(MarketSignal.observed_at.desc()).limit(8).all()
+    signal_limit = 2 if hide_deal_scores else 8
+    signal_rows = db.query(MarketSignal).order_by(MarketSignal.observed_at.desc()).limit(signal_limit).all()
     market_signals = [
         {
             "source": str(row.source or "unknown"),
@@ -411,12 +417,13 @@ def build_assistant_context(
         for row in signal_rows
     ]
 
-    candidate_rows = (
-        base.order_by(func.coalesce(CarListing.deal_score, 0).desc(), CarListing.first_seen_at.desc())
-        .limit(8)
-        .all()
+    order_clause = (
+        (CarListing.first_seen_at.desc(),)
+        if hide_deal_scores
+        else (func.coalesce(CarListing.deal_score, 0).desc(), CarListing.first_seen_at.desc())
     )
-    listing_cards = [_serialize_listing(row) for row in candidate_rows]
+    candidate_rows = base.order_by(*order_clause).limit(8).all()
+    listing_cards = [_serialize_listing(row, hide_deal_scores=hide_deal_scores) for row in candidate_rows]
 
     page_listing = None
     similar_listing_cards: list[dict[str, Any]] = []
@@ -424,7 +431,7 @@ def build_assistant_context(
     if listing_id:
         row = db.query(CarListing).filter(CarListing.id == listing_id).first()
         if row is not None:
-            page_listing = _serialize_listing(row)
+            page_listing = _serialize_listing(row, hide_deal_scores=hide_deal_scores)
             similar_rows = (
                 db.query(CarListing)
                 .filter(
@@ -437,7 +444,9 @@ def build_assistant_context(
                 .limit(4)
                 .all()
             )
-            similar_listing_cards = [_serialize_listing(item) for item in similar_rows]
+            similar_listing_cards = [
+                _serialize_listing(item, hide_deal_scores=hide_deal_scores) for item in similar_rows
+            ]
 
     scope_label = "all vehicles"
     if make_filter and model_filter and district_filter:

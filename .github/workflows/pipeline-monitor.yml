@@ -36,7 +36,11 @@ jobs:
           overall=$(jq -r '.overall_status // "unknown"' pipeline.json)
           delayed=$(jq '[.jobs[]? | select(.status == "delayed")] | length' pipeline.json)
           echo "Pipeline overall status: ${overall}; delayed sources: ${delayed}"
-          if [ "$overall" != "ok" ]; then
+          # "running" means core scrapers are actively syncing — healthy, not a failure.
+          # Fail only when sources are delayed/degraded or status is unknown.
+          if [ "$overall" = "ok" ] || [ "$overall" = "running" ]; then
+            echo "Pipeline healthy (${overall})."
+          else
             echo "::error::Scrape pipeline is ${overall}; ${delayed} source(s) are delayed."
             exit 1
           fi

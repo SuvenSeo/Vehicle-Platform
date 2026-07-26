@@ -77,7 +77,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     summary: "DMT, Customs, and import-policy signals that sit beside marketplace prices.",
     body: [
       "Official Pulse tracks government and regulatory signals that move landed cost and registration risk — DMT process notes, Customs duty context, and import-policy changes that dealers and importers watch weekly.",
-      "Marketplace asking prices react after policy shifts; Pulse is meant to surface those shifts earlier so you are not pricing off last month’s duty assumptions. Free access shows a limited pulse; Pro and Dealer unlock history, richer timelines, and exportable briefs.",
+      "Marketplace asking prices react after policy shifts; Pulse is meant to surface those shifts earlier so you are not pricing off last month’s duty assumptions. Free shows the latest 6 signals; Pro and Dealer unlock the full pulse desk, richer timelines, and exportable briefs.",
       "Pulse is not a substitute for a lawyer or clearing agent. It is a structured feed of signals linked to how Motormila models import cost and market pressure.",
     ],
     bullets: [
@@ -163,14 +163,14 @@ export const DOCS_SECTIONS: DocsSection[] = [
     title: "Alerts, trends & price index",
     summary: "Watch the market over time — alerts, trend charts, and the national price index.",
     body: [
-      "Alerts (/alerts) watch for listings that match your rules — make, model, price band, and related filters — and surface current matches when the pipeline refreshes. Pro deepens history and notification options.",
-      "Trends (/trends) charts price movement by lane so you can see whether a model is firming or softening before you commit. The Price Index (/price-index) compresses the used market into a mix-adjusted benchmark so one noisy segment does not dominate the story.",
+      "Alerts (/alerts) watch for listings that match your rules — make, model, price band, and related filters — and surface current matches when the pipeline refreshes. Free includes 1 alert without WhatsApp; Pro deepens watches, match refresh, and notifications.",
+      "Trends (/trends) charts price movement by lane. Free shows a 6-month national window; Pro unlocks full history plus district and condition filters. The Price Index (/price-index) compresses the used market into a mix-adjusted benchmark — Free keeps the overall 6-month window; Pro unlocks segments and longer history.",
       "District demand also lives on the home dashboard via the velocity strip and district map widget — use those when geography matters as much as the ask.",
     ],
     bullets: [
-      "/alerts — rule-based listing watches",
-      "/trends — lane price movement over time",
-      "/price-index — mix-adjusted national benchmark",
+      "/alerts — 1 free watch; Pro for depth + WhatsApp",
+      "/trends — 6-month Free window; Pro for full lane history",
+      "/price-index — overall Free teaser; Pro for segments",
       "Home dashboard — district demand velocity",
     ],
     relatedRoutes: [
@@ -185,13 +185,13 @@ export const DOCS_SECTIONS: DocsSection[] = [
     title: "Pricing & access",
     summary: "Free browse, Pro terminal, Dealer workspace, and Custom plans for banks and leasing.",
     body: [
-      "Access is tiered. Free covers dashboard browse, limited Official Pulse, and a starter calculator path. Pro (LKR 999/mo) unlocks the terminal, pulse history, alerts depth, and exports. Dealer (LKR 1,999/mo) adds the full /dealer workspace, URL benchmark, and team seats. Custom is quote-based for banks, leasing, and insurers — message us from the Pricing page.",
+      "Access is tiered with soft limits on Free — every product page is open, but depth is capped. Free covers first-page browse (12 listings), latest 6 Official Pulse signals, a 6-month trends/price-index window, landed-cost calculator only, top 3 EV models, 1 market alert (no WhatsApp), and no deal scores. Pro (LKR 999/mo) unlocks the /pro terminal, full feeds, scores, pulse history, alerts depth, calculator tabs, and exports. Dealer (LKR 1,999/mo) includes everything in Pro plus the full /dealer workspace, URL benchmark, and team seats. Custom is quote-based for banks, leasing, and insurers — message us from the Pricing page.",
       "Months of scraping, normalization, and scoring are not free forever — paid tiers fund pipeline uptime and deeper signals. Annual billing discounts Pro and Dealer. See the Pricing page for feature tables and FAQ.",
     ],
     bullets: [
-      "Free — browse and starter tools",
-      "Pro — LKR 999/mo terminal, history, alerts, exports",
-      "Dealer — LKR 1,999/mo workspace, benches, seats",
+      "Free — open pages with soft limits (12 listings, 6 pulse, 6-mo trends, no scores)",
+      "Pro — LKR 999/mo terminal, scores, history, alerts, exports",
+      "Dealer — LKR 1,999/mo = Pro + yard workspace, benches, seats",
       "Custom — message us for institutional scope",
     ],
     relatedRoutes: [

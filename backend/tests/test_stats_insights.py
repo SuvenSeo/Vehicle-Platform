@@ -11,6 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app.api.v1.endpoints import stats
 from app.models.schemas import DashboardInsightsResponse
 from db.models import Base, CarListing, PriceAggregate, ScrapeRun
+from unittest.mock import MagicMock
 
 
 def _session():
@@ -437,7 +438,7 @@ def test_price_trends_fall_back_to_national_lane_when_district_samples_are_thin(
     )
     db.commit()
 
-    payload = stats.get_price_trends(make="Toyota", model="Vitz", district="Kandy", db=db)
+    payload = stats.get_price_trends(request=MagicMock(), make="Toyota", model="Vitz", district="Kandy", db=db)
 
     assert payload["coverage_scope"] == "district_fallback"
     assert "Sri Lanka-wide" in payload["coverage_note"]

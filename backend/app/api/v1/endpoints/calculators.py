@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, Header, Request
 from pydantic import BaseModel, Field
 import httpx
 import logging
@@ -14,6 +14,8 @@ from app.services.ownership_costs import (
     ownership_first_year_bundle,
 )
 from app.services.vehicle_news import fetch_vehicle_policy_news
+from app.utils.plan_limits import FREE_VEHICLE_NEWS_LIMIT, is_free_browse_plan
+from app.utils.request_access import resolve_request_access
 from db.session import get_db
 from db.models import VehiclePermit
 import secrets
@@ -429,6 +431,15 @@ def post_ownership_bundle(payload: OwnershipBundleRequest):
 
 
 @router.get("/vehicle-news")
-def get_vehicle_news(limit: int = Query(8, ge=1, le=20)):
+def get_vehicle_news(
+    request: Request,
+    limit: int = Query(8, ge=1, le=20),
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
     """Filtered Helakuru Esana headlines (vehicle / policy keywords). Fail-open."""
-    return {"items": fetch_vehicle_policy_news(limit=limit)}
+    plan, role = resolve_request_access(request, authorization, db)
+    effective = limit
+    if is_free_browse_plan(plan, role=role):
+        effective = min(limit, FREE_VEHICLE_NEWS_LIMIT)
+    return {"items": fetch_vehicle_policy_news(limit=effective)}

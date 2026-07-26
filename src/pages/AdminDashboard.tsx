@@ -160,7 +160,7 @@ export default function AdminDashboard() {
   const activeTab: AdminTab = rawTab && TAB_IDS.includes(rawTab) ? rawTab : "overview";
 
   const [inviteEmail, setInviteEmail] = useState("");
-  const [invitePlan, setInvitePlan] = useState<"free" | "pro" | "enterprise">("free");
+  const [invitePlan, setInvitePlan] = useState<"free" | "pro" | "enterprise" | "dealer">("free");
   const [inviteRole, setInviteRole] = useState<"user" | "admin">("user");
   const [lastInviteLink, setLastInviteLink] = useState("");
   const [userQuery, setUserQuery] = useState("");
@@ -586,6 +586,7 @@ export default function AdminDashboard() {
                       <SelectItem value="all">All plans</SelectItem>
                       <SelectItem value="free">Free</SelectItem>
                       <SelectItem value="pro">Pro</SelectItem>
+                      <SelectItem value="dealer">Dealer</SelectItem>
                       <SelectItem value="enterprise">Enterprise</SelectItem>
                     </SelectContent>
                   </Select>
@@ -637,6 +638,7 @@ export default function AdminDashboard() {
                                 <SelectContent>
                                   <SelectItem value="free">Free</SelectItem>
                                   <SelectItem value="pro">Pro</SelectItem>
+                                  <SelectItem value="dealer">Dealer</SelectItem>
                                   <SelectItem value="enterprise">Enterprise</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -729,6 +731,7 @@ export default function AdminDashboard() {
                       <SelectContent>
                         <SelectItem value="free">Free</SelectItem>
                         <SelectItem value="pro">Pro</SelectItem>
+                        <SelectItem value="dealer">Dealer</SelectItem>
                         <SelectItem value="enterprise">Enterprise</SelectItem>
                       </SelectContent>
                     </Select>

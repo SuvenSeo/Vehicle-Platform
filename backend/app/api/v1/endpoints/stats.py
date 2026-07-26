@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func, desc, and_, or_
@@ -33,6 +33,13 @@ from app.utils.stats_cache import (
     store_trends_cache,
 )
 from app.utils.time import utc_now
+from app.utils.plan_limits import (
+    FREE_EV_MODELS_LIMIT,
+    FREE_TRENDS_MONTHS,
+    is_free_browse_plan,
+    take_last_months,
+)
+from app.utils.request_access import resolve_request_access
 from db.session import SessionLocal, get_db
 from db.models import CarListing, PriceAggregate, ScrapeRun, live_listing_filter
 from app.models.schemas import StatsSummary, DistrictPrice
@@ -163,21 +170,36 @@ def build_live_market_snapshot(db: Session) -> dict:
     }
 
 @router.get("/price-index", response_model=PriceIndexResponse)
-def get_price_index(db: Session = Depends(get_db)):
+def get_price_index(
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
     """Mix-adjusted monthly used-vehicle price index (overall + top makes)."""
     cached = get_cached_price_index(db)
     if cached is not None:
-        return cached
+        result = cached
+    else:
+        try:
+            result = _compute_price_index_payload(db)
+        except Exception:
+            stale = get_cached_price_index(db, allow_stale=True)
+            if stale is not None:
+                result = stale
+            else:
+                raise
+        else:
+            store_price_index_cache(db, result)
 
-    try:
-        result = _compute_price_index_payload(db)
-    except Exception:
-        stale = get_cached_price_index(db, allow_stale=True)
-        if stale is not None:
-            return stale
-        raise
-
-    store_price_index_cache(db, result)
+    plan, role = resolve_request_access(request, authorization, db)
+    if is_free_browse_plan(plan, role=role):
+        # Soft-limit: newest N months overall only (no segment breakdown).
+        points = take_last_months(list(result.get("points") or []), FREE_TRENDS_MONTHS)
+        return {
+            **result,
+            "points": points,
+            "segments": {},
+        }
     return result
 
 
@@ -761,17 +783,27 @@ def _compute_price_trends_payload(
 
 @router.get("/trends")
 def get_price_trends(
+    request: Request,
     make: Optional[str] = None,
     model: Optional[str] = None,
     condition: Optional[str] = None,
     district: Optional[str] = None,
     months: int = Query(12, ge=3, le=24),
+    authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     try:
         months_value = int(months)
     except (TypeError, ValueError):
         months_value = 12
+
+    plan, role = resolve_request_access(request, authorization, db)
+    free_browse = is_free_browse_plan(plan, role=role)
+    if free_browse:
+        months_value = min(months_value, FREE_TRENDS_MONTHS)
+        # Free depth: national overall only (no district/condition filters).
+        condition = None
+        district = None
 
     cache_key = build_trends_cache_key(
         make=make,
@@ -1459,10 +1491,16 @@ def _median_price(values: list[float]) -> Optional[float]:
 
 @router.get("/ev-insight")
 def get_ev_insight(
+    request: Request,
     top_n: int = Query(5, ge=1, le=20),
+    authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """EV market share, top models, median price, and Toyota Aqua hybrid benchmark."""
+    plan, role = resolve_request_access(request, authorization, db)
+    effective_top_n = top_n
+    if is_free_browse_plan(plan, role=role):
+        effective_top_n = min(top_n, FREE_EV_MODELS_LIMIT)
     now = utc_now()
 
     priced_clause = and_(
@@ -1502,7 +1540,7 @@ def get_ev_insight(
         .filter(ev_clause, CarListing.make.isnot(None), CarListing.model.isnot(None))
         .group_by(CarListing.make, CarListing.model)
         .order_by(desc("listing_count"))
-        .limit(top_n)
+        .limit(effective_top_n)
         .all()
     )
 

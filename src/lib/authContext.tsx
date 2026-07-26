@@ -5,7 +5,7 @@ import { getStoredAuthToken, storeAuthToken } from "@/lib/authToken";
 export interface AuthUser {
   email: string;
   name: string;
-  plan: "free" | "pro" | "enterprise";
+  plan: "free" | "pro" | "enterprise" | "dealer";
   subscriptionStatus: "none" | "trialing" | "active" | "past_due";
   role: "user" | "admin";
   avatarInitials: string;
@@ -41,6 +41,14 @@ type LoginResponse = { user?: Partial<AuthUser>; token?: string };
 // No accounts are ever baked into the shipped bundle. Demo/review accounts
 // exist only when a build explicitly opts in via VITE_ENABLE_DEMO_AUTH=true
 // and provides them through VITE_DEMO_USERS.
+function normalizePlan(value: unknown): AuthUser["plan"] {
+  const plan = String(value || "").trim().toLowerCase();
+  if (plan === "free" || plan === "pro" || plan === "enterprise" || plan === "dealer") {
+    return plan;
+  }
+  return "free";
+}
+
 function parseDemoUsers(): Record<string, DemoAccountRecord> {
   const users: Record<string, DemoAccountRecord> = {};
 
@@ -56,8 +64,12 @@ function parseDemoUsers(): Record<string, DemoAccountRecord> {
     return parsed.reduce<Record<string, DemoAccountRecord>>((acc, item) => {
       const email = String(item?.email || "").trim().toLowerCase();
       const password = String(item?.password || "");
-      const plan = item?.plan === "enterprise" ? "enterprise" : item?.plan === "pro" ? "pro" : item?.plan === "free" ? "free" : null;
-      if (!email || !password || !item?.name || !plan) return acc;
+      const plan = normalizePlan(item?.plan);
+      // Demo JSON must set an explicit allowed plan; skip junk rows.
+      if (!email || !password || !item?.name) return acc;
+      if (!["free", "pro", "enterprise", "dealer"].includes(String(item?.plan || "").toLowerCase())) {
+        return acc;
+      }
 
       acc[email] = {
         email,
@@ -111,7 +123,7 @@ function normalizeServerUser(raw: Partial<AuthUser> | undefined, email: string):
   if (!raw?.email && !email) return null;
   const normalizedEmail = String(raw?.email || email).trim().toLowerCase();
   const name = String(raw?.name || normalizedEmail.split("@")[0] || "Motormila User").trim();
-  const plan = raw?.plan === "enterprise" ? "enterprise" : raw?.plan === "free" ? "free" : "pro";
+  const plan = normalizePlan(raw?.plan);
   const subscriptionStatus =
     raw?.subscriptionStatus === "active" || raw?.subscriptionStatus === "trialing" || raw?.subscriptionStatus === "past_due"
       ? raw.subscriptionStatus
@@ -197,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Pro routes also require a bearer token issued by /auth/login.
   const planAllowsPro = Boolean(
     user &&
-      (user.plan === "pro" || user.plan === "enterprise") &&
+      (user.plan === "pro" || user.plan === "enterprise" || user.plan === "dealer") &&
       (user.subscriptionStatus === "active" || user.subscriptionStatus === "trialing"),
   );
   const hasProAccess = BACKEND_AUTH_ENABLED
