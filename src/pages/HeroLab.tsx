@@ -18,7 +18,7 @@ export default function HeroLab() {
   const [params, setParams] = useSearchParams();
   const paramId = params.get("hero");
   const [activeId, setActiveId] = useState<HeroVariantId>(
-    isHeroVariantId(paramId) ? paramId : "ultrawide-day",
+    isHeroVariantId(paramId) ? paramId : "expressway-dusk",
   );
   const variant = useMemo(() => getHeroVariant(activeId), [activeId]);
 
