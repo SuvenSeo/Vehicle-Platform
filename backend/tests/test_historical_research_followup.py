@@ -165,6 +165,59 @@ def test_csv_import_prasad_nirmal_lakhs_and_millage(tmp_path: Path):
     assert rows[1]["price_lkr"] == 2_850_000
 
 
+def test_csv_import_drops_date_like_and_overflow_mileage(tmp_path: Path):
+    """Community CSV rows put YYYYMMDD / huge junk into mileage and crashed prod."""
+    csv_path = tmp_path / "community.csv"
+    csv_path.write_text(
+        "Brand,Model,YOM,Price,Mileage,Town,Date,URL\n"
+        "Toyota,Starlet,1985,1755000,20260217,Divulapitiya,2026-02-20,"
+        "https://riyasewana.com/buy/toyota-starlet-sale-divulapitiya-11217755\n"
+        "Nissan,Tiida,2008,5200000,9999999999,Embilipitiya,2026-02-20,"
+        "https://riyasewana.com/buy/nissan-tiida-sale-embilipitiya-11217753\n"
+        "Suzuki,Swift,2005,4390000,145000,Malabe,2026-02-14,"
+        "https://riyasewana.com/buy/suzuki-swift-center-sale-malabe-11217749\n",
+        encoding="utf-8",
+    )
+    rows = rows_from_csv(
+        csv_path,
+        archive_source="community_csv_riyasewana",
+        observed_default=datetime(2026, 2, 20, tzinfo=timezone.utc),
+        price_unit="lkr",
+    )
+    assert len(rows) == 3
+    by_model = {r["model"]: r for r in rows}
+    assert by_model["Starlet"]["mileage"] is None
+    assert by_model["Tiida"]["mileage"] is None
+    assert by_model["Swift"]["mileage"] == 145_000
+
+
+def test_upsert_clamps_oversized_mileage(db_session):
+    from app.services.historical_archive import upsert_historical_observations
+
+    result = upsert_historical_observations(
+        db_session,
+        [
+            {
+                "archive_source": "community_csv_riyasewana",
+                "source_id": "bad-mileage-1",
+                "observed_at": datetime(2026, 2, 20, tzinfo=timezone.utc),
+                "url": "https://example.com/1",
+                "title": "Toyota Starlet 1985",
+                "make": "Toyota",
+                "model": "Starlet",
+                "year": 1985,
+                "price_lkr": 1_755_000,
+                "mileage": 20_260_217,  # YYYYMMDD junk
+                "confidence": "low",
+                "raw_meta": {},
+            }
+        ],
+    )
+    assert result["inserted"] == 1
+    row = db_session.query(HistoricalPriceObservation).one()
+    assert row.mileage is None
+
+
 def test_nhtsa_fetch_models_for_make_live():
     models = fetch_models_for_make("toyota")
     assert len(models) > 10

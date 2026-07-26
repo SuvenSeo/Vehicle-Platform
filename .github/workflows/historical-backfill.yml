@@ -130,6 +130,7 @@ jobs:
 
       - name: Import community SL CSV → historical_price_observations only
         if: ${{ env.RUN_COMMUNITY_CSV == 'true' }}
+        continue-on-error: true
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
