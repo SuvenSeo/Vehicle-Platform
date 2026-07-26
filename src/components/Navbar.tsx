@@ -63,7 +63,7 @@ export function Navbar() {
       { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: t("nav.alertsDetail", "Saved listing watches") },
       { label: t("nav.settings", "Settings"), href: "/settings", detail: t("nav.settingsDetail", "Language and theme") },
       ...(isAdmin
-        ? [{ label: t("nav.admin", "Admin"), href: "/admin", detail: t("nav.adminDetail", "Invites, plans, analytics") }]
+        ? [{ label: t("nav.admin", "Admin"), href: "/admin", detail: t("nav.adminDetail", "Owner console · users, ops, analytics") }]
         : []),
       isAuthenticated
         ? { label: t("nav.proDashboard", "Pro Dashboard"), href: "/pro", detail: t("nav.proDetail", "Paid market terminal") }

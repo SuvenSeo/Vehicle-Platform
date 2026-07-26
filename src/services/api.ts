@@ -2399,7 +2399,7 @@ export const getAdminOverview = async (): Promise<AdminOverview> => {
 };
 
 export const getAdminUsers = async (
-  params: { limit?: number; offset?: number } = {},
+  params: { limit?: number; offset?: number; q?: string; plan?: string } = {},
 ): Promise<{ total: number; users: AdminUser[] }> => {
   return fetchJSON<{ total: number; users: AdminUser[] }>("/admin/users", params, authHeaders());
 };
@@ -2416,6 +2416,180 @@ export const createAdminInvite = async (input: {
   role?: string;
 }): Promise<AdminInvite> => {
   return postJSON<AdminInvite>("/admin/invites", input, authHeaders());
+};
+
+export type AdminAnalytics = {
+  listings: {
+    bySource: Array<{ source: string; count: number }>;
+    byDistrict: Array<{ district: string; count: number }>;
+    avgPriceLkr: number;
+    minPriceLkr: number;
+    maxPriceLkr: number;
+  };
+  users: {
+    byPlan: Array<{ plan: string; count: number }>;
+    bySubscription: Array<{ status: string; count: number }>;
+    signupsToday: number;
+    inactive: number;
+    neverLoggedIn: number;
+  };
+  alerts: { active: number; withWhatsapp: number };
+  signals: { total: number; bySource: Array<{ source: string; count: number }> };
+  scrapes: { success: number; failed: number };
+  invites: Array<{ status: string; count: number }>;
+  feedback: Array<{ status: string; count: number }>;
+  dealers: Array<{ status: string; count: number }>;
+  generatedAt: string;
+};
+
+export type AdminFeedbackItem = {
+  id: number;
+  category: string;
+  route?: string | null;
+  message: string;
+  email?: string | null;
+  status: string;
+  createdAt?: string | null;
+};
+
+export type AdminDealer = {
+  id: number;
+  displayName: string;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  sellerNamePattern?: string | null;
+  claimedUrl?: string | null;
+  status: string;
+  plan: string;
+  subscriptionStatus: string;
+  verifiedAt?: string | null;
+  createdAt?: string | null;
+};
+
+export type AdminPipelineRun = {
+  id: number;
+  source: string;
+  status?: string | null;
+  listingsFound: number;
+  listingsNew: number;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  errorMessage?: string | null;
+};
+
+export type AdminPermit = {
+  id: number;
+  permitName: string;
+  permitType: string;
+  marketPriceLkr: number;
+  updatedAt?: string | null;
+};
+
+export type AdminSystem = {
+  adminEmail?: string;
+  databaseOk: boolean;
+  flags: {
+    appAccessEnforced: boolean;
+    proAccessEnforced: boolean;
+    adminApiKeyConfigured: boolean;
+    billingWebhookConfigured: boolean;
+    b2bKeysConfigured: boolean;
+    resendConfigured: boolean;
+    twilioConfigured: boolean;
+    dealerAdminTokenConfigured: boolean;
+    publicAppOrigin?: string | null;
+  };
+  statsCacheKeys: string[];
+  generatedAt: string;
+};
+
+export const getAdminAnalytics = async (): Promise<AdminAnalytics> => {
+  return fetchJSON<AdminAnalytics>("/admin/analytics", undefined, authHeaders());
+};
+
+export const getAdminFeedback = async (
+  params: { status?: string; limit?: number } = {},
+): Promise<{ feedback: AdminFeedbackItem[] }> => {
+  return fetchJSON<{ feedback: AdminFeedbackItem[] }>("/admin/feedback", params, authHeaders());
+};
+
+export const updateAdminFeedback = async (
+  id: number,
+  status: string,
+): Promise<AdminFeedbackItem> => {
+  if (USE_MOCK) throw new Error("Mock mode is disabled");
+  const url = new URL(`${API_BASE}/admin/feedback/${id}`, window.location.origin).toString();
+  const response = await fetch(url, {
+    method: "PATCH",
+    credentials: resolveFetchCredentials(),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) throw await parseApiError(response);
+  return response.json();
+};
+
+export const getAdminDealers = async (
+  params: { status?: string; limit?: number } = {},
+): Promise<{ dealers: AdminDealer[] }> => {
+  return fetchJSON<{ dealers: AdminDealer[] }>("/admin/dealers", params, authHeaders());
+};
+
+export const verifyAdminDealer = async (id: number): Promise<AdminDealer> => {
+  return postJSON<AdminDealer>(`/admin/dealers/${id}/verify`, {}, authHeaders());
+};
+
+export const getAdminPipeline = async (
+  params: { limit?: number } = {},
+): Promise<{ orphansReconciled: number; runs: AdminPipelineRun[] }> => {
+  return fetchJSON<{ orphansReconciled: number; runs: AdminPipelineRun[] }>(
+    "/admin/pipeline",
+    params,
+    authHeaders(),
+  );
+};
+
+export const triggerAdminPipeline = async (
+  job: "sync" | "alt_sync" = "sync",
+): Promise<{ ok: boolean; job: string; pid: number }> => {
+  return postJSON<{ ok: boolean; job: string; pid: number }>(
+    "/admin/pipeline/trigger",
+    { job },
+    authHeaders(),
+  );
+};
+
+export const getAdminPermits = async (): Promise<{ permits: AdminPermit[] }> => {
+  return fetchJSON<{ permits: AdminPermit[] }>("/admin/permits", undefined, authHeaders());
+};
+
+export const upsertAdminPermit = async (input: {
+  permit_name: string;
+  permit_type: string;
+  market_price_lkr: number;
+}): Promise<AdminPermit> => {
+  return postJSON<AdminPermit>("/admin/permits", input, authHeaders());
+};
+
+export const clearAdminStatsCache = async (key?: string): Promise<{ ok: boolean; deleted: number }> => {
+  if (USE_MOCK) throw new Error("Mock mode is disabled");
+  const url = new URL(`${API_BASE}/admin/cache`, window.location.origin);
+  if (key) url.searchParams.set("key", key);
+  const response = await fetch(url.toString(), {
+    method: "DELETE",
+    credentials: resolveFetchCredentials(),
+    headers: { Accept: "application/json", ...authHeaders() },
+  });
+  if (!response.ok) throw await parseApiError(response);
+  return response.json();
+};
+
+export const getAdminSystem = async (): Promise<AdminSystem> => {
+  return fetchJSON<AdminSystem>("/admin/system", undefined, authHeaders());
 };
 
 export const updateAdminUser = async (
