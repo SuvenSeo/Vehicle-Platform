@@ -3,6 +3,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import Trends from "@/pages/Trends";
 import * as api from "@/services/api";
+import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
 import {
   getExciseRatePerCc,
   getHybridExciseCliffInsight,
@@ -117,11 +119,43 @@ vi.mock("@/data/districts", () => ({
   SRI_LANKA_DISTRICTS: ["Colombo", "Gampaha"],
 }));
 
+function installProAuth() {
+  const store = new Map<string, string>();
+  store.set(
+    "autolens.auth_user",
+    JSON.stringify({
+      email: "pro@example.com",
+      name: "Pro User",
+      plan: "pro",
+      subscriptionStatus: "active",
+      role: "user",
+      avatarInitials: "PU",
+    }),
+  );
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
+
 async function renderTrends() {
+  installProAuth();
   const result = render(
-    <MemoryRouter future={ROUTER_FLAGS}>
-      <Trends />
-    </MemoryRouter>,
+    <AppPreferencesProvider>
+      <AuthProvider>
+        <MemoryRouter future={ROUTER_FLAGS}>
+          <Trends />
+        </MemoryRouter>
+      </AuthProvider>
+    </AppPreferencesProvider>,
   );
   await waitFor(() => {
     expect(screen.getByRole("combobox", { name: /make/i })).toHaveTextContent("Toyota");

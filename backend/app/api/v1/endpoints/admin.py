@@ -6,12 +6,13 @@ AUTH_USERS entry with role=admin).
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import func
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints.auth import (
@@ -27,14 +28,22 @@ from app.services.invite_email import try_send_invite_email
 from db.models import (
     CarListing,
     DealerProfile,
+    MarketAlert,
+    MarketSignal,
+    MarketStatsCache,
     PlatformUser,
     ScrapeRun,
     UserFeedback,
     UserInvite,
+    VehiclePermit,
     live_listing_filter,
 )
 from db.schema_patches import heal_platform_users_schema
 from db.session import get_db
+from app.api.v1.endpoints.pipeline import (
+    _launch_background_job,
+    reconcile_orphan_running_runs,
+)
 
 router = APIRouter()
 
@@ -194,17 +203,26 @@ def list_users(
     db: Session = Depends(get_db),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
+    q: Optional[str] = Query(default=None, max_length=120),
+    plan: Optional[str] = Query(default=None, max_length=20),
 ):
     del admin
     try:
         heal_platform_users_schema(db)
-        total = db.query(func.count(PlatformUser.id)).scalar() or 0
+        query = db.query(PlatformUser)
+        if q:
+            needle = f"%{q.strip().lower()}%"
+            query = query.filter(
+                or_(
+                    func.lower(PlatformUser.email).like(needle),
+                    func.lower(PlatformUser.name).like(needle),
+                )
+            )
+        if plan:
+            query = query.filter(PlatformUser.plan == plan.strip().lower())
+        total = query.count()
         rows = (
-            db.query(PlatformUser)
-            .order_by(PlatformUser.created_at.desc())
-            .offset(offset)
-            .limit(limit)
-            .all()
+            query.order_by(PlatformUser.created_at.desc()).offset(offset).limit(limit).all()
         )
         return {"total": int(total), "users": [_user_row_response(row) for row in rows]}
     except Exception as exc:
@@ -381,3 +399,402 @@ def revoke_invite(
     invite.status = "revoked"
     db.commit()
     return {"ok": True, "id": invite_id, "status": "revoked"}
+
+
+# ─── Owner console expansions ───────────────────────────────────────────────
+
+
+class FeedbackUpdateRequest(BaseModel):
+    status: str = Field(..., min_length=2, max_length=20)
+
+
+class PermitUpsertRequest(BaseModel):
+    permit_name: str = Field(..., min_length=2, max_length=100)
+    permit_type: str = Field(..., min_length=2, max_length=50)
+    market_price_lkr: float = Field(..., ge=0)
+
+
+class PipelineTriggerBody(BaseModel):
+    job: str = Field(default="sync", max_length=40)
+
+
+def _feedback_row(row: UserFeedback) -> dict:
+    return {
+        "id": row.id,
+        "category": row.category,
+        "route": row.route,
+        "message": row.message,
+        "email": row.email,
+        "status": row.status,
+        "createdAt": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
+def _dealer_row(row: DealerProfile) -> dict:
+    return {
+        "id": row.id,
+        "displayName": row.display_name,
+        "contactPhone": row.contact_phone,
+        "contactEmail": row.contact_email,
+        "sellerNamePattern": row.seller_name_pattern,
+        "claimedUrl": row.claimed_url,
+        "status": row.status,
+        "plan": row.plan,
+        "subscriptionStatus": row.subscription_status,
+        "verifiedAt": row.verified_at.isoformat() if row.verified_at else None,
+        "createdAt": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
+@router.get("/analytics", response_model=dict)
+def admin_analytics(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Detailed owner analytics across listings, users, alerts, signals, scrapes."""
+    del admin
+    now = datetime.now(timezone.utc)
+
+    listings_by_source = (
+        db.query(CarListing.source, func.count(CarListing.id))
+        .filter(live_listing_filter())
+        .group_by(CarListing.source)
+        .order_by(func.count(CarListing.id).desc())
+        .limit(20)
+        .all()
+    )
+    listings_by_district = (
+        db.query(CarListing.district, func.count(CarListing.id))
+        .filter(live_listing_filter(), CarListing.district.isnot(None))
+        .group_by(CarListing.district)
+        .order_by(func.count(CarListing.id).desc())
+        .limit(15)
+        .all()
+    )
+    price_stats = (
+        db.query(
+            func.avg(CarListing.price_lkr),
+            func.min(CarListing.price_lkr),
+            func.max(CarListing.price_lkr),
+        )
+        .filter(live_listing_filter(), CarListing.price_lkr.isnot(None))
+        .one()
+    )
+    users_by_plan = (
+        db.query(PlatformUser.plan, func.count(PlatformUser.id))
+        .group_by(PlatformUser.plan)
+        .all()
+    )
+    users_by_status = (
+        db.query(PlatformUser.subscription_status, func.count(PlatformUser.id))
+        .group_by(PlatformUser.subscription_status)
+        .all()
+    )
+    recent_signups = (
+        db.query(func.count(PlatformUser.id))
+        .filter(PlatformUser.created_at >= now.replace(hour=0, minute=0, second=0, microsecond=0))
+        .scalar()
+        or 0
+    )
+    active_alerts = (
+        db.query(func.count(MarketAlert.id)).filter(MarketAlert.active.is_(True)).scalar() or 0
+    )
+    alerts_with_whatsapp = (
+        db.query(func.count(MarketAlert.id))
+        .filter(MarketAlert.active.is_(True), MarketAlert.notify_phone.isnot(None))
+        .scalar()
+        or 0
+    )
+    signals_total = db.query(func.count(MarketSignal.id)).scalar() or 0
+    signals_by_source = (
+        db.query(MarketSignal.source, func.count(MarketSignal.id))
+        .group_by(MarketSignal.source)
+        .order_by(func.count(MarketSignal.id).desc())
+        .limit(12)
+        .all()
+    )
+    scrape_success = (
+        db.query(func.count(ScrapeRun.id))
+        .filter(ScrapeRun.status == "SUCCESS")
+        .scalar()
+        or 0
+    )
+    scrape_failed = (
+        db.query(func.count(ScrapeRun.id))
+        .filter(ScrapeRun.status == "FAILED")
+        .scalar()
+        or 0
+    )
+    invite_stats = (
+        db.query(UserInvite.status, func.count(UserInvite.id)).group_by(UserInvite.status).all()
+    )
+    feedback_by_status = (
+        db.query(UserFeedback.status, func.count(UserFeedback.id))
+        .group_by(UserFeedback.status)
+        .all()
+    )
+    dealers_by_status = (
+        db.query(DealerProfile.status, func.count(DealerProfile.id))
+        .group_by(DealerProfile.status)
+        .all()
+    )
+    inactive_users = (
+        db.query(func.count(PlatformUser.id)).filter(PlatformUser.is_active.is_(False)).scalar() or 0
+    )
+    never_logged_in = (
+        db.query(func.count(PlatformUser.id)).filter(PlatformUser.last_login_at.is_(None)).scalar()
+        or 0
+    )
+
+    return {
+        "listings": {
+            "bySource": [{"source": s or "unknown", "count": int(c)} for s, c in listings_by_source],
+            "byDistrict": [
+                {"district": d or "unknown", "count": int(c)} for d, c in listings_by_district
+            ],
+            "avgPriceLkr": float(price_stats[0] or 0),
+            "minPriceLkr": float(price_stats[1] or 0),
+            "maxPriceLkr": float(price_stats[2] or 0),
+        },
+        "users": {
+            "byPlan": [{"plan": p or "unknown", "count": int(c)} for p, c in users_by_plan],
+            "bySubscription": [
+                {"status": s or "unknown", "count": int(c)} for s, c in users_by_status
+            ],
+            "signupsToday": int(recent_signups),
+            "inactive": int(inactive_users),
+            "neverLoggedIn": int(never_logged_in),
+        },
+        "alerts": {
+            "active": int(active_alerts),
+            "withWhatsapp": int(alerts_with_whatsapp),
+        },
+        "signals": {
+            "total": int(signals_total),
+            "bySource": [{"source": s or "unknown", "count": int(c)} for s, c in signals_by_source],
+        },
+        "scrapes": {
+            "success": int(scrape_success),
+            "failed": int(scrape_failed),
+        },
+        "invites": [{"status": s or "unknown", "count": int(c)} for s, c in invite_stats],
+        "feedback": [{"status": s or "unknown", "count": int(c)} for s, c in feedback_by_status],
+        "dealers": [{"status": s or "unknown", "count": int(c)} for s, c in dealers_by_status],
+        "generatedAt": now.isoformat(),
+    }
+
+
+@router.get("/feedback", response_model=dict)
+def list_feedback(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+    status: Optional[str] = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    del admin
+    query = db.query(UserFeedback)
+    if status:
+        query = query.filter(UserFeedback.status == status.strip().lower())
+    rows = query.order_by(UserFeedback.created_at.desc()).limit(limit).all()
+    return {"feedback": [_feedback_row(row) for row in rows]}
+
+
+@router.patch("/feedback/{feedback_id}", response_model=dict)
+def update_feedback(
+    feedback_id: int,
+    payload: FeedbackUpdateRequest,
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    del admin
+    row = db.query(UserFeedback).filter(UserFeedback.id == feedback_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Feedback not found.")
+    status = payload.status.strip().lower()
+    if status not in {"new", "open", "triaged", "resolved", "closed", "spam"}:
+        raise HTTPException(status_code=400, detail="Invalid feedback status.")
+    row.status = status
+    db.commit()
+    db.refresh(row)
+    return _feedback_row(row)
+
+
+@router.get("/dealers", response_model=dict)
+def list_dealers(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+    status: Optional[str] = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    del admin
+    query = db.query(DealerProfile)
+    if status:
+        query = query.filter(DealerProfile.status == status.strip().lower())
+    rows = query.order_by(DealerProfile.created_at.desc()).limit(limit).all()
+    return {"dealers": [_dealer_row(row) for row in rows]}
+
+
+@router.post("/dealers/{dealer_id}/verify", response_model=dict)
+def verify_dealer(
+    dealer_id: int,
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    del admin
+    row = db.query(DealerProfile).filter(DealerProfile.id == dealer_id).first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Dealer not found.")
+    row.status = "verified"
+    row.verified_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(row)
+    return _dealer_row(row)
+
+
+@router.get("/pipeline", response_model=dict)
+def admin_pipeline(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+    limit: int = Query(default=40, ge=1, le=200),
+):
+    """Scrape runs with full error text (session admin — no X-Admin-Key needed)."""
+    del admin
+    orphans = reconcile_orphan_running_runs(db)
+    runs = db.query(ScrapeRun).order_by(ScrapeRun.started_at.desc()).limit(limit).all()
+    return {
+        "orphansReconciled": orphans,
+        "runs": [
+            {
+                "id": run.id,
+                "source": run.source,
+                "status": run.status,
+                "listingsFound": run.listings_found or 0,
+                "listingsNew": run.listings_new or 0,
+                "startedAt": run.started_at.isoformat() if run.started_at else None,
+                "finishedAt": run.finished_at.isoformat() if run.finished_at else None,
+                "errorMessage": run.error_message,
+            }
+            for run in runs
+        ],
+    }
+
+
+@router.post("/pipeline/trigger", response_model=dict)
+def admin_trigger_pipeline(
+    payload: PipelineTriggerBody,
+    admin: dict = Depends(require_admin_access),
+):
+    """Session-admin scrape trigger (owner console)."""
+    job = payload.job.strip().lower()
+    if job not in {"sync", "alt_sync"}:
+        raise HTTPException(status_code=400, detail="job must be sync or alt_sync.")
+    try:
+        result = _launch_background_job(job)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to launch job: {exc}") from exc
+    return {"ok": True, "triggeredBy": admin["email"], **result}
+
+
+@router.get("/permits", response_model=dict)
+def list_permits_admin(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    del admin
+    rows = db.query(VehiclePermit).order_by(VehiclePermit.market_price_lkr.desc()).all()
+    return {
+        "permits": [
+            {
+                "id": row.id,
+                "permitName": row.permit_name,
+                "permitType": row.permit_type,
+                "marketPriceLkr": float(row.market_price_lkr or 0),
+                "updatedAt": row.updated_at.isoformat() if row.updated_at else None,
+            }
+            for row in rows
+        ]
+    }
+
+
+@router.post("/permits", response_model=dict)
+def upsert_permit_admin(
+    payload: PermitUpsertRequest,
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    del admin
+    permit = (
+        db.query(VehiclePermit).filter(VehiclePermit.permit_name == payload.permit_name).first()
+    )
+    if permit:
+        permit.permit_type = payload.permit_type
+        permit.market_price_lkr = payload.market_price_lkr
+    else:
+        permit = VehiclePermit(
+            permit_name=payload.permit_name,
+            permit_type=payload.permit_type,
+            market_price_lkr=payload.market_price_lkr,
+        )
+        db.add(permit)
+    db.commit()
+    db.refresh(permit)
+    return {
+        "id": permit.id,
+        "permitName": permit.permit_name,
+        "permitType": permit.permit_type,
+        "marketPriceLkr": float(permit.market_price_lkr or 0),
+        "updatedAt": permit.updated_at.isoformat() if permit.updated_at else None,
+    }
+
+
+@router.delete("/cache", response_model=dict)
+def clear_stats_cache(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+    key: Optional[str] = Query(default=None, description="Optional single cache_key to delete"),
+):
+    """Force-refresh market stats by clearing the TTL cache."""
+    cleared_by = admin.get("email")
+    query = db.query(MarketStatsCache)
+    if key:
+        query = query.filter(MarketStatsCache.cache_key == key.strip())
+    deleted = query.delete(synchronize_session=False)
+    db.commit()
+    return {"ok": True, "deleted": int(deleted), "clearedBy": cleared_by}
+
+
+@router.get("/system", response_model=dict)
+def admin_system(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Owner security / config snapshot (no secret values)."""
+
+    def _flag(name: str, default: str = "true") -> bool:
+        return os.getenv(name, default).strip().lower() not in {"0", "false", "no", "off"}
+
+    db_ok = True
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        db_ok = False
+
+    cache_keys = [row.cache_key for row in db.query(MarketStatsCache).all()]
+
+    return {
+        "adminEmail": admin.get("email"),
+        "databaseOk": db_ok,
+        "flags": {
+            "appAccessEnforced": _flag("APP_ACCESS_ENFORCED", "true"),
+            "proAccessEnforced": _flag("PRO_ACCESS_ENFORCED", "true"),
+            "adminApiKeyConfigured": bool(os.getenv("ADMIN_API_KEY", "").strip()),
+            "billingWebhookConfigured": bool(os.getenv("BILLING_WEBHOOK_SECRET", "").strip()),
+            "b2bKeysConfigured": bool(os.getenv("B2B_API_KEYS", "").strip()),
+            "resendConfigured": bool(os.getenv("RESEND_API_KEY", "").strip()),
+            "twilioConfigured": bool(os.getenv("TWILIO_ACCOUNT_SID", "").strip()),
+            "dealerAdminTokenConfigured": bool(os.getenv("DEALER_ADMIN_TOKEN", "").strip()),
+            "publicAppOrigin": os.getenv("PUBLIC_APP_ORIGIN", "").strip() or None,
+        },
+        "statsCacheKeys": cache_keys,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+    }

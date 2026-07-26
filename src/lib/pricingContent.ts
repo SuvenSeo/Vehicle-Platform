@@ -31,9 +31,11 @@ export const PRICING_TIERS: PricingTier[] = [
     priceNote: "/mo",
     audience: "Browsers and first-time buyers testing the market",
     features: [
-      "Browse first 12 live listings",
-      "Limited Official Pulse snapshot",
-      "Starter import calculator",
+      "Open every product page (soft limits, not hard locks)",
+      "First 12 live listings · page 1 only",
+      "Latest 6 Official Pulse signals",
+      "Landed-cost calculator (starter)",
+      "6-month trends & price-index window",
       "Teaser Best Picks shortlist",
       "1 market alert (no WhatsApp)",
     ],
@@ -152,6 +154,6 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Do deal scores work on Free?",
-    a: "Yes — listing cards and Best Picks expose deal bands on the public surface. Pro adds history, exports, and deeper lane context around those scores.",
+    a: "No — deal scores are a Pro signal. Free can browse listings and tools with soft limits; Pro unlocks scoring on every listing, Best Picks ranking, and deeper lane context.",
   },
 ];

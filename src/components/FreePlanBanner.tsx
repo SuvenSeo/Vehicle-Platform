@@ -17,7 +17,7 @@ export function FreePlanBanner() {
             <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
           </span>
           <span>
-            {t("freeBanner.body", "You're on the Free plan — Pro lanes, exports, and deep analytics stay locked.")}
+            {t("freeBanner.body", "Free plan: every page is open, with soft limits on depth. Pro unlocks full feeds, scores, history, and exports.")}
           </span>
         </p>
         <Link

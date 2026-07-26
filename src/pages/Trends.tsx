@@ -10,8 +10,18 @@ import { RotateCcw, Zap, BarChart3 } from "lucide-react";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import {
+  FREE_TRENDS_MONTHS,
+  freePlanCopy,
+  hasFullPlatformAccess,
+  takeLastMonths,
+} from "@/lib/planLimits";
 import { visuals } from "@/lib/visualAssets";
 import type { HybridBandsData, PriceTrendPoint } from "@/types/car";
 import {
@@ -48,6 +58,8 @@ function bandColor(index: number): { bar: string; badge: string; text: string } 
 
 export default function Trends() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [modelsList, setModelsList] = useState<{ model: string; count: number }[]>([]);
   const [selectedMake, setSelectedMake] = useState("");
@@ -62,6 +74,13 @@ export default function Trends() {
   const [hybridBands, setHybridBands] = useState<HybridBandsData | null>(null);
   const [hybridLoading, setHybridLoading] = useState(false);
   const [hybridError, setHybridError] = useState<string | null>(null);
+
+  // Free: ignore district/condition filters (Pro depth).
+  const effectiveCondition = fullAccess ? condition : "all";
+  const effectiveDistrict = fullAccess ? district : "all";
+  const visibleTrendData = fullAccess
+    ? trendData
+    : takeLastMonths(trendData, FREE_TRENDS_MONTHS);
 
   useEffect(() => {
     let c = false;
@@ -81,7 +100,12 @@ export default function Trends() {
     if (!selectedMake || !selectedModel) { setTrendData([]); setCoverageNote(null); return; }
     let c = false;
     setLoading(true); setError(null);
-    getPriceTrendSeries(selectedMake, selectedModel, condition !== "all" ? condition : undefined, district !== "all" ? district : undefined)
+    getPriceTrendSeries(
+      selectedMake,
+      selectedModel,
+      effectiveCondition !== "all" ? effectiveCondition : undefined,
+      effectiveDistrict !== "all" ? effectiveDistrict : undefined,
+    )
       .then((s) => { if (!c) { setTrendData(s.points); setCoverageNote(s.coverage_note); } })
       .catch(() => {
         if (!c) {
@@ -92,7 +116,7 @@ export default function Trends() {
       })
       .finally(() => { if (!c) setLoading(false); });
     return () => { c = true; };
-  }, [selectedMake, selectedModel, condition, district, t]);
+  }, [selectedMake, selectedModel, effectiveCondition, effectiveDistrict, t]);
 
   useEffect(() => {
     let c = false;
@@ -109,7 +133,7 @@ export default function Trends() {
   const emptyMessage = !selectedMake || !selectedModel
     ? t("trends.selectToLoad", "Select make and model to load price history.")
     : error || t("trends.noData", "No trend data for this combination yet.");
-  const hasNarrow = district !== "all" || condition !== "all";
+  const hasNarrow = effectiveDistrict !== "all" || effectiveCondition !== "all";
 
   const conditionLabel = (value: string) => {
     if (value === "all") return t("common.any", "Any");
@@ -125,6 +149,7 @@ export default function Trends() {
 
   return (
     <PageCanvas>
+      <FreePlanBanner />
       <PageHero
         theme="trends"
         eyebrow={t("trends.eyebrow", "Trend studio")}
@@ -165,25 +190,47 @@ export default function Trends() {
             </div>
             <div className="space-y-1.5">
               <label htmlFor="t-cond" className={fieldLabelClass}>{t("common.condition", "Condition")}</label>
-              <Select value={condition} onValueChange={setCondition}>
-                <SelectTrigger id="t-cond" className={selectTriggerClass}><SelectValue /></SelectTrigger>
-                <SelectContent className={selectContentClass}>
-                  <SelectItem value="all">{t("common.any", "Any")}</SelectItem>
-                  <SelectItem value="used">{t("condition.used", "Used")}</SelectItem>
-                  <SelectItem value="reconditioned">{t("condition.reconditioned", "Reconditioned")}</SelectItem>
-                  <SelectItem value="brand_new">{t("condition.brandNew", "Brand New")}</SelectItem>
-                </SelectContent>
-              </Select>
+              {fullAccess ? (
+                <Select value={condition} onValueChange={setCondition}>
+                  <SelectTrigger id="t-cond" className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                  <SelectContent className={selectContentClass}>
+                    <SelectItem value="all">{t("common.any", "Any")}</SelectItem>
+                    <SelectItem value="used">{t("condition.used", "Used")}</SelectItem>
+                    <SelectItem value="reconditioned">{t("condition.reconditioned", "Reconditioned")}</SelectItem>
+                    <SelectItem value="brand_new">{t("condition.brandNew", "Brand New")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <ProFeatureLock
+                  label={freePlanCopy.trendsTitle}
+                  className="min-h-[2.5rem] rounded-lg"
+                >
+                  <div className={`${selectTriggerClass} flex h-10 items-center px-3 text-sm text-muted-foreground`}>
+                    {t("common.any", "Any")}
+                  </div>
+                </ProFeatureLock>
+              )}
             </div>
             <div className="space-y-1.5">
               <label htmlFor="t-dist" className={fieldLabelClass}>{t("common.district", "District")}</label>
-              <Select value={district} onValueChange={setDistrict}>
-                <SelectTrigger id="t-dist" className={selectTriggerClass}><SelectValue /></SelectTrigger>
-                <SelectContent className={selectContentClass}>
-                  <SelectItem value="all">{t("common.allDistricts", "All districts")}</SelectItem>
-                  {SRI_LANKA_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              {fullAccess ? (
+                <Select value={district} onValueChange={setDistrict}>
+                  <SelectTrigger id="t-dist" className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                  <SelectContent className={selectContentClass}>
+                    <SelectItem value="all">{t("common.allDistricts", "All districts")}</SelectItem>
+                    {SRI_LANKA_DISTRICTS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <ProFeatureLock
+                  label={freePlanCopy.trendsTitle}
+                  className="min-h-[2.5rem] rounded-lg"
+                >
+                  <div className={`${selectTriggerClass} flex h-10 items-center px-3 text-sm text-muted-foreground`}>
+                    {t("common.allDistricts", "All districts")}
+                  </div>
+                </ProFeatureLock>
+              )}
             </div>
           </div>
 
@@ -213,7 +260,15 @@ export default function Trends() {
 
         {/* Chart — PriceHistoryChart owns its own theme-aware surface + Recharts */}
         <motion.div variants={revealItem}>
-          <PriceHistoryChart title={chartTitle} points={trendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? t("trends.broadenFilters", "Broaden filters") : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
+          <PriceHistoryChart title={chartTitle} points={visibleTrendData} isLoading={loading} coverageNote={coverageNote} emptyMessage={emptyMessage} emptyActionLabel={hasNarrow ? t("trends.broadenFilters", "Broaden filters") : undefined} onEmptyAction={hasNarrow ? () => { setDistrict("all"); setCondition("all"); } : undefined} />
+          {!fullAccess ? (
+            <UpgradePrompt
+              className="mt-4"
+              title={freePlanCopy.trendsTitle}
+              body={freePlanCopy.trendsBody}
+              variant="strip"
+            />
+          ) : null}
         </motion.div>
 
         <motion.div variants={revealItem} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
@@ -225,13 +280,25 @@ export default function Trends() {
           <span className="shrink-0 text-[10px] font-semibold text-primary-bright num">{t("common.publicData", "Public data")}</span>
         </motion.div>
 
-        {/* ── HYBRID TAX ARBITRAGE ──────────────────────────────── */}
+        {/* ── HYBRID TAX ARBITRAGE (Pro depth) ─────────────────── */}
         <motion.div variants={revealItem}>
-          <HybridTaxArbitrageSection
-            data={hybridBands}
-            loading={hybridLoading}
-            error={hybridError}
-          />
+          {fullAccess ? (
+            <HybridTaxArbitrageSection
+              data={hybridBands}
+              loading={hybridLoading}
+              error={hybridError}
+            />
+          ) : (
+            <ProFeatureLock
+              label={t("pro.lock.hybridTitle", "Hybrid tax bands — Pro")}
+              className="min-h-[12rem] rounded-xl"
+            >
+              <div className="rounded-xl border border-border bg-surface p-6">
+                <p className="font-display text-lg font-bold text-foreground">{t("trends.hybridTitle", "Hybrid Tax Arbitrage")}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{t("pro.lock.preview", "Preview locked on Free")}</p>
+              </div>
+            </ProFeatureLock>
+          )}
         </motion.div>
 
         <motion.div variants={revealItem}>

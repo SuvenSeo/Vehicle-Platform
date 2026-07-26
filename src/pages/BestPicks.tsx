@@ -73,7 +73,9 @@ export default function BestPicks() {
   const [picks, setPicks] = useState<CarListing[]>([]);
   const [drops, setDrops] = useState<PriceDropItem[]>([]);
   const [dropsLoaded, setDropsLoaded] = useState(false);
-  const [sortMode, setSortMode] = useState<BestPicksSortMode>("deal_score");
+  const [sortMode, setSortMode] = useState<BestPicksSortMode>(() =>
+    fullAccess ? "deal_score" : "affordability",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -89,20 +91,37 @@ export default function BestPicks() {
     (async () => {
       setLoading(true); setError(null);
       try {
+        // Free cannot receive deal_score from the API — use newest teasers ranked
+        // by affordability instead of an empty deal-score filter.
         const pagesToFetch = fullAccess ? PICKS_PAGES : 1;
-        const base: FilterState = { sort: "deal_score", page: 1, vehicle_category: "cars" };
-        const responses = await Promise.all(Array.from({ length: pagesToFetch }, (_, i) => getListings({ ...base, page: i + 1 })));
+        const sort = fullAccess ? "deal_score" : "newest";
+        const base: FilterState = { sort, page: 1, vehicle_category: "cars" };
+        const responses = await Promise.all(
+          Array.from({ length: pagesToFetch }, (_, i) => getListings({ ...base, page: i + 1 })),
+        );
         if (cancelled) return;
         const unique = new Map<number, CarListing>();
-        responses.flatMap((r) => r.listings)
-          .filter((l) => Number(l.deal_score || 0) >= MIN_DEAL_SCORE && isReasonableListingPrice(Number(l.price_lkr || 0)))
+        const candidates = responses
+          .flatMap((r) => r.listings)
+          .filter((l) => isReasonableListingPrice(Number(l.price_lkr || 0)));
+        const filtered = fullAccess
+          ? candidates.filter((l) => Number(l.deal_score || 0) >= MIN_DEAL_SCORE)
+          : candidates;
+        filtered
           .sort((a, b) => Number(b.deal_score || 0) - Number(a.deal_score || 0))
-          .forEach((l) => { if (!unique.has(l.id)) unique.set(l.id, l); });
+          .forEach((l) => {
+            if (!unique.has(l.id)) unique.set(l.id, l);
+          });
         setPicks(Array.from(unique.values()));
-      } catch { if (!cancelled) setError(t("picks.loadError", "Unable to load best picks.")); }
-      finally { if (!cancelled) setLoading(false); }
+      } catch {
+        if (!cancelled) setError(t("picks.loadError", "Unable to load best picks."));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [fullAccess, t]);
 
   const ranked = useMemo(() => {

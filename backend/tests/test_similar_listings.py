@@ -2,6 +2,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from unittest.mock import MagicMock
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -17,6 +19,10 @@ def _session():
     Session = sessionmaker(bind=engine)
     return Session()
 
+
+def _request():
+    """Anonymous request → not free-teased (plan is None)."""
+    return MagicMock()
 
 def _listing(source_id: str, *, make: str = "Toyota", model: str = "Vitz", price_lkr: int | None) -> CarListing:
     now = datetime(2026, 4, 21, 9, 0, tzinfo=timezone.utc)
@@ -49,7 +55,7 @@ def test_similar_listings_uses_price_band_for_priced_listing():
     db.commit()
 
     base = db.query(CarListing).filter(CarListing.source_id == "base").one()
-    similar = listings.get_similar_listings(base.id, db=db)
+    similar = listings.get_similar_listings(base.id, request=_request(), db=db)
 
     assert [row.source_id for row in similar] == ["in-band"]
 
@@ -66,7 +72,7 @@ def test_similar_listings_does_not_crash_for_unpriced_listing():
     db.commit()
 
     base = db.query(CarListing).filter(CarListing.source_id == "base-unpriced").one()
-    similar = listings.get_similar_listings(base.id, db=db)
+    similar = listings.get_similar_listings(base.id, request=_request(), db=db)
 
     assert [row.source_id for row in similar] == ["same-model"]
 
@@ -82,6 +88,6 @@ def test_similar_listings_handles_zero_price_like_unpriced():
     db.commit()
 
     base = db.query(CarListing).filter(CarListing.source_id == "base-zero").one()
-    similar = listings.get_similar_listings(base.id, db=db)
+    similar = listings.get_similar_listings(base.id, request=_request(), db=db)
 
     assert [row.source_id for row in similar] == ["same-model-2"]

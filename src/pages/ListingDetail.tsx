@@ -23,8 +23,15 @@ import { SellSpeedChip } from '@/components/SellSpeedChip';
 import { AdvertHealthChip } from '@/components/AdvertHealthChip';
 import { ListingHistoryReport } from '@/components/ListingHistoryReport';
 import { ListingPriceTimeline } from '@/components/ListingPriceTimeline';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { inferFinanceClass } from '@/lib/cashToOwn';
 import { useAppPreferences } from '@/lib/appPreferences';
+import { useAuth } from '@/lib/authContext';
+import {
+  FREE_SIMILAR_LIMIT,
+  freePlanCopy,
+  hasFullPlatformAccess,
+} from '@/lib/planLimits';
 import type { ImportFuelType } from '@/lib/importTaxModel';
 import { motion } from 'framer-motion';
 import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
@@ -40,6 +47,8 @@ export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [listing, setListing] = useState<CarListing | null>(null);
   const [similar, setSimilar] = useState<CarListing[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerTrustProfile | null>(null);
@@ -192,9 +201,10 @@ export default function ListingDetail() {
     : fuelRaw.includes('diesel') ? 'diesel'
     : 'petrol';
 
-  // null = rating suppressed server-side (thin cohort / old vehicle / extreme price)
-  const hasDealScore = listing.deal_score !== null && listing.deal_score !== undefined;
+  // null = rating suppressed server-side (thin cohort / old vehicle / extreme price / free plan)
+  const hasDealScore = fullAccess && listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = listing.deal_score || 0;
+  const visibleSimilar = fullAccess ? similar : similar.slice(0, FREE_SIMILAR_LIMIT);
   const fmvSummary =
     hasPrice && Number.isFinite(Number(listing.market_median_lkr)) && Number(listing.market_median_lkr) > 0
       ? summarizeFmv(listingPrice, Number(listing.market_median_lkr))
@@ -217,7 +227,7 @@ export default function ListingDetail() {
   const whatsappPreview = (sellerProfile?.whatsapp_numbers || []).slice(0, 1);
   const trackedDays = (() => { const ts = new Date(listing.first_seen_at || '').getTime(); return Number.isFinite(ts) ? Math.max(1, Math.round((Date.now() - ts) / 86_400_000)) : null; })();
   const trackedLabel = trackedDays ? `${trackedDays}d` : 'N/A';
-  const peerAges = similar.map((s) => { const ts = new Date(s.first_seen_at || '').getTime(); return Number.isFinite(ts) ? Math.max(1, Math.round((Date.now() - ts) / 86_400_000)) : null; }).filter((v): v is number => v !== null);
+  const peerAges = visibleSimilar.map((s) => { const ts = new Date(s.first_seen_at || '').getTime(); return Number.isFinite(ts) ? Math.max(1, Math.round((Date.now() - ts) / 86_400_000)) : null; }).filter((v): v is number => v !== null);
   const avgPeerDays = peerAges.length ? Math.round(peerAges.reduce((a, b) => a + b, 0) / peerAges.length) : null;
 
   // ── Render ─────────────────────────────────────────────────
@@ -468,6 +478,14 @@ export default function ListingDetail() {
                   <FairPriceIndicator score={dealScore} condition={listing.condition} size="lg" className="num font-extrabold" />
                   <span className={`num text-[11px] font-bold ${dealTone}`}>{dealDelta}</span>
                 </div>
+              ) : !fullAccess ? (
+                <div className="mt-5">
+                  <UpgradePrompt
+                    title={freePlanCopy.scoresTitle}
+                    body={freePlanCopy.scoresBody}
+                    variant="strip"
+                  />
+                </div>
               ) : (
                 <p className="mt-5 text-[11px] font-semibold text-muted-foreground">
                   No price rating — not enough comparable listings for a confident call on this vehicle.
@@ -560,9 +578,9 @@ export default function ListingDetail() {
                 <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
               </div>
 
-              {similar.length > 0 ? (
+              {visibleSimilar.length > 0 ? (
                 <div className="space-y-2">
-                  {similar.map((s) => (
+                  {visibleSimilar.map((s) => (
                     <Link
                       key={s.id}
                       to={`/listing/${s.id}`}
@@ -572,7 +590,7 @@ export default function ListingDetail() {
                         <p className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">{s.make} {s.model} · {s.year}</p>
                         <p className="num mt-1 text-[13px] font-bold text-foreground group-hover:text-primary transition-colors">{formatPrice(s.price_lkr)}</p>
                       </div>
-                      {typeof s.deal_score === 'number' && s.deal_score > 0 && (
+                      {fullAccess && typeof s.deal_score === 'number' && s.deal_score > 0 && (
                         <span className="num text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 bg-emerald-500/10 rounded px-1.5 py-0.5">{s.deal_score}%</span>
                       )}
                     </Link>
@@ -593,7 +611,7 @@ export default function ListingDetail() {
               <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
                 Tracked for <span className="num font-bold text-foreground">{trackedLabel}</span>.
                 {avgPeerDays && ` Peers average ${avgPeerDays}d.`}
-                {similar.length > 0 && ` ${similar.length} comparable listings active.`}
+                {visibleSimilar.length > 0 && ` ${visibleSimilar.length} comparable listings active.`}
               </p>
             </motion.div>
           </aside>

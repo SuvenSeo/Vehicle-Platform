@@ -96,13 +96,22 @@ def create_alert(
             detail=f"Maximum {max_alerts} active alerts reached for this account.",
         )
 
+    notify_phone = (payload.notify_phone or "").strip() or None
+    # WhatsApp notify is a Pro surface — reject free-plan attempts even if the
+    # client bypasses the UI and posts notify_phone directly.
+    if notify_phone and live is not None and is_free_browse_plan(live.get("plan"), role=live.get("role")):
+        raise HTTPException(
+            status_code=403,
+            detail="WhatsApp alert notifications require a Pro plan.",
+        )
+
     alert = MarketAlert(
         user_token=token,
         make=(payload.make or "").strip() or None,
         model=(payload.model or "").strip() or None,
         max_price=payload.max_price if payload.max_price and payload.max_price > 0 else None,
         district=(payload.district or "").strip() or None,
-        notify_phone=(payload.notify_phone or "").strip() or None,
+        notify_phone=notify_phone,
     )
     db.add(alert)
     db.commit()
@@ -157,8 +166,11 @@ def match_alerts(
     authorization: Optional[str] = Header(default=None),
     x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
 ):
-    owner, _live = _resolve_alert_identity(
+    owner, live = _resolve_alert_identity(
         request, authorization, _optional_str(x_alert_token) or _optional_str(token), db
+    )
+    free_browse = bool(
+        live is not None and is_free_browse_plan(live.get("plan"), role=live.get("role"))
     )
     alerts = (
         db.query(MarketAlert)
@@ -202,7 +214,11 @@ def match_alerts(
                         year=row.year,
                         price_lkr=float(row.price_lkr) if row.price_lkr is not None else None,
                         district=row.district,
-                        deal_score=float(row.deal_score) if row.deal_score is not None else None,
+                        deal_score=(
+                            None
+                            if free_browse
+                            else (float(row.deal_score) if row.deal_score is not None else None)
+                        ),
                         thumbnail_url=row.thumbnail_url,
                     )
                     for row in top_listings
