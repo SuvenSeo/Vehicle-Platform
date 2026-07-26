@@ -2351,7 +2351,7 @@ export type AdminUser = {
   id: number;
   email: string;
   name: string;
-  plan: "free" | "pro" | "enterprise";
+  plan: "free" | "pro" | "enterprise" | "dealer";
   subscriptionStatus: string;
   role: "user" | "admin";
   isActive: boolean;

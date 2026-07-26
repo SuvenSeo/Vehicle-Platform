@@ -36,6 +36,9 @@ export function hasFullPlatformAccess(opts: {
   return Boolean(opts.hasProAccess || opts.isAdmin);
 }
 
+/** Paid plans that are not free-teased (mirrors backend PRO_PLANS). */
+export const FULL_ACCESS_PLANS = ["pro", "enterprise", "dealer"] as const;
+
 export function freeListingsVisibleTotal(marketTotal: number): number {
   return Math.min(Math.max(0, marketTotal), FREE_LISTINGS_PAGE_SIZE * FREE_MAX_LISTING_PAGES);
 }

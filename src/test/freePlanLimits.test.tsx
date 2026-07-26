@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "@/lib/authContext";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { freeListingsVisibleTotal, FREE_LISTINGS_PAGE_SIZE, FREE_EV_MODELS_LIMIT, FREE_SIMILAR_LIMIT, FREE_TRENDS_MONTHS, FREE_CALCULATOR_TABS, hasFullPlatformAccess, takeLastMonths } from "@/lib/planLimits";
+import { freeListingsVisibleTotal, FREE_LISTINGS_PAGE_SIZE, FREE_EV_MODELS_LIMIT, FREE_SIMILAR_LIMIT, FREE_TRENDS_MONTHS, FREE_CALCULATOR_TABS, FULL_ACCESS_PLANS, hasFullPlatformAccess, takeLastMonths } from "@/lib/planLimits";
 
 function installLocalStorage(seed?: Record<string, unknown>) {
   const store = new Map<string, string>();
@@ -32,6 +32,7 @@ describe("Free plan limits", () => {
     expect(hasFullPlatformAccess({ hasProAccess: false, isAdmin: false })).toBe(false);
     expect(hasFullPlatformAccess({ hasProAccess: true })).toBe(true);
     expect(hasFullPlatformAccess({ hasProAccess: false, isAdmin: true })).toBe(true);
+    expect(FULL_ACCESS_PLANS).toContain("dealer");
   });
 
   it("keeps soft depth ceilings for free teaser surfaces", () => {

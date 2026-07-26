@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { type ChatListingResult, sendChatMessage, formatPrice } from "@/services/api";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import { hasFullPlatformAccess } from "@/lib/planLimits";
 import { safeExternalUrl } from "@/lib/safeExternalUrl";
 
 const STORAGE_KEY = "autolens_chat_v2";
@@ -200,6 +202,8 @@ function formatMessage(content: string) {
 
 function ListingResults({ messageId, listings }: { messageId: string; listings?: ChatListingResult[] }) {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const showScores = hasFullPlatformAccess({ hasProAccess, isAdmin });
   if (!Array.isArray(listings) || listings.length === 0) return null;
 
   return (
@@ -212,7 +216,7 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
             <p className="mt-1 ui-caption num text-muted-foreground">
               {item.price_lkr ? formatPrice(item.price_lkr) : t("chat.card.priceUnavailable", "Price unavailable")}
               {item.district ? ` · ${item.district}` : ""}
-              {typeof item.deal_score === "number" ? ` · ${item.deal_score.toFixed(0)} score` : ""}
+              {showScores && typeof item.deal_score === "number" ? ` · ${item.deal_score.toFixed(0)} score` : ""}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {item.detail_url && (
