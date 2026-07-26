@@ -17,6 +17,7 @@ import {
   BellOff,
   RefreshCw,
   FileBadge,
+  Lock,
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
@@ -24,9 +25,17 @@ import { OwnershipCostsPanel } from "@/components/OwnershipCostsPanel";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import {
+  FREE_CALCULATOR_TABS,
+  freePlanCopy,
+  hasFullPlatformAccess,
+} from "@/lib/planLimits";
 import {
   consumeSurchargeLapseNotification,
   isSurchargeNotifySubscribed,
@@ -40,6 +49,7 @@ type FuelType = "petrol" | "diesel" | "hybrid" | "electric";
 
 const TAB_IDS: TabType[] = ["landed-cost", "lease", "tco", "ownership", "permits", "depreciation"];
 const FUEL_TYPES: FuelType[] = ["petrol", "diesel", "hybrid", "electric"];
+const FREE_TAB_SET = new Set<string>(FREE_CALCULATOR_TABS);
 
 // Cap URL-seeded numbers well above any real-world value; a crafted
 // ?cif=1e300 must not reach the backend or overflow the math.
@@ -85,11 +95,14 @@ const itemVariants = {
 
 export default function Calculator() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const raw = searchParams.get("tab") as TabType | null;
     return raw && TAB_IDS.includes(raw) ? raw : "landed-cost";
   });
+  const tabUnlocked = fullAccess || FREE_TAB_SET.has(activeTab);
 
   // Landed Cost State (seeded from the shareable URL when present)
   const [cifUsd, setCifUsd] = useState(() => numParam(searchParams, "cif", 12000, { positive: true }));
@@ -361,6 +374,8 @@ export default function Calculator() {
         ]}
       />
 
+      <FreePlanBanner />
+
       <PageBody className="space-y-0 pb-0">
       <motion.div variants={itemVariants} className="flex max-w-[1320px] flex-nowrap items-center gap-3 pb-6">
         <div className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto rounded-full border border-border bg-card p-1.5 shadow-soft snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-none sm:flex-wrap sm:overflow-visible">
@@ -373,6 +388,7 @@ export default function Calculator() {
             { id: "depreciation", label: t("calc.tab.depreciation", "Retention Curves"), icon: TrendingDown },
           ].map((tab) => {
             const Icon = tab.icon;
+            const locked = !fullAccess && !FREE_TAB_SET.has(tab.id);
             return (
               <button
                 key={tab.id}
@@ -391,7 +407,7 @@ export default function Calculator() {
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
-                <Icon className="h-3.5 w-3.5" />
+                {locked ? <Lock className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
                 {tab.label}
               </button>
             );
@@ -408,6 +424,13 @@ export default function Calculator() {
       </motion.div>
 
       <div className="mx-auto max-w-[1320px] px-5 pb-16 sm:px-6 relative z-10">
+        {!tabUnlocked ? (
+          <UpgradePrompt
+            title={freePlanCopy.calcTitle}
+            body={freePlanCopy.calcBody}
+            className="max-w-xl mx-auto"
+          />
+        ) : (
         <AnimatePresence mode="wait">
           {activeTab === "landed-cost" && (
             <motion.div
@@ -966,6 +989,7 @@ export default function Calculator() {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
       </div>
       </PageBody>
     </PageCanvas>

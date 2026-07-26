@@ -20,11 +20,19 @@ import {
 import type { UrlBenchmarkResult } from "@/services/api";
 import { getStoredAuthToken } from "@/lib/authToken";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import {
+  freePlanCopy,
+  hasFullPlatformAccess,
+} from "@/lib/planLimits";
 import type { ProMarketSnapshot } from "@/types/pro";
 import { revealItem, springSoft } from "@/lib/motion";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { ProFeatureLock } from "@/components/ProFeatureLock";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   buildDealerNotifications,
@@ -418,6 +426,8 @@ function InventoryBenchmark() {
 
 export default function DealerDashboard() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [collapsed, setCollapsed] = useState<Record<WidgetKey, boolean>>({ turnover: false, priceGap: false, districtDemand: false, inventoryBenchmark: false });
   const [notifIdx, setNotifIdx] = useState(0);
   const hasAuthToken = Boolean(getStoredAuthToken());
@@ -532,7 +542,18 @@ export default function DealerDashboard() {
         }
       />
 
+      <FreePlanBanner />
+
       <PageBody className="py-10 lg:py-14">
+        {!fullAccess ? (
+          <UpgradePrompt
+            className="mb-6"
+            title={freePlanCopy.dealerTitle}
+            body={freePlanCopy.dealerBody}
+            variant="strip"
+          />
+        ) : null}
+
         {dashboardError ? (
           <div className="mb-6 flex items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500 dark:text-rose-400" />
@@ -673,6 +694,7 @@ export default function DealerDashboard() {
                 description="Momentum, price spread, and district demand across your live market feed."
               />
 
+              {fullAccess ? (
               <div className="space-y-5">
                 <WidgetShell
                   title={t("dealer.turnover", "Inventory Turnover")}
@@ -759,6 +781,14 @@ export default function DealerDashboard() {
                   </WidgetShell>
                 </div>
               </div>
+              ) : (
+                <ProFeatureLock label={freePlanCopy.dealerTitle} className="min-h-[18rem]">
+                  <div className="rounded-2xl border border-border bg-card p-8 opacity-80">
+                    <p className="font-display text-lg font-bold text-foreground">{t("dealer.turnover", "Inventory Turnover")}</p>
+                    <p className="mt-2 text-sm text-muted-foreground">{freePlanCopy.dealerBody}</p>
+                  </div>
+                </ProFeatureLock>
+              )}
             </div>
 
             <motion.div

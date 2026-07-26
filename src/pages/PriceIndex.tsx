@@ -5,7 +5,16 @@ import { ArrowDownRight, ArrowUpRight, LineChart, Info } from "lucide-react";
 import { getPriceIndex } from "@/services/api";
 import type { PriceIndex, PriceIndexPoint } from "@/types/car";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
 import { AtmosphericImage } from "@/components/AtmosphericImage";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import {
+  FREE_TRENDS_MONTHS,
+  freePlanCopy,
+  hasFullPlatformAccess,
+  takeLastMonths,
+} from "@/lib/planLimits";
 import { visuals } from "@/lib/visualAssets";
 
 const containerVariants = {
@@ -31,6 +40,8 @@ function formatPct(v: number | null): string {
 
 export default function PriceIndexPage() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [data, setData] = useState<PriceIndex | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -46,11 +57,18 @@ export default function PriceIndexPage() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (!fullAccess && activeSegment !== "overall") {
+      setActiveSegment("overall");
+    }
+  }, [fullAccess, activeSegment]);
+
   const segmentKeys = useMemo(() => ["overall", ...Object.keys(data?.segments || {})], [data]);
   const activePoints: PriceIndexPoint[] = useMemo(() => {
     if (!data) return [];
-    return activeSegment === "overall" ? data.points : data.segments[activeSegment] || [];
-  }, [data, activeSegment]);
+    const raw = activeSegment === "overall" ? data.points : data.segments[activeSegment] || [];
+    return fullAccess ? raw : takeLastMonths(raw, FREE_TRENDS_MONTHS);
+  }, [data, activeSegment, fullAccess]);
 
   const chartData = activePoints.map((p) => ({ ...p, label: formatPeriod(p.period) }));
   const latest = activePoints[activePoints.length - 1];
@@ -84,6 +102,8 @@ export default function PriceIndexPage() {
           </p>
         </div>
       </motion.section>
+
+      <FreePlanBanner />
 
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-6 relative z-10">
         {loading ? (
@@ -123,24 +143,34 @@ export default function PriceIndexPage() {
               </div>
             </motion.div>
 
-            {/* Segment switcher */}
+            {/* Segment switcher — Free stays on overall; Pro unlocks segments */}
             {segmentKeys.length > 1 && (
               <div className="flex flex-wrap gap-2" role="group" aria-label={t("index.segmentAria", "Index segment")}>
-                {segmentKeys.map((seg) => (
-                  <button
-                    key={seg}
-                    type="button"
-                    onClick={() => setActiveSegment(seg)}
-                    aria-pressed={activeSegment === seg}
-                    className={`rounded-lg border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
-                      activeSegment === seg
-                        ? "border-primary/30 bg-primary/10 text-primary-bright"
-                        : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
-                    }`}
-                  >
-                    {seg === "overall" ? t("index.allVehicles", "All vehicles") : seg}
-                  </button>
-                ))}
+                {segmentKeys.map((seg) => {
+                  const locked = !fullAccess && seg !== "overall";
+                  return (
+                    <button
+                      key={seg}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => {
+                        if (!locked) setActiveSegment(seg);
+                      }}
+                      aria-pressed={activeSegment === seg}
+                      title={locked ? freePlanCopy.indexBody : undefined}
+                      className={`rounded-lg border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
+                        activeSegment === seg
+                          ? "border-primary/30 bg-primary/10 text-primary-bright"
+                          : locked
+                            ? "cursor-not-allowed border-white/5 bg-white/[0.01] text-muted-foreground/50"
+                            : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
+                      }`}
+                    >
+                      {seg === "overall" ? t("index.allVehicles", "All vehicles") : seg}
+                      {locked ? " · Pro" : ""}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -175,6 +205,14 @@ export default function PriceIndexPage() {
                 </ResponsiveContainer>
               </div>
             </motion.div>
+
+            {!fullAccess ? (
+              <UpgradePrompt
+                title={freePlanCopy.indexTitle}
+                body={freePlanCopy.indexBody}
+                variant="strip"
+              />
+            ) : null}
 
             {/* Methodology */}
             <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5">

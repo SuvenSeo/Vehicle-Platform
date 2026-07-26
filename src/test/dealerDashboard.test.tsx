@@ -34,6 +34,24 @@ import {
   getStats,
 } from "@/services/api";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
+
+function installLocalStorage(seed?: Record<string, unknown>) {
+  const store = new Map<string, string>();
+  if (seed) store.set("autolens.auth_user", JSON.stringify(seed));
+  const storage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => store.set(key, value),
+    removeItem: (key: string) => store.delete(key),
+    clear: () => store.clear(),
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+  Object.defineProperty(window, "localStorage", { configurable: true, value: storage });
+}
 
 function renderDealerDashboard() {
   const queryClient = new QueryClient({
@@ -42,17 +60,27 @@ function renderDealerDashboard() {
 
   return render(
     <AppPreferencesProvider>
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <DealerDashboard />
-        </MemoryRouter>
-      </QueryClientProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <DealerDashboard />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </AuthProvider>
     </AppPreferencesProvider>,
   );
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  installLocalStorage({
+    email: "dealer@example.com",
+    name: "Dealer Pro",
+    plan: "pro",
+    subscriptionStatus: "active",
+    role: "user",
+    avatarInitials: "DP",
+  });
   vi.mocked(getStats).mockResolvedValue({
     total_listings: 1200,
     avg_price_lkr: 8_400_000,

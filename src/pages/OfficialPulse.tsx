@@ -30,6 +30,10 @@ import { getMarketSignals, getVehicleNews } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { FREE_PULSE_LIMIT, freePlanCopy, hasFullPlatformAccess } from "@/lib/planLimits";
 
 type SourceFilter = "all" | string;
 
@@ -86,18 +90,20 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
 
 export default function OfficialPulse() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   const signalsQuery = useQuery({
-    queryKey: ["market-signals", 48],
-    queryFn: () => getMarketSignals(48),
+    queryKey: ["market-signals", fullAccess ? 48 : FREE_PULSE_LIMIT],
+    queryFn: () => getMarketSignals(fullAccess ? 48 : FREE_PULSE_LIMIT),
     staleTime: QUERY_STALE.market,
     retry: 1,
   });
 
   const newsQuery = useQuery({
-    queryKey: ["vehicle-news", 6],
-    queryFn: () => getVehicleNews(6),
+    queryKey: ["vehicle-news", fullAccess ? 6 : 2],
+    queryFn: () => getVehicleNews(fullAccess ? 6 : 2),
     staleTime: QUERY_STALE.market,
     retry: 0,
   });
@@ -108,10 +114,14 @@ export default function OfficialPulse() {
     sourceFilter === "all"
       ? signals
       : signals.filter((s) => s.source.toLowerCase() === sourceFilter);
+  const visibleSignals = fullAccess
+    ? filteredSignals
+    : filteredSignals.slice(0, FREE_PULSE_LIMIT);
   const newsItems = newsQuery.data ?? [];
 
   return (
     <PageCanvas>
+      <FreePlanBanner />
       <PageHero
         theme="official"
         eyebrow={t("pulse.eyebrow", "Official pulse")}
@@ -208,7 +218,9 @@ export default function OfficialPulse() {
             actions={
               <div className="inline-flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
                 <Radio aria-hidden className="h-3.5 w-3.5 text-primary" />
-                {t("pulse.last48", "Last 48 observations")}
+                {fullAccess
+                  ? t("pulse.last48", "Last 48 observations")
+                  : t("pulse.lastFree", "Latest {n} on Free", { n: FREE_PULSE_LIMIT })}
               </div>
             }
           />
@@ -290,14 +302,23 @@ export default function OfficialPulse() {
               </p>
             </div>
           ) : (
-            <motion.div
-              variants={revealContainer}
-              className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {filteredSignals.map((signal) => (
-                <SignalCard key={signal.id} signal={signal} />
-              ))}
-            </motion.div>
+            <>
+              <motion.div
+                variants={revealContainer}
+                className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+              >
+                {visibleSignals.map((signal) => (
+                  <SignalCard key={signal.id} signal={signal} />
+                ))}
+              </motion.div>
+              {!fullAccess ? (
+                <UpgradePrompt
+                  className="mt-6"
+                  title={freePlanCopy.pulseTitle}
+                  body={freePlanCopy.pulseBody}
+                />
+              ) : null}
+            </>
           )}
         </motion.section>
 

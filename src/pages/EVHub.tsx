@@ -17,10 +17,17 @@ import { Button } from "@/components/ui/button";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { revealItem } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import {
+  FREE_EV_MODELS_LIMIT,
+  hasFullPlatformAccess,
+} from "@/lib/planLimits";
 import { visuals } from "@/lib/visualAssets";
 
 const EV_MODULE_DEFS = [
@@ -41,6 +48,8 @@ const TCO_KM_PER_YEAR = 20_000;
 
 export default function EVHub() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const insightQuery = useQuery({
     queryKey: ["ev-insight"],
     queryFn: getEvInsight,
@@ -53,7 +62,9 @@ export default function EVHub() {
   const evCount = insight?.ev_count ?? null;
   const evPct = insight?.ev_pct ?? null;
   const medianEvPrice = insight?.median_ev_price_lkr ?? null;
-  const topModels = insight?.top_ev_models ?? [];
+  const topModelsAll = insight?.top_ev_models ?? [];
+  const topModels = fullAccess ? topModelsAll : topModelsAll.slice(0, FREE_EV_MODELS_LIMIT);
+  const hiddenModelCount = fullAccess ? 0 : Math.max(0, topModelsAll.length - FREE_EV_MODELS_LIMIT);
   const benchmark = insight?.hybrid_benchmark ?? null;
 
   const annualFuelSavingLkr = (TCO_FUEL_COST_PER_KM_PETROL_LKR - TCO_FUEL_COST_PER_KM_EV_LKR) * TCO_KM_PER_YEAR;
@@ -117,6 +128,8 @@ export default function EVHub() {
           hint: stat.note,
         }))}
       />
+
+      <FreePlanBanner />
 
       <PageBody className="space-y-16 lg:space-y-24">
         {/* Live inventory pulse — one number towers */}
@@ -188,6 +201,14 @@ export default function EVHub() {
                     );
                   })}
             </div>
+            {!fullAccess && !pending && (hiddenModelCount > 0 || topModels.length > 0) ? (
+              <UpgradePrompt
+                className="mt-6"
+                title={t("ev.upgradeTitle", "More EV models on Pro")}
+                body={t("ev.upgradeBody", "Free shows the top 3 EV models. Pro unlocks the full ranked EV board and deeper TCO tools.")}
+                variant="strip"
+              />
+            ) : null}
           </motion.section>
         )}
 

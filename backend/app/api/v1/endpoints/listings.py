@@ -26,6 +26,7 @@ from app.utils.plan_limits import (
     FREE_LISTINGS_MAX_PAGE,
     FREE_LISTINGS_MAX_SIZE,
     FREE_PRICE_DROPS_LIMIT,
+    FREE_SIMILAR_LIMIT,
     is_free_browse_plan,
 )
 from app.models.schemas import (
@@ -2154,7 +2155,12 @@ def get_listing(
     return listing
 
 @router.get("/{listing_id}/similar", response_model=List[CarListingRead])
-def get_similar_listings(listing_id: int, db: Session = Depends(get_db)):
+def get_similar_listings(
+    listing_id: int,
+    request: Request,
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+):
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found.")
@@ -2174,11 +2180,20 @@ def get_similar_listings(listing_id: int, db: Session = Depends(get_db)):
     else:
         filters.append(CarListing.model == listing.model)
 
+    plan, role = _request_live_access(request, authorization, db)
+    free_browse = _is_free_browse_plan(plan, role)
+    limit = FREE_SIMILAR_LIMIT if free_browse else 6
+
     similar = (
         db.query(CarListing)
         .filter(*filters)
-        .limit(6)
+        .limit(limit)
         .all()
     )
+
+    if free_browse:
+        for row in similar:
+            row.deal_score = None
+            row.market_median_lkr = None
 
     return similar
