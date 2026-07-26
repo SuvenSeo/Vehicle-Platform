@@ -37,6 +37,43 @@ _ALIASES = {
 
 _LAKHS_TO_LKR = 100_000
 
+# Postgres INTEGER max is 2_147_483_647; community CSVs sometimes put dates
+# (e.g. 20260217) or other junk into the mileage column and blow up the insert.
+_MAX_REASONABLE_MILEAGE_KM = 2_000_000
+_MIN_REASONABLE_YEAR = 1950
+
+
+def sanitize_mileage_km(value: int | float | str | None) -> int | None:
+    """Return a Postgres-safe, vehicle-plausible mileage, else None."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, str):
+            text = value.strip().replace(",", "")
+            if not text:
+                return None
+            mileage = int(float(text))
+        else:
+            mileage = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if mileage < 0 or mileage > _MAX_REASONABLE_MILEAGE_KM:
+        return None
+    return mileage
+
+
+def sanitize_year(value: int | float | str | None, *, current_year: int | None = None) -> int | None:
+    if value is None:
+        return None
+    try:
+        year = int(float(str(value).strip()))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    upper = (current_year or datetime.now(timezone.utc).year) + 1
+    if year < _MIN_REASONABLE_YEAR or year > upper:
+        return None
+    return year
+
 
 def _norm_header(value: str) -> str:
     return " ".join(str(value or "").strip().lower().replace("_", " ").split())
@@ -165,12 +202,9 @@ def rows_from_csv(
 
             year = None
             if "year" in mapping:
-                try:
-                    year = int(float(str(raw.get(mapping["year"]) or "").strip()))
-                except (TypeError, ValueError):
-                    year = None
+                year = sanitize_year(raw.get(mapping["year"]))
             if year is None and title:
-                year = cleaner.clean_title(title).get("year")
+                year = sanitize_year(cleaner.clean_title(title).get("year"))
 
             mileage = None
             if "mileage" in mapping:
@@ -179,11 +213,11 @@ def rows_from_csv(
                 # decimals before digit extraction so we don't get 850000.
                 if re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", mileage_raw.replace(",", "")):
                     try:
-                        mileage = int(float(mileage_raw.replace(",", "")))
+                        mileage = sanitize_mileage_km(float(mileage_raw.replace(",", "")))
                     except ValueError:
-                        mileage = cleaner.clean_mileage(mileage_raw)
+                        mileage = sanitize_mileage_km(cleaner.clean_mileage(mileage_raw))
                 else:
-                    mileage = cleaner.clean_mileage(mileage_raw)
+                    mileage = sanitize_mileage_km(cleaner.clean_mileage(mileage_raw))
 
             town = str(raw.get(mapping["town"]) or "").strip() if "town" in mapping else ""
             district = resolve_canonical_district(town) if town else None

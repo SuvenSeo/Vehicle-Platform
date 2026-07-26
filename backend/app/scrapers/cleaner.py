@@ -616,9 +616,20 @@ class CarCleaner:
         return normalized
 
     def clean_mileage(self, raw_mileage: str) -> Optional[int]:
-        """Converts '50,000 km' to 50000."""
+        """Converts '50,000 km' to 50000.
+
+        Rejects values outside a vehicle-plausible range so junk like
+        YYYYMMDD dates (e.g. 20260217) never hit Postgres INTEGER columns.
+        """
         try:
-            digits = re.sub(r"\D", "", raw_mileage)
-            return int(digits) if digits else None
+            digits = re.sub(r"\D", "", str(raw_mileage or ""))
+            if not digits:
+                return None
+            value = int(digits)
+            # Hard ceiling stays under Postgres INTEGER max (2_147_483_647)
+            # while still covering high-mileage commercial vehicles.
+            if value < 0 or value > 2_000_000:
+                return None
+            return value
         except Exception:
             return None

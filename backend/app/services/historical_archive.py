@@ -629,13 +629,34 @@ def fetch_wayback_html(
             http.close()
 
 
+def _sanitize_observation_mileage(value: Any) -> int | None:
+    """Drop mileages that cannot fit Postgres INTEGER or are not vehicle-plausible."""
+    if value is None:
+        return None
+    try:
+        mileage = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    # Keep under Postgres INTEGER max; reject date-like / junk odometers.
+    if mileage < 0 or mileage > 2_000_000:
+        return None
+    return mileage
+
+
 def upsert_historical_observations(
     db: Session,
     rows: Iterable[dict[str, Any]],
+    *,
+    commit_every: int = 500,
 ) -> dict[str, int]:
-    """Insert archive observations; skip duplicates on unique key."""
+    """Insert archive observations; skip duplicates on unique key.
+
+    Commits in batches so one bad row cannot discard an entire multi-thousand
+    row import (community CSV backfill previously failed that way).
+    """
     inserted = 0
     skipped = 0
+    pending = 0
     for row in rows:
         archive_source = str(row.get("archive_source") or "").strip()
         source_id = str(row.get("source_id") or "").strip()
@@ -670,7 +691,7 @@ def upsert_historical_observations(
                 model=(str(row["model"])[:100] if row.get("model") else None),
                 year=row.get("year"),
                 price_lkr=price,
-                mileage=row.get("mileage"),
+                mileage=_sanitize_observation_mileage(row.get("mileage")),
                 district=(str(row["district"])[:50] if row.get("district") else None),
                 city=(str(row["city"])[:100] if row.get("city") else None),
                 confidence=str(row.get("confidence") or "medium")[:20],
@@ -678,9 +699,21 @@ def upsert_historical_observations(
             )
         )
         inserted += 1
+        pending += 1
+        if commit_every > 0 and pending >= commit_every:
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+            pending = 0
 
-    if inserted:
-        db.commit()
+    if pending:
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
     return {"inserted": inserted, "skipped": skipped}
 
 
