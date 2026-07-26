@@ -64,16 +64,17 @@ export const HERO_VARIANTS: HeroVariant[] = [
   {
     id: "expressway-dusk",
     label: "3 · Expressway dusk",
-    blurb: "Light-trail highway into skyline — centered brand + search.",
+    blurb: "Lotus Tower + light-trail expressway — SUV right, brand left.",
     image: visuals.pageHomeHeroDusk,
-    objectPosition: "center 58%",
-    imageOpacity: "opacity-[0.82]",
-    align: "center",
+    // Bias right so the blue SUV stays in frame; left sky stays open for type
+    objectPosition: "68% 42%",
+    imageOpacity: "opacity-[0.88]",
+    align: "left",
     tone: "dark",
     hideSideSignals: true,
     scrims: [
-      "bg-gradient-to-b from-background/90 via-background/50 to-background",
-      "bg-gradient-to-t from-background via-transparent to-background/30",
+      "bg-gradient-to-r from-background/92 via-background/55 to-background/10 sm:to-transparent",
+      "bg-gradient-to-b from-background/45 via-transparent to-background/90",
     ],
   },
   {
@@ -125,9 +126,9 @@ export const HERO_VARIANTS: HeroVariant[] = [
   },
 ];
 
-export const DEFAULT_HERO_VARIANT_ID: HeroVariantId = "ultrawide-day";
+export const DEFAULT_HERO_VARIANT_ID: HeroVariantId = "expressway-dusk";
 
-const STORAGE_KEY = "motormila.hero_variant.v2";
+const STORAGE_KEY = "motormila.hero_variant.v3";
 
 export function isHeroVariantId(value: string | null | undefined): value is HeroVariantId {
   return Boolean(value && HERO_VARIANTS.some((v) => v.id === value));
