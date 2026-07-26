@@ -3,9 +3,17 @@ from pydantic import BaseModel, Field
 import httpx
 import logging
 from typing import Literal, Optional, List
-from decimal import Decimal
 from sqlalchemy.orm import Session
 from app.services.rate_limit import RateLimiter
+from app.services.macro_feeds import fetch_macro_snapshot
+from app.services.ownership_costs import (
+    calculate_revenue_licence,
+    calculate_third_party_insurance,
+    calculate_transfer_fees,
+    check_import_eligibility,
+    ownership_first_year_bundle,
+)
+from app.services.vehicle_news import fetch_vehicle_policy_news
 from db.session import get_db
 from db.models import VehiclePermit
 import secrets
@@ -275,3 +283,152 @@ def create_or_update_permit(payload: PermitCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=f"Database update failed: {e}")
         
     return permit
+
+
+class MacroFxResponse(BaseModel):
+    usd_lkr: float
+    reference_date: Optional[str] = None
+    source: str
+    source_url: str
+    fetched_at: str
+    inflation_index: Optional[float] = None
+    inflation_yoy_percent: Optional[float] = None
+    inflation_reference_date: Optional[str] = None
+    notes: str
+
+
+class RevenueLicenceRequest(BaseModel):
+    vehicle_class: Literal["motor_car", "dual_purpose", "motorcycle", "three_wheeler"] = "motor_car"
+    fuel_type: Literal["petrol", "diesel", "hybrid", "electric"] = "petrol"
+    unladen_kg: Optional[float] = Field(None, gt=0)
+    engine_cc: Optional[int] = Field(None, ge=0)
+    delay: Literal["none", "within_3_months", "within_1_year", "over_1_year"] = "none"
+    include_emission_test: bool = True
+
+
+class ThirdPartyInsuranceRequest(BaseModel):
+    vehicle_class: Literal["motor_car", "dual_purpose", "motorcycle", "three_wheeler"] = "motor_car"
+    engine_cc: Optional[int] = Field(1500, ge=0)
+
+
+class TransferFeeRequest(BaseModel):
+    vehicle_class: Literal["motor_car", "dual_purpose", "motorcycle", "three_wheeler"] = "motor_car"
+    consideration_lkr: float = Field(0.0, ge=0)
+    include_stamp_duty: bool = True
+
+
+class ImportEligibilityRequest(BaseModel):
+    fuel_type: Literal["petrol", "diesel", "hybrid", "electric"] = "hybrid"
+    model_year: Optional[int] = Field(None, ge=1980, le=2100)
+    as_of_year: int = Field(2026, ge=2020, le=2100)
+
+
+class OwnershipBundleRequest(BaseModel):
+    vehicle_class: Literal["motor_car", "dual_purpose", "motorcycle", "three_wheeler"] = "motor_car"
+    fuel_type: Literal["petrol", "diesel", "hybrid", "electric"] = "petrol"
+    engine_cc: Optional[int] = Field(1500, ge=0)
+    unladen_kg: Optional[float] = Field(None, gt=0)
+    consideration_lkr: float = Field(0.0, ge=0)
+    include_transfer: bool = False
+
+
+@router.get("/macro", response_model=MacroFxResponse)
+async def get_macro_context():
+    """Live USD/LKR (+ optional CCPI) for the landed-cost calculator."""
+    try:
+        snapshot = fetch_macro_snapshot()
+    except Exception as exc:
+        logger.warning("macro_endpoint_failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Macro feeds temporarily unavailable.") from exc
+
+    fx = snapshot.fx
+    infl = snapshot.inflation
+    notes = (
+        f"FX from {fx.source}"
+        + (f" (ref {fx.reference_date})" if fx.reference_date else "")
+        + ". "
+    )
+    if infl is not None:
+        notes += (
+            f"CCPI index {infl.index_value}"
+            + (f", YoY {infl.yoy_percent}%" if infl.yoy_percent is not None else "")
+            + ". "
+        )
+    notes += "Rates are planning inputs — confirm CBSL / Customs figures before committing."
+
+    return MacroFxResponse(
+        usd_lkr=fx.usd_lkr,
+        reference_date=fx.reference_date,
+        source=fx.source,
+        source_url=fx.source_url,
+        fetched_at=fx.fetched_at,
+        inflation_index=infl.index_value if infl else None,
+        inflation_yoy_percent=infl.yoy_percent if infl else None,
+        inflation_reference_date=infl.reference_date if infl else None,
+        notes=notes,
+    )
+
+
+@router.post("/revenue-licence")
+def post_revenue_licence(payload: RevenueLicenceRequest):
+    result = calculate_revenue_licence(
+        vehicle_class=payload.vehicle_class,
+        fuel_type=payload.fuel_type,
+        unladen_kg=payload.unladen_kg,
+        engine_cc=payload.engine_cc,
+        delay=payload.delay,
+        include_emission_test=payload.include_emission_test,
+    )
+    return result.__dict__
+
+
+@router.post("/third-party-insurance")
+def post_third_party_insurance(payload: ThirdPartyInsuranceRequest):
+    result = calculate_third_party_insurance(
+        vehicle_class=payload.vehicle_class,
+        engine_cc=payload.engine_cc,
+    )
+    return result.__dict__
+
+
+@router.post("/transfer-fees")
+def post_transfer_fees(payload: TransferFeeRequest):
+    result = calculate_transfer_fees(
+        vehicle_class=payload.vehicle_class,
+        consideration_lkr=payload.consideration_lkr,
+        include_stamp_duty=payload.include_stamp_duty,
+    )
+    return result.__dict__
+
+
+@router.post("/import-eligibility")
+def post_import_eligibility(payload: ImportEligibilityRequest):
+    result = check_import_eligibility(
+        fuel_type=payload.fuel_type,
+        model_year=payload.model_year,
+        as_of_year=payload.as_of_year,
+    )
+    return {
+        "eligible": result.eligible,
+        "status": result.status,
+        "reasons": result.reasons,
+        "notes": result.notes,
+    }
+
+
+@router.post("/ownership-bundle")
+def post_ownership_bundle(payload: OwnershipBundleRequest):
+    return ownership_first_year_bundle(
+        vehicle_class=payload.vehicle_class,
+        fuel_type=payload.fuel_type,
+        engine_cc=payload.engine_cc,
+        unladen_kg=payload.unladen_kg,
+        consideration_lkr=payload.consideration_lkr,
+        include_transfer=payload.include_transfer,
+    )
+
+
+@router.get("/vehicle-news")
+def get_vehicle_news(limit: int = Query(8, ge=1, le=20)):
+    """Filtered Helakuru Esana headlines (vehicle / policy keywords). Fail-open."""
+    return {"items": fetch_vehicle_policy_news(limit=limit)}

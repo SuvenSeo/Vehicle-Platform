@@ -26,7 +26,7 @@ import {
   matchPulseGuide,
 } from "@/lib/officialPulseContent";
 import { cn } from "@/lib/utils";
-import { getMarketSignals } from "@/services/api";
+import { getMarketSignals, getVehicleNews } from "@/services/api";
 import type { MarketSignal } from "@/types/car";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 import { useAppPreferences } from "@/lib/appPreferences";
@@ -95,12 +95,20 @@ export default function OfficialPulse() {
     retry: 1,
   });
 
+  const newsQuery = useQuery({
+    queryKey: ["vehicle-news", 6],
+    queryFn: () => getVehicleNews(6),
+    staleTime: QUERY_STALE.market,
+    retry: 0,
+  });
+
   const signals = signalsQuery.data ?? [];
   const sourceChips = Array.from(new Set(signals.map((s) => s.source.toLowerCase()))).sort();
   const filteredSignals =
     sourceFilter === "all"
       ? signals
       : signals.filter((s) => s.source.toLowerCase() === sourceFilter);
+  const newsItems = newsQuery.data ?? [];
 
   return (
     <PageCanvas>
@@ -195,7 +203,7 @@ export default function OfficialPulse() {
           <SectionHeader
             eyebrow={t("pulse.feedEyebrow", "Live feed")}
             title={t("pulse.feedTitle", "Recent market signals")}
-            description={t("pulse.feedDesc", "Latest DMT, Customs, and import-parity observations synced into Motormila.")}
+            description={t("pulse.feedDesc", "Latest DMT, Customs, CBSL FX, CCPI, and import-parity observations synced into Motormila.")}
             className="mb-8"
             actions={
               <div className="inline-flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
@@ -292,6 +300,33 @@ export default function OfficialPulse() {
             </motion.div>
           )}
         </motion.section>
+
+        {newsItems.length > 0 ? (
+          <motion.section variants={revealItem} className="mt-14">
+            <SectionHeader
+              eyebrow={t("pulse.newsEyebrow", "Policy desk")}
+              title={t("pulse.newsTitle", "Vehicle & policy headlines")}
+              description={t(
+                "pulse.newsDesc",
+                "Recent Helakuru Esana items filtered for vehicle, import, fuel, and transport keywords.",
+              )}
+              className="mb-6"
+            />
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {newsItems.map((item, index) => (
+                <li
+                  key={item.id || `${item.title}-${index}`}
+                  className="rounded-2xl border border-border bg-card p-4 shadow-soft"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
+                    Helakuru Esana
+                  </p>
+                  <p className="mt-2 text-sm font-semibold leading-snug text-foreground">{item.title}</p>
+                </li>
+              ))}
+            </ul>
+          </motion.section>
+        ) : null}
       </PageBody>
     </PageCanvas>
   );

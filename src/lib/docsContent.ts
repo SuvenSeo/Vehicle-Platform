@@ -139,14 +139,17 @@ export const DOCS_SECTIONS: DocsSection[] = [
     title: "Import duty calculator",
     summary: "Landed cost, surcharge assumptions, lease, TCO, and permit context for imports.",
     body: [
-      "The calculator at /calculator models landed cost from CIF, FX, fuel type, engine capacity or motor kW, and common surcharges (including SSCL where applicable). It is built for Sri Lanka import math — not a generic overseas duty estimator.",
-      "Additional tabs cover lease repayment sketches, total cost of ownership, permit notes, and depreciation framing so importers and buyers can compare cash-to-own paths. Shareable URL params let you send a scenario to a colleague without retyping inputs.",
+      "The calculator at /calculator models landed cost from CIF, live CBSL-linked FX, fuel type, engine capacity or motor kW, and common surcharges (including SSCL where applicable). It is built for Sri Lanka import math — not a generic overseas duty estimator.",
+      "Additional tabs cover lease repayment sketches, total cost of ownership, on-road fees (revenue licence, emission test, third-party insurance, transfer), import eligibility after the Feb 2025 ban lift, permit notes, and depreciation framing. Shareable URL params let you send a scenario to a colleague without retyping inputs.",
       "Always cross-check duty rates with your clearing agent; Motormila keeps the model aligned with published rules, but official gazettes and agent quotes remain the source of truth for a live clearance.",
     ],
     bullets: [
       "CIF → LKR landed cost with fuel and CC/kW inputs",
+      "Live USD/LKR FX (CBSL via macro publisher, open.er-api fallback)",
+      "On-road statutory fees: revenue licence, VET, CMT, transfer",
+      "Post-ban import eligibility screen",
+      "Lease / TCO / permit / retention tabs",
       "Surcharge and SSCL toggles where relevant",
-      "Lease, TCO, permits, and depreciation tabs",
       "Shareable query-string scenarios",
     ],
     relatedRoutes: [

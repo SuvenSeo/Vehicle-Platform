@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatPrice, calculateLandedCost, calculateTco, getPermits, type LandedCostResult, type TcoResult, type PermitInfo } from "@/services/api";
+import { formatPrice, calculateLandedCost, calculateTco, getPermits, getMacroContext, type LandedCostResult, type TcoResult, type PermitInfo, type MacroContext } from "@/services/api";
 import { Input } from "@/components/ui/input";
 import {
   Banknote,
@@ -15,9 +15,12 @@ import {
   Link2,
   Bell,
   BellOff,
+  RefreshCw,
+  FileBadge,
 } from "lucide-react";
 import { LeaseCalculator } from "@/components/LeaseCalculator";
 import { CashToOwnStrip } from "@/components/CashToOwnStrip";
+import { OwnershipCostsPanel } from "@/components/OwnershipCostsPanel";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
@@ -32,10 +35,10 @@ import {
 } from "@/lib/surchargeAlert";
 import { visuals } from "@/lib/visualAssets";
 
-type TabType = "landed-cost" | "lease" | "tco" | "permits" | "depreciation";
+type TabType = "landed-cost" | "lease" | "tco" | "ownership" | "permits" | "depreciation";
 type FuelType = "petrol" | "diesel" | "hybrid" | "electric";
 
-const TAB_IDS: TabType[] = ["landed-cost", "lease", "tco", "permits", "depreciation"];
+const TAB_IDS: TabType[] = ["landed-cost", "lease", "tco", "ownership", "permits", "depreciation"];
 const FUEL_TYPES: FuelType[] = ["petrol", "diesel", "hybrid", "electric"];
 
 // Cap URL-seeded numbers well above any real-world value; a crafted
@@ -100,8 +103,49 @@ export default function Calculator() {
   // What this exact import saves if the 50% surcharge lapses on schedule.
   const [lcLapseSavings, setLcLapseSavings] = useState<number | null>(null);
   const [lcLoading, setLcLoading] = useState(false);
+  const [macro, setMacro] = useState<MacroContext | null>(null);
+  const [fxLoading, setFxLoading] = useState(false);
+  const [fxUserOverridden, setFxUserOverridden] = useState(() => searchParams.has("fx"));
   const surchargeCountdown = getSurchargeCountdown();
   const [surchargeNotifyOn, setSurchargeNotifyOn] = useState(() => isSurchargeNotifySubscribed());
+
+  const applyLiveFx = async ({ silent = false }: { silent?: boolean } = {}) => {
+    setFxLoading(true);
+    try {
+      const quote = await getMacroContext();
+      setMacro(quote);
+      if (!fxUserOverridden || !silent) {
+        setExchangeRate(quote.usd_lkr);
+        setFxUserOverridden(false);
+      }
+      if (!silent) {
+        toast.success(`Live FX · Rs ${quote.usd_lkr.toLocaleString()} / USD`, {
+          description: quote.reference_date
+            ? `CBSL-linked print · ref ${quote.reference_date}`
+            : quote.source,
+        });
+      }
+    } catch (e: unknown) {
+      if (!silent) {
+        const message = e instanceof Error ? e.message : "Could not fetch FX";
+        toast.error("Live FX unavailable", { description: message });
+      }
+    } finally {
+      setFxLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Auto-seed FX once when the URL did not pin ?fx=
+    if (!searchParams.has("fx")) {
+      void applyLiveFx({ silent: true });
+    } else {
+      void getMacroContext()
+        .then(setMacro)
+        .catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only FX seed
+  }, []);
 
   useEffect(() => {
     const message = consumeSurchargeLapseNotification();
@@ -311,8 +355,8 @@ export default function Calculator() {
         mediaPosition="center 30%"
         mediaTone="brand"
         highlights={[
-          { label: "Import duty", value: "Live", hint: "Gazette-aligned landed cost" },
-          { label: "Ownership", value: "TCO", hint: "Fuel, lease, and service map" },
+          { label: "Import duty", value: "Live FX", hint: "CBSL-linked landed cost" },
+          { label: "Ownership", value: "Licence+", hint: "Revenue licence & CMT" },
           { label: "Permits", value: "Tracker", hint: "Black market permit signals" },
         ]}
       />
@@ -324,6 +368,7 @@ export default function Calculator() {
             { id: "landed-cost", label: t("calc.tab.landed", "Landed Cost"), icon: Banknote },
             { id: "lease", label: t("calc.tab.lease", "Lease Scenario"), icon: WalletCards },
             { id: "tco", label: t("calc.tab.tco", "Ownership TCO"), icon: Gauge },
+            { id: "ownership", label: t("calc.tab.ownership", "On-road fees"), icon: FileBadge },
             { id: "permits", label: t("calc.tab.permits", "Permit Tracker"), icon: FileText },
             { id: "depreciation", label: t("calc.tab.depreciation", "Retention Curves"), icon: TrendingDown },
           ].map((tab) => {
@@ -445,7 +490,37 @@ export default function Calculator() {
                     </div>
                     <div className="space-y-1.5">
                       <label htmlFor="lc-fx" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.exchangeRate", "Exchange Rate (LKR)")}</label>
-                      <Input id="lc-fx" type="number" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
+                      <div className="flex gap-2">
+                        <Input
+                          id="lc-fx"
+                          type="number"
+                          value={exchangeRate}
+                          onChange={(e) => {
+                            setFxUserOverridden(true);
+                            setExchangeRate(Number(e.target.value));
+                          }}
+                          className="num bg-surface border-border focus-visible:ring-primary/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void applyLiveFx()}
+                          disabled={fxLoading}
+                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[10px] font-bold text-foreground transition-colors hover:border-primary/40 disabled:opacity-60"
+                          title="Pull latest CBSL-linked USD/LKR"
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 ${fxLoading ? "animate-spin" : ""}`} />
+                          Live FX
+                        </button>
+                      </div>
+                      {macro ? (
+                        <p className="text-[10px] font-semibold text-muted-foreground">
+                          Feed {macro.source.replace(/_/g, " ")}
+                          {macro.reference_date ? ` · ref ${macro.reference_date}` : ""}
+                          {macro.inflation_yoy_percent != null
+                            ? ` · CCPI YoY ${macro.inflation_yoy_percent}%`
+                            : ""}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
@@ -776,6 +851,22 @@ export default function Calculator() {
                   </div>
                 ) : null}
               </div>
+            </motion.div>
+          )}
+
+          {activeTab === "ownership" && (
+            <motion.div
+              key="ownership-tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.2 }}
+            >
+              <OwnershipCostsPanel
+                initialFuel={lcFuelType}
+                initialCc={lcEngineCc}
+                initialPrice={leasePrice}
+              />
             </motion.div>
           )}
 

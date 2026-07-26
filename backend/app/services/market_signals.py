@@ -12,6 +12,7 @@ import structlog
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
+from app.services.macro_feeds import fetch_macro_snapshot, macro_signal_rows
 from db.models import MarketSignal
 
 log = structlog.get_logger()
@@ -243,5 +244,30 @@ class MarketSignalImporter:
                     self.db.rollback()
                     failed += 1
                     log.warning("market_signal_source_failed", source=source.key, error=str(exc))
+
+            # Live CBSL FX + DCS CCPI (macro-publisher / open.er-api fallback).
+            try:
+                snapshot = fetch_macro_snapshot(client=client)
+                for record in macro_signal_rows(snapshot):
+                    # Prefer the FX/CCPI reference month when present.
+                    period_at = observed_at
+                    ref = (record.get("raw_meta") or {}).get("reference_date")
+                    if isinstance(ref, str) and len(ref) >= 7:
+                        try:
+                            year = int(ref[0:4])
+                            month = int(ref[5:7])
+                            period_at = observed_at.replace(year=year, month=month, day=1)
+                        except ValueError:
+                            period_at = observed_at
+                    created = self._upsert_signal(record, period_at)
+                    if created:
+                        inserted += 1
+                    else:
+                        updated += 1
+                self.db.commit()
+            except Exception as exc:
+                self.db.rollback()
+                failed += 1
+                log.warning("market_signal_macro_feed_failed", error=str(exc))
 
         return {"inserted": inserted, "updated": updated, "failed": failed}

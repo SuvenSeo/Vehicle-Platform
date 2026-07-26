@@ -15,6 +15,8 @@ const SOURCE_LABELS: Record<string, string> = {
   customs: "Customs",
   import_parity: "Import parity",
   import_reference: "Import refs",
+  cbsl: "CBSL",
+  dcs: "DCS",
 };
 
 const MONTH_SHORT = [
@@ -121,6 +123,50 @@ export const PULSE_SOURCE_GUIDES: PulseSourceGuide[] = [
     dealerTip:
       "When landed-cost references are available and your retail ask sits far above replacement parity, expect informed buyers to negotiate hard — publish a clear justification or adjust.",
   },
+  {
+    key: "cbsl_fx",
+    source: "cbsl",
+    signalType: "exchange_rate",
+    title: "CBSL USD/LKR spot",
+    shortLabel: "USD/LKR",
+    summary:
+      "Official indicative USD→LKR spot from the Central Bank of Sri Lanka — the FX input that scales every CIF-based landed-cost calculation.",
+    whyItMatters: [
+      "A 1% FX move shifts every USD CIF import into LKR duties, VAT, and luxury tax in the same direction.",
+      "Dealers quoting landed cost without a fresh CBSL print risk under- or over-bidding Japanese / UAE stock.",
+      "FX also frames used retail asks that were set when the rupee was weaker or stronger.",
+    ],
+    howWeReadIt: [
+      "Motormila pulls the latest published USD/LKR spot (macro publisher → CBSL series) into Official Pulse and the calculator.",
+      "Treat the value as a business-day indicative rate, not an intraday dealer quote.",
+      "Compare the latest print to last week — sustained moves matter more than a single tick.",
+      "Use the calculator's Use live FX action to lock the same print into a landed-cost scenario.",
+    ],
+    dealerTip:
+      "When USD/LKR jumps, re-run landed cost on any uncommitted LC before you honour an old LKR ask — duty compounds on the CIF conversion.",
+  },
+  {
+    key: "dcs_inflation",
+    source: "dcs",
+    signalType: "inflation",
+    title: "DCS CCPI inflation",
+    shortLabel: "CCPI",
+    summary:
+      "Colombo Consumer Price Index from the Department of Census & Statistics — the inflation backdrop for real (inflation-adjusted) vehicle price reads.",
+    whyItMatters: [
+      "Nominal LKR asking prices can look 'up' while real purchasing power is flat once CCPI is rising.",
+      "Inflation spikes historically coincided with vehicle price explosions during the 2022 crisis.",
+      "Macro context helps separate FX/duty-driven listing moves from pure demand shifts.",
+    ],
+    howWeReadIt: [
+      "We store the CCPI index level and, when published, year-on-year percent as separate pulse metrics.",
+      "YoY percent is the headline inflation read; the index level supports longer history comparisons.",
+      "Pair inflation with USD/LKR and Motormila model medians before calling a segment 'hot'.",
+      "A falling YoY with sticky listing prices often means dealers have not yet repriced.",
+    ],
+    dealerTip:
+      "If CCPI YoY is cooling but your lot still carries crisis-era asks, expect longer DOM — refresh comps against current medians.",
+  },
 ];
 
 function normalizeSourceKey(source: string): string {
@@ -170,6 +216,15 @@ export function formatPulseValue(
   const formatted = value.toLocaleString();
   if (!unitKey) return formatted;
   if (unitKey === "count") return formatted;
+  if (unitKey === "lkr_per_usd" || unitKey === "lkr per usd") {
+    return `Rs ${formatted} / USD`;
+  }
+  if (unitKey === "pct" || unitKey === "%") {
+    return `${formatted}%`;
+  }
+  if (unitKey === "index") {
+    return `${formatted} idx`;
+  }
   return `${formatted} ${unit}`;
 }
 

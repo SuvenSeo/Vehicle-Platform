@@ -2248,6 +2248,58 @@ export interface PermitInfo {
   market_price_lkr: number;
 }
 
+export interface MacroContext {
+  usd_lkr: number;
+  reference_date?: string | null;
+  source: string;
+  source_url: string;
+  fetched_at: string;
+  inflation_index?: number | null;
+  inflation_yoy_percent?: number | null;
+  inflation_reference_date?: string | null;
+  notes: string;
+}
+
+export type OwnershipVehicleClass = "motor_car" | "dual_purpose" | "motorcycle" | "three_wheeler";
+
+export interface OwnershipBundleResult {
+  revenue_licence: {
+    base_fee_lkr: number;
+    delay_charge_lkr: number;
+    emission_test_lkr: number;
+    total_lkr: number;
+    schedule_note: string;
+  };
+  third_party_insurance: {
+    base_premium_lkr: number;
+    stamp_duty_lkr: number;
+    total_lkr: number;
+    schedule_note: string;
+  };
+  transfer: {
+    processing_fee_lkr: number;
+    stamp_duty_lkr: number;
+    total_lkr: number;
+    schedule_note: string;
+  } | null;
+  first_year_statutory_total_lkr: number;
+  notes: string;
+}
+
+export interface ImportEligibilityResult {
+  eligible: boolean;
+  status: "likely_allowed" | "restricted" | "needs_review";
+  reasons: string[];
+  notes: string;
+}
+
+export interface VehicleNewsItem {
+  id: string | null;
+  title: string;
+  thumb: string | null;
+  source: string;
+}
+
 export const calculateLandedCost = async (input: LandedCostInput): Promise<LandedCostResult> => {
   return await postJSON<LandedCostResult>("/calculators/landed-cost", input as unknown as Record<string, unknown>);
 };
@@ -2259,6 +2311,40 @@ export const calculateTco = async (input: TcoInput): Promise<TcoResult> => {
 export const getPermits = async (): Promise<PermitInfo[]> => {
   const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
   return Array.isArray(data) ? data : [];
+};
+
+export const getMacroContext = async (): Promise<MacroContext> => {
+  return await fetchJSON<MacroContext>("/calculators/macro");
+};
+
+export const calculateOwnershipBundle = async (input: {
+  vehicle_class?: OwnershipVehicleClass;
+  fuel_type: "petrol" | "diesel" | "hybrid" | "electric";
+  engine_cc?: number;
+  unladen_kg?: number;
+  consideration_lkr?: number;
+  include_transfer?: boolean;
+}): Promise<OwnershipBundleResult> => {
+  return await postJSON<OwnershipBundleResult>(
+    "/calculators/ownership-bundle",
+    input as unknown as Record<string, unknown>,
+  );
+};
+
+export const checkImportEligibility = async (input: {
+  fuel_type: "petrol" | "diesel" | "hybrid" | "electric";
+  model_year?: number;
+  as_of_year?: number;
+}): Promise<ImportEligibilityResult> => {
+  return await postJSON<ImportEligibilityResult>(
+    "/calculators/import-eligibility",
+    input as unknown as Record<string, unknown>,
+  );
+};
+
+export const getVehicleNews = async (limit = 8): Promise<VehicleNewsItem[]> => {
+  const data = await fetchJSON<{ items?: VehicleNewsItem[] }>(`/calculators/vehicle-news?limit=${limit}`);
+  return Array.isArray(data?.items) ? data.items : [];
 };
 
 export type AdminUser = {
