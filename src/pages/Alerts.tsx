@@ -22,6 +22,8 @@ const itemVariants = revealItem;
 
 function AlertMatchSection({ token }: { token: string }) {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [matchData, setMatchData] = useState<AlertMatchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +117,7 @@ function AlertMatchSection({ token }: { token: string }) {
                         </p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground">
                           {listing.district || "LK"}
-                          {listing.deal_score !== null ? ` ${t("alerts.dealSuffix", "· +{score} deal", { score: Number(listing.deal_score).toFixed(0) })}` : ""}
+                          {fullAccess && listing.deal_score !== null ? ` ${t("alerts.dealSuffix", "· +{score} deal", { score: Number(listing.deal_score).toFixed(0) })}` : ""}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">

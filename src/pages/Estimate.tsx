@@ -9,9 +9,14 @@ import { SellerFairAskCard } from "@/components/SellerFairAskCard";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { ProFeatureLock } from "@/components/ProFeatureLock";
 import { AlertTriangle, BarChart3, Gauge, ShieldCheck, TrendingUp } from "lucide-react";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
+import { freePlanCopy, hasFullPlatformAccess } from "@/lib/planLimits";
 import { visuals } from "@/lib/visualAssets";
 
 type EstimateForm = {
@@ -67,6 +72,8 @@ const inputClass = "h-11 rounded-xl border-border bg-surface text-base md:text-s
 
 export default function Estimate() {
   const { t } = useAppPreferences();
+  const { hasProAccess, isAdmin } = useAuth();
+  const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [makes, setMakes] = useState<{ make: string; count: number }[]>([]);
   const [modelsList, setModelsList] = useState<{ model: string; count: number }[]>([]);
   const [form, setForm] = useState<EstimateForm>({
@@ -132,6 +139,8 @@ export default function Estimate() {
           { label: t("estimate.highlight.district", "District fit"), value: t("estimate.highlight.districtValue", "25+"), hint: t("estimate.highlight.districtHint", "Localized market lanes") },
         ]}
       />
+
+      <FreePlanBanner />
 
       <PageBody>
         <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
@@ -332,48 +341,67 @@ export default function Estimate() {
                 {/* Trajectory */}
                 <motion.div variants={revealItem} className="rounded-xl border border-border bg-surface p-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("estimate.trajectory", "Trajectory")}</p>
-                  {projection ? (
-                    <div className="mt-3 space-y-3">
-                      <p className="text-[11px] text-muted-foreground font-medium">
-                        {t("estimate.derivedFrom", "Derived from {months} months of data for {make} {model}.", {
-                          months: projection.windowMonths,
-                          make: form.make,
-                          model: form.model,
-                        })}
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-border bg-card p-3">
-                          <p className="text-[10px] text-muted-foreground font-semibold">{t("estimate.oneYearProjected", "1Y projected")}</p>
-                          <p className="num mt-1 text-[13px] font-bold text-foreground">{formatPrice(projection.oneYearValue)}</p>
+                  {fullAccess ? (
+                    projection ? (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                          {t("estimate.derivedFrom", "Derived from {months} months of data for {make} {model}.", {
+                            months: projection.windowMonths,
+                            make: form.make,
+                            model: form.model,
+                          })}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-[10px] text-muted-foreground font-semibold">{t("estimate.oneYearProjected", "1Y projected")}</p>
+                            <p className="num mt-1 text-[13px] font-bold text-foreground">{formatPrice(projection.oneYearValue)}</p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-card p-3">
+                            <p className="text-[10px] text-muted-foreground font-semibold">{t("estimate.threeYearProjected", "3Y projected")}</p>
+                            <p className="num mt-1 text-[13px] font-bold text-foreground">{formatPrice(projection.threeYearValue)}</p>
+                          </div>
                         </div>
-                        <div className="rounded-lg border border-border bg-card p-3">
-                          <p className="text-[10px] text-muted-foreground font-semibold">{t("estimate.threeYearProjected", "3Y projected")}</p>
-                          <p className="num mt-1 text-[13px] font-bold text-foreground">{formatPrice(projection.threeYearValue)}</p>
-                        </div>
+                        <p className="text-[11px] text-muted-foreground font-medium">
+                          {t("estimate.annualRate", "Annual rate:")}{" "}
+                          <span className={`num font-bold ${projection.annualizedRate >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            {projection.annualizedRate >= 0 ? "+" : ""}{(projection.annualizedRate * 100).toFixed(1)}%
+                          </span>
+                        </p>
                       </div>
-                      <p className="text-[11px] text-muted-foreground font-medium">
-                        {t("estimate.annualRate", "Annual rate:")}{" "}
-                        <span className={`num font-bold ${projection.annualizedRate >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                          {projection.annualizedRate >= 0 ? "+" : ""}{(projection.annualizedRate * 100).toFixed(1)}%
-                        </span>
+                    ) : (
+                      <p className="mt-2 text-[11px] text-muted-foreground font-medium">
+                        {trendUnavailable
+                          ? t("estimate.trendUnavailable", "Trend data temporarily unavailable.")
+                          : t("estimate.notEnoughHistory", "Not enough historical data for projection.")}
                       </p>
-                    </div>
+                    )
                   ) : (
-                    <p className="mt-2 text-[11px] text-muted-foreground font-medium">
-                      {trendUnavailable
-                        ? t("estimate.trendUnavailable", "Trend data temporarily unavailable.")
-                        : t("estimate.notEnoughHistory", "Not enough historical data for projection.")}
-                    </p>
+                    <div className="mt-3">
+                      <UpgradePrompt
+                        title={freePlanCopy.estimateTitle}
+                        body={freePlanCopy.estimateBody}
+                        variant="strip"
+                      />
+                    </div>
                   )}
                 </motion.div>
 
                 <motion.div variants={revealItem}>
-                  <SellerFairAskCard
-                    marketMedian={result.median}
-                    make={form.make}
-                    model={form.model}
-                    year={form.year}
-                  />
+                  {fullAccess ? (
+                    <SellerFairAskCard
+                      marketMedian={result.median}
+                      make={form.make}
+                      model={form.model}
+                      year={form.year}
+                    />
+                  ) : (
+                    <ProFeatureLock label={freePlanCopy.estimateTitle}>
+                      <div className="rounded-xl border border-border bg-surface p-5">
+                        <p className="text-sm font-bold text-foreground">{t("estimate.sellerAsk", "Seller fair ask")}</p>
+                        <p className="mt-2 text-[12px] text-muted-foreground">{freePlanCopy.estimateBody}</p>
+                      </div>
+                    </ProFeatureLock>
+                  )}
                 </motion.div>
 
                 {/* Methodology */}

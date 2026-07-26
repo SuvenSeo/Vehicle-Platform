@@ -166,8 +166,11 @@ def match_alerts(
     authorization: Optional[str] = Header(default=None),
     x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
 ):
-    owner, _live = _resolve_alert_identity(
+    owner, live = _resolve_alert_identity(
         request, authorization, _optional_str(x_alert_token) or _optional_str(token), db
+    )
+    free_browse = bool(
+        live is not None and is_free_browse_plan(live.get("plan"), role=live.get("role"))
     )
     alerts = (
         db.query(MarketAlert)
@@ -211,7 +214,11 @@ def match_alerts(
                         year=row.year,
                         price_lkr=float(row.price_lkr) if row.price_lkr is not None else None,
                         district=row.district,
-                        deal_score=float(row.deal_score) if row.deal_score is not None else None,
+                        deal_score=(
+                            None
+                            if free_browse
+                            else (float(row.deal_score) if row.deal_score is not None else None)
+                        ),
                         thumbnail_url=row.thumbnail_url,
                     )
                     for row in top_listings

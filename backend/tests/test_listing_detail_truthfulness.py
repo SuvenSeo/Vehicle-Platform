@@ -139,7 +139,7 @@ def test_get_similar_listings_keeps_missing_specs_unknown():
     db.add_all([seed, similar_missing])
     db.commit()
 
-    rows = listings.get_similar_listings(seed.id, db=db)
+    rows = listings.get_similar_listings(seed.id, request=_anon_request(), db=db)
     assert rows
 
     unknown_row = next(row for row in rows if row.id == similar_missing.id)

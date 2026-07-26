@@ -65,6 +65,8 @@ export const freePlanCopy = {
   calcBody: "Landed-cost is open on Free. Lease, TCO, on-road fees, permits, and retention curves unlock on Pro.",
   indexTitle: "6-month index window on Free",
   indexBody: "Pro unlocks the full index history and segment breakdowns.",
+  estimateTitle: "Starter valuation on Free",
+  estimateBody: "Fair market range is open on Free. 1Y/3Y trajectory and seller fair-ask tools unlock on Pro.",
   dealerTitle: "Dealer workspace teaser",
   dealerBody: "Claim and basic yard tools are open. Deep dealer intelligence unlocks on Pro / Dealer.",
   genericCta: "Upgrade to Pro",

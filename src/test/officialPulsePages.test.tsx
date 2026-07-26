@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
 import OfficialPulse from "@/pages/OfficialPulse";
 import OfficialPulseDetail from "@/pages/OfficialPulseDetail";
 import OfficialPulseGuide from "@/pages/OfficialPulseGuide";
@@ -11,6 +12,7 @@ import type { MarketSignal } from "@/types/car";
 vi.mock("@/services/api", () => ({
   getMarketSignals: vi.fn(),
   getMarketSignal: vi.fn(),
+  getVehicleNews: vi.fn().mockResolvedValue([]),
 }));
 
 import { getMarketSignal, getMarketSignals } from "@/services/api";
@@ -38,15 +40,17 @@ function renderAt(path: string) {
 
   return render(
     <AppPreferencesProvider>
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Routes>
-            <Route path="/official-pulse" element={<OfficialPulse />} />
-            <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
-            <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={[path]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/official-pulse" element={<OfficialPulse />} />
+              <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
+              <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>
+      </AuthProvider>
     </AppPreferencesProvider>,
   );
 }
