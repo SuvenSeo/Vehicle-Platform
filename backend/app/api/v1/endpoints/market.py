@@ -31,7 +31,7 @@ def _historical_observation_stats(db: Session) -> dict:
 
 @router.get("/signals", response_model=list[MarketSignalRead])
 def get_market_signals(
-    request: Request | None = None,
+    request: Request,
     source: str | None = None,
     signal_type: str | None = None,
     limit: int = Query(100, ge=1, le=500),

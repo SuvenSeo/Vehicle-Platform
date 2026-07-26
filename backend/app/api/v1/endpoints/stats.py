@@ -171,7 +171,7 @@ def build_live_market_snapshot(db: Session) -> dict:
 
 @router.get("/price-index", response_model=PriceIndexResponse)
 def get_price_index(
-    request: Optional[Request] = None,
+    request: Request,
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
@@ -783,7 +783,7 @@ def _compute_price_trends_payload(
 
 @router.get("/trends")
 def get_price_trends(
-    request: Optional[Request] = None,
+    request: Request,
     make: Optional[str] = None,
     model: Optional[str] = None,
     condition: Optional[str] = None,
@@ -1491,7 +1491,7 @@ def _median_price(values: list[float]) -> Optional[float]:
 
 @router.get("/ev-insight")
 def get_ev_insight(
-    request: Optional[Request] = None,
+    request: Request,
     top_n: int = Query(5, ge=1, le=20),
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),

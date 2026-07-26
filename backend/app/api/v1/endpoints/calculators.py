@@ -432,7 +432,7 @@ def post_ownership_bundle(payload: OwnershipBundleRequest):
 
 @router.get("/vehicle-news")
 def get_vehicle_news(
-    request: Optional[Request] = None,
+    request: Request,
     limit: int = Query(8, ge=1, le=20),
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
