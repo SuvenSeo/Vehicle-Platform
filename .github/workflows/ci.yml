@@ -1,8 +1,9 @@
 name: CI
 
 on:
-  pull_request:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
 
 concurrency:
@@ -11,52 +12,53 @@ concurrency:
 
 jobs:
   frontend:
+    name: Frontend — Lint, Typecheck & Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Typecheck
-        run: npm run typecheck
+      - run: npm ci
 
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Test
-        run: npm run test
+        run: npm test -- --reporter=verbose
 
       - name: Build
         run: npm run build
 
   backend:
+    name: Backend — Test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+    env:
+      ALLOW_SQLITE_FALLBACK: "true"
+      APP_ACCESS_ENFORCED: "false"
+      PRO_ACCESS_ENFORCED: "false"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Test
-        env:
-          ALLOW_SQLITE_FALLBACK: "true"
-        run: python -m pytest tests
+        run: python -m pytest tests/ -v --tb=short
