@@ -2,19 +2,25 @@
 
 Last updated: 2026-07-28. Live inventory across **13 sources**.
 
-## Wave 0 — Platform hardening (branch `cursor/platform-hardening-phases-0a52`) — in progress
+## Wave 0–2 — Platform hardening (branch `cursor/platform-hardening-phases-0a52`)
 
-### Analytics
-- `POST /api/v1/events` — public, rate-limited (60/min) append-only analytics endpoint
-- `analytics_events` table (`db/models.py` + `db/schema_patches.py`), idempotent CREATE
-- `src/lib/analytics.ts` — `trackEvent(name, props?)` fire-and-forget utility with session ID
-- Client-side calls added: `listing_viewed` (ListingDetail), `alert_created` (useServerMarketAlerts), `search_submit` (Dashboard hero), `dealer_claim_success` (DealerDashboard)
-- Backend tests: `tests/test_analytics_events.py` (persist, strip, rate-limit, recovery)
+### Wave 0 — Survival / hardening
+- Daily DB backup GHA (`.github/workflows/daily-db-backup.yml`) + `docs/disaster-recovery-plan.md`
+- CSP, Permissions-Policy, body 1MB limit, GZip, X-Request-ID, `/.well-known/security.txt`
+- Pipeline GET routes require admin key or session when `APP_ACCESS_ENFORCED=true`
+- RateLimit-* + Retry-After headers on limiter responses
+- `POST /api/v1/events` analytics + `src/lib/analytics.ts` (listing_viewed, alert_created, search_submit, dealer_claim_success)
+- Scrape checkpoint + circuit breaker (skip mass-deactivate on MASS_DEACTIVATION / PRICE_ANOMALY)
+- Supabase egress cuts: slower polls, Cache-Control on stats, `docs/supabase-egress-mitigation.md`
 
-### Scrape checkpoint
-- `backend/app/utils/scrape_checkpoint.py` — `create_scrape_checkpoint(db, source)` and `validate_post_scrape(db, source, checkpoint)`
-- Mass-deactivation guard (>50 % listing drop) and price anomaly guard (>50 % avg shift)
-- Wired into `run_sync.py` `_run_source` — pre/post checkpoint sessions, warnings logged via structlog, never aborts
+### Wave 1 — Monetization / legal scaffold
+- `/privacy` + `/terms` pages + footer Legal column
+- `POST /api/v1/billing/checkout-intent` (env checkout URL → redirect; else contact sales)
+- Pricing Pro/Dealer CTAs call checkout-intent
+
+### Wave 2 — Trust / DX
+- FMV explainability: sample_size, confidence, comps_median_lkr, updated_at + ListingDetail line
+- Light Alembic scaffold (`docs/alembic-notes.md`) — schema_patches still owns additive DDL
 
 ## Shipped on `main` (Jul 19–21)
 
