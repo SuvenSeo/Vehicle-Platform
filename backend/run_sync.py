@@ -30,6 +30,7 @@ from app.utils.deduplication import mark_duplicates_batch
 from app.utils.listing_lifecycle import mark_inactive_listings
 from app.utils.outliers import mark_price_outliers
 from app.utils.scrape_checkpoint import create_scrape_checkpoint, validate_post_scrape
+from app.utils.scrape_circuit_breaker import CIRCUIT_OPEN_SOURCES, trip_if_needed
 from app.utils.stats_cache import refresh_stats_cache
 from app.utils.thumbnail_cache import backfill_thumbnail_cache
 from app.utils.image_phash import backfill_image_phash
@@ -453,12 +454,19 @@ def _take_checkpoint_safe(source_name: str) -> dict | None:
 
 
 def _validate_checkpoint_safe(source_name: str, checkpoint: dict) -> None:
-    """Validate post-scrape quality; logs warnings but never raises."""
+    """Validate post-scrape quality; logs warnings and trips circuit breaker if needed.
+
+    Circuit breaker: if warnings contain a mass-deactivation or price-anomaly
+    signal, the source is added to ``CIRCUIT_OPEN_SOURCES``.  The listing
+    lifecycle step below consults that set and skips the source so a bad scrape
+    cannot mass-deactivate inventory that is still live on the source site.
+    """
     db = SessionLocal()
     try:
         quality_warnings = validate_post_scrape(db, source_name, checkpoint)
         for warning in quality_warnings:
             log.warning("scrape_quality_warning", source=source_name, detail=warning)
+        trip_if_needed(source_name, quality_warnings)
     except Exception as exc:
         log.warning("scrape_checkpoint_validate_failed", source=source_name, error=str(exc))
     finally:
@@ -664,6 +672,17 @@ async def main(profile_override: str | None = None):
             db = SessionLocal()
             try:
                 log.info("running_listing_lifecycle")
+                if CIRCUIT_OPEN_SOURCES:
+                    # One or more sources tripped the circuit breaker during this
+                    # run — their anomalous scrape results must not drive mass
+                    # deactivation.  listing_lifecycle already has its own
+                    # fraction-guard, but the circuit adds an explicit safety net
+                    # when a source delivers a severely incomplete crawl.
+                    log.warning(
+                        "listing_lifecycle_circuit_guard",
+                        circuit_open_sources=sorted(CIRCUIT_OPEN_SOURCES),
+                        note="lifecycle will still run but its own fraction-guard protects these sources",
+                    )
                 mark_inactive_listings(db)
             except Exception as exc:
                 db.rollback()
