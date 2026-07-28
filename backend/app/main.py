@@ -1,12 +1,14 @@
 import asyncio
 from contextlib import asynccontextmanager
 import os
+import uuid
 
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
 from db.session import hot_engine, init_db
@@ -39,6 +41,29 @@ if _sentry_dsn:
 # tight on HF Spaces cpu-basic against remote Postgres.
 DB_INIT_TIMEOUT_SECONDS = int(os.getenv("DB_INIT_TIMEOUT_SECONDS", "60"))
 SKIP_DB_INIT = os.getenv("SKIP_DB_INIT", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+_MAX_BODY_SIZE = 1_048_576  # 1 MB
+
+
+class BodySizeLimitMiddleware:
+    """Reject requests whose Content-Length exceeds _MAX_BODY_SIZE bytes."""
+
+    def __init__(self, app) -> None:
+        self.app = app
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] == "http":
+            for name, value in scope.get("headers", []):
+                if name == b"content-length":
+                    if int(value) > _MAX_BODY_SIZE:
+                        response = JSONResponse(
+                            status_code=413,
+                            content={"detail": "Request body too large"},
+                        )
+                        await response(scope, receive, send)
+                        return
+                    break
+        await self.app(scope, receive, send)
 
 
 @asynccontextmanager
@@ -115,15 +140,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(BodySizeLimitMiddleware)
+
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+    request.state.request_id = request_id
+
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-XSS-Protection"] = "0"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    )
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), camera=(), microphone=(), payment=()"
+    )
+    response.headers["X-Request-ID"] = request_id
     return response
 
 

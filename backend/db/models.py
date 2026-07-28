@@ -441,3 +441,25 @@ class UserInvite(Base):
         Index("idx_user_invites_token", "token"),
         Index("idx_user_invites_status", "status"),
     )
+
+
+class AnalyticsEvent(Base):
+    """Append-only product analytics events from the frontend (and backend).
+
+    Intentionally lightweight — no PII required, properties is a JSON blob.
+    The table is write-heavy and read-rarely; keep indexes minimal.
+    """
+
+    __tablename__ = "analytics_events"
+
+    id = Column(Integer, primary_key=True)
+    event = Column(String(120), nullable=False)
+    properties = Column(JSON, nullable=True)
+    session_id = Column(String(64), nullable=True)
+    user_email = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_analytics_events_event_created", "event", "created_at"),
+        Index("idx_analytics_events_session", "session_id"),
+    )

@@ -37,6 +37,7 @@ import { motion } from 'framer-motion';
 import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
 import { AtmosphericImage } from '@/components/AtmosphericImage';
 import { visuals } from '@/lib/visualAssets';
+import { trackEvent } from '@/lib/analytics';
 
 function formatToken(value: string | null | undefined): string {
   if (!value) return 'Unknown';
@@ -100,7 +101,10 @@ export default function ListingDetail() {
     ])
       .then(([detail, sim, profile, history]) => {
         setListing(detail); setSimilar(sim); setSellerProfile(profile); setPriceHistory(history); setLoading(false);
-        if (detail) document.title = `${detail.title} — Motormila`;
+        if (detail) {
+          document.title = `${detail.title} — Motormila`;
+          trackEvent("listing_viewed", { listing_id: detail.id, make: detail.make, model: detail.model, source: detail.source });
+        }
       });
   }, [id]);
 

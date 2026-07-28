@@ -208,10 +208,11 @@ def _compute_price_index_payload(db: Session) -> dict:
 
 
 @router.get("/summary", response_model=StatsSummary)
-def get_stats_summary(db: Session = Depends(get_db)):
+def get_stats_summary(response: Response, db: Session = Depends(get_db)):
     # Serve from materialized cache when fresh (< 1 hour).
     cached = get_cached_summary(db)
     if cached is not None:
+        response.headers["Cache-Control"] = "public, max-age=60"
         return cached
 
     try:
@@ -271,10 +272,12 @@ def get_stats_summary(db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_summary(db, allow_stale=True)
         if stale is not None:
+            response.headers["Cache-Control"] = "public, max-age=60"
             return stale
         raise
 
     store_summary_cache(db, result)
+    response.headers["Cache-Control"] = "public, max-age=60"
     return result
 
 
@@ -330,10 +333,11 @@ async def stream_live_market_snapshot(request: Request):
     )
 
 @router.get("/district-prices")
-def get_district_prices(db: Session = Depends(get_db)):
+def get_district_prices(response: Response, db: Session = Depends(get_db)):
     # Serve from materialized cache when fresh (< 1 hour).
     cached = get_cached_district_prices(db)
     if cached is not None:
+        response.headers["Cache-Control"] = "public, max-age=60"
         return cached
 
     try:
@@ -479,10 +483,12 @@ def get_district_prices(db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_district_prices(db, allow_stale=True)
         if stale is not None:
+            response.headers["Cache-Control"] = "public, max-age=60"
             return stale
         raise
 
     store_district_prices_cache(db, result)
+    response.headers["Cache-Control"] = "public, max-age=60"
     return result
 
 def _trend_response(points, scope: str, note: Optional[str] = None) -> dict:
@@ -1630,9 +1636,10 @@ def get_ev_insight(
 
 
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
-def get_district_velocity(db: Session = Depends(get_db)):
+def get_district_velocity(response: Response, db: Session = Depends(get_db)):
     cached = get_cached_district_velocity(db)
     if cached is not None:
+        response.headers["Cache-Control"] = "public, max-age=60"
         return cached
 
     try:
@@ -1640,10 +1647,12 @@ def get_district_velocity(db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_district_velocity(db, allow_stale=True)
         if stale is not None:
+            response.headers["Cache-Control"] = "public, max-age=60"
             return stale
         raise
 
     store_district_velocity_cache(db, result)
+    response.headers["Cache-Control"] = "public, max-age=60"
     return result
 
 

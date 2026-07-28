@@ -29,6 +29,7 @@ from app.utils.deal_scores import bulk_refresh_deal_scores
 from app.utils.deduplication import mark_duplicates_batch
 from app.utils.listing_lifecycle import mark_inactive_listings
 from app.utils.outliers import mark_price_outliers
+from app.utils.scrape_checkpoint import create_scrape_checkpoint, validate_post_scrape
 from app.utils.stats_cache import refresh_stats_cache
 from app.utils.thumbnail_cache import backfill_thumbnail_cache
 from app.utils.image_phash import backfill_image_phash
@@ -438,6 +439,32 @@ def _release_market_analysis_lock(db):
     )
 
 
+def _take_checkpoint_safe(source_name: str) -> dict | None:
+    """Take a pre-scrape checkpoint in a short-lived session; returns None on failure."""
+    db = SessionLocal()
+    try:
+        return create_scrape_checkpoint(db, source_name)
+    except Exception as exc:
+        db.rollback()
+        log.warning("scrape_checkpoint_create_failed", source=source_name, error=str(exc))
+        return None
+    finally:
+        _close_db_session(db, context="checkpoint_pre", source=source_name)
+
+
+def _validate_checkpoint_safe(source_name: str, checkpoint: dict) -> None:
+    """Validate post-scrape quality; logs warnings but never raises."""
+    db = SessionLocal()
+    try:
+        quality_warnings = validate_post_scrape(db, source_name, checkpoint)
+        for warning in quality_warnings:
+            log.warning("scrape_quality_warning", source=source_name, detail=warning)
+    except Exception as exc:
+        log.warning("scrape_checkpoint_validate_failed", source=source_name, error=str(exc))
+    finally:
+        _close_db_session(db, context="checkpoint_post", source=source_name)
+
+
 async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int | None):
     source_name = scraper_cls.SOURCE
     if max_pages <= 0:
@@ -448,6 +475,8 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
             reason="max_pages_not_positive",
         )
         return
+
+    checkpoint = _take_checkpoint_safe(source_name)
 
     db = SessionLocal()
     run_id = None
@@ -478,6 +507,8 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
             listings_new=max(0, listings_after - listings_before),
         )
         log.info("scraping_source_completed", source=source_name)
+        if checkpoint is not None:
+            _validate_checkpoint_safe(source_name, checkpoint)
     except asyncio.TimeoutError as exc:
         listings_after = _count_source_listings_safe(source_name)
         listings_new = max(0, listings_after - listings_before)
@@ -499,6 +530,8 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
             status=timeout_status,
         )
         _capture_exception_safely(exc)
+        if checkpoint is not None:
+            _validate_checkpoint_safe(source_name, checkpoint)
     except Exception as exc:
         listings_after = _count_source_listings_safe(source_name)
         _finalize_scrape_run_safe(

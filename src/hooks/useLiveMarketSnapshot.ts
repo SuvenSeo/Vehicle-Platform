@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getLiveMarketSnapshot, getLiveMarketStreamUrl, SNAPSHOT_BASE } from "@/services/api";
 import type { LiveMarketSnapshot } from "@/types/car";
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 60_000;
 
 let sharedSnapshot: LiveMarketSnapshot | null = null;
 const listeners = new Set<(snapshot: LiveMarketSnapshot | null) => void>();

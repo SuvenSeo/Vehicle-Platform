@@ -420,6 +420,63 @@ def heal_platform_users_schema(db) -> list[str]:
     return applied
 
 
+def _ensure_analytics_events_table(
+    engine: Engine,
+    *,
+    dialect: str,
+    bounded_ddl,
+) -> None:
+    """Idempotent CREATE for the analytics_events table (Postgres + SQLite)."""
+    inspector = inspect(engine)
+    try:
+        if "analytics_events" in inspector.get_table_names():
+            return
+    except Exception as exc:
+        log.warning("schema_analytics_table_inspect_failed", error=str(exc))
+
+    if dialect == "postgresql":
+        ddl = """
+        CREATE TABLE IF NOT EXISTS analytics_events (
+            id SERIAL PRIMARY KEY,
+            event VARCHAR(120) NOT NULL,
+            properties JSONB,
+            session_id VARCHAR(64),
+            user_email VARCHAR(255),
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+        """
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_analytics_events_event_created ON analytics_events (event, created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events (session_id)",
+        )
+    else:
+        ddl = """
+        CREATE TABLE IF NOT EXISTS analytics_events (
+            id INTEGER PRIMARY KEY,
+            event VARCHAR(120) NOT NULL,
+            properties JSON,
+            session_id VARCHAR(64),
+            user_email VARCHAR(255),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_analytics_events_event_created ON analytics_events (event, created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_analytics_events_session ON analytics_events (session_id)",
+        )
+
+    try:
+        bounded_ddl(ddl)
+        for index_sql in indexes:
+            try:
+                bounded_ddl(index_sql)
+            except Exception as exc:
+                log.warning("schema_analytics_index_failed", error=str(exc))
+        log.info("schema_analytics_events_table_ensured")
+    except Exception as exc:
+        log.warning("schema_analytics_events_table_failed", error=str(exc))
+
+
 def apply_schema_patches(engine: Engine) -> None:
     """Add missing columns and create new tables without a full Alembic migration."""
     from db.models import Base
@@ -496,6 +553,7 @@ def apply_schema_patches(engine: Engine) -> None:
     # querying a missing relation (prod 500s on /market/summary + model-price-history).
     Base.metadata.create_all(bind=engine)
     _ensure_historical_price_observations_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
+    _ensure_analytics_events_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
 
     for index_name, table_name, columns in _INDEX_PATCHES:
         try:

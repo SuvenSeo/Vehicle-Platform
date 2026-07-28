@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, feedback, listings, market, pipeline, pro, stats
+from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, events, feedback, listings, market, pipeline, pro, stats
 from .endpoints.auth import require_authenticated, require_pro_access
 
 api_router = APIRouter()
@@ -20,3 +20,5 @@ api_router.include_router(market.router, prefix="/market", tags=["market"], depe
 api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"], dependencies=_app_gate)
 api_router.include_router(dealer.router, prefix="/dealer", tags=["dealer"], dependencies=_app_gate)
 api_router.include_router(b2b.router, prefix="/b2b", tags=["b2b"])
+# Public write: rate-limited analytics events (funnel tracking, no auth required).
+api_router.include_router(events.router, prefix="/events", tags=["events"])

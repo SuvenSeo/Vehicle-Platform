@@ -11,7 +11,7 @@ import hashlib
 import hmac
 import json
 import os
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -101,3 +101,66 @@ async def billing_webhook(
         }
     finally:
         db.close()
+
+
+# ---------------------------------------------------------------------------
+# Checkout intent — surface a checkout URL or contact-sales fallback
+# ---------------------------------------------------------------------------
+
+_CONTACT_EMAIL_FALLBACK = "s.seoras@rgu.ac.uk"
+
+
+def _checkout_url() -> Optional[str]:
+    """Return the first configured checkout URL, or None."""
+    for env_var in ("BILLING_CHECKOUT_URL", "STRIPE_CHECKOUT_URL", "PAYHERE_CHECKOUT_URL"):
+        url = os.getenv(env_var, "").strip()
+        if url:
+            return url
+    return None
+
+
+def _contact_email() -> str:
+    return os.getenv("BILLING_CONTACT_EMAIL", _CONTACT_EMAIL_FALLBACK).strip()
+
+
+class CheckoutIntentRequest(BaseModel):
+    plan: str = Field(..., min_length=1, max_length=30, description="Requested plan: 'pro' or 'dealer'")
+
+
+class CheckoutIntentResponse(BaseModel):
+    provider: Literal["manual", "payhere", "stripe"]
+    checkout_url: Optional[str] = None
+    message: str
+
+
+@router.post("/checkout-intent", response_model=CheckoutIntentResponse)
+def checkout_intent(body: CheckoutIntentRequest) -> CheckoutIntentResponse:
+    """Return a checkout URL for the requested plan upgrade.
+
+    Reads environment variables in priority order:
+      BILLING_CHECKOUT_URL > STRIPE_CHECKOUT_URL > PAYHERE_CHECKOUT_URL
+
+    When none are set, returns a "contact sales" message so the frontend can
+    show a mailto link instead of a broken checkout flow.
+    """
+    url = _checkout_url()
+    if url:
+        env_vars = {k: os.getenv(k, "") for k in ("STRIPE_CHECKOUT_URL", "PAYHERE_CHECKOUT_URL")}
+        if env_vars.get("STRIPE_CHECKOUT_URL"):
+            provider: Literal["manual", "payhere", "stripe"] = "stripe"
+        elif env_vars.get("PAYHERE_CHECKOUT_URL"):
+            provider = "payhere"
+        else:
+            provider = "manual"
+        return CheckoutIntentResponse(
+            provider=provider,
+            checkout_url=url,
+            message=f"Redirecting to {provider} checkout for {body.plan} plan.",
+        )
+
+    contact = _contact_email()
+    return CheckoutIntentResponse(
+        provider="manual",
+        checkout_url=None,
+        message=f"Online checkout is not yet configured. To upgrade to the {body.plan} plan, email {contact} and we will set up your seat manually.",
+    )
