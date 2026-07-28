@@ -45,10 +45,32 @@ class RateLimiter:
         hits = [item for item in self._buckets.get(key, []) if item >= cutoff]
         if len(hits) >= self.max_requests:
             self._buckets[key] = hits
-            raise HTTPException(status_code=429, detail=self.message)
+            retry_after = max(1, int(hits[0] + self.window_seconds - current))
+            raise HTTPException(
+                status_code=429,
+                detail=self.message,
+                headers={
+                    "Retry-After": str(retry_after),
+                    "RateLimit-Limit": str(self.max_requests),
+                    "RateLimit-Remaining": "0",
+                    "RateLimit-Reset": str(int(hits[0] + self.window_seconds)),
+                },
+            )
 
         hits.append(current)
         self._buckets[key] = hits
+
+        # Store metadata in request.state so the response middleware can forward headers.
+        # Uses getattr so test doubles without .state are handled gracefully.
+        state = getattr(request, "state", None)
+        if state is not None:
+            remaining = self.max_requests - len(hits)
+            reset_at = int(hits[0] + self.window_seconds)
+            state.ratelimit_headers = {
+                "RateLimit-Limit": str(self.max_requests),
+                "RateLimit-Remaining": str(remaining),
+                "RateLimit-Reset": str(reset_at),
+            }
 
         stale_keys = [bucket_key for bucket_key, bucket_hits in self._buckets.items() if not any(item >= cutoff for item in bucket_hits)]
         for bucket_key in stale_keys[:100]:

@@ -161,6 +161,11 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = (
         "geolocation=(), camera=(), microphone=(), payment=()"
     )
+    # Propagate per-request rate-limit info stored by RateLimiter dependencies.
+    ratelimit_headers = getattr(request.state, "ratelimit_headers", None)
+    if ratelimit_headers:
+        for rl_name, rl_value in ratelimit_headers.items():
+            response.headers[rl_name] = rl_value
     response.headers["X-Request-ID"] = request_id
     return response
 
