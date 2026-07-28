@@ -1113,6 +1113,41 @@ export const getListingHistoryReport = async (id: string | number): Promise<Hist
   return fetchJSON<HistoryReport>(`/listings/${id}/history-report`);
 };
 
+export interface ListingFmvDetail {
+  listing_id: number | null;
+  asking_lkr: number | null;
+  fmv_lkr: number | null;
+  deal_score: number | null;
+  delta_pct: number | null;
+  band: "below" | "fair" | "above" | null;
+  label: string | null;
+  method: string;
+  sample_count: number;
+  sample_size: number;
+  confidence: "high" | "medium" | "low" | "none";
+  comps_median_lkr: number | null;
+  updated_at: string;
+}
+
+export const getListingFmv = async (id: string | number): Promise<ListingFmvDetail> => {
+  const data = await fetchJSON<JsonRecord>(`/listings/${id}/fmv`);
+  return {
+    listing_id: toNumberOrNull(data?.listing_id),
+    asking_lkr: toNumberOrNull(data?.asking_lkr),
+    fmv_lkr: toNumberOrNull(data?.fmv_lkr),
+    deal_score: toNumberOrNull(data?.deal_score),
+    delta_pct: toNumberOrNull(data?.delta_pct),
+    band: (data?.band as ListingFmvDetail["band"]) ?? null,
+    label: data?.label ? String(data.label) : null,
+    method: String(data?.method ?? "insufficient_data"),
+    sample_count: Number(data?.sample_count ?? 0),
+    sample_size: Number(data?.sample_size ?? data?.sample_count ?? 0),
+    confidence: (data?.confidence as ListingFmvDetail["confidence"]) ?? "none",
+    comps_median_lkr: toNumberOrNull(data?.comps_median_lkr),
+    updated_at: String(data?.updated_at ?? ""),
+  };
+};
+
 export const getPriceIndex = async (): Promise<PriceIndex> => {
   return fetchJSON<PriceIndex>(`/stats/price-index`);
 };
