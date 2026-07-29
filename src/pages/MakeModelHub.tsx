@@ -1,16 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart2, Car, TrendingUp } from "lucide-react";
-import { getMakeModelInsight, getListings, formatPrice } from "@/services/api";
+import { getMakeModelInsight, getListings, getListingsForExport, formatPrice } from "@/services/api";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { ListingCard } from "@/components/ListingCard";
 import { ModelPriceTimeMachine } from "@/components/ModelPriceTimeMachine";
+import { MileagePriceScatter } from "@/components/MileagePriceScatter";
 import { SectionHeader } from "@/components/SectionHeader";
+import { NhtsaModelsCard } from "@/components/NhtsaModelsCard";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
@@ -48,6 +50,14 @@ export default function MakeModelHub() {
     queryKey: ["listings", { make: makeParam, model: modelParam, sort: "newest", page: 1 }],
     queryFn: () =>
       getListings({ make: makeParam, model: modelParam, sort: "newest", page: 1 }),
+    enabled: Boolean(makeParam && modelParam),
+    staleTime: QUERY_STALE.listings,
+  });
+
+  const scatterQuery = useQuery({
+    queryKey: ["scatter-listings", makeParam, modelParam],
+    queryFn: () =>
+      getListingsForExport({ make: makeParam, model: modelParam, sort: "price_asc", page: 1 }, 80),
     enabled: Boolean(makeParam && modelParam),
     staleTime: QUERY_STALE.listings,
   });
@@ -145,6 +155,27 @@ export default function MakeModelHub() {
   const isError = insightQuery.isError && !insightQuery.data;
 
   const recentListings = listingsQuery.data?.listings?.slice(0, 4) ?? [];
+
+  const scatterPoints = useMemo(() => {
+    const listings = scatterQuery.data?.listings ?? [];
+    return listings
+      .filter(
+        (l) =>
+          l.mileage_km !== null &&
+          l.mileage_km !== undefined &&
+          Number.isFinite(l.mileage_km) &&
+          l.mileage_km >= 0 &&
+          l.price_lkr !== null &&
+          Number.isFinite(l.price_lkr) &&
+          (l.price_lkr ?? 0) > 0,
+      )
+      .map((l) => ({
+        mileage: l.mileage_km as number,
+        price_lkr: l.price_lkr as number,
+        id: l.id,
+        label: `${l.make} ${l.model} ${l.year}`,
+      }));
+  }, [scatterQuery.data]);
 
   const statsCards = [
     {
@@ -301,6 +332,18 @@ export default function MakeModelHub() {
           <ModelPriceTimeMachine make={makeParam} model={modelParam} />
         </motion.div>
 
+        <motion.section variants={revealItem}>
+          <SectionHeader
+            eyebrow={t("hub.mileageScatterEyebrow", "Mileage vs. price")}
+            title={t("hub.mileageScatterTitle", "{vehicle}: mileage vs. asking price", { vehicle })}
+            className="mb-6"
+          />
+          <MileagePriceScatter
+            points={scatterPoints}
+            title={`${vehicle} — mileage vs. price`}
+          />
+        </motion.section>
+
         {recentListings.length > 0 && (
           <motion.section variants={revealItem}>
             <SectionHeader
@@ -320,6 +363,10 @@ export default function MakeModelHub() {
             </motion.div>
           </motion.section>
         )}
+
+        <motion.div variants={revealItem}>
+          <NhtsaModelsCard make={makeParam} model={modelParam} />
+        </motion.div>
 
         <motion.div variants={revealContainer} className="grid gap-4 lg:grid-cols-3">
           <motion.div

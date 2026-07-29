@@ -17,6 +17,7 @@ import { usePipelineStatus } from "@/hooks/usePipelineStatus";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { formatRelativeTimeI18n } from "@/lib/formatting";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const GITHUB_REPO = "SuvenSeo/Vehicle-Platform";
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
@@ -312,6 +313,9 @@ export function Navbar() {
               <div className="hidden md:flex">
                 <LocaleSwitcher compact />
               </div>
+
+              {/* Notification bell */}
+              <NotificationBell />
 
               {/* Live status pill */}
               <div className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex">

@@ -1357,6 +1357,14 @@ export default function Dashboard() {
                 <Scale className="h-3.5 w-3.5" />
                 Compare
               </button>
+              {compareIds.length >= 2 && (
+                <Link
+                  to={`/compare?ids=${compareIds.slice(0, 4).join(",")}`}
+                  className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-card px-3 text-[11px] font-semibold text-foreground no-underline transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary-bright"
+                >
+                  Full page
+                </Link>
+              )}
             </div>
           </div>
         </div>
