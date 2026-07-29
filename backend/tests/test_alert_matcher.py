@@ -6,6 +6,7 @@ All tests use an in-memory SQLite database; no external services required.
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy import create_engine
@@ -13,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from app.utils.alert_matcher import _count_matching, run_alert_match_pass
+from app.utils.alert_matcher import _count_matching, _resolve_channels, run_alert_match_pass
 from db.models import Base, CarListing, MarketAlert, MarketAlertMatch
 
 
@@ -153,6 +154,8 @@ def test_run_alert_match_pass_returns_summary():
     assert result["total_matches"] >= 1
     assert "elapsed_seconds" in result
     assert result["errors"] == 0
+    assert "email_sent" in result
+    assert "telegram_sent" in result
 
 
 def test_run_alert_match_pass_creates_match_rows():
@@ -255,3 +258,149 @@ def test_run_alert_match_pass_total_matches_sums_all_alerts():
 
     # Toyota alert matches 2, Honda alert matches 1 → total 3
     assert result["total_matches"] == 3
+
+
+# ---------------------------------------------------------------------------
+# _resolve_channels unit tests
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_channels_explicit_notify_channels():
+    alert = MarketAlert(
+        user_token="tok",
+        notify_channels="whatsapp,email",
+        notify_phone="0771234567",
+        notify_email="user@example.com",
+        notify_telegram_chat_id=None,
+    )
+    channels = _resolve_channels(alert)
+    assert channels == {"whatsapp", "email"}
+
+
+def test_resolve_channels_infers_from_fields_when_channels_null():
+    alert = MarketAlert(
+        user_token="tok",
+        notify_channels=None,
+        notify_phone="0771234567",
+        notify_email="user@example.com",
+        notify_telegram_chat_id="123456",
+    )
+    channels = _resolve_channels(alert)
+    assert channels == {"whatsapp", "email", "telegram"}
+
+
+def test_resolve_channels_empty_when_no_destinations():
+    alert = MarketAlert(
+        user_token="tok",
+        notify_channels=None,
+        notify_phone=None,
+        notify_email=None,
+        notify_telegram_chat_id=None,
+    )
+    assert _resolve_channels(alert) == set()
+
+
+# ---------------------------------------------------------------------------
+# Multi-channel dispatch integration tests
+# ---------------------------------------------------------------------------
+
+
+def _make_alert_with_channels(db, **kwargs):
+    alert = MarketAlert(user_token="test-token", active=True, **kwargs)
+    db.add(alert)
+    db.commit()
+    db.refresh(alert)
+    return alert
+
+
+def test_matcher_dispatches_telegram_when_count_increases(monkeypatch):
+    db = _session()
+    _make_listing(db, make="Toyota")
+    _make_alert_with_channels(
+        db,
+        make="Toyota",
+        notify_telegram_chat_id="123456",
+        notify_channels="telegram",
+    )
+
+    with patch("app.utils.alert_matcher.telegram_notify_configured", return_value=True), \
+         patch("app.utils.alert_matcher.send_telegram_alert", return_value=True) as mock_tg, \
+         patch("app.utils.alert_matcher.whatsapp_notify_configured", return_value=False), \
+         patch("app.utils.alert_matcher.email_notify_configured", return_value=False):
+        result = run_alert_match_pass(db)
+
+    assert result["telegram_sent"] == 1
+    assert result["whatsapp_sent"] == 0
+    assert result["email_sent"] == 0
+    mock_tg.assert_called_once()
+
+
+def test_matcher_dispatches_email_when_count_increases(monkeypatch):
+    db = _session()
+    _make_listing(db, make="Honda")
+    _make_alert_with_channels(
+        db,
+        make="Honda",
+        notify_email="user@example.com",
+        notify_channels="email",
+    )
+
+    with patch("app.utils.alert_matcher.email_notify_configured", return_value=True), \
+         patch("app.utils.alert_matcher.send_alert_email", return_value=True) as mock_em, \
+         patch("app.utils.alert_matcher.whatsapp_notify_configured", return_value=False), \
+         patch("app.utils.alert_matcher.telegram_notify_configured", return_value=False):
+        result = run_alert_match_pass(db)
+
+    assert result["email_sent"] == 1
+    assert result["whatsapp_sent"] == 0
+    assert result["telegram_sent"] == 0
+    mock_em.assert_called_once()
+
+
+def test_matcher_dispatches_multiple_channels(monkeypatch):
+    db = _session()
+    _make_listing(db, make="Suzuki")
+    _make_alert_with_channels(
+        db,
+        make="Suzuki",
+        notify_phone="0771234567",
+        notify_email="user@example.com",
+        notify_telegram_chat_id="123456",
+        notify_channels="whatsapp,email,telegram",
+    )
+
+    with patch("app.utils.alert_matcher.whatsapp_notify_configured", return_value=True), \
+         patch("app.utils.alert_matcher.send_whatsapp_alert", return_value=True) as mock_wa, \
+         patch("app.utils.alert_matcher.email_notify_configured", return_value=True), \
+         patch("app.utils.alert_matcher.send_alert_email", return_value=True) as mock_em, \
+         patch("app.utils.alert_matcher.telegram_notify_configured", return_value=True), \
+         patch("app.utils.alert_matcher.send_telegram_alert", return_value=True) as mock_tg:
+        result = run_alert_match_pass(db)
+
+    assert result["whatsapp_sent"] == 1
+    assert result["email_sent"] == 1
+    assert result["telegram_sent"] == 1
+    mock_wa.assert_called_once()
+    mock_em.assert_called_once()
+    mock_tg.assert_called_once()
+
+
+def test_matcher_does_not_notify_when_count_unchanged():
+    db = _session()
+    _make_listing(db, make="Toyota")
+    _make_alert_with_channels(
+        db,
+        make="Toyota",
+        notify_email="user@example.com",
+        notify_channels="email",
+    )
+
+    with patch("app.utils.alert_matcher.email_notify_configured", return_value=True), \
+         patch("app.utils.alert_matcher.send_alert_email", return_value=True) as mock_em:
+        run_alert_match_pass(db)  # first pass — count increases from 0 → 1
+        mock_em.reset_mock()
+        result = run_alert_match_pass(db)  # second pass — count stays at 1
+
+    assert result["email_sent"] == 0
+    mock_em.assert_not_called()
+

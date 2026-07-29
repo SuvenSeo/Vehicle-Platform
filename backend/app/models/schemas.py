@@ -459,6 +459,9 @@ class MarketAlertCreate(BaseModel):
     max_price: Optional[float] = Field(default=None, gt=0)
     district: Optional[str] = Field(default=None, max_length=50)
     notify_phone: Optional[str] = Field(default=None, max_length=32)
+    notify_email: Optional[str] = Field(default=None, max_length=255)
+    notify_telegram_chat_id: Optional[str] = Field(default=None, max_length=64)
+    notify_channels: Optional[str] = Field(default=None, max_length=64)
 
     @field_validator("notify_phone")
     @classmethod
@@ -480,6 +483,31 @@ class MarketAlertCreate(BaseModel):
             raise ValueError("notify_phone must be a valid mobile (e.g. 0771234567 or +94771234567)")
         return trimmed
 
+    @field_validator("notify_email")
+    @classmethod
+    def validate_notify_email(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        if not trimmed:
+            return None
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", trimmed):
+            raise ValueError("notify_email must be a valid email address")
+        return trimmed
+
+    @field_validator("notify_telegram_chat_id")
+    @classmethod
+    def validate_notify_telegram_chat_id(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        if not trimmed:
+            return None
+        # Accept numeric chat IDs (may be negative for groups), or @username handles.
+        if not re.fullmatch(r"-?\d+|@[\w]{3,}", trimmed):
+            raise ValueError("notify_telegram_chat_id must be a numeric chat ID or @username")
+        return trimmed
+
 
 class MarketAlertRead(BaseModel):
     id: int
@@ -489,6 +517,9 @@ class MarketAlertRead(BaseModel):
     max_price: Optional[Decimal] = None
     district: Optional[str] = None
     notify_phone: Optional[str] = None
+    notify_email: Optional[str] = None
+    notify_telegram_chat_id: Optional[str] = None
+    notify_channels: Optional[str] = None
     active: bool
     created_at: datetime
 

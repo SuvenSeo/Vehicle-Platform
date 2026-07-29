@@ -98,6 +98,43 @@ def test_create_alert_with_minimal_fields():
     assert result.max_price is None
 
 
+def test_create_alert_persists_email_and_telegram_fields():
+    db = _session()
+
+    result = alerts_module.create_alert(
+        request=_DummyRequest(),
+        payload=MarketAlertCreate(
+            make="Toyota",
+            notify_email="user@example.com",
+            notify_telegram_chat_id="123456",
+            notify_channels="email,telegram",
+        ),
+        x_alert_token="tok-multi",
+        db=db,
+    )
+
+    stored = db.query(MarketAlert).one()
+    assert stored.notify_email == "user@example.com"
+    assert stored.notify_telegram_chat_id == "123456"
+    assert stored.notify_channels == "email,telegram"
+    assert result.notify_email == "user@example.com"
+    assert result.notify_telegram_chat_id == "123456"
+
+
+def test_create_alert_schema_validates_email_format():
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        MarketAlertCreate(notify_email="not-an-email")
+
+
+def test_create_alert_schema_validates_telegram_chat_id():
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        MarketAlertCreate(notify_telegram_chat_id="bad chat id with spaces")
+
+
 def test_create_alert_rejects_empty_token():
     db = _session()
 

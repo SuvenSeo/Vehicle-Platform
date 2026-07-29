@@ -168,6 +168,9 @@ interface CreateAlertFormProps {
     district?: string;
     max_price?: number;
     notify_phone?: string;
+    notify_email?: string;
+    notify_telegram_chat_id?: string;
+    notify_channels?: string;
   }) => Promise<unknown>;
 }
 
@@ -178,6 +181,11 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
   const [district, setDistrict] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [notifyPhone, setNotifyPhone] = useState("");
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifyTelegram, setNotifyTelegram] = useState("");
+  const [channelWhatsApp, setChannelWhatsApp] = useState(false);
+  const [channelEmail, setChannelEmail] = useState(false);
+  const [channelTelegram, setChannelTelegram] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -193,8 +201,9 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
       setFormError(t("alerts.needFilter", "Provide at least one filter."));
       return;
     }
-    if (!fullAccess && notifyPhone.trim()) {
-      setFormError(t("alerts.whatsappProError", "WhatsApp notifications unlock with Pro."));
+    const hasAnyChannel = channelWhatsApp || channelEmail || channelTelegram;
+    if (!fullAccess && hasAnyChannel) {
+      setFormError(t("alerts.notifyProError", "Notification channels unlock with Pro."));
       return;
     }
     if (!isValidNotifyPhone(notifyPhone)) {
@@ -205,14 +214,23 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
     setFormError(null);
     try {
       const price = Number(maxPrice.replace(/[^\d]/g, ""));
+      const channels: string[] = [];
+      if (channelWhatsApp) channels.push("whatsapp");
+      if (channelEmail) channels.push("email");
+      if (channelTelegram) channels.push("telegram");
       await onCreate({
         make: make.trim() || undefined,
         model: model.trim() || undefined,
         district: district.trim() || undefined,
         max_price: Number.isFinite(price) && price > 0 ? price : undefined,
-        notify_phone: fullAccess ? (notifyPhone.trim() || undefined) : undefined,
+        notify_phone: fullAccess && channelWhatsApp ? (notifyPhone.trim() || undefined) : undefined,
+        notify_email: fullAccess && channelEmail ? (notifyEmail.trim() || undefined) : undefined,
+        notify_telegram_chat_id: fullAccess && channelTelegram ? (notifyTelegram.trim() || undefined) : undefined,
+        notify_channels: fullAccess && channels.length > 0 ? channels.join(",") : undefined,
       });
-      setMake(""); setModel(""); setDistrict(""); setMaxPrice(""); setNotifyPhone("");
+      setMake(""); setModel(""); setDistrict(""); setMaxPrice("");
+      setNotifyPhone(""); setNotifyEmail(""); setNotifyTelegram("");
+      setChannelWhatsApp(false); setChannelEmail(false); setChannelTelegram(false);
       setOpen(false);
       onCreated();
     } catch (err) {
@@ -220,7 +238,7 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
     } finally {
       setSaving(false);
     }
-  }, [make, model, district, maxPrice, notifyPhone, onCreate, onCreated, fullAccess, alertCount, t]);
+  }, [make, model, district, maxPrice, notifyPhone, notifyEmail, notifyTelegram, channelWhatsApp, channelEmail, channelTelegram, onCreate, onCreated, fullAccess, alertCount, t]);
 
   if (atFreeLimit) {
     return (
@@ -280,25 +298,93 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
           />
         </div>
         {fullAccess ? (
-          <div className="col-span-2">
-            <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
-              {t("alerts.notifyWhatsapp", "WhatsApp (optional)")}
-            </label>
-            <Input
-              id="alert-whatsapp"
-              value={notifyPhone}
-              onChange={(e) => setNotifyPhone(e.target.value)}
-              placeholder="0771234567"
-              inputMode="tel"
-              className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
-            />
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              {t("alerts.whatsappHint", "Get a WhatsApp ping when new matches appear (requires Twilio on the server).")}
+          <div className="col-span-2 space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {t("alerts.notifyChannels", "Notify me via (Pro)")}
             </p>
+            <div className="flex flex-wrap gap-3">
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={channelWhatsApp}
+                  onChange={(e) => setChannelWhatsApp(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.channelWhatsApp", "WhatsApp")}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={channelEmail}
+                  onChange={(e) => setChannelEmail(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.channelEmail", "Email")}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={channelTelegram}
+                  onChange={(e) => setChannelTelegram(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.channelTelegram", "Telegram")}
+              </label>
+            </div>
+            {channelWhatsApp && (
+              <div>
+                <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+                  {t("alerts.notifyWhatsapp", "WhatsApp number")}
+                </label>
+                <Input
+                  id="alert-whatsapp"
+                  value={notifyPhone}
+                  onChange={(e) => setNotifyPhone(e.target.value)}
+                  placeholder="0771234567"
+                  inputMode="tel"
+                  className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {t("alerts.whatsappHint", "Get a WhatsApp ping when new matches appear (requires Twilio on the server).")}
+                </p>
+              </div>
+            )}
+            {channelEmail && (
+              <div>
+                <label htmlFor="alert-email" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+                  {t("alerts.notifyEmail", "Email address")}
+                </label>
+                <Input
+                  id="alert-email"
+                  type="email"
+                  value={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
+                />
+              </div>
+            )}
+            {channelTelegram && (
+              <div>
+                <label htmlFor="alert-telegram" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
+                  {t("alerts.notifyTelegram", "Telegram chat ID or @username")}
+                </label>
+                <Input
+                  id="alert-telegram"
+                  value={notifyTelegram}
+                  onChange={(e) => setNotifyTelegram(e.target.value)}
+                  placeholder="123456789 or @mychannel"
+                  className="h-9 border-border bg-surface text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/30"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {t("alerts.telegramHint", "Send /start to your bot first to get a chat ID.")}
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="col-span-2 rounded-xl border border-primary/15 bg-primary/[0.05] px-3 py-2.5 text-[11px] text-muted-foreground">
-            {t("alerts.whatsappPro", "WhatsApp match pings unlock with Pro.")}
+            {t("alerts.notifyPro", "WhatsApp, Email & Telegram match pings unlock with Pro.")}
           </div>
         )}
       </div>
@@ -349,7 +435,17 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
               WA {alert.notify_phone}
             </span>
           )}
-          {!alert.district && !alert.max_price && !alert.notify_phone && (
+          {alert.notify_email && (
+            <span className="rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
+              ✉ {alert.notify_email}
+            </span>
+          )}
+          {alert.notify_telegram_chat_id && (
+            <span className="rounded-md border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+              TG {alert.notify_telegram_chat_id}
+            </span>
+          )}
+          {!alert.district && !alert.max_price && !alert.notify_phone && !alert.notify_email && !alert.notify_telegram_chat_id && (
             <span>{t("alerts.anyPriceAllDistricts", "Any price · All districts")}</span>
           )}
         </div>
