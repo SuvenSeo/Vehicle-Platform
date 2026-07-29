@@ -156,6 +156,11 @@ export interface ChatListingResult {
   external_url?: string | null;
 }
 
+export interface ChatSource {
+  title: string;
+  url: string;
+}
+
 export interface CustomVehicleComparable {
   id: number;
   title: string;
@@ -2175,6 +2180,15 @@ export const sendChatMessage = async (
             external_url: row?.external_url ? String(row.external_url) : null,
           }))
           .filter((row: ChatListingResult) => Number.isFinite(row.id) && row.id > 0)
+      : [],
+    sources: Array.isArray(data?.sources)
+      ? data.sources
+          .map((row: JsonRecord) => ({
+            title: String(row?.title || row?.url || "Source"),
+            url: String(row?.url || ""),
+          }))
+          .filter((row: ChatSource) => row.url)
+          .slice(0, 5)
       : [],
   };
 };

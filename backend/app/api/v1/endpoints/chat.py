@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from db.models import CarListing, MarketSignal, PriceAggregate, ScrapeRun
 from db.session import get_db
 from app.services.assistant_context import build_assistant_context
+from app.services.chat_web_tools import CHAT_WEB_TOOL_DEFINITIONS, fetch_url_text, search_web
 from app.services.rate_limit import RateLimiter
 from app.utils.plan_limits import is_free_browse_plan
 from app.utils.request_access import resolve_request_access
@@ -30,6 +31,7 @@ _chat_rate_limiter = RateLimiter(
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip() or "llama-3.1-8b-instant"
 GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions").strip()
+MAX_CHAT_WEB_TOOL_CALLS = 2
 
 KNOWN_DISTRICTS = [
     "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", "Galle", "Matara", "Hambantota",
@@ -222,16 +224,40 @@ def _intent(message: str) -> str:
     return "overview"
 
 
+def _env_flag(value: str) -> bool:
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_dev_environment() -> bool:
+    value = (
+        os.getenv("APP_ENV")
+        or os.getenv("ENVIRONMENT")
+        or os.getenv("SENTRY_ENVIRONMENT")
+        or os.getenv("ENV")
+        or "development"
+    )
+    return value.strip().lower() in {"dev", "development", "local", "test"}
+
+
+def _chat_web_tools_enabled() -> bool:
+    configured = os.getenv("CHAT_WEB_TOOLS")
+    if configured is not None:
+        return _env_flag(configured)
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return False
+    return _is_dev_environment()
+
+
 def _build_groq_prompt(
     message: str,
     context: Dict[str, Any],
     history: List[ChatMessage],
     *,
     hide_deal_scores: bool = False,
-) -> List[Dict[str, str]]:
+) -> List[Dict[str, Any]]:
     system_prompt = (
         "You are Motormila Copilot, the Sri Lankan vehicle marketplace assistant. "
-        "Use ONLY the provided context and do not invent listings, metrics, or operational states. "
+        "Use ONLY the provided context and available tool results; do not invent listings, metrics, or operational states. "
         "If data is missing, clearly say it is unavailable. "
         "Adapt your answer to the user's current page context when provided. "
         "When user asks for actions that require server-side operations, explain exact steps/commands but do not pretend actions were executed. "
@@ -242,6 +268,10 @@ def _build_groq_prompt(
             " This user is on the Free plan: never mention deal scores, fair-price scores, "
             "or ranking by deal quality. Suggest upgrading to Pro if they ask about scores."
         )
+    system_prompt += (
+        " Treat Motormila database context as the source of truth for platform listings and metrics. "
+        "When web tool results are present, you may cite them for external context and should mention source titles or URLs."
+    )
 
     history_text = "\n".join([f"{item.role.title()}: {item.content}" for item in history[-8:]]).strip()
 
@@ -259,7 +289,24 @@ def _build_groq_prompt(
     ]
 
 
-def _call_groq(messages: List[Dict[str, str]], *, api_key: str, model: str) -> str:
+def _post_groq_chat(
+    messages: List[Dict[str, Any]],
+    *,
+    api_key: str,
+    model: str,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: Optional[str] = None,
+) -> Dict[str, Any]:
+    body: Dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 700,
+    }
+    if tools:
+        body["tools"] = tools
+        body["tool_choice"] = tool_choice or "auto"
+
     with httpx.Client(timeout=20.0) as client:
         response = client.post(
             GROQ_API_URL,
@@ -267,16 +314,115 @@ def _call_groq(messages: List[Dict[str, str]], *, api_key: str, model: str) -> s
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": messages,
-                "temperature": 0.2,
-                "max_tokens": 700,
-            },
+            json=body,
         )
     response.raise_for_status()
     data = response.json()
-    return str(data["choices"][0]["message"]["content"]).strip()
+    message = data["choices"][0]["message"]
+    return message if isinstance(message, dict) else {"content": str(message)}
+
+
+def _call_groq(messages: List[Dict[str, Any]], *, api_key: str, model: str) -> str:
+    message = _post_groq_chat(messages, api_key=api_key, model=model)
+    return str(message.get("content") or "").strip()
+
+
+def _dedupe_sources(rows: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    sources: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for row in rows:
+        url = str(row.get("url") or "").strip()
+        title = str(row.get("title") or url).strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        sources.append({"title": title[:180], "url": url})
+        if len(sources) >= 5:
+            break
+    return sources
+
+
+def _tool_call_id(tool_call: Dict[str, Any], index: int) -> str:
+    return str(tool_call.get("id") or f"tool-call-{index}")
+
+
+def _tool_call_name(tool_call: Dict[str, Any]) -> str:
+    fn = tool_call.get("function") if isinstance(tool_call.get("function"), dict) else {}
+    return str(fn.get("name") or tool_call.get("name") or "").strip()
+
+
+def _tool_call_args(tool_call: Dict[str, Any]) -> Dict[str, Any]:
+    fn = tool_call.get("function") if isinstance(tool_call.get("function"), dict) else {}
+    raw_args = fn.get("arguments") or tool_call.get("arguments") or "{}"
+    if isinstance(raw_args, dict):
+        return raw_args
+    try:
+        parsed = json.loads(str(raw_args or "{}"))
+    except (TypeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _execute_chat_web_tool(tool_call: Dict[str, Any]) -> tuple[str, List[Dict[str, str]]]:
+    name = _tool_call_name(tool_call)
+    args = _tool_call_args(tool_call)
+
+    if name == "search_web":
+        results = search_web(str(args.get("query") or ""))
+        return json.dumps({"results": results}, ensure_ascii=False), _dedupe_sources(results)
+
+    if name == "fetch_url_text":
+        url = str(args.get("url") or "").strip()
+        text = fetch_url_text(url)
+        sources = _dedupe_sources([{"title": url, "url": url}]) if text else []
+        return json.dumps({"url": url, "text": text}, ensure_ascii=False), sources
+
+    return json.dumps({"error": f"Unsupported tool: {name}"}, ensure_ascii=False), []
+
+
+def _call_groq_with_web_tools(
+    messages: List[Dict[str, Any]],
+    *,
+    api_key: str,
+    model: str,
+) -> tuple[str, List[Dict[str, str]]]:
+    first_message = _post_groq_chat(
+        messages,
+        api_key=api_key,
+        model=model,
+        tools=CHAT_WEB_TOOL_DEFINITIONS,
+        tool_choice="auto",
+    )
+    tool_calls = first_message.get("tool_calls")
+    if not isinstance(tool_calls, list) or not tool_calls:
+        return str(first_message.get("content") or "").strip(), []
+
+    capped_tool_calls = [call for call in tool_calls[:MAX_CHAT_WEB_TOOL_CALLS] if isinstance(call, dict)]
+    if not capped_tool_calls:
+        return str(first_message.get("content") or "").strip(), []
+
+    assistant_tool_message = {
+        "role": "assistant",
+        "content": first_message.get("content"),
+        "tool_calls": capped_tool_calls,
+    }
+    followup_messages: List[Dict[str, Any]] = [*messages, assistant_tool_message]
+    sources: List[Dict[str, str]] = []
+
+    for index, tool_call in enumerate(capped_tool_calls):
+        content, tool_sources = _execute_chat_web_tool(tool_call)
+        sources.extend(tool_sources)
+        followup_messages.append(
+            {
+                "role": "tool",
+                "tool_call_id": _tool_call_id(tool_call, index),
+                "name": _tool_call_name(tool_call),
+                "content": content,
+            }
+        )
+
+    final_message = _post_groq_chat(followup_messages, api_key=api_key, model=model)
+    return str(final_message.get("content") or "").strip(), _dedupe_sources(sources)
 
 
 def _serialize_listing(row: CarListing) -> Dict[str, Any]:
@@ -421,25 +567,39 @@ def chat_assistant(
     configured_key = GROQ_API_KEY
     configured_model = GROQ_MODEL
     has_groq = bool(configured_key)
+    web_tools_enabled = has_groq and _chat_web_tools_enabled()
 
     ai_response: Optional[str] = None
+    web_sources: List[Dict[str, str]] = []
     if has_groq:
         clean_history = payload.history[-12:]
         if clean_history and clean_history[-1].role == "user" and clean_history[-1].content.strip() == message:
             clean_history = clean_history[:-1]
         try:
-            ai_response = _call_groq(
-                _build_groq_prompt(
-                    message,
-                    context,
-                    clean_history,
-                    hide_deal_scores=hide_deal_scores,
-                ),
-                api_key=configured_key,
-                model=configured_model,
+            groq_messages = _build_groq_prompt(
+                message,
+                context,
+                clean_history,
+                hide_deal_scores=hide_deal_scores,
             )
+            if web_tools_enabled:
+                ai_response, web_sources = _call_groq_with_web_tools(
+                    groq_messages,
+                    api_key=configured_key,
+                    model=configured_model,
+                )
+            else:
+                ai_response = _call_groq(
+                    groq_messages,
+                    api_key=configured_key,
+                    model=configured_model,
+                )
+            if not ai_response:
+                ai_response = None
+                web_sources = []
         except Exception:
             ai_response = None
+            web_sources = []
 
     response_text = ai_response or _build_fallback_response(
         intent=bundle["intent"],
@@ -462,6 +622,7 @@ def chat_assistant(
         "context_cards": bundle["context_cards"],
         "market_signals": bundle["market_signals"],
         "sources_used": bundle["sources_used"],
+        "sources": web_sources,
         "context": {
             "generated_at": context.get("generated_at"),
             "intent": context.get("intent"),

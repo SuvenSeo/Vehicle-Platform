@@ -23,7 +23,7 @@ describe("api module", () => {
   it("posts chat payloads to the backend api", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ response: "ok" }),
+      json: async () => ({ response: "ok", sources: [{ title: "CBSL", url: "https://www.cbsl.gov.lk/" }] }),
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -46,7 +46,11 @@ describe("api module", () => {
       message: "hello",
       history: [{ role: "user", content: "previous message" }],
     });
-    expect(result).toEqual({ response: "ok", listings: [] });
+    expect(result).toEqual({
+      response: "ok",
+      listings: [],
+      sources: [{ title: "CBSL", url: "https://www.cbsl.gov.lk/" }],
+    });
   });
 
   it("omits cookies for cross-origin HF API bases (HF preflight lacks Allow-Credentials)", async () => {

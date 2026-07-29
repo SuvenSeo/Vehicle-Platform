@@ -1,3 +1,4 @@
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -106,6 +107,7 @@ def test_chat_uses_configured_groq_with_server_context(monkeypatch):
 
     monkeypatch.setattr(chat, "GROQ_API_KEY", "server-key")
     monkeypatch.setattr(chat, "GROQ_MODEL", "server-model")
+    monkeypatch.setenv("CHAT_WEB_TOOLS", "false")
     monkeypatch.setattr(chat, "_call_groq", fake_call)
 
     payload = chat.ChatRequest(message="What is the pipeline status?", api_key="client-key", model="client-model")
@@ -117,6 +119,72 @@ def test_chat_uses_configured_groq_with_server_context(monkeypatch):
     assert captured["api_key"] == "server-key"
     assert captured["model"] == "server-model"
     assert "Platform context" in captured["messages"][1]["content"]
+
+
+def test_chat_uses_web_tool_round_when_enabled(monkeypatch):
+    db = _session()
+    _seed(db)
+    groq_calls = []
+    search_queries = []
+
+    def fake_post(messages, *, api_key, model, tools=None, tool_choice=None):
+        groq_calls.append({"messages": messages, "tools": tools, "tool_choice": tool_choice})
+        if tools:
+            return {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {
+                            "name": "search_web",
+                            "arguments": json.dumps({"query": "Sri Lanka vehicle imports"}),
+                        },
+                    },
+                    {
+                        "id": "call_2",
+                        "type": "function",
+                        "function": {
+                            "name": "search_web",
+                            "arguments": json.dumps({"query": "CBSL USD LKR"}),
+                        },
+                    },
+                    {
+                        "id": "call_3",
+                        "type": "function",
+                        "function": {
+                            "name": "search_web",
+                            "arguments": json.dumps({"query": "should be capped"}),
+                        },
+                    },
+                ],
+            }
+        assert [item["role"] for item in messages[-3:]] == ["assistant", "tool", "tool"]
+        return {"role": "assistant", "content": "AI answer with web context"}
+
+    def fake_search(query):
+        search_queries.append(query)
+        return [{"title": f"Source for {query}", "url": f"https://example.com/{len(search_queries)}", "snippet": "snippet"}]
+
+    monkeypatch.setenv("CHAT_WEB_TOOLS", "true")
+    monkeypatch.setattr(chat, "GROQ_API_KEY", "server-key")
+    monkeypatch.setattr(chat, "_post_groq_chat", fake_post)
+    monkeypatch.setattr(chat, "search_web", fake_search)
+
+    payload = chat.ChatRequest(message="What external signals matter for imports?")
+    response = chat.chat_assistant(payload, DummyRequest(), db=db)
+
+    assert response["provider"] == "groq"
+    assert response["ai_powered"] is True
+    assert response["response"] == "AI answer with web context"
+    assert search_queries == ["Sri Lanka vehicle imports", "CBSL USD LKR"]
+    assert len(groq_calls) == 2
+    assert groq_calls[0]["tools"] == chat.CHAT_WEB_TOOL_DEFINITIONS
+    assert response["sources"] == [
+        {"title": "Source for Sri Lanka vehicle imports", "url": "https://example.com/1"},
+        {"title": "Source for CBSL USD LKR", "url": "https://example.com/2"},
+    ]
 
 
 def test_chat_payload_caps_reject_oversized_history_and_page_context():

@@ -17,7 +17,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { type ChatListingResult, sendChatMessage, formatPrice } from "@/services/api";
+import { type ChatListingResult, type ChatSource, sendChatMessage, formatPrice } from "@/services/api";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { hasFullPlatformAccess } from "@/lib/planLimits";
@@ -32,6 +32,7 @@ type Message = {
   content: string;
   id: string;
   listings?: ChatListingResult[];
+  sources?: ChatSource[];
 };
 
 type PromptAction = {
@@ -246,6 +247,37 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
   );
 }
 
+function SourceChips({ sources }: { sources?: ChatSource[] }) {
+  if (!Array.isArray(sources) || sources.length === 0) return null;
+
+  const safeSources = sources
+    .map((source) => ({
+      title: source.title || "Source",
+      url: safeExternalUrl(source.url),
+    }))
+    .filter((source): source is { title: string; url: string } => Boolean(source.url))
+    .slice(0, 5);
+  if (!safeSources.length) return null;
+
+  return (
+    <div className="flex max-w-[330px] flex-wrap gap-2">
+      {safeSources.map((source) => (
+        <a
+          key={source.url}
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex max-w-[180px] items-center gap-1 truncate rounded-full border border-border bg-surface px-2.5 py-1 tech-label font-bold text-muted-foreground no-underline transition-colors hover:border-primary/40 hover:text-foreground"
+          title={source.title}
+        >
+          <span className="truncate">{source.title}</span>
+          <ExternalLink className="h-3 w-3 shrink-0" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export function AIChatWidget() {
   const { t } = useAppPreferences();
   const { pathname, search } = useLocation();
@@ -391,7 +423,13 @@ export function AIChatWidget() {
       });
       setMessages([
         ...next,
-        { role: "assistant", content: response.response, id: genId(), listings: response.listings || [] },
+        {
+          role: "assistant",
+          content: response.response,
+          id: genId(),
+          listings: response.listings || [],
+          sources: response.sources || [],
+        },
       ]);
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : "";
@@ -554,6 +592,7 @@ export function AIChatWidget() {
                     </div>
 
                     {assistant && <ListingResults messageId={message.id} listings={message.listings} />}
+                    {assistant && <SourceChips sources={message.sources} />}
 
                     {assistant && (
                       <button
