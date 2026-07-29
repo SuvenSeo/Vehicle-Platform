@@ -212,6 +212,23 @@ export interface PriceTrendSeries {
   coverage_note: string | null;
 }
 
+export interface MileagePricePoint {
+  id: number;
+  make: string;
+  model: string;
+  year: number | null;
+  mileage_km: number;
+  price_lkr: number;
+  district: string | null;
+}
+
+export interface MileagePriceScatter {
+  points: MileagePricePoint[];
+  sample_size: number;
+  make: string | null;
+  model: string | null;
+}
+
 export interface DistrictPrice {
   district: string;
   avg_price: number;

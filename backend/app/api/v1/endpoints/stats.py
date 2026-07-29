@@ -1256,6 +1256,79 @@ def get_fuel_mix(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/mileage-price")
+def get_mileage_price_scatter(
+    make: Optional[str] = None,
+    model: Optional[str] = None,
+    year_min: Optional[int] = None,
+    year_max: Optional[int] = None,
+    limit: int = 500,
+    db: Session = Depends(get_db),
+):
+    """Live mileage-vs-price scatter sample for market analytics."""
+    try:
+        limit_value = int(limit)
+    except (TypeError, ValueError):
+        limit_value = 500
+    limit_value = min(max(limit_value, 1), 2000)
+
+    make_filter = " ".join(str(make or "").split())
+    model_filter = " ".join(str(model or "").split())
+
+    filters = [
+        live_listing_filter(),
+        CarListing.price_lkr.isnot(None),
+        CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
+        CarListing.mileage.isnot(None),
+        CarListing.mileage >= 0,
+    ]
+
+    if make_filter:
+        filters.append(func.lower(CarListing.make) == make_filter.lower())
+    if model_filter:
+        filters.append(func.lower(CarListing.model) == model_filter.lower())
+    if year_min is not None:
+        filters.append(CarListing.year >= int(year_min))
+    if year_max is not None:
+        filters.append(CarListing.year <= int(year_max))
+
+    rows = (
+        db.query(
+            CarListing.id,
+            CarListing.make,
+            CarListing.model,
+            CarListing.year,
+            CarListing.mileage,
+            CarListing.price_lkr,
+            CarListing.district,
+        )
+        .filter(*filters)
+        .order_by(desc(func.coalesce(CarListing.last_seen_at, CarListing.scraped_at, CarListing.first_seen_at)))
+        .limit(limit_value)
+        .all()
+    )
+
+    points = [
+        {
+            "id": int(row.id),
+            "make": row.make,
+            "model": row.model,
+            "year": int(row.year) if row.year is not None else None,
+            "mileage_km": int(row.mileage),
+            "price_lkr": round(float(row.price_lkr), 2),
+            "district": row.district,
+        }
+        for row in rows
+    ]
+
+    return {
+        "points": points,
+        "sample_size": len(points),
+        "make": make_filter or None,
+        "model": model_filter or None,
+    }
+
+
 _HYBRID_FUEL_TYPES = {"hybrid", "plugin_hybrid", "phev"}
 
 _HYBRID_BANDS: list[dict] = [

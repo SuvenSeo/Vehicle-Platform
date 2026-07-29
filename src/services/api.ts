@@ -32,6 +32,8 @@ import {
   ImportEraSplitData,
   ImportEraEntry,
   ImportEraMakeRow,
+  MileagePriceScatter,
+  MileagePricePoint,
 } from "@/types/car";
 import type {
   ProArbitrageGap,
@@ -224,6 +226,14 @@ export interface FeedbackReceipt {
   route?: string | null;
   status: string;
   created_at: string;
+}
+
+export interface MileagePriceScatterParams {
+  make?: string;
+  model?: string;
+  year_min?: number;
+  year_max?: number;
+  limit?: number;
 }
 
 function canonicalSource(value: unknown): string | null {
@@ -1259,6 +1269,54 @@ export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
   return {
     points,
     generated_at: String(raw?.generated_at ?? new Date().toISOString()),
+  };
+};
+
+export const getMileagePriceScatter = async (
+  params: MileagePriceScatterParams = {},
+): Promise<MileagePriceScatter> => {
+  const make = String(params.make || "").trim();
+  const model = String(params.model || "").trim();
+  const limit = params.limit === undefined ? undefined : Math.min(Math.max(Math.round(Number(params.limit) || 500), 1), 2000);
+  const raw = await fetchJSON<JsonRecord>("/stats/mileage-price", {
+    ...(make ? { make } : {}),
+    ...(model ? { model } : {}),
+    ...(params.year_min !== undefined ? { year_min: params.year_min } : {}),
+    ...(params.year_max !== undefined ? { year_max: params.year_max } : {}),
+    ...(limit !== undefined ? { limit } : {}),
+  });
+
+  const points: MileagePricePoint[] = Array.isArray(raw?.points)
+    ? raw.points
+        .map((row) => {
+          const point = asJsonRecord(row);
+          return {
+            id: Number(point?.id),
+            make: String(point?.make || ""),
+            model: String(point?.model || ""),
+            year: toNumberOrNull(point?.year),
+            mileage_km: toNumberOrNull(point?.mileage_km ?? point?.mileage) ?? 0,
+            price_lkr: toNumberOrNull(point?.price_lkr) ?? 0,
+            district: point?.district ? String(point.district) : null,
+          };
+        })
+        .filter((point) => (
+          Number.isFinite(point.id)
+          && point.id > 0
+          && point.make
+          && point.model
+          && Number.isFinite(point.mileage_km)
+          && point.mileage_km >= 0
+          && Number.isFinite(point.price_lkr)
+          && point.price_lkr >= MIN_REASONABLE_PRICE_LKR
+        ))
+    : [];
+
+  return {
+    points,
+    sample_size: Number(raw?.sample_size ?? points.length) || points.length,
+    make: raw?.make ? String(raw.make) : null,
+    model: raw?.model ? String(raw.model) : null,
   };
 };
 
