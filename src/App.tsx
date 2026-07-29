@@ -53,6 +53,7 @@ const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuid
 const HeroLab = lazyWithRetry(() => import("./pages/HeroLab"));
 const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
+const Permits = lazyWithRetry(() => import("./pages/Permits"));
 const Compare = lazyWithRetry(() => import("./pages/Compare"));
 
 const queryClient = new QueryClient({
@@ -164,6 +165,7 @@ const App = () => {
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/compare" element={<Compare />} />
+                  <Route path="/permits" element={<Permits />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={

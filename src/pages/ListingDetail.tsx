@@ -13,6 +13,7 @@ import { VehicleThumbnail } from '@/components/VehicleThumbnail';
 import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { toast } from 'sonner';
+import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
@@ -614,6 +615,13 @@ export default function ListingDetail() {
                 <div className="py-6 text-center"><CarIcon aria-hidden className="mx-auto mb-2 h-5 w-5 text-muted-foreground/40" /><p className="text-[11px] text-muted-foreground">{t("listing.noPeers", "No active peers tracked.")}</p></div>
               )}
             </motion.div>
+
+            {/* NHTSA catalog disclosure */}
+            {listing.make && (
+              <motion.div variants={revealItem}>
+                <NhtsaModelsCard make={listing.make} model={listing.model ?? undefined} compact />
+              </motion.div>
+            )}
 
             {/* Insight */}
             <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft relative overflow-hidden">

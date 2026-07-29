@@ -17,6 +17,7 @@ import httpx
 from bs4 import BeautifulSoup
 from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
+from app.services.nhtsa_specs import fetch_models_for_make as _nhtsa_fetch_models
 from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
@@ -1617,6 +1618,13 @@ def get_models(make: str, db: Session = Depends(get_db)):
         .all()
     )
     return [{"model": r.model, "count": r.count} for r in results]
+
+
+@router.get("/nhtsa-models")
+def get_nhtsa_models(make: str = Query(..., min_length=1, max_length=100)):
+    """Return NHTSA vPIC catalog models for a manufacturer (public, cached 5 min)."""
+    rows = _nhtsa_fetch_models(make)
+    return {"make": make, "count": len(rows), "models": rows}
 
 
 def _search_suggestion_score(row: CarListing, normalized_query: str, query_tokens: List[str]) -> int:
