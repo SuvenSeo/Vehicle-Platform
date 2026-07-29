@@ -31,8 +31,10 @@ const ListingDetail = lazyWithRetry(() => import("./pages/ListingDetail"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const Settings = lazyWithRetry(() => import("./pages/Settings"));
 const Trends = lazyWithRetry(() => import("./pages/Trends"));
+const MileagePrice = lazyWithRetry(() => import("./pages/MileagePrice"));
 const Estimate = lazyWithRetry(() => import("./pages/Estimate"));
 const Calculator = lazyWithRetry(() => import("./pages/Calculator"));
+const Permits = lazyWithRetry(() => import("./pages/Permits"));
 const EVHub = lazyWithRetry(() => import("./pages/EVHub"));
 const BestPicks = lazyWithRetry(() => import("./pages/BestPicks"));
 const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
@@ -137,8 +139,10 @@ const App = () => {
                   <Route path="/dealer" element={<DealerDashboard />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/trends" element={<Trends />} />
+                  <Route path="/mileage-price" element={<MileagePrice />} />
                   <Route path="/estimate" element={<Estimate />} />
                   <Route path="/calculator" element={<Calculator />} />
+                  <Route path="/permits" element={<Permits />} />
                   <Route path="/ev-hub" element={<EVHub />} />
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />

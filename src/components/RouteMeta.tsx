@@ -87,6 +87,13 @@ export function RouteMeta() {
           "Break down import duty, taxes, and total cost of ownership for vehicles in Sri Lanka.",
         ),
       },
+      "/permits": {
+        title: t("seo.permitsTitle", "Permit Market Tracker — {site}", siteVars),
+        description: t(
+          "seo.permitsDesc",
+          "Indicative Sri Lanka import-permit market premiums with links into Motormila landed-cost tools.",
+        ),
+      },
       "/ev-hub": {
         title: t("seo.evHubTitle", "EV Hub — {site}", siteVars),
         description: t(

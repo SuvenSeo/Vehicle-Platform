@@ -57,6 +57,7 @@ export function AppFooter() {
     () => [
       { label: t("nav.evHub", "EV Hub"), to: "/ev-hub" },
       { label: t("nav.valuation", "Valuation"), to: "/estimate" },
+      { label: t("nav.permits", "Permits"), to: "/permits" },
       { label: t("nav.pricing", "Pricing"), to: "/pricing" },
       { label: t("nav.docs", "Docs"), to: "/docs" },
     ],
