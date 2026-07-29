@@ -1,8 +1,7 @@
+# SCHEDULE PAUSED 2026-07-29 — Supabase free egress exceeded. Manual workflow_dispatch only until quota resets / snapshots enabled.
 name: Midday Top Sources Scraper
 
 on:
-  schedule:
-    - cron: "30 6 * * *"  # 12:00 SLT — midday ikman + riyasewana refresh
   workflow_dispatch:
 
 # Separate from the full daily scrape so midday never cancels (or is cancelled by) it.
