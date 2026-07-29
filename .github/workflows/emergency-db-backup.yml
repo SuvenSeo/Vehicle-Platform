@@ -1,0 +1,97 @@
+name: Emergency DB Backup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pgdump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_URL: ${{ secrets.HOT_DATABASE_URL || secrets.SUPABASE_DB_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check secret availability
+        id: check-secret
+        run: |
+          if [ -z "${DB_URL}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "WARNING: Neither HOT_DATABASE_URL nor SUPABASE_DB_URL is set. Skipping backup."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install postgresql-client
+        if: steps.check-secret.outputs.available == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: pg_dump (custom format)
+        if: steps.check-secret.outputs.available == 'true'
+        run: |
+          mkdir -p /tmp/pgdump
+          pg_dump \
+            --no-password \
+            --format=custom \
+            --compress=9 \
+            --file=/tmp/pgdump/motormila-emergency-${{ github.run_id }}.dump \
+            "${DB_URL}"
+          echo "Dump size: $(du -sh /tmp/pgdump/motormila-emergency-${{ github.run_id }}.dump)"
+
+      - name: Upload pg_dump artifact
+        if: steps.check-secret.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: emergency-pgdump-${{ github.run_id }}
+          path: /tmp/pgdump/motormila-emergency-${{ github.run_id }}.dump
+          retention-days: 30
+
+  rescue-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOURCE_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL || secrets.SUPABASE_DB_URL }}
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check secret availability
+        id: check-secret
+        run: |
+          if [ -z "${SOURCE_DATABASE_URL}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "WARNING: Neither HOT_DATABASE_URL nor SUPABASE_DB_URL is set. Skipping rescue export."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.check-secret.outputs.available == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        if: steps.check-secret.outputs.available == 'true'
+        run: pip install psycopg2-binary sqlalchemy python-dotenv
+
+      - name: Run rescue export
+        if: steps.check-secret.outputs.available == 'true'
+        run: python scripts/ops/rescue_postgres_data.py export --output /tmp/rescue_exports
+
+      - name: Upload rescue exports artifact
+        if: steps.check-secret.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rescue-exports-${{ github.run_id }}
+          path: /tmp/rescue_exports/
+          retention-days: 14

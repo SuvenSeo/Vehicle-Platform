@@ -8,6 +8,7 @@ import {
   type AlertCreateInput,
   type ServerMarketAlert,
 } from "@/services/api";
+import { trackEvent } from "@/lib/analytics";
 
 export interface UseServerMarketAlertsResult {
   alerts: ServerMarketAlert[];
@@ -47,6 +48,7 @@ export function useServerMarketAlerts(): UseServerMarketAlertsResult {
     async (data: AlertCreateInput) => {
       const created = await createAlert(token, data);
       await refresh();
+      trackEvent("alert_created", { make: data.make, model: data.model, district: data.district });
       return created;
     },
     [token, refresh],

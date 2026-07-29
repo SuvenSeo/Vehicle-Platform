@@ -42,6 +42,7 @@ import {
 } from "@/lib/dealerDashboardData";
 import { DEALER_PLAYBOOK, DEALER_QUICK_TOOLS } from "@/lib/dealerPlaybook";
 import { visuals } from "@/lib/visualAssets";
+import { trackEvent } from "@/lib/analytics";
 
 type WidgetKey = "turnover" | "priceGap" | "districtDemand" | "inventoryBenchmark";
 
@@ -166,6 +167,7 @@ function ClaimYardCard() {
       });
       storeDealerClaimToken(data.claim_token);
       setProfile(data);
+      trackEvent("dealer_claim_success", { status: data.status });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("dealer.claimFailed", "Claim failed"));
     } finally {

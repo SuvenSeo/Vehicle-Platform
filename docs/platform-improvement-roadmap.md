@@ -1,6 +1,26 @@
 # Motormila Platform Improvement Roadmap
 
-Last updated: 2026-07-23. Live inventory across **13 sources**.
+Last updated: 2026-07-28. Live inventory across **13 sources**.
+
+## Wave 0–2 — Platform hardening (branch `cursor/platform-hardening-phases-0a52`)
+
+### Wave 0 — Survival / hardening
+- Daily DB backup GHA (`.github/workflows/daily-db-backup.yml`) + `docs/disaster-recovery-plan.md`
+- CSP, Permissions-Policy, body 1MB limit, GZip, X-Request-ID, `/.well-known/security.txt`
+- Pipeline GET routes require admin key or session when `APP_ACCESS_ENFORCED=true`
+- RateLimit-* + Retry-After headers on limiter responses
+- `POST /api/v1/events` analytics + `src/lib/analytics.ts` (listing_viewed, alert_created, search_submit, dealer_claim_success)
+- Scrape checkpoint + circuit breaker (skip mass-deactivate on MASS_DEACTIVATION / PRICE_ANOMALY)
+- Supabase egress cuts: slower polls, Cache-Control on stats, `docs/supabase-egress-mitigation.md`
+
+### Wave 1 — Monetization / legal scaffold
+- `/privacy` + `/terms` pages + footer Legal column
+- `POST /api/v1/billing/checkout-intent` (env checkout URL → redirect; else contact sales)
+- Pricing Pro/Dealer CTAs call checkout-intent
+
+### Wave 2 — Trust / DX
+- FMV explainability: sample_size, confidence, comps_median_lkr, updated_at + ListingDetail line
+- Light Alembic scaffold (`docs/alembic-notes.md`) — schema_patches still owns additive DDL
 
 ## Shipped on `main` (Jul 19–21)
 
@@ -11,7 +31,7 @@ Last updated: 2026-07-23. Live inventory across **13 sources**.
 - Granular React Query staleTime, CID surcharge notify, sitemap `content_updated_at`
 - SEO hubs `/cars/:make` + `/locations/:district`, HF keep-alive cron
 
-### P2 backlog
+### P2 (shipped)
 - HttpOnly `mm_session` cookie auth (+ Bearer fallback / logout clear)
 - `/auth/me` session bootstrap + `credentials: include` on API client
 - Twilio WhatsApp notify on alert match deltas (`notify_phone`, row badge + validation)

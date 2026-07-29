@@ -1,10 +1,10 @@
+# SCHEDULE PAUSED 2026-07-29 — Supabase free egress exceeded. Manual workflow_dispatch only until quota resets / snapshots enabled.
+# Health probes hit the /health endpoint which internally touches the DB; pausing to avoid contributing to egress while quota is exceeded.
 # Ping the Hugging Face Spaces API every 10 minutes so free-tier
 # cold starts don't leave the first user waiting 10–20s.
 name: Keep HF Space Awake
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:

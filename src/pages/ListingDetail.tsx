@@ -5,7 +5,8 @@ import {
   Share2, Fuel, Gauge, Settings2, MessageCircle,
   Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
 } from 'lucide-react';
-import { getListing, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
+import { getListing, getListingFmv, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
+import type { ListingFmvDetail } from '@/services/api';
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { summarizeFmv } from '@/lib/fmv';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
@@ -37,6 +38,7 @@ import { motion } from 'framer-motion';
 import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
 import { AtmosphericImage } from '@/components/AtmosphericImage';
 import { visuals } from '@/lib/visualAssets';
+import { trackEvent } from '@/lib/analytics';
 
 function formatToken(value: string | null | undefined): string {
   if (!value) return 'Unknown';
@@ -53,6 +55,7 @@ export default function ListingDetail() {
   const [similar, setSimilar] = useState<CarListing[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerTrustProfile | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryInfo | null>(null);
+  const [fmvDetail, setFmvDetail] = useState<ListingFmvDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
@@ -91,16 +94,20 @@ export default function ListingDetail() {
   useEffect(() => {
     if (!id) return;
     window.scrollTo(0, 0); // peer links navigate mid-scroll; open each listing at the top
-    setLoading(true); setSellerProfile(null); setPriceHistory(null);
+    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null);
     Promise.all([
       getListing(id).catch(() => null),
       getSimilarListings(id).catch(() => []),
       getSellerTrustProfile(id).catch(() => null),
       getListingPriceHistory(id).catch(() => null),
+      getListingFmv(id).catch(() => null),
     ])
-      .then(([detail, sim, profile, history]) => {
-        setListing(detail); setSimilar(sim); setSellerProfile(profile); setPriceHistory(history); setLoading(false);
-        if (detail) document.title = `${detail.title} — Motormila`;
+      .then(([detail, sim, profile, history, fmv]) => {
+        setListing(detail); setSimilar(sim); setSellerProfile(profile); setPriceHistory(history); setFmvDetail(fmv); setLoading(false);
+        if (detail) {
+          document.title = `${detail.title} — Motormila`;
+          trackEvent("listing_viewed", { listing_id: detail.id, make: detail.make, model: detail.model, source: detail.source });
+        }
       });
   }, [id]);
 
@@ -511,6 +518,13 @@ export default function ListingDetail() {
                   <p className="mt-0.5 text-[11px] font-medium text-muted-foreground num">
                     FMV {formatPrice(fmvSummary.fmv_lkr)}
                   </p>
+                  {fmvDetail && fmvDetail.method !== "insufficient_data" && (
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {fmvDetail.sample_size > 0 ? `${fmvDetail.sample_size} comps · ` : ""}
+                      {fmvDetail.method === "ols_comps" ? "OLS model" : fmvDetail.method === "adjusted_median" ? "Adj. median" : "Cohort median"}
+                      {fmvDetail.confidence !== "none" ? ` · ${fmvDetail.confidence} confidence` : ""}
+                    </p>
+                  )}
                 </div>
               )}
 

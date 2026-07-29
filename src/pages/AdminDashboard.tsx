@@ -213,7 +213,7 @@ export default function AdminDashboard() {
     queryKey: ["admin", "pipeline"],
     queryFn: () => getAdminPipeline({ limit: 50 }),
     enabled: activeTab === "pipeline" || activeTab === "overview",
-    refetchInterval: activeTab === "pipeline" ? 30_000 : false,
+    refetchInterval: activeTab === "pipeline" ? 60_000 : false,
   });
   const permitsQuery = useQuery({
     queryKey: ["admin", "permits"],

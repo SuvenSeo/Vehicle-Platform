@@ -25,6 +25,9 @@ def test_health_reports_db_ok_when_probe_succeeds(monkeypatch):
     assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
     assert response.headers["x-xss-protection"] == "0"
     assert response.headers["strict-transport-security"] == "max-age=31536000; includeSubDomains"
+    assert "content-security-policy" in response.headers
+    assert "permissions-policy" in response.headers
+    assert "x-request-id" in response.headers
 
 
 def test_health_reports_degraded_when_db_probe_fails(monkeypatch):

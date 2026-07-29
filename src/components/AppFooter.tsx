@@ -76,6 +76,14 @@ export function AppFooter() {
     [t],
   );
 
+  const legalLinks = useMemo(
+    () => [
+      { label: t("footer.privacy", "Privacy Policy"), to: "/privacy" },
+      { label: t("footer.terms", "Terms of Service"), to: "/terms" },
+    ],
+    [t],
+  );
+
   const studioLinks = useMemo(
     () => [
       { label: t("footer.ardenoStudio", "Ardeno Studio"), href: "https://ardeno-studio-website.vercel.app/", external: true },
@@ -192,10 +200,11 @@ export function AppFooter() {
             </motion.div>
           </div>
 
-          <nav aria-label={t("footer.navAria", "Footer navigation")} className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4">
+          <nav aria-label={t("footer.navAria", "Footer navigation")} className="grid grid-cols-2 gap-x-8 gap-y-10 md:grid-cols-4 xl:grid-cols-5">
             <FooterColumn title={t("footer.platform", "Platform")} links={platformLinks} />
             <FooterColumn title={t("footer.tools", "Tools")} links={toolLinks} />
             <FooterColumn title={t("footer.more", "More")} links={moreLinks} />
+            <FooterColumn title={t("footer.legal", "Legal")} links={legalLinks} />
 
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">{t("footer.studio", "Studio")}</p>

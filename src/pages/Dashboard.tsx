@@ -64,6 +64,7 @@ import {
   freePlanCopy,
   hasFullPlatformAccess,
 } from "@/lib/planLimits";
+import { trackEvent } from "@/lib/analytics";
 
 const heroContainerVariants = {
   hidden: { opacity: 0 },
@@ -276,7 +277,7 @@ export default function Dashboard() {
     queryKey: ["dashboard-insights"],
     queryFn: getDashboardInsights,
     staleTime: QUERY_STALE.hub,
-    refetchInterval: 120_000,
+    refetchInterval: 180_000,
   });
   const dropsQuery = useQuery({
     queryKey: ["price-drops"],
@@ -523,6 +524,7 @@ export default function Dashboard() {
     setHeroSuggestionsOpen(false);
     setHeroSearchMessage(makeMatch ? null : t("home.searchingIndexOnly", "Searching vehicle index only."));
     scrollToMarket();
+    trackEvent("search_submit", { query, make_match: makeMatch?.make ?? null });
   }, [applyHeroSuggestion, heroSearch, heroSuggestions, makes, scrollToMarket, t]);
 
   const focusModel = useCallback((make: string, model?: string) => {

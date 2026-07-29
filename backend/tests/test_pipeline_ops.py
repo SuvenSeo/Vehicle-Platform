@@ -1,3 +1,4 @@
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import run_sync
-from app.api.v1.endpoints import pipeline
+from app.api.v1.endpoints import auth, pipeline
 from db.models import Base, ScrapeRun
 
 
@@ -325,3 +326,165 @@ def test_pipeline_status_endpoint_is_rate_limited():
 
     assert first.status_code == 200
     assert second.status_code == 429
+
+
+# ---------------------------------------------------------------------------
+# Pipeline read auth gate tests
+# ---------------------------------------------------------------------------
+
+def _pipeline_client_enforced(monkeypatch):
+    """Test client with APP_ACCESS_ENFORCED=true and a known ADMIN_API_KEY."""
+    monkeypatch.setenv("APP_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("ADMIN_API_KEY", "test-admin-key")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-pipeline-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps([{"email": "pipeuser@example.com", "password": "pw", "plan": "free"}]),
+    )
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def _get_db_override():
+        db = Session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app = FastAPI()
+    app.include_router(pipeline.router, prefix="/api/v1/pipeline")
+    app.dependency_overrides[pipeline.get_db] = _get_db_override
+    return TestClient(app)
+
+
+def test_pipeline_runs_requires_auth_when_enforced(monkeypatch):
+    client = _pipeline_client_enforced(monkeypatch)
+    response = client.get("/api/v1/pipeline/runs")
+    client.close()
+    assert response.status_code == 401
+
+
+def test_pipeline_runs_allows_admin_key_when_enforced(monkeypatch):
+    client = _pipeline_client_enforced(monkeypatch)
+    response = client.get("/api/v1/pipeline/runs", headers={"X-Admin-Key": "test-admin-key"})
+    client.close()
+    assert response.status_code == 200
+
+
+def test_pipeline_runs_rejects_wrong_admin_key_when_enforced(monkeypatch):
+    client = _pipeline_client_enforced(monkeypatch)
+    response = client.get("/api/v1/pipeline/runs", headers={"X-Admin-Key": "wrong-key"})
+    client.close()
+    assert response.status_code == 401
+
+
+def test_pipeline_runs_allows_authenticated_session_when_enforced(monkeypatch):
+    monkeypatch.setenv("APP_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-pipeline-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps([{"email": "pipeuser@example.com", "password": "pw", "plan": "free"}]),
+    )
+    token, _ = auth.issue_token("pipeuser@example.com", "free")
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def _get_db_override():
+        db = Session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app = FastAPI()
+    app.include_router(pipeline.router, prefix="/api/v1/pipeline")
+    app.dependency_overrides[pipeline.get_db] = _get_db_override
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/pipeline/runs",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    client.close()
+    assert response.status_code == 200
+
+
+def test_pipeline_status_requires_auth_when_enforced(monkeypatch):
+    client = _pipeline_client_enforced(monkeypatch)
+    response = client.get("/api/v1/pipeline/status")
+    client.close()
+    assert response.status_code == 401
+
+
+def test_pipeline_status_allows_admin_key_when_enforced(monkeypatch):
+    client = _pipeline_client_enforced(monkeypatch)
+    response = client.get("/api/v1/pipeline/status", headers={"X-Admin-Key": "test-admin-key"})
+    client.close()
+    assert response.status_code == 200
+
+
+def test_pipeline_runs_open_when_not_enforced(monkeypatch):
+    # conftest already sets APP_ACCESS_ENFORCED=false; verify existing client works
+    client = _pipeline_client()
+    response = client.get("/api/v1/pipeline/runs")
+    client.close()
+    assert response.status_code == 200
+
+
+def test_pipeline_trigger_still_requires_admin_key(monkeypatch):
+    """POST /trigger is unaffected by the read auth gate — admin-key only."""
+    monkeypatch.setenv("APP_ACCESS_ENFORCED", "true")
+    monkeypatch.setenv("ADMIN_API_KEY", "trigger-key")
+    monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-pipeline-secret")
+    monkeypatch.setenv(
+        "AUTH_USERS",
+        json.dumps([{"email": "u@example.com", "password": "pw", "plan": "free"}]),
+    )
+    token, _ = auth.issue_token("u@example.com", "free")
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def _get_db_override():
+        db = Session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app = FastAPI()
+    app.include_router(pipeline.router, prefix="/api/v1/pipeline")
+    app.dependency_overrides[pipeline.get_db] = _get_db_override
+
+    client = TestClient(app)
+
+    # Session-only → rejected (trigger requires admin key)
+    resp_session = client.post(
+        "/api/v1/pipeline/trigger",
+        json={"job": "sync"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    # No admin key at all → 401
+    resp_none = client.post("/api/v1/pipeline/trigger", json={"job": "sync"})
+
+    client.close()
+
+    assert resp_session.status_code == 401
+    assert resp_none.status_code == 401

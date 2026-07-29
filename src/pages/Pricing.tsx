@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Check, HelpCircle, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Check, HelpCircle, Loader2, Sparkles, Users } from "lucide-react";
+import { useState } from "react";
 import { BRAND } from "@/lib/brand";
 import { ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS } from "@/lib/pricingContent";
+import type { PricingTierId } from "@/lib/pricingContent";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
@@ -10,6 +12,25 @@ import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { visuals } from "@/lib/visualAssets";
+import { API_BASE } from "@/services/api";
+import { authHeaders } from "@/lib/authToken";
+
+type CheckoutIntentResponse = {
+  provider: "manual" | "payhere" | "stripe";
+  checkout_url?: string | null;
+  message: string;
+};
+
+async function fetchCheckoutIntent(plan: string): Promise<CheckoutIntentResponse> {
+  const res = await fetch(`${API_BASE}/billing/checkout-intent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...authHeaders() },
+    body: JSON.stringify({ plan }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("checkout-intent request failed");
+  return res.json() as Promise<CheckoutIntentResponse>;
+}
 
 const COMPARE_ROW_DEFS = [
   { labelKey: "pricing.compare.dashboard", labelFb: "Dashboard browse", freeKey: "pricing.val.yes", freeFb: "Yes", proKey: "pricing.val.yes", proFb: "Yes", dealerKey: "pricing.val.yes", dealerFb: "Yes", enterpriseKey: "pricing.val.yes", enterpriseFb: "Yes" },
@@ -32,7 +53,24 @@ const CTA_CLASS = (highlight?: boolean) =>
 
 export default function Pricing() {
   const { t } = useAppPreferences();
+  const [checkoutLoading, setCheckoutLoading] = useState<PricingTierId | null>(null);
   const cell = (key: string, fb: string) => (key ? t(key, fb) : fb);
+
+  const handleCheckout = async (tierId: PricingTierId, fallbackTo: string) => {
+    setCheckoutLoading(tierId);
+    try {
+      const intent = await fetchCheckoutIntent(tierId);
+      if (intent.checkout_url) {
+        window.location.href = intent.checkout_url;
+      } else {
+        window.location.href = `mailto:${BRAND.contactEmail}?subject=Motormila%20${tierId}%20plan%20upgrade`;
+      }
+    } catch {
+      window.location.href = fallbackTo;
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
   const COMPARE_ROWS = COMPARE_ROW_DEFS.map((row) => ({
     label: t(row.labelKey, row.labelFb),
     free: cell(row.freeKey, row.freeFb),
@@ -149,7 +187,19 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                {tier.external ? (
+                {(tier.id === "pro" || tier.id === "dealer") ? (
+                  <button
+                    type="button"
+                    disabled={checkoutLoading === tier.id}
+                    onClick={() => void handleCheckout(tier.id, tier.ctaTo)}
+                    className={CTA_CLASS(tier.highlight)}
+                  >
+                    {checkoutLoading === tier.id ? (
+                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" aria-hidden />
+                    ) : null}
+                    {tier.ctaLabel}
+                  </button>
+                ) : tier.external ? (
                   <a href={tier.ctaTo} className={CTA_CLASS(tier.highlight)}>
                     {tier.ctaLabel}
                   </a>

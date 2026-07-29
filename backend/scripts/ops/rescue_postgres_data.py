@@ -34,6 +34,17 @@ TABLES = [
     "import_price_snapshots",
     "scrape_runs",
     "user_feedback",
+    # Auth / user management tables
+    "platform_users",
+    "user_invites",
+    # Historical & analytics
+    "historical_price_observations",
+    "market_stats_cache",
+    # Dealer & alert tables
+    "dealer_profiles",
+    "market_alerts",
+    "market_alert_matches",
+    "analytics_events",
 ]
 
 SOURCE_ENV_NAMES = ("SOURCE_DATABASE_URL", "COLD_DATABASE_URL", "DATABASE_URL", "HOT_DATABASE_URL", "NEON_URL")
@@ -92,16 +103,30 @@ def table_count(conn, table: str) -> int:
         return int(cur.fetchone()[0] or 0)
 
 
+def column_exists(conn, table: str, column: str) -> bool:
+    with conn.cursor() as cur:
+        cur.execute(
+            "select 1 from information_schema.columns where table_schema='public' and table_name=%s and column_name=%s",
+            (table, column),
+        )
+        return cur.fetchone() is not None
+
+
 def export_table(conn, table: str, output_dir: Path) -> dict[str, object]:
     if not table_exists(conn, table):
         return {"table": table, "rows": 0, "file": None, "skipped": "missing_table"}
 
     rows = table_count(conn, table)
     output_path = output_dir / f"{table}.csv.gz"
-    query = f"copy (select * from public.{quote_ident(table)} order by id) to stdout with csv header"
+    order_clause = "order by id" if column_exists(conn, table, "id") else ""
+    query = f"copy (select * from public.{quote_ident(table)} {order_clause}) to stdout with csv header"
 
-    with conn.cursor() as cur, gzip.open(output_path, "wt", encoding="utf-8", newline="") as handle:
-        cur.copy_expert(query, handle)
+    try:
+        with conn.cursor() as cur, gzip.open(output_path, "wt", encoding="utf-8", newline="") as handle:
+            cur.copy_expert(query, handle)
+    except Exception as exc:
+        conn.rollback()
+        return {"table": table, "rows": 0, "file": None, "skipped": f"export_error: {exc}"}
 
     return {
         "table": table,

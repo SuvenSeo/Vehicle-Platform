@@ -6,11 +6,12 @@ import sys
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc, func
 
+from app.api.v1.endpoints.auth import app_access_enforced, get_current_auth_payload
 from app.services.rate_limit import RateLimiter
 from app.services.source_aliases import canonical_source_key
 from db.models import ScrapeRun
@@ -78,6 +79,25 @@ def has_valid_admin_key(x_admin_key: str | None = Header(default=None, alias="X-
     but gate sensitive fields (like raw scraper error text) behind the key."""
     configured_key = os.getenv("ADMIN_API_KEY", "").strip()
     return bool(configured_key) and bool(x_admin_key) and secrets.compare_digest(x_admin_key, configured_key)
+
+
+def require_pipeline_read_access(
+    request: Request,
+    x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> None:
+    """Gate for pipeline read endpoints: valid admin key OR authenticated session.
+
+    When APP_ACCESS_ENFORCED=false (dev/CI), all reads are allowed so local
+    development and CI continue to work without credentials.
+    """
+    if not app_access_enforced():
+        return
+    configured_key = os.getenv("ADMIN_API_KEY", "").strip()
+    if configured_key and x_admin_key and secrets.compare_digest(x_admin_key, configured_key):
+        return
+    get_current_auth_payload(request, authorization, db)
 
 
 def _visible_error_message(raw_error: str | None, *, is_admin: bool) -> str | None:
@@ -289,7 +309,7 @@ def _derive_overall_status(jobs: list[dict]) -> str:
     return "ok"
 
 
-@router.get("/runs", response_model=dict, dependencies=[Depends(_pipeline_read_rate_limiter)])
+@router.get("/runs", response_model=dict, dependencies=[Depends(_pipeline_read_rate_limiter), Depends(require_pipeline_read_access)])
 def pipeline_runs(
     limit: int = Query(25, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -337,7 +357,7 @@ def trigger_pipeline_job(payload: PipelineTriggerRequest, _admin: None = Depends
     }
 
 
-@router.get("/status", response_model=dict, dependencies=[Depends(_pipeline_read_rate_limiter)])
+@router.get("/status", response_model=dict, dependencies=[Depends(_pipeline_read_rate_limiter), Depends(require_pipeline_read_access)])
 def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_valid_admin_key)):
     now = datetime.now(timezone.utc)
     reconcile_orphan_running_runs(db, now=now)

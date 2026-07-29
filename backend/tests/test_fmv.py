@@ -52,6 +52,10 @@ def test_fmv_falls_back_to_stored_median_without_comps():
     assert result["method"] == "cohort_median"
     assert result["fmv_lkr"] == 5_200_000
     assert result["band"] == "below"
+    assert result["confidence"] == "low"
+    assert result["sample_size"] == 0
+    assert result["comps_median_lkr"] is None
+    assert result["updated_at"] is not None
 
 
 def test_fmv_uses_ols_when_enough_comps():
@@ -74,5 +78,44 @@ def test_fmv_uses_ols_when_enough_comps():
     result = predict_listing_fmv(db, subject)
     assert result["method"] == "ols_comps"
     assert result["sample_count"] >= 8
+    assert result["sample_size"] == result["sample_count"]
     assert result["fmv_lkr"] is not None
     assert result["fmv_lkr"] > 1_000_000
+    assert result["confidence"] in {"medium", "high"}
+    assert result["comps_median_lkr"] is not None
+    assert result["comps_median_lkr"] > 0
+    assert result["updated_at"] is not None
+
+
+def test_fmv_confidence_high_with_large_sample():
+    db = _session()
+    subject = _listing(source_id="subject", year=2018, mileage=55_000, price_lkr=5_400_000)
+    db.add(subject)
+    for i in range(20):
+        db.add(
+            _listing(
+                source_id=f"d{i}",
+                year=2017 + (i % 3),
+                mileage=40_000 + i * 2_000,
+                price_lkr=5_000_000 + i * 50_000,
+            )
+        )
+    db.commit()
+    db.refresh(subject)
+
+    result = predict_listing_fmv(db, subject)
+    assert result["confidence"] == "high"
+    assert result["sample_size"] >= 15
+
+
+def test_fmv_insufficient_data_confidence_none():
+    db = _session()
+    subject = _listing(source_id="subject", price_lkr=5_000_000, market_median_lkr=None)
+    db.add(subject)
+    db.commit()
+    db.refresh(subject)
+
+    result = predict_listing_fmv(db, subject)
+    assert result["method"] == "insufficient_data"
+    assert result["confidence"] == "none"
+    assert result["fmv_lkr"] is None

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getPipelineStatus } from "@/services/api";
 import type { PipelineStatusResponse } from "@/types/car";
 
-const POLL_INTERVAL_MS = 45_000;
+const POLL_INTERVAL_MS = 90_000;
 
 let sharedStatus: PipelineStatusResponse | null = null;
 const listeners = new Set<(s: PipelineStatusResponse | null) => void>();

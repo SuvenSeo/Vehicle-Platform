@@ -51,6 +51,8 @@ const OfficialPulse = lazyWithRetry(() => import("./pages/OfficialPulse"));
 const OfficialPulseDetail = lazyWithRetry(() => import("./pages/OfficialPulseDetail"));
 const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuide"));
 const HeroLab = lazyWithRetry(() => import("./pages/HeroLab"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -158,6 +160,8 @@ const App = () => {
                       </RequireAdmin>
                     )}
                   />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={

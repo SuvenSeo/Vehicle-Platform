@@ -8,6 +8,7 @@ XGBoost dependency required for HF image size.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -186,8 +187,30 @@ def _ml_predict(listing: CarListing, comps: list[CarListing]) -> Optional[float]
     return round(predicted, 2)
 
 
+def _confidence_from_sample(sample_count: int, method: str) -> str:
+    """Derive a qualitative confidence level from comp count and method used."""
+    if method == "insufficient_data":
+        return "none"
+    if method == "cohort_median":
+        return "low"
+    if sample_count >= 15:
+        return "high"
+    if sample_count >= _MIN_ML_COMPS:
+        return "medium"
+    return "low"
+
+
 def predict_listing_fmv(db: Session, listing: CarListing) -> dict[str, Any]:
-    """Return FMV payload for a listing (ML when possible, else adjusted median)."""
+    """Return FMV payload for a listing (ML when possible, else adjusted median).
+
+    Response fields:
+    - listing_id, asking_lkr, fmv_lkr, deal_score, delta_pct, band, label
+    - method: one of ``ols_comps``, ``adjusted_median``, ``cohort_median``, ``insufficient_data``
+    - sample_size / sample_count: number of live comparable listings used
+    - confidence: qualitative level — ``high`` / ``medium`` / ``low`` / ``none``
+    - comps_median_lkr: raw (unadjusted) median price of the comp set, or None
+    - updated_at: ISO-8601 UTC timestamp of when this estimate was computed
+    """
     asking = float(listing.price_lkr) if listing.price_lkr is not None else None
     stored_median = float(listing.market_median_lkr) if listing.market_median_lkr is not None else None
     deal_score = float(listing.deal_score) if listing.deal_score is not None else None
@@ -210,6 +233,10 @@ def predict_listing_fmv(db: Session, listing: CarListing) -> dict[str, Any]:
             fmv = stored_median
             method = "cohort_median"
 
+    # Raw (unadjusted) median of the comp set for transparency.
+    comp_prices = sorted(float(r.price_lkr) for r in comps if r.price_lkr is not None)
+    comps_median_lkr: Optional[float] = _median(comp_prices)
+
     band = None
     delta_pct = None
     label = None
@@ -225,6 +252,9 @@ def predict_listing_fmv(db: Session, listing: CarListing) -> dict[str, Any]:
             band = "fair"
             label = "Near fair market value"
 
+    confidence = _confidence_from_sample(sample_count, method)
+    updated_at = datetime.now(timezone.utc).isoformat()
+
     return {
         "listing_id": int(listing.id) if listing.id is not None else None,
         "asking_lkr": asking,
@@ -235,4 +265,8 @@ def predict_listing_fmv(db: Session, listing: CarListing) -> dict[str, Any]:
         "label": label,
         "method": method,
         "sample_count": sample_count,
+        "sample_size": sample_count,
+        "confidence": confidence,
+        "comps_median_lkr": comps_median_lkr,
+        "updated_at": updated_at,
     }

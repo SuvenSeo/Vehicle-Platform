@@ -34,6 +34,7 @@ def _session():
 
 def test_logout_bumps_token_version_and_rejects_old_token(monkeypatch):
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret")
+    monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
     db = _session()
     user = PlatformUser(
         email="owner@example.com",

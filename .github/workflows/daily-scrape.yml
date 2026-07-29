@@ -1,9 +1,7 @@
+# SCHEDULE PAUSED 2026-07-29 — Supabase free egress exceeded. Manual workflow_dispatch only until quota resets / snapshots enabled.
 name: Unified Vehicle Scraper
 
 on:
-  schedule:
-    - cron: "0 2 * * *"    # 07:30 SLT — morning full scrape (all 13 sources)
-    - cron: "40 12 * * *"  # 18:10 SLT — evening full scrape (all 13 sources)
   workflow_dispatch:
 
 # Separate group from midday so the two workflows never cancel each other.
