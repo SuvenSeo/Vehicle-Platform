@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.utils.alert_matcher import _count_matching, run_alert_match_pass
-from db.models import Base, CarListing, MarketAlert, MarketAlertMatch
+from db.models import Base, CarListing, MarketAlert, MarketAlertMatch, UserNotification
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +200,32 @@ def test_run_alert_match_pass_updates_existing_row():
     assert len(rows) == 1, "should not create a duplicate row on second pass"
     assert rows[0].match_count > first_count
     assert rows[0].last_matched_at >= first_ts
+
+
+def test_run_alert_match_pass_creates_notification_when_count_increases():
+    db = _session()
+    alert = _make_alert(db, make="Toyota", model="Axio", max_price=4_000_000, district="Colombo")
+    _make_listing(db, make="Toyota", model="Axio", price_lkr=3_000_000, district="Colombo")
+
+    run_alert_match_pass(db)
+
+    notification = db.query(UserNotification).one()
+    assert notification.user_token == alert.user_token
+    assert notification.title == "1 new alert match"
+    assert "Toyota Axio in Colombo under Rs 4,000,000" in notification.body
+    assert notification.href == "/alerts"
+    assert notification.read_at is None
+
+
+def test_run_alert_match_pass_does_not_create_notification_when_count_unchanged():
+    db = _session()
+    _make_alert(db, make="Toyota")
+    _make_listing(db, make="Toyota", price_lkr=3_000_000)
+
+    run_alert_match_pass(db)
+    run_alert_match_pass(db)
+
+    assert db.query(UserNotification).count() == 1
 
 
 def test_run_alert_match_pass_skips_inactive_alerts():

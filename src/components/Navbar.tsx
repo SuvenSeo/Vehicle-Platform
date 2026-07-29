@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, Shield, UserCircle2, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
+import { NotificationBell } from "@/components/NotificationBell";
 import { SignInPortalModal } from "@/components/SignInPortalModal";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ export function Navbar() {
     () => [
       { label: t("nav.bestPicks", "Best Picks"), href: "/best-picks", detail: t("nav.bestPicksDetail", "Strict deal-score shortlist") },
       { label: t("nav.priceIndex", "Price Index"), href: "/price-index", detail: t("nav.priceIndexDetail", "Mix-adjusted market index") },
+      { label: t("nav.mileagePrice", "Mileage vs Price"), href: "/mileage-price", detail: t("nav.mileagePriceDetail", "Scatter view by odometer") },
       { label: t("nav.officialPulse", "Official Pulse"), href: "/official-pulse", detail: t("nav.officialPulseDetail", "DMT, Customs & import signals") },
       { label: t("nav.dealer", "Dealer"), href: "/dealer", detail: t("nav.dealerDetail", "Operator command center") },
       { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: t("nav.alertsDetail", "Saved listing watches") },
@@ -321,6 +323,8 @@ export function Navbar() {
                   <p className="mt-0.5 text-[10px] text-muted-foreground">{liveFreshnessLabel}</p>
                 </div>
               </div>
+
+              <NotificationBell />
 
               {/* Auth actions */}
               {isAuthenticated && user ? (

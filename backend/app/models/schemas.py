@@ -495,6 +495,18 @@ class MarketAlertRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserNotificationRead(BaseModel):
+    id: int
+    user_token: str
+    title: str
+    body: str
+    href: Optional[str] = None
+    read_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class AlertMatchListing(BaseModel):
     id: int
     title: Optional[str] = None

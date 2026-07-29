@@ -310,6 +310,22 @@ class MarketAlertMatch(Base):
     )
 
 
+class UserNotification(Base):
+    __tablename__ = 'user_notifications'
+
+    id = Column(Integer, primary_key=True)
+    user_token = Column(String(255), nullable=False)
+    title = Column(String(160), nullable=False)
+    body = Column(Text, nullable=False)
+    href = Column(Text, nullable=True)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index('idx_user_notifications_user_created', 'user_token', 'created_at'),
+    )
+
+
 class ImportTaxConfig(Base):
     __tablename__ = 'import_tax_configs'
 

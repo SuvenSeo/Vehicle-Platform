@@ -1937,6 +1937,16 @@ export interface AlertMatchResponse {
   checked_at: string;
 }
 
+export interface UserNotification {
+  id: number;
+  user_token: string;
+  title: string;
+  body: string;
+  href?: string | null;
+  read_at?: string | null;
+  created_at: string;
+}
+
 function alertTokenHeader(token: string): Record<string, string> {
   return token ? { "X-Alert-Token": token } : {};
 }
@@ -1967,6 +1977,19 @@ export const deleteAlert = async (token: string, id: number): Promise<void> => {
 export const matchAlerts = async (token: string): Promise<AlertMatchResponse> => {
   if (!token) return { results: [], checked_at: new Date().toISOString() };
   return fetchJSON<AlertMatchResponse>("/alerts/match", { token });
+};
+
+export const getNotifications = async (token: string, limit = 20): Promise<UserNotification[]> => {
+  if (!token) return [];
+  return fetchJSON<UserNotification[]>("/notifications", { token, limit });
+};
+
+export const markNotificationRead = async (token: string, id: number): Promise<UserNotification> => {
+  return postJSON<UserNotification>(`/notifications/${id}/read`, {}, alertTokenHeader(token));
+};
+
+export const markAllNotificationsRead = async (token: string): Promise<{ updated: number }> => {
+  return postJSON<{ updated: number }>("/notifications/read-all", {}, alertTokenHeader(token));
 };
 
 function normalizeFuelMixData(data: JsonRecord): FuelMixData {
