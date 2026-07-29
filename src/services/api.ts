@@ -211,6 +211,23 @@ export interface ListingSearchSuggestion {
   url?: string;
 }
 
+export interface VehicleSpecModel {
+  make: string;
+  model: string;
+  make_id?: string | number | null;
+  model_id?: string | number | null;
+  vehicle_type?: string;
+  source?: string;
+}
+
+export interface VehicleSpecsResponse {
+  make: string;
+  model: string;
+  year: number | null;
+  models: VehicleSpecModel[];
+  source: string;
+}
+
 export interface FeedbackInput {
   category: "bug" | "idea" | "data" | "ux" | "general";
   route?: string;
@@ -609,6 +626,8 @@ function normalizeDistrictPricesPayload(data: JsonRecord): DistrictPrice[] {
     return {
       district: String(p.district || ""),
       avg_price: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? 0,
+      avg_price_lkr: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? undefined,
+      median_price_lkr: toNumberOrNull(p.median_price_lkr ?? p.median_price) ?? undefined,
       listing_count: Number(p.count ?? p.listing_count) || 0,
       lat: toNumberOrNull(p.lat) ?? 0,
       lng: toNumberOrNull(p.lng) ?? 0,
@@ -1347,6 +1366,51 @@ export const getModels = async (make: string) => {
   if (catalog) return deriveModels(catalog, make);
 
   return fetchJSON<{ model: string; count: number }[]>("/listings/models", { make });
+};
+
+export const getVehicleSpecs = async (
+  make: string,
+  model: string,
+  year?: number | null,
+): Promise<VehicleSpecsResponse> => {
+  const cleanedMake = String(make || "").trim();
+  const cleanedModel = String(model || "").trim();
+  const normalizedYear = toNumberOrNull(year);
+  if (!cleanedMake || !cleanedModel) {
+    return { make: cleanedMake, model: cleanedModel, year: normalizedYear, models: [], source: "nhtsa_vpic" };
+  }
+
+  const data = await fetchJSON<JsonRecord>("/listings/specs", {
+    make: cleanedMake,
+    model: cleanedModel,
+    year: normalizedYear ?? undefined,
+  });
+  const models = Array.isArray(data?.models)
+    ? data.models
+        .map((row: unknown): VehicleSpecModel | null => {
+          const item = asJsonRecord(row);
+          const rowMake = String(item?.make || data?.make || cleanedMake).trim();
+          const rowModel = String(item?.model || "").trim();
+          if (!rowModel) return null;
+          return {
+            make: rowMake,
+            model: rowModel,
+            make_id: item?.make_id === undefined ? null : (item.make_id as string | number | null),
+            model_id: item?.model_id === undefined ? null : (item.model_id as string | number | null),
+            vehicle_type: item?.vehicle_type ? String(item.vehicle_type) : undefined,
+            source: item?.source ? String(item.source) : String(data?.source || "nhtsa_vpic"),
+          };
+        })
+        .filter((row): row is VehicleSpecModel => Boolean(row))
+    : [];
+
+  return {
+    make: String(data?.make || cleanedMake).trim(),
+    model: String(data?.model || cleanedModel).trim(),
+    year: toNumberOrNull(data?.year),
+    models,
+    source: String(data?.source || "nhtsa_vpic"),
+  };
 };
 
 export const estimatePrice = async (params: EstimateParams): Promise<PriceEstimate> => {

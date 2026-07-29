@@ -11,6 +11,7 @@ import { PageHero } from "@/components/PageHero";
 import { ListingCard } from "@/components/ListingCard";
 import { ModelPriceTimeMachine } from "@/components/ModelPriceTimeMachine";
 import { SectionHeader } from "@/components/SectionHeader";
+import { VehicleSpecsCard } from "@/components/VehicleSpecsCard";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
@@ -299,6 +300,10 @@ export default function MakeModelHub() {
 
         <motion.div variants={revealItem}>
           <ModelPriceTimeMachine make={makeParam} model={modelParam} />
+        </motion.div>
+
+        <motion.div variants={revealItem}>
+          <VehicleSpecsCard make={canonicalMake} model={canonicalModel} />
         </motion.div>
 
         {recentListings.length > 0 && (

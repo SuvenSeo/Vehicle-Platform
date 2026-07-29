@@ -25,6 +25,7 @@ import { AdvertHealthChip } from '@/components/AdvertHealthChip';
 import { ListingHistoryReport } from '@/components/ListingHistoryReport';
 import { ListingPriceTimeline } from '@/components/ListingPriceTimeline';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
+import { VehicleSpecsCard } from '@/components/VehicleSpecsCard';
 import { inferFinanceClass } from '@/lib/cashToOwn';
 import { useAppPreferences } from '@/lib/appPreferences';
 import { useAuth } from '@/lib/authContext';
@@ -369,6 +370,7 @@ export default function ListingDetail() {
                   </motion.div>
                 ))}
               </div>
+              <VehicleSpecsCard make={listing.make} model={listing.model} year={listing.year} />
             </motion.div>
 
             {priceHistory && priceHistory.points.length > 0 && (
