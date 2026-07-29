@@ -215,6 +215,8 @@ export interface PriceTrendSeries {
 export interface DistrictPrice {
   district: string;
   avg_price: number;
+  avg_price_lkr?: number;
+  median_price_lkr?: number;
   listing_count: number;
   lat: number;
   lng: number;

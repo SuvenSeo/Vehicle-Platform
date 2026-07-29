@@ -395,6 +395,7 @@ describe("api module", () => {
           {
             district: "Colombo",
             avg_price_lkr: 11750000,
+            median_price_lkr: 11200000,
             count: 3041,
             lat: 6.9271,
             lng: 79.8612,
@@ -414,6 +415,9 @@ describe("api module", () => {
     expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/district-prices");
     expect(districts[0]).toMatchObject({
       district: "Colombo",
+      avg_price: 11750000,
+      avg_price_lkr: 11750000,
+      median_price_lkr: 11200000,
       listing_count: 3041,
       top_make: "Toyota",
       top_model: "Vitz",
