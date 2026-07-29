@@ -21,6 +21,7 @@ from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
+from app.services.nhtsa_specs import fetch_vehicle_variables_for_make_model
 from app.api.v1.endpoints.auth import PRO_PLANS, resolve_live_session, verify_token
 from app.utils.plan_limits import (
     FREE_LISTINGS_MAX_PAGE,
@@ -1617,6 +1618,24 @@ def get_models(make: str, db: Session = Depends(get_db)):
         .all()
     )
     return [{"model": r.model, "count": r.count} for r in results]
+
+
+@router.get("/specs")
+def get_listing_specs(
+    make: Annotated[str, Query(min_length=1, max_length=80)],
+    model: Annotated[str, Query(min_length=1, max_length=120)],
+    year: Annotated[Optional[int], Query(ge=1886, le=2100)] = None,
+):
+    cleaned_make = " ".join(str(make or "").strip().split())
+    cleaned_model = " ".join(str(model or "").strip().split())
+    models = fetch_vehicle_variables_for_make_model(cleaned_make, cleaned_model, year=year)
+    return {
+        "make": cleaned_make,
+        "model": cleaned_model,
+        "year": year,
+        "models": models,
+        "source": "nhtsa_vpic",
+    }
 
 
 def _search_suggestion_score(row: CarListing, normalized_query: str, query_tokens: List[str]) -> int:
