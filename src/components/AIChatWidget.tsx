@@ -5,10 +5,12 @@ import {
   Bot,
   Car,
   Check,
+  ChevronDown,
   Copy,
   Database,
   ExternalLink,
   Gauge,
+  Globe,
   Loader2,
   MessageCircle,
   Search,
@@ -17,7 +19,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { type ChatListingResult, sendChatMessage, formatPrice } from "@/services/api";
+import { type ChatListingResult, type ChatWebSource, sendChatMessage, formatPrice } from "@/services/api";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { hasFullPlatformAccess } from "@/lib/planLimits";
@@ -32,6 +34,7 @@ type Message = {
   content: string;
   id: string;
   listings?: ChatListingResult[];
+  web_sources?: ChatWebSource[];
 };
 
 type PromptAction = {
@@ -246,6 +249,46 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
   );
 }
 
+function WebSourcesPanel({ sources }: { sources: ChatWebSource[] }) {
+  const [open, setOpen] = useState(false);
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="w-full max-w-[330px]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 tech-label font-bold text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <Globe className="h-3 w-3 text-primary" />
+        {sources.length} web {sources.length === 1 ? "source" : "sources"}
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="mt-1.5 grid gap-1.5">
+          {sources.map((src, i) => (
+            <a
+              key={`${i}-${src.url}`}
+              href={src.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col gap-0.5 rounded-xl border border-border bg-surface p-2.5 no-underline transition-colors hover:border-primary/30"
+            >
+              <span className="line-clamp-1 text-xs font-semibold text-foreground">{src.title}</span>
+              <span className="line-clamp-2 ui-caption leading-snug text-muted-foreground">{src.snippet}</span>
+              <span className="mt-0.5 inline-flex items-center gap-1 tech-label text-primary">
+                <ExternalLink className="h-2.5 w-2.5" />
+                {new URL(src.url).hostname.replace(/^www\./, "")}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AIChatWidget() {
   const { t } = useAppPreferences();
   const { pathname, search } = useLocation();
@@ -391,7 +434,7 @@ export function AIChatWidget() {
       });
       setMessages([
         ...next,
-        { role: "assistant", content: response.response, id: genId(), listings: response.listings || [] },
+        { role: "assistant", content: response.response, id: genId(), listings: response.listings || [], web_sources: response.web_sources || [] },
       ]);
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : "";
@@ -554,6 +597,8 @@ export function AIChatWidget() {
                     </div>
 
                     {assistant && <ListingResults messageId={message.id} listings={message.listings} />}
+
+                    {assistant && <WebSourcesPanel sources={message.web_sources ?? []} />}
 
                     {assistant && (
                       <button

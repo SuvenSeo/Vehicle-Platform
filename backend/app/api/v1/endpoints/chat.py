@@ -15,6 +15,7 @@ from db.models import CarListing, MarketSignal, PriceAggregate, ScrapeRun
 from db.session import get_db
 from app.services.assistant_context import build_assistant_context
 from app.services.rate_limit import RateLimiter
+from app.services.web_research import research_vehicle_query
 from app.utils.plan_limits import is_free_browse_plan
 from app.utils.request_access import resolve_request_access
 from fastapi import Header
@@ -228,6 +229,7 @@ def _build_groq_prompt(
     history: List[ChatMessage],
     *,
     hide_deal_scores: bool = False,
+    web_research: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, str]]:
     system_prompt = (
         "You are Motormila Copilot, the Sri Lankan vehicle marketplace assistant. "
@@ -242,8 +244,23 @@ def _build_groq_prompt(
             " This user is on the Free plan: never mention deal scores, fair-price scores, "
             "or ranking by deal quality. Suggest upgrading to Pro if they ask about scores."
         )
+    if web_research:
+        system_prompt += (
+            " Additional web research snippets have been provided below for broader context "
+            "(vehicle reviews, news). You MAY cite these snippets when relevant but MUST NOT "
+            "use them to invent Motormila listing data, prices, or availability — always prefer "
+            "the Motormila DB context for listings and pricing."
+        )
 
     history_text = "\n".join([f"{item.role.title()}: {item.content}" for item in history[-8:]]).strip()
+
+    web_section = ""
+    if web_research:
+        snippets = "\n".join(
+            f"- [{item.get('title', 'Web')}]({item.get('url', '')}) — {item.get('snippet', '')}"
+            for item in web_research
+        )
+        web_section = f"\nWeb research snippets (supplementary only):\n{snippets}\n"
 
     return [
         {"role": "system", "content": system_prompt},
@@ -252,8 +269,9 @@ def _build_groq_prompt(
             "content": (
                 (f"Conversation history:\n{history_text}\n\n" if history_text else "")
                 + f"User question: {message}\n\n"
-                + f"Platform context:\n{json.dumps(context, ensure_ascii=False, indent=2)}\n\n"
-                + "Answer directly and reference relevant numbers from context."
+                + f"Platform context:\n{json.dumps(context, ensure_ascii=False, indent=2)}\n"
+                + web_section
+                + "\nAnswer directly and reference relevant numbers from context."
             ),
         },
     ]
@@ -418,6 +436,15 @@ def chat_assistant(
     context = bundle["context"]
     listing_cards = bundle["listing_cards"]
 
+    web_research: List[Dict[str, Any]] = []
+    if len(message) >= 8:
+        try:
+            web_research = research_vehicle_query(message)
+        except Exception:
+            web_research = []
+    if web_research:
+        context["web_research"] = web_research
+
     configured_key = GROQ_API_KEY
     configured_model = GROQ_MODEL
     has_groq = bool(configured_key)
@@ -434,6 +461,7 @@ def chat_assistant(
                     context,
                     clean_history,
                     hide_deal_scores=hide_deal_scores,
+                    web_research=web_research,
                 ),
                 api_key=configured_key,
                 model=configured_model,
@@ -462,6 +490,7 @@ def chat_assistant(
         "context_cards": bundle["context_cards"],
         "market_signals": bundle["market_signals"],
         "sources_used": bundle["sources_used"],
+        "web_sources": web_research,
         "context": {
             "generated_at": context.get("generated_at"),
             "intent": context.get("intent"),
