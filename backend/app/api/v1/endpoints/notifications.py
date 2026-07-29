@@ -4,7 +4,7 @@ Notifications are created by the alert matcher when new matches are found.
 Each notification belongs to a user token (same identity as market alerts).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -17,8 +17,18 @@ from app.api.v1.endpoints.auth import (
     verify_token,
 )
 from app.services.rate_limit import RateLimiter
+from app.utils.user_notifications import record_alert_match_notification
 from db.models import UserNotification
 from db.session import get_db
+
+# Re-export for tests/callers that import from this module.
+__all__ = [
+    "list_notifications",
+    "mark_notification_read",
+    "mark_all_read",
+    "record_alert_match_notification",
+    "router",
+]
 
 _notif_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
 
@@ -123,51 +133,3 @@ def mark_all_read(
     )
     db.commit()
     return {"marked_read": updated}
-
-
-def record_alert_match_notification(
-    db: Session,
-    *,
-    user_token: str,
-    make: Optional[str],
-    model: Optional[str],
-    district: Optional[str],
-    max_price: Optional[float],
-    new_match_count: int,
-) -> Optional[UserNotification]:
-    """Create a UserNotification row for a new alert match.
-
-    Called from alert_matcher after each pass where match count increases.
-    Returns the created notification or None if creation fails.
-    """
-    from app.utils.notify_whatsapp import build_alert_match_message
-
-    try:
-        parts = []
-        if make:
-            parts.append(make)
-        if model:
-            parts.append(model)
-        vehicle_label = " ".join(parts) if parts else "your search"
-
-        title = f"{new_match_count} new match{'es' if new_match_count != 1 else ''} for {vehicle_label}"
-        body = build_alert_match_message(
-            make=make,
-            model=model,
-            district=district,
-            max_price=max_price,
-            match_count=new_match_count,
-        )
-
-        notif = UserNotification(
-            user_token=user_token,
-            title=title,
-            body=body,
-            link="/alerts",
-            read=False,
-            created_at=datetime.now(timezone.utc),
-        )
-        db.add(notif)
-        return notif
-    except Exception:
-        return None

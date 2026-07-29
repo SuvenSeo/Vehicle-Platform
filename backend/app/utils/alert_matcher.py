@@ -18,13 +18,14 @@ import structlog
 from sqlalchemy.orm import Session
 
 from db.models import CarListing, MarketAlert, MarketAlertMatch, live_listing_filter
+from app.utils.notify_email import email_notify_configured, send_alert_email
+from app.utils.notify_telegram import send_telegram_alert, telegram_notify_configured
 from app.utils.notify_whatsapp import (
     build_alert_match_message,
     send_whatsapp_alert,
     whatsapp_notify_configured,
 )
-from app.utils.notify_telegram import send_telegram_alert, telegram_notify_configured
-from app.utils.notify_email import email_notify_configured, send_alert_email
+from app.utils.user_notifications import record_alert_match_notification
 
 log = structlog.get_logger()
 
@@ -152,7 +153,6 @@ def run_alert_match_pass(db: Session) -> dict:
                 # Record in-app notification — fail silently so this never
                 # aborts the match pass if the table is missing or not yet migrated.
                 try:
-                    from app.api.v1.endpoints.notifications import record_alert_match_notification
                     record_alert_match_notification(
                         db,
                         user_token=alert.user_token,

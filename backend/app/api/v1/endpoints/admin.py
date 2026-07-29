@@ -792,6 +792,10 @@ def admin_system(
             "b2bKeysConfigured": bool(os.getenv("B2B_API_KEYS", "").strip()),
             "resendConfigured": bool(os.getenv("RESEND_API_KEY", "").strip()),
             "twilioConfigured": bool(os.getenv("TWILIO_ACCOUNT_SID", "").strip()),
+            "telegramConfigured": bool(os.getenv("TELEGRAM_BOT_TOKEN", "").strip()),
+            "emailAlertConfigured": bool(
+                os.getenv("RESEND_API_KEY", "").strip() or os.getenv("SMTP_HOST", "").strip()
+            ),
             "dealerAdminTokenConfigured": bool(os.getenv("DEALER_ADMIN_TOKEN", "").strip()),
             "publicAppOrigin": os.getenv("PUBLIC_APP_ORIGIN", "").strip() or None,
         },
