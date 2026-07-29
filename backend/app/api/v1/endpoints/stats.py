@@ -207,12 +207,17 @@ def _compute_price_index_payload(db: Session) -> dict:
     return build_price_index(db)
 
 
+def _set_cache_control(response, value: str = "public, max-age=60") -> None:
+    if response is not None:
+        response.headers["Cache-Control"] = value
+
+
 @router.get("/summary", response_model=StatsSummary)
-def get_stats_summary(response: Response, db: Session = Depends(get_db)):
+def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
     # Serve from materialized cache when fresh (< 1 hour).
     cached = get_cached_summary(db)
     if cached is not None:
-        response.headers["Cache-Control"] = "public, max-age=60"
+        _set_cache_control(response)
         return cached
 
     try:
@@ -272,12 +277,12 @@ def get_stats_summary(response: Response, db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_summary(db, allow_stale=True)
         if stale is not None:
-            response.headers["Cache-Control"] = "public, max-age=60"
+            _set_cache_control(response)
             return stale
         raise
 
     store_summary_cache(db, result)
-    response.headers["Cache-Control"] = "public, max-age=60"
+    _set_cache_control(response)
     return result
 
 
@@ -333,11 +338,11 @@ async def stream_live_market_snapshot(request: Request):
     )
 
 @router.get("/district-prices")
-def get_district_prices(response: Response, db: Session = Depends(get_db)):
+def get_district_prices(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
     # Serve from materialized cache when fresh (< 1 hour).
     cached = get_cached_district_prices(db)
     if cached is not None:
-        response.headers["Cache-Control"] = "public, max-age=60"
+        _set_cache_control(response)
         return cached
 
     try:
@@ -483,12 +488,12 @@ def get_district_prices(response: Response, db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_district_prices(db, allow_stale=True)
         if stale is not None:
-            response.headers["Cache-Control"] = "public, max-age=60"
+            _set_cache_control(response)
             return stale
         raise
 
     store_district_prices_cache(db, result)
-    response.headers["Cache-Control"] = "public, max-age=60"
+    _set_cache_control(response)
     return result
 
 def _trend_response(points, scope: str, note: Optional[str] = None) -> dict:
@@ -1636,10 +1641,10 @@ def get_ev_insight(
 
 
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
-def get_district_velocity(response: Response, db: Session = Depends(get_db)):
+def get_district_velocity(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
     cached = get_cached_district_velocity(db)
     if cached is not None:
-        response.headers["Cache-Control"] = "public, max-age=60"
+        _set_cache_control(response)
         return cached
 
     try:
@@ -1647,12 +1652,12 @@ def get_district_velocity(response: Response, db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_district_velocity(db, allow_stale=True)
         if stale is not None:
-            response.headers["Cache-Control"] = "public, max-age=60"
+            _set_cache_control(response)
             return stale
         raise
 
     store_district_velocity_cache(db, result)
-    response.headers["Cache-Control"] = "public, max-age=60"
+    _set_cache_control(response)
     return result
 
 
