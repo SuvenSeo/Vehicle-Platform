@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getLiveMarketSnapshot, getLiveMarketStreamUrl, SNAPSHOT_BASE } from "@/services/api";
+import { getLiveMarketSnapshot, getLiveMarketStreamUrl, SNAPSHOT_BASE, SNAPSHOT_ONLY } from "@/services/api";
 import type { LiveMarketSnapshot } from "@/types/car";
 
 const POLL_INTERVAL_MS = 60_000;
@@ -32,7 +32,9 @@ function stopPolling() {
 
 function startStream() {
   if (eventSource !== null) return;
-  if (SNAPSHOT_BASE) {
+  // Never open SSE against the live API when CDN snapshots are configured
+  // (or snapshot-only mode is on) — SSE rebuilds hit Postgres every few seconds.
+  if (SNAPSHOT_BASE || SNAPSHOT_ONLY) {
     startPolling();
     return;
   }

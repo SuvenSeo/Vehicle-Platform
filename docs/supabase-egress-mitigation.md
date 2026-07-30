@@ -50,9 +50,9 @@ Do this now to restore access.
 
 ### Steps to take right now
 
-1. **STOP scheduled scrapes** — done in this PR. All cron schedules on
-   `daily-scrape.yml`, `midday-top-sources-scrape.yml`, and `keep-hf-awake.yml`
-   are disabled. Manual `workflow_dispatch` only until quota resets.
+1. **STOP scheduled scrapes** — done. Cron disabled on
+   `daily-scrape.yml`, `midday-top-sources-scrape.yml`, `keep-hf-awake.yml`,
+   and `pipeline-monitor.yml`. Manual `workflow_dispatch` only until R2 is live.
 
 2. **RIGHT NOW backup** — Actions → **Emergency DB Backup** → Run workflow.
    Requires `HOT_DATABASE_URL` secret set in the repository. Or run locally:
@@ -65,12 +65,19 @@ Do this now to restore access.
    `rescue-exports-<run_id>`) to an encrypted USB drive, Google Drive, or
    laptop. **Do NOT commit database dumps to git.**
 
-4. **Set VITE_SNAPSHOT_BASE_URL** after exporting public snapshots so the
-   frontend stops hitting the DB for every page load and reads from R2 CDN
-   instead.
+4. **Turn on R2 + snapshot-only** — follow **`docs/permanent-free-ops-r2-oracle.md`**:
+   export snapshots → upload R2 → set on Vercel:
+   ```text
+   VITE_SNAPSHOT_BASE_URL=https://<public-r2-domain>/latest
+   VITE_SNAPSHOT_ONLY=true
+   ```
+   Redeploy. Public browsing then never falls back to Postgres.
 
 5. **Wait for free egress quota reset** (monthly reset on billing anniversary)
-   before running heavy scrapes again.
+   before running heavy scrapes again — and only after step 4 is verified.
 
 6. **Do NOT run** `historical-backfill` or a full scrape matrix until a
-   confirmed backup exists and the egress quota has recovered.
+   confirmed backup exists and R2 snapshot-only is live.
+
+7. **Optional long-term free Postgres host** — Oracle Always Free VM (see the
+   same runbook). Do not move to Neon free expecting a different outcome.
