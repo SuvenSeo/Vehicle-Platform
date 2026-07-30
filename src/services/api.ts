@@ -104,7 +104,15 @@ function resolveSnapshotBase() {
   return configured ? configured.replace(/\/+$/, "") : "";
 }
 
+function resolveSnapshotOnly(): boolean {
+  const raw = String(import.meta.env.VITE_SNAPSHOT_ONLY || "").trim().toLowerCase();
+  return raw === "true" || raw === "1" || raw === "yes";
+}
+
 export const SNAPSHOT_BASE = resolveSnapshotBase();
+
+/** When true, public reads never fall back to the live Postgres-backed API. */
+export const SNAPSHOT_ONLY = resolveSnapshotOnly();
 
 const SOURCE_LABELS: Record<string, string> = {
   ikman: "Ikman",
@@ -129,6 +137,14 @@ export class APIError extends Error {
     this.status = status;
     this.detail = detail;
   }
+}
+
+function refuseLiveApiFallback(context: string): never {
+  throw new APIError(
+    503,
+    `Snapshot-only mode: ${context} is unavailable from CDN. ` +
+      "Check VITE_SNAPSHOT_BASE_URL / R2 objects, or unset VITE_SNAPSHOT_ONLY.",
+  );
 }
 
 export interface ChatMessage {
@@ -1028,6 +1044,7 @@ async function postJSON<T>(path: string, body: Record<string, unknown>, headers?
 export const getStats = async (): Promise<StatsOverview> => {
   const snapshot = await readSnapshot<JsonRecord>("stats-summary.json");
   if (snapshot) return normalizeStatsOverview(snapshot);
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("stats summary");
 
   const data = await fetchJSON<JsonRecord>("/stats/summary");
   return normalizeStatsOverview(data);
@@ -1036,6 +1053,7 @@ export const getStats = async (): Promise<StatsOverview> => {
 export const getLiveMarketSnapshot = async (): Promise<LiveMarketSnapshot> => {
   const snapshot = await readSnapshot<JsonRecord>("live-market.json");
   if (snapshot) return normalizeLiveMarketData(snapshot);
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("live market snapshot");
 
   const data = await fetchJSON<JsonRecord>("/stats/live");
   return normalizeLiveMarketData(data);
@@ -1052,6 +1070,7 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
   };
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return filterSnapshotListings(catalog, effectiveFilters);
+  if (SNAPSHOT_ONLY) return { listings: [], total: 0 };
 
   const data = await fetchJSON<JsonRecord>("/listings", {
     ...effectiveFilters,
@@ -1087,6 +1106,7 @@ export const getListing = async (id: string | number) => {
     const match = catalog.find((listing) => String(listing.id) === String(id));
     if (match) return match;
   }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback(`listing ${id}`);
 
   const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
@@ -1231,6 +1251,7 @@ export const getSimilarListings = async (id: string | number) => {
       ).slice(0, 8);
     }
   }
+  if (SNAPSHOT_ONLY) return [];
 
   const data = await fetchJSON<JsonRecord[]>(`/listings/${id}/similar`);
   return (data || []).map(normalizeListing);
@@ -1239,12 +1260,16 @@ export const getSimilarListings = async (id: string | number) => {
 export const getDistrictPrices = async (): Promise<DistrictPrice[]> => {
   const snapshot = await readSnapshot<JsonRecord>("district-prices.json");
   if (snapshot) return normalizeDistrictPricesPayload(snapshot);
+  if (SNAPSHOT_ONLY) return [];
 
   const data = await fetchJSON<JsonRecord>("/stats/district-prices");
   return normalizeDistrictPricesPayload(data);
 };
 
 export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
+  if (SNAPSHOT_ONLY) {
+    return { points: [], generated_at: new Date().toISOString() };
+  }
   const raw = await fetchJSON<Record<string, unknown>>("/stats/district-velocity");
   const points: DistrictVelocityPoint[] = Array.isArray(raw?.points)
     ? (raw.points as Record<string, unknown>[]).map((p) => ({
@@ -1268,6 +1293,7 @@ export const getMakes = async () => {
 
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return deriveMakes(catalog);
+  if (SNAPSHOT_ONLY) return [];
 
   return fetchJSON<{ make: string; count: number }[]>("/listings/makes");
 };
@@ -1281,6 +1307,7 @@ export const getListingSearchSuggestions = async (
 
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return searchSuggestionsFromCatalog(catalog, query, limit);
+  if (SNAPSHOT_ONLY) return [];
 
   const data = await fetchJSON<JsonRecord[]>("/listings/search-suggestions", { q: query, limit });
   if (!Array.isArray(data)) return [];
@@ -1310,6 +1337,7 @@ export const getListingSources = async (): Promise<ListingSourceStat[]> => {
 
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return deriveSources(catalog);
+  if (SNAPSHOT_ONLY) return [];
 
   try {
     const rows = await fetchJSON<Array<Record<string, unknown>>>("/listings/sources");
@@ -1345,6 +1373,7 @@ export const getModels = async (make: string) => {
 
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return deriveModels(catalog, make);
+  if (SNAPSHOT_ONLY) return [];
 
   return fetchJSON<{ model: string; count: number }[]>("/listings/models", { make });
 };
@@ -1452,6 +1481,13 @@ export const getPriceTrendSeries = async (
 ): Promise<PriceTrendSeries> => {
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return buildSnapshotTrendSeries(catalog, make, model, condition, district);
+  if (SNAPSHOT_ONLY) {
+    return {
+      points: [],
+      coverage_scope: "none",
+      coverage_note: "Snapshot-only mode: live trend API disabled.",
+    };
+  }
 
   const normalizedCondition = normalizeConditionFilter(condition);
   const normalizedDistrict = String(district || "").trim() || undefined;
@@ -1506,6 +1542,7 @@ export const getPriceTrends = async (
 export const getPipelineStatus = async () => {
   const snapshot = await readSnapshot<PipelineStatusResponse>("pipeline-status.json");
   if (snapshot) return snapshot;
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("pipeline status");
   return fetchJSON<PipelineStatusResponse>("/pipeline/status");
 };
 
@@ -1552,6 +1589,7 @@ export const triggerPipelineJob = async (job: PipelineTriggerJob, adminKey?: str
 export const getDashboardInsights = async (): Promise<DashboardInsights> => {
   const snapshot = await readSnapshot<Record<string, unknown>>("dashboard-insights.json");
   if (snapshot) return normalizeDashboardInsights(snapshot);
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("dashboard insights");
 
   const data = await fetchJSON<Record<string, unknown>>("/stats/insights");
   return normalizeDashboardInsights(data);
@@ -1596,6 +1634,7 @@ export const getListingsForExport = async (
   const size = Math.max(1, Math.min(100, Math.floor(maxRows)));
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
+  if (SNAPSHOT_ONLY) return { listings: [], total: 0 };
 
   const data = await fetchJSON<JsonRecord>("/listings", {
     ...filters,
@@ -1648,6 +1687,17 @@ export const getDistrictQuickInsight = async (district: string): Promise<Distric
           })),
       };
     }
+  }
+
+  if (SNAPSHOT_ONLY) {
+    return {
+      district,
+      listing_count: 0,
+      avg_price_lkr: null,
+      median_price_lkr: null,
+      change_pct_30d: null,
+      top_models: [],
+    };
   }
 
   const data = await fetchJSON<Record<string, unknown>>("/stats/district-insight", { district });
@@ -1763,6 +1813,17 @@ export const getMakeModelInsight = async (make: string, model: string): Promise<
       avg_price_lkr: avg,
       median_price_lkr: medianVal,
       top_districts,
+    };
+  }
+
+  if (SNAPSHOT_ONLY) {
+    return {
+      make: make.trim(),
+      model: model.trim(),
+      total: 0,
+      avg_price_lkr: null,
+      median_price_lkr: null,
+      top_districts: [],
     };
   }
 

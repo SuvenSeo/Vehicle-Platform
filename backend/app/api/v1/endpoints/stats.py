@@ -54,10 +54,12 @@ _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_stats_rate_limiter)])
 MIN_REASONABLE_PRICE_LKR = 100_000
-LIVE_STREAM_INTERVAL_SECONDS = 10
+LIVE_STREAM_INTERVAL_SECONDS = int(os.getenv("LIVE_STREAM_INTERVAL_SECONDS", "120"))
 RECENT_SUCCESS_HOURS = 24
 
 MAX_SSE_CONNECTIONS: int = int(os.getenv("SSE_MAX_CONNECTIONS", "50"))
+# Set DISABLE_LIVE_SSE=true during egress incidents so clients fall back to polling/snapshots.
+DISABLE_LIVE_SSE = os.getenv("DISABLE_LIVE_SSE", "false").strip().lower() in {"1", "true", "yes"}
 _sse_active_connections: int = 0
 
 def _to_utc(dt):
@@ -294,6 +296,16 @@ def get_live_market_snapshot(db: Session = Depends(get_db)):
 @router.get("/live/stream")
 async def stream_live_market_snapshot(request: Request):
     global _sse_active_connections
+
+    if DISABLE_LIVE_SSE:
+        return Response(
+            status_code=503,
+            content=json.dumps({
+                "detail": "Live SSE disabled (DISABLE_LIVE_SSE). Use /stats/live polling or CDN snapshots.",
+            }),
+            media_type="application/json",
+            headers={"Retry-After": "60"},
+        )
 
     if _sse_active_connections >= MAX_SSE_CONNECTIONS:
         return Response(

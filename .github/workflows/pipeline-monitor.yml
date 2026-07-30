@@ -1,8 +1,10 @@
+# SCHEDULE PAUSED 2026-07-30 — Supabase free egress exceeded.
+# Hourly /health + /pipeline/status probes still touch the backend/DB.
+# Manual workflow_dispatch only until R2 snapshots + VITE_SNAPSHOT_ONLY are live
+# (see docs/permanent-free-ops-r2-oracle.md).
 name: Monitor Vehicle Pipeline
 
 on:
-  schedule:
-    - cron: "20 * * * *"
   workflow_dispatch:
 
 jobs:
