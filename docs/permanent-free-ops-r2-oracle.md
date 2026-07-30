@@ -25,6 +25,29 @@ export ALLOW_SQLITE_FALLBACK=false
 
 Confirm `listing-catalog.json`, `stats-summary.json`, `live-market.json`, etc. exist under the export dir.
 
+If the catalog is too large for a single Vercel static file (100 MB limit),
+`listing-catalog.json` may be a **manifest** with a `parts` array pointing at
+`listing-catalog-part-000.json`, … — the frontend loads and concatenates them.
+
+### 2b. Alternative while DB is still reachable from Vercel (no R2 yet)
+
+Use the authenticated exporter + pull script (needs `SNAPSHOT_EXPORT_SECRET`
+on Vercel; do not commit the secret):
+
+```bash
+# After deploying api/internal-snapshot-export.js
+SNAPSHOT_EXPORT_SECRET=… node scripts/pull-vercel-snapshots.mjs
+# Writes public/snapshots/latest/*.json (gitignored), including multi-part catalog
+bash scripts/apply-snapshot-vercel-env.sh   # sets VITE_SNAPSHOT_BASE_URL + VITE_SNAPSHOT_ONLY
+# Deploy the working tree so /snapshots/latest/* is served same-origin
+```
+
+`VITE_SNAPSHOT_BASE_URL` for this path:
+`https://motormila.vercel.app/snapshots/latest`
+
+Prefer R2 long-term (step 3) — Vercel deploys have size limits; R2 does not
+burn the same constraints for large catalogs.
+
 ### 3. Upload to Cloudflare R2 (permanent free tier)
 R2 free: **10 GB storage**, **1M Class A**, **10M Class B**/mo, **$0 egress**  
 (see https://developers.cloudflare.com/r2/pricing/).

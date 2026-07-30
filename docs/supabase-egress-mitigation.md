@@ -24,9 +24,13 @@ Do this now to restore access.
 
 ## Egress reduction checklist
 
-- [ ] **Enable R2 snapshots** — upload `snapshot.json` to an R2 bucket after
-  each scrape run and set `VITE_SNAPSHOT_BASE_URL=https://<r2-public-domain>`
-  on Vercel. The frontend then reads from CDN instead of hitting the API.
+- [ ] **Enable R2 (or same-origin) snapshots** — after each scrape, export
+  `listing-catalog.json` (or multi-part `listing-catalog-part-*.json` +
+  manifest), `stats-summary.json`, `live-market.json`, etc., upload to R2 (or
+  `public/snapshots/latest/` on Vercel), then set
+  `VITE_SNAPSHOT_BASE_URL=https://<public-r2-domain>/latest` (or
+  `https://motormila.vercel.app/snapshots/latest`) and `VITE_SNAPSHOT_ONLY=true`
+  on Vercel. See `docs/permanent-free-ops-r2-oracle.md`.
 - [ ] **Set pooled connection string** — use port `6543` (Transaction Pooler)
   in `DATABASE_URL`, not the direct port 5432. Fewer open connections = less
   DB CPU overhead and reduced internal Supabase egress.
