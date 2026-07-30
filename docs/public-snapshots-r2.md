@@ -31,10 +31,16 @@ Set this on the frontend project:
 
 ```text
 VITE_SNAPSHOT_BASE_URL=https://<public-r2-domain>/latest
+VITE_SNAPSHOT_ONLY=true
 ```
 
 Use the public R2/custom domain, not the S3 API endpoint. Redeploy the frontend
-after changing it.
+after changing it. With `VITE_SNAPSHOT_ONLY=true`, missing snapshots return
+empty/error instead of falling back to the Postgres-backed API.
+
+Large catalogs may ship as a `listing-catalog.json` manifest with `parts`
+(`listing-catalog-part-*.json`) when hosting on Vercel’s 100 MB static-file
+limit; the frontend concatenates parts automatically.
 
 ## Recovering the 80k+ listings
 

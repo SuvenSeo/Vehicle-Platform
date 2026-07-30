@@ -114,7 +114,10 @@ async function fetchKind(kind, extraParams = {}) {
 
 function writeJson(filename, data) {
   const filePath = join(OUT_DIR, filename);
-  const content = JSON.stringify(data, null, 2);
+  // Catalog (+ multi-part chunks) must stay compact: size budgeting below uses
+  // JSON.stringify without whitespace, and Vercel's static file limit is 100MB.
+  const compact = filename === 'listing-catalog.json' || filename.startsWith('listing-catalog-part-');
+  const content = compact ? JSON.stringify(data) : JSON.stringify(data, null, 2);
   writeFileSync(filePath, content, 'utf8');
   console.log(`  ✓  ${filename.padEnd(30)} ${fileSizeStr(filePath)}`);
 }
