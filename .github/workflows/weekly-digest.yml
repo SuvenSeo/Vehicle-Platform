@@ -1,8 +1,9 @@
+# SCHEDULE PAUSED 2026-07-30 — Supabase free egress exceeded.
+# Digest queries HOT_DATABASE_URL (Postgres/Supabase); pausing cron until R2/egress
+# recovery + snapshot-only ops. Manual workflow_dispatch only until then.
 name: Weekly Pro Digest
 
 on:
-  schedule:
-    - cron: "0 6 * * 1"  # 06:00 UTC every Monday
   workflow_dispatch:
     inputs:
       dry_run:
@@ -40,8 +41,8 @@ jobs:
       - name: Validate script compiles
         run: python -m py_compile scripts/send_pro_digest.py
 
-      - name: Run digest (dry-run — cron default)
-        if: ${{ github.event_name == 'schedule' || inputs.dry_run == 'true' }}
+      - name: Run digest (dry-run default)
+        if: ${{ inputs.dry_run == 'true' }}
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"

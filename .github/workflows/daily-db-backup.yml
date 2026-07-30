@@ -1,8 +1,9 @@
+# SCHEDULE PAUSED 2026-07-30 — Supabase free egress exceeded.
+# Full pg_dump pulls the DB through Supabase egress; re-enable after R2/egress recovery
+# (snapshot-only mode). Manual workflow_dispatch only until then.
 name: Daily DB Backup
 
 on:
-  schedule:
-    - cron: "0 2 * * *"  # 02:00 UTC every day
   workflow_dispatch:
 
 jobs:
