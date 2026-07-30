@@ -234,17 +234,69 @@ async function main() {
     console.log(`+${pageItems.length} items  (total so far: ${allItems.length})`);
   } while (cursor !== null);
 
-  const catalog = {
-    items: allItems,
-    generated_at: new Date().toISOString(),
-    listing_count: allItems.length,
-    paginated: listingsSupported,
-  };
-  writeJson('listing-catalog.json', catalog);
+  // Vercel static file limit is 100MB — split catalog into parts under budget.
+  const MAX_PART_BYTES = 90 * 1024 * 1024;
+  const generatedAt = new Date().toISOString();
+  const monolithicBytes = Buffer.byteLength(
+    JSON.stringify({
+      items: allItems,
+      generated_at: generatedAt,
+      listing_count: allItems.length,
+      paginated: listingsSupported,
+    }),
+    'utf8',
+  );
+
+  if (monolithicBytes <= MAX_PART_BYTES) {
+    writeJson('listing-catalog.json', {
+      items: allItems,
+      generated_at: generatedAt,
+      listing_count: allItems.length,
+      paginated: listingsSupported,
+    });
+  } else {
+    const partNames = [];
+    let partIndex = 0;
+    let partItems = [];
+    let partBytes = Buffer.byteLength(
+      JSON.stringify({ items: [], generated_at: generatedAt }),
+      'utf8',
+    );
+
+    const flushPart = () => {
+      if (partItems.length === 0) return;
+      const name = `listing-catalog-part-${String(partIndex).padStart(3, '0')}.json`;
+      writeJson(name, { items: partItems, generated_at: generatedAt });
+      partNames.push(name);
+      partIndex += 1;
+      partItems = [];
+      partBytes = Buffer.byteLength(
+        JSON.stringify({ items: [], generated_at: generatedAt }),
+        'utf8',
+      );
+    };
+
+    for (const item of allItems) {
+      const itemJson = JSON.stringify(item);
+      const nextBytes = partBytes + Buffer.byteLength(itemJson, 'utf8') + 1;
+      if (partItems.length > 0 && nextBytes > MAX_PART_BYTES) {
+        flushPart();
+      }
+      partItems.push(item);
+      partBytes += Buffer.byteLength(itemJson, 'utf8') + 1;
+    }
+    flushPart();
+
+    writeJson('listing-catalog.json', {
+      parts: partNames,
+      generated_at: generatedAt,
+      listing_count: allItems.length,
+      paginated: listingsSupported,
+    });
+  }
 
   // --- summary ---
-  const totalFiles = SIMPLE_KINDS.length + OPTIONAL_KINDS.length + 1; // +1 for catalog
-  console.log(`\nDone. ${totalFiles} files written to ${OUT_DIR}\n`);
+  console.log(`\nDone. Snapshot files written to ${OUT_DIR}\n`);
 }
 
 main().catch((err) => {

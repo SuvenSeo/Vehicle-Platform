@@ -556,8 +556,36 @@ async function readSnapshot<T>(fileName: string): Promise<T | null> {
 function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
   if (!SNAPSHOT_BASE) return Promise.resolve(null);
   if (!snapshotCatalogPromise) {
-    snapshotCatalogPromise = readSnapshot<{ items?: unknown[] }>("listing-catalog.json").then((snapshot) => {
-      if (!snapshot || !Array.isArray(snapshot.items)) return null;
+    snapshotCatalogPromise = readSnapshot<{
+      items?: unknown[];
+      parts?: string[];
+      listing_count?: number;
+    }>("listing-catalog.json").then(async (snapshot) => {
+      if (!snapshot) return null;
+
+      // Multi-part catalog (Vercel 100MB file limit).
+      if (Array.isArray(snapshot.parts) && snapshot.parts.length > 0) {
+        const chunks = await Promise.all(
+          snapshot.parts.map((part) =>
+            readSnapshot<{ items?: unknown[] }>(String(part).replace(/^\/+/, "")),
+          ),
+        );
+        if (chunks.some((chunk) => !chunk || !Array.isArray(chunk.items))) {
+          return null;
+        }
+        const items = chunks.flatMap((chunk) => chunk!.items as unknown[]);
+        if (
+          typeof snapshot.listing_count === "number" &&
+          snapshot.listing_count >= 0 &&
+          items.length !== snapshot.listing_count
+        ) {
+          return null;
+        }
+        if (items.length === 0) return null;
+        return items.map(normalizeListing);
+      }
+
+      if (!Array.isArray(snapshot.items)) return null;
       return snapshot.items.map(normalizeListing);
     });
   }
