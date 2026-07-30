@@ -281,6 +281,13 @@ class MarketAlert(Base):
     district = Column(String(50), nullable=True)
     # Optional E.164 / local mobile for Twilio WhatsApp match notifications.
     notify_phone = Column(String(32), nullable=True)
+    # Optional email address for email match notifications.
+    notify_email = Column(String(255), nullable=True)
+    # Optional Telegram chat_id (numeric id or @username) for Telegram notifications.
+    notify_telegram_chat_id = Column(String(64), nullable=True)
+    # Comma-separated list of channels to notify: "whatsapp", "email", "telegram".
+    # When null/empty, infer active channels from whichever destination fields are set.
+    notify_channels = Column(String(64), nullable=True)
     active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -440,6 +447,25 @@ class UserInvite(Base):
         Index("idx_user_invites_email", "email"),
         Index("idx_user_invites_token", "token"),
         Index("idx_user_invites_status", "status"),
+    )
+
+
+class UserNotification(Base):
+    """In-app notification row created when an alert match fires or other system events occur."""
+
+    __tablename__ = "user_notifications"
+
+    id = Column(Integer, primary_key=True)
+    user_token = Column(String(64), nullable=False)
+    title = Column(String(200), nullable=False)
+    body = Column(Text, nullable=True)
+    link = Column(Text, nullable=True)
+    read = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_user_notifications_user_token", "user_token"),
+        Index("idx_user_notifications_user_token_read", "user_token", "read"),
     )
 
 

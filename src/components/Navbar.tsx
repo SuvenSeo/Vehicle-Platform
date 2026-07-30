@@ -17,6 +17,7 @@ import { usePipelineStatus } from "@/hooks/usePipelineStatus";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { formatRelativeTimeI18n } from "@/lib/formatting";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const GITHUB_REPO = "SuvenSeo/Vehicle-Platform";
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
@@ -59,6 +60,7 @@ export function Navbar() {
       { label: t("nav.bestPicks", "Best Picks"), href: "/best-picks", detail: t("nav.bestPicksDetail", "Strict deal-score shortlist") },
       { label: t("nav.priceIndex", "Price Index"), href: "/price-index", detail: t("nav.priceIndexDetail", "Mix-adjusted market index") },
       { label: t("nav.officialPulse", "Official Pulse"), href: "/official-pulse", detail: t("nav.officialPulseDetail", "DMT, Customs & import signals") },
+      { label: t("nav.permits", "Permit Market"), href: "/permits", detail: t("nav.permitsDetail", "Black-market permit price tracker") },
       { label: t("nav.dealer", "Dealer"), href: "/dealer", detail: t("nav.dealerDetail", "Operator command center") },
       { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: t("nav.alertsDetail", "Saved listing watches") },
       { label: t("nav.settings", "Settings"), href: "/settings", detail: t("nav.settingsDetail", "Language and theme") },
@@ -312,6 +314,9 @@ export function Navbar() {
               <div className="hidden md:flex">
                 <LocaleSwitcher compact />
               </div>
+
+              {/* Notification bell */}
+              <NotificationBell />
 
               {/* Live status pill */}
               <div className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex">

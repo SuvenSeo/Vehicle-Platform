@@ -20,6 +20,9 @@ _CAR_LISTING_COLUMN_PATCHES = (
 # (table, column, postgres type, sqlite type) — non-car_listings additive columns
 _TABLE_COLUMN_PATCHES = (
     ("market_alerts", "notify_phone", "VARCHAR(32)", "VARCHAR(32)"),
+    ("market_alerts", "notify_email", "VARCHAR(255)", "VARCHAR(255)"),
+    ("market_alerts", "notify_telegram_chat_id", "VARCHAR(64)", "VARCHAR(64)"),
+    ("market_alerts", "notify_channels", "VARCHAR(64)", "VARCHAR(64)"),
     ("dealer_profiles", "verified_at", "TIMESTAMPTZ", "DATETIME"),
     ("dealer_profiles", "plan", "VARCHAR(20) NOT NULL DEFAULT 'dealer'", "VARCHAR(20) NOT NULL DEFAULT 'dealer'"),
     (
@@ -420,6 +423,65 @@ def heal_platform_users_schema(db) -> list[str]:
     return applied
 
 
+def _ensure_user_notifications_table(
+    engine: Engine,
+    *,
+    dialect: str,
+    bounded_ddl,
+) -> None:
+    """Idempotent CREATE for the user_notifications table (Postgres + SQLite)."""
+    inspector = inspect(engine)
+    try:
+        if "user_notifications" in inspector.get_table_names():
+            return
+    except Exception as exc:
+        log.warning("schema_user_notifications_inspect_failed", error=str(exc))
+
+    if dialect == "postgresql":
+        ddl = """
+        CREATE TABLE IF NOT EXISTS user_notifications (
+            id SERIAL PRIMARY KEY,
+            user_token VARCHAR(64) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            body TEXT,
+            link TEXT,
+            read BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+        """
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_user_notifications_user_token ON user_notifications (user_token)",
+            "CREATE INDEX IF NOT EXISTS idx_user_notifications_user_token_read ON user_notifications (user_token, read)",
+        )
+    else:
+        ddl = """
+        CREATE TABLE IF NOT EXISTS user_notifications (
+            id INTEGER PRIMARY KEY,
+            user_token VARCHAR(64) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            body TEXT,
+            link TEXT,
+            read BOOLEAN NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_user_notifications_user_token ON user_notifications (user_token)",
+            "CREATE INDEX IF NOT EXISTS idx_user_notifications_user_token_read ON user_notifications (user_token, read)",
+        )
+
+    try:
+        bounded_ddl(ddl)
+        for index_sql in indexes:
+            try:
+                bounded_ddl(index_sql)
+            except Exception as exc:
+                log.warning("schema_user_notifications_index_failed", error=str(exc))
+        log.info("schema_user_notifications_table_ensured")
+    except Exception as exc:
+        log.warning("schema_user_notifications_table_failed", error=str(exc))
+
+
 def _ensure_analytics_events_table(
     engine: Engine,
     *,
@@ -554,6 +616,7 @@ def apply_schema_patches(engine: Engine) -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_historical_price_observations_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
     _ensure_analytics_events_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
+    _ensure_user_notifications_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
 
     for index_name, table_name, columns in _INDEX_PATCHES:
         try:

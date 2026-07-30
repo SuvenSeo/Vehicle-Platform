@@ -46,7 +46,7 @@ describe("api module", () => {
       message: "hello",
       history: [{ role: "user", content: "previous message" }],
     });
-    expect(result).toEqual({ response: "ok", listings: [] });
+    expect(result).toEqual({ response: "ok", listings: [], web_sources: [] });
   });
 
   it("omits cookies for cross-origin HF API bases (HF preflight lacks Allow-Credentials)", async () => {

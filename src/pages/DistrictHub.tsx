@@ -3,13 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPin } from "lucide-react";
-import { getDistrictQuickInsight, getListings, formatPrice } from "@/services/api";
+import { getDistrictQuickInsight, getDistrictPrices, getListings, formatPrice } from "@/services/api";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { ListingCard } from "@/components/ListingCard";
 import { SectionHeader } from "@/components/SectionHeader";
+import { DistrictPriceHeatmap } from "@/components/DistrictPriceHeatmap";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
@@ -42,6 +43,12 @@ export default function DistrictHub() {
     queryFn: () => getListings({ district: districtParam, sort: "newest", page: 1 }),
     enabled: Boolean(districtParam),
     staleTime: QUERY_STALE.listings,
+  });
+
+  const districtPricesQuery = useQuery({
+    queryKey: ["district-prices"],
+    queryFn: getDistrictPrices,
+    staleTime: QUERY_STALE.hub,
   });
 
   const insight = insightQuery.data;
@@ -116,6 +123,21 @@ export default function DistrictHub() {
             ))}
           </div>
         </section>
+
+        <motion.section variants={revealItem}>
+          <SectionHeader
+            eyebrow={t("districtHub.priceMapEyebrow", "District price map")}
+            title={t("districtHub.priceMapTitle", "Sri Lanka price landscape")}
+            className="mb-8"
+          />
+          <DistrictPriceHeatmap
+            data={districtPricesQuery.data ?? []}
+            highlightDistrict={canonicalDistrict}
+            isLoading={districtPricesQuery.isPending}
+            isError={districtPricesQuery.isError}
+            onRetry={() => districtPricesQuery.refetch()}
+          />
+        </motion.section>
 
         {insight && insight.top_models.length > 0 && (
           <motion.section variants={revealItem}>

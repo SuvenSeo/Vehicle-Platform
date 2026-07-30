@@ -97,13 +97,33 @@ def create_alert(
         )
 
     notify_phone = (payload.notify_phone or "").strip() or None
-    # WhatsApp notify is a Pro surface — reject free-plan attempts even if the
-    # client bypasses the UI and posts notify_phone directly.
-    if notify_phone and live is not None and is_free_browse_plan(live.get("plan"), role=live.get("role")):
-        raise HTTPException(
-            status_code=403,
-            detail="WhatsApp alert notifications require a Pro plan.",
-        )
+    notify_email = (payload.notify_email or "").strip() or None
+    notify_telegram_chat_id = (payload.notify_telegram_chat_id or "").strip() or None
+    notify_channels = (payload.notify_channels or "").strip() or None
+
+    # WhatsApp, email, and Telegram notifications are Pro surfaces — reject
+    # free-plan attempts even if the client bypasses the UI.
+    if live is not None and is_free_browse_plan(live.get("plan"), role=live.get("role")):
+        if notify_phone:
+            raise HTTPException(
+                status_code=403,
+                detail="WhatsApp alert notifications require a Pro plan.",
+            )
+        if notify_email:
+            raise HTTPException(
+                status_code=403,
+                detail="Email alert notifications require a Pro plan.",
+            )
+        if notify_telegram_chat_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Telegram alert notifications require a Pro plan.",
+            )
+        if notify_channels:
+            raise HTTPException(
+                status_code=403,
+                detail="Multi-channel alert notifications require a Pro plan.",
+            )
 
     alert = MarketAlert(
         user_token=token,
@@ -112,6 +132,9 @@ def create_alert(
         max_price=payload.max_price if payload.max_price and payload.max_price > 0 else None,
         district=(payload.district or "").strip() or None,
         notify_phone=notify_phone,
+        notify_email=notify_email,
+        notify_telegram_chat_id=notify_telegram_chat_id,
+        notify_channels=notify_channels,
     )
     db.add(alert)
     db.commit()

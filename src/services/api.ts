@@ -172,6 +172,13 @@ export interface ChatListingResult {
   external_url?: string | null;
 }
 
+export interface ChatWebSource {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string;
+}
+
 export interface CustomVehicleComparable {
   id: number;
   title: string;
@@ -213,6 +220,20 @@ export interface ListingSourceStat {
   source: string;
   label: string;
   count: number;
+}
+
+export interface NhtsaModel {
+  make: string;
+  model: string;
+  make_id: number | null;
+  model_id: number | null;
+  source: string;
+}
+
+export interface NhtsaModelsResult {
+  make: string;
+  count: number;
+  models: NhtsaModel[];
 }
 
 export interface ListingSearchSuggestion {
@@ -653,6 +674,7 @@ function normalizeDistrictPricesPayload(data: JsonRecord): DistrictPrice[] {
     return {
       district: String(p.district || ""),
       avg_price: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? 0,
+      median_price: toNumberOrNull(p.median_price_lkr ?? p.median_price) ?? undefined,
       listing_count: Number(p.count ?? p.listing_count) || 0,
       lat: toNumberOrNull(p.lat) ?? 0,
       lng: toNumberOrNull(p.lng) ?? 0,
@@ -1985,6 +2007,9 @@ export interface AlertCreateInput {
   max_price?: number;
   district?: string;
   notify_phone?: string;
+  notify_email?: string;
+  notify_telegram_chat_id?: string;
+  notify_channels?: string;
 }
 
 export interface ServerMarketAlert {
@@ -1995,6 +2020,9 @@ export interface ServerMarketAlert {
   max_price: number | null;
   district: string | null;
   notify_phone?: string | null;
+  notify_email?: string | null;
+  notify_telegram_chat_id?: string | null;
+  notify_channels?: string | null;
   active: boolean;
   created_at: string;
 }
@@ -2056,6 +2084,44 @@ export const deleteAlert = async (token: string, id: number): Promise<void> => {
 export const matchAlerts = async (token: string): Promise<AlertMatchResponse> => {
   if (!token) return { results: [], checked_at: new Date().toISOString() };
   return fetchJSON<AlertMatchResponse>("/alerts/match", { token });
+};
+
+// ---------------------------------------------------------------------------
+// Notifications — in-app notification center (poll-based)
+// ---------------------------------------------------------------------------
+
+export interface UserNotification {
+  id: number;
+  user_token: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+export const getNotifications = async (): Promise<UserNotification[]> => {
+  return fetchJSON<UserNotification[]>("/notifications", undefined, authHeaders());
+};
+
+export const markNotificationRead = async (id: number): Promise<UserNotification> => {
+  return postJSON<UserNotification>(`/notifications/${id}/read`, {}, authHeaders());
+};
+
+export const markAllNotificationsRead = async (): Promise<{ marked_read: number }> => {
+  return postJSON<{ marked_read: number }>("/notifications/read-all", {}, authHeaders());
+};
+
+// ---------------------------------------------------------------------------
+// Compare page helpers
+// ---------------------------------------------------------------------------
+
+export const getListingsBatch = async (ids: number[]): Promise<CarListing[]> => {
+  if (ids.length === 0) return [];
+  const results = await Promise.allSettled(ids.map((id) => getListing(id)));
+  return results
+    .filter((r): r is PromiseFulfilledResult<CarListing> => r.status === "fulfilled")
+    .map((r) => r.value);
 };
 
 function normalizeFuelMixData(data: JsonRecord): FuelMixData {
@@ -2265,6 +2331,16 @@ export const sendChatMessage = async (
           }))
           .filter((row: ChatListingResult) => Number.isFinite(row.id) && row.id > 0)
       : [],
+    web_sources: Array.isArray(data?.web_sources)
+      ? data.web_sources
+          .map((row: JsonRecord) => ({
+            title: String(row?.title || ""),
+            url: String(row?.url || ""),
+            snippet: String(row?.snippet || ""),
+            source: String(row?.source || ""),
+          }))
+          .filter((row: ChatWebSource) => Boolean(row.url))
+      : [],
   };
 };
 
@@ -2370,6 +2446,7 @@ export interface PermitInfo {
   permit_name: string;
   permit_type: string;
   market_price_lkr: number;
+  updated_at?: string | null;
 }
 
 export interface MacroContext {
@@ -2435,6 +2512,16 @@ export const calculateTco = async (input: TcoInput): Promise<TcoResult> => {
 export const getPermits = async (): Promise<PermitInfo[]> => {
   const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
   return Array.isArray(data) ? data : [];
+};
+
+export const getNhtsaModels = async (make: string): Promise<NhtsaModelsResult> => {
+  const params: QueryParams = { make };
+  const data = await fetchJSON<NhtsaModelsResult>("/listings/nhtsa-models", params);
+  return {
+    make: String(data?.make ?? make),
+    count: Number(data?.count ?? 0),
+    models: Array.isArray(data?.models) ? data.models : [],
+  };
 };
 
 export const getMacroContext = async (): Promise<MacroContext> => {
