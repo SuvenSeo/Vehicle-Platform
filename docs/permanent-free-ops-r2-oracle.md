@@ -3,6 +3,16 @@
 Motormila burns free Neon/Supabase because **public browsing hits live Postgres**.
 The durable $0 path is: **R2 for public reads**, DB only for scrapes/auth/alerts.
 
+> **WARNING — Vercel Git deploys omit gitignored snapshot JSON.**  
+> `public/snapshots/latest/*.json` is gitignored, so every GitHub → Vercel
+> deploy from `main` ships **without** those files. With
+> `VITE_SNAPSHOT_ONLY=true`, the SPA then serves HTML for snapshot URLs and
+> the site breaks. After every `main` deploy you must either:  
+> **(a)** run `bash scripts/redeploy-prod-with-snapshots.sh` (or
+> `npx vercel deploy --prod`) from a tree that already has the snapshot
+> JSON, or **(b)** host snapshots on R2 and point `VITE_SNAPSHOT_BASE_URL`
+> there. Prefer (b) long-term.
+
 ## ASAP checklist (do in order)
 
 ### 1. Stop DB burners
@@ -40,7 +50,9 @@ SNAPSHOT_EXPORT_SECRET=… node scripts/pull-vercel-snapshots.mjs
 # Writes public/snapshots/latest/*.json (gitignored), including multi-part catalog
 bash scripts/apply-snapshot-vercel-env.sh   # sets VITE_SNAPSHOT_BASE_URL + VITE_SNAPSHOT_ONLY
 # Deploy the working tree so /snapshots/latest/* is served same-origin
+bash scripts/redeploy-prod-with-snapshots.sh
 ```
+
 
 `VITE_SNAPSHOT_BASE_URL` for this path:
 `https://motormila.vercel.app/snapshots/latest`
