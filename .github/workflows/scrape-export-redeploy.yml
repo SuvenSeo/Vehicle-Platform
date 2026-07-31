@@ -1,0 +1,287 @@
+# Scrape → refresh public snapshots → optional Vercel redeploy
+#
+# Manual only (no cron). Keeps free-tier egress under control by:
+#   1) scraping one source (default: ikman)
+#   2) rebuilding /snapshots for the public SPA
+#   3) redeploying production WITH gitignored snapshot JSON (if VERCEL_TOKEN set)
+#
+# Walkthrough: docs/scrape-export-redeploy-walkthrough.md
+
+name: Scrape → Export → Redeploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Scrape source (or 'none' to skip scrape / export-only)"
+        type: choice
+        options:
+          - ikman
+          - riyasewana
+          - none
+          - patpat
+          - autolanka
+          - saleme
+          - autodirect
+          - autostream
+          - carshop
+          - riyahub
+          - dimo
+          - hitad
+          - cartivate
+          - auto-lanka
+        default: ikman
+      max_pages:
+        description: "Max pages for the selected source (keep small on free egress)"
+        type: string
+        default: "20"
+      refresh_catalog:
+        description: "Rebuild full listing-catalog (heavy DB read). Turn off for stats-only refresh."
+        type: boolean
+        default: true
+      redeploy:
+        description: "Redeploy motormila.vercel.app with refreshed snapshots (needs VERCEL_TOKEN)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: scrape-export-redeploy
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    if: ${{ inputs.source != 'none' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ensure schema
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: python -c "from db.session import init_db; init_db(); print('Schema ready.')"
+
+      - name: Count before
+        env:
+          SCRAPE_SOURCE: ${{ inputs.source }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import text
+          from db.session import cold_engine
+          source = os.environ["SCRAPE_SOURCE"]
+          with cold_engine.connect() as c:
+              total = c.execute(
+                  text("select count(*) from car_listings where source=:s and coalesce(is_active,true)=true"),
+                  {"s": source},
+              ).scalar()
+              print(f"{source}_active_before={total}")
+          PY
+
+      - name: Run scraper — ${{ inputs.source }}
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          SCRAPE_PROFILE: "all"
+          SCRAPE_ENABLED_SOURCES: ${{ inputs.source }}
+          RUN_SCRAPERS: "true"
+          RUN_MARKET_ANALYSIS: "false"
+          RUN_MARKET_SIGNALS: "false"
+          RUN_LISTING_LIFECYCLE: "false"
+          RUN_OUTLIER_DETECTION: "false"
+          SCRAPE_MAX_PAGES: ${{ inputs.max_pages }}
+          SCRAPE_MAX_PAGES_IKMAN: ${{ inputs.max_pages }}
+          SCRAPE_MAX_PAGES_RIYASEWANA: ${{ inputs.max_pages }}
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "5400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "5400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "5400"
+          IKMAN_SCRAPE_MODE: "api"
+        run: python run_sync.py
+
+      - name: Count after
+        if: always()
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          SCRAPE_SOURCE: ${{ inputs.source }}
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy import text
+          from db.session import cold_engine
+          source = os.environ["SCRAPE_SOURCE"]
+          with cold_engine.connect() as c:
+              total = c.execute(
+                  text("select count(*) from car_listings where source=:s and coalesce(is_active,true)=true"),
+                  {"s": source},
+              ).scalar()
+              recent = c.execute(
+                  text("select count(*) from car_listings where source=:s and scraped_at > now() - interval '2 hours'"),
+                  {"s": source},
+              ).scalar()
+              print(f"{source}_active_after={total}")
+              print(f"{source}_scraped_last_2h={recent}")
+          PY
+
+  refresh-snapshots:
+    runs-on: ubuntu-latest
+    needs: [scrape]
+    if: ${{ always() && (inputs.source == 'none' || needs.scrape.result == 'success') }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend deps (DB export fallback)
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Seed existing catalog from production (stats-only refresh)
+        if: ${{ inputs.refresh_catalog == false }}
+        run: |
+          set -e
+          mkdir -p public/snapshots/latest
+          base='https://motormila.vercel.app/snapshots/latest'
+          curl -fsSL "$base/listing-catalog.json" -o public/snapshots/latest/listing-catalog.json
+          # If manifest has parts, pull them too.
+          python3 - <<'PY'
+          import json, urllib.request, pathlib
+          root = pathlib.Path("public/snapshots/latest")
+          manifest = json.loads((root / "listing-catalog.json").read_text())
+          parts = manifest.get("parts") or []
+          base = "https://motormila.vercel.app/snapshots/latest"
+          for name in parts:
+              url = f"{base}/{name}"
+              dest = root / name
+              print(f"fetch {url}")
+              urllib.request.urlretrieve(url, dest)
+          print("catalog seed ok")
+          PY
+
+      - name: Refresh via Vercel snapshot export API
+        id: vercel_export
+        continue-on-error: true
+        env:
+          SNAPSHOT_EXPORT_SECRET: ${{ secrets.SNAPSHOT_EXPORT_SECRET }}
+          SKIP_LISTINGS: ${{ inputs.refresh_catalog == false && '1' || '0' }}
+        run: |
+          if [ -z "${SNAPSHOT_EXPORT_SECRET}" ]; then
+            echo "SNAPSHOT_EXPORT_SECRET not set — will try DB export fallback."
+            exit 1
+          fi
+          node scripts/pull-vercel-snapshots.mjs
+
+      - name: Fallback — export from HOT_DATABASE_URL
+        if: steps.vercel_export.outcome != 'success'
+        working-directory: backend
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          if [ -z "${HOT_DATABASE_URL}" ]; then
+            echo "ERROR: HOT_DATABASE_URL secret missing; cannot export snapshots."
+            exit 1
+          fi
+          python export_public_snapshots.py --output ../public/snapshots/latest
+          node ../scripts/split-listing-catalog.mjs ../public/snapshots/latest/listing-catalog.json
+
+      - name: Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-snapshots-latest-${{ github.run_id }}
+          path: public/snapshots/latest/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Optional R2 upload
+        continue-on-error: true
+        working-directory: backend
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ secrets.R2_PREFIX }}
+          SNAPSHOT_SOURCE_DIR: ../public/snapshots/latest
+        run: |
+          if [ -z "${R2_ACCOUNT_ID}" ] || [ -z "${R2_ACCESS_KEY_ID}" ] || [ -z "${R2_SECRET_ACCESS_KEY}" ] || [ -z "${R2_BUCKET}" ]; then
+            echo "R2 secrets not fully configured — skipping R2 upload."
+            exit 0
+          fi
+          pip install -q boto3
+          python upload_snapshots_r2.py
+
+  redeploy:
+    runs-on: ubuntu-latest
+    needs: [refresh-snapshots]
+    if: ${{ always() && inputs.redeploy && needs.refresh-snapshots.result == 'success' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-snapshots-latest-${{ github.run_id }}
+          path: public/snapshots/latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Redeploy production with snapshots
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "::warning::VERCEL_TOKEN not set. Snapshots are in the workflow artifact;"
+            echo "download it and run: bash scripts/redeploy-prod-with-snapshots.sh"
+            echo "See docs/scrape-export-redeploy-walkthrough.md"
+            exit 0
+          fi
+          bash scripts/redeploy-prod-with-snapshots.sh
+
+      - name: Verify production snapshots
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "Skip verify — no VERCEL_TOKEN (manual redeploy path)."
+            exit 0
+          fi
+          sleep 8
+          ctype=$(curl -sI 'https://motormila.vercel.app/snapshots/latest/stats-summary.json' \
+            | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}')
+          echo "content-type=$ctype"
+          echo "$ctype" | grep -qi 'application/json' || {
+            echo "ERROR: stats-summary.json is not JSON after deploy"
+            exit 1
+          }
+          curl -s 'https://motormila.vercel.app/snapshots/latest/stats-summary.json' | head -c 240
+          echo

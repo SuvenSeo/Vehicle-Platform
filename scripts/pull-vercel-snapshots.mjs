@@ -218,6 +218,13 @@ async function main() {
   }
 
   // --- paginated listing catalog ---
+  // Set SKIP_LISTINGS=1 to refresh only the small JSON files (faster / less egress).
+  if (String(process.env.SKIP_LISTINGS || '').trim() === '1') {
+    console.log('\nSKIP_LISTINGS=1 — leaving listing-catalog*.json unchanged.');
+    console.log(`\nDone. Snapshot files written to ${OUT_DIR}\n`);
+    return;
+  }
+
   console.log('\nListing catalog (paginated, limit=1000 per page):');
   const allItems = [];
   let cursor = null;
