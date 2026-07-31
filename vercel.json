@@ -20,6 +20,14 @@
       "destination": "/index.html"
     }
   ],
+  "functions": {
+    "api/internal-scrape.js": {
+      "maxDuration": 60
+    },
+    "api/internal-snapshot-export.js": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
