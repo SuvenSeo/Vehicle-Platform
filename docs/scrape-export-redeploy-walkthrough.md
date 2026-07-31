@@ -28,12 +28,18 @@ Repo → **Settings → Billing** (or org billing) → raise spending limit / fi
 | `HOT_DATABASE_URL` | Scrape + DB export fallback | Already used by other scrape workflows |
 | `SNAPSHOT_EXPORT_SECRET` | Preferred snapshot refresh | Same value as Vercel env `SNAPSHOT_EXPORT_SECRET` |
 | `VERCEL_TOKEN` | Auto production redeploy | [Vercel → Account → Tokens](https://vercel.com/account/tokens) |
-| `VERCEL_ORG_ID` | Auto redeploy | `npx vercel project ls` / project settings |
-| `VERCEL_PROJECT_ID` | Auto redeploy | Project settings → General |
+| `VERCEL_ORG_ID` | Auto redeploy | `team_mE6R9KnF9M1zrHLsjG0bTCvG` |
+| `VERCEL_PROJECT_ID` | Auto redeploy | `prj_6O1DYZrpoq2O2hAxwstHGolvFf9y` |
 | `R2_*` | Optional R2 upload | Only if you already set up Cloudflare R2 |
 
-If `VERCEL_TOKEN` is missing, the workflow still scrapes + uploads a **snapshot
-artifact** — you download it and run locally:
+`HOT_DATABASE_URL` should already exist (other scrape workflows use it).
+
+Add the three Vercel secrets under  
+**Repo → Settings → Secrets and variables → Actions → New repository secret**.
+
+Also add `SNAPSHOT_EXPORT_SECRET` with the **same value** already set on Vercel
+(Project → Settings → Environment Variables). Without it, the workflow falls
+back to a direct DB export (more egress).
 
 ```bash
 # unzip artifact into public/snapshots/latest/
