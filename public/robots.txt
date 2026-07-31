@@ -13,5 +13,5 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://vehicle-platform-one.vercel.app/sitemap.xml
-Sitemap: https://vehicle-platform-one.vercel.app/api/sitemap-listings
+Sitemap: https://motormila.vercel.app/sitemap.xml
+Sitemap: https://motormila.vercel.app/api/sitemap-listings

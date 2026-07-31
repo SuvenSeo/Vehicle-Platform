@@ -6,7 +6,7 @@
 // the SPA. The page also meta-refreshes to the SPA route as a fallback for
 // anything that renders it.
 
-const SITE_ORIGIN = "https://vehicle-platform-one.vercel.app";
+const SITE_ORIGIN = "https://motormila.vercel.app";
 const DEFAULT_BACKEND = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const FETCH_TIMEOUT_MS = 8000;
 

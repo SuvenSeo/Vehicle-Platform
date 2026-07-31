@@ -1,7 +1,7 @@
 // Chunked dynamic sitemap for /listing/:id pages.
 // Without ?page= returns a sitemap index; ?page=N returns one urlset chunk.
 
-const SITE_ORIGIN = "https://vehicle-platform-one.vercel.app";
+const SITE_ORIGIN = "https://motormila.vercel.app";
 const DEFAULT_BACKEND = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const PAGE_SIZE = 5000;
 const FETCH_TIMEOUT_MS = 9000;

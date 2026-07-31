@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/</loc>
+    <loc>https://motormila.vercel.app/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/trends</loc>
+    <loc>https://motormila.vercel.app/trends</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/estimate</loc>
+    <loc>https://motormila.vercel.app/estimate</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/calculator</loc>
+    <loc>https://motormila.vercel.app/calculator</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/best-picks</loc>
+    <loc>https://motormila.vercel.app/best-picks</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/map</loc>
+    <loc>https://motormila.vercel.app/map</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/ev-hub</loc>
+    <loc>https://motormila.vercel.app/ev-hub</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/blogs</loc>
+    <loc>https://motormila.vercel.app/blogs</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/dealer</loc>
+    <loc>https://motormila.vercel.app/dealer</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -49,27 +49,27 @@
   <!-- e.g. /cars/toyota/prius, /cars/honda/fit, /cars/suzuki/alto -->
   <!-- These are dynamically rendered; add high-volume make-model combos here for crawling -->
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/cars/toyota/prius</loc>
+    <loc>https://motormila.vercel.app/cars/toyota/prius</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/cars/honda/fit</loc>
+    <loc>https://motormila.vercel.app/cars/honda/fit</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/cars/toyota/aqua</loc>
+    <loc>https://motormila.vercel.app/cars/toyota/aqua</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/cars/suzuki/alto</loc>
+    <loc>https://motormila.vercel.app/cars/suzuki/alto</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vehicle-platform-one.vercel.app/cars/honda/vezel</loc>
+    <loc>https://motormila.vercel.app/cars/honda/vezel</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
