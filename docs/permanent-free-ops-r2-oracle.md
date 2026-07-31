@@ -15,6 +15,13 @@ The durable $0 path is: **R2 for public reads**, DB only for scrapes/auth/alerts
 
 ## ASAP checklist (do in order)
 
+### 0. Manual scrape → export → redeploy (wired)
+Use GitHub Action **Scrape → Export → Redeploy**  
+(`.github/workflows/scrape-export-redeploy.yml`).  
+Step-by-step UI guide: [`docs/scrape-export-redeploy-walkthrough.md`](./scrape-export-redeploy-walkthrough.md).
+
+Start with `source=ikman`, `max_pages=10–20`, then hard-refresh the site.
+
 ### 1. Stop DB burners
 Already paused: `daily-scrape`, `midday-top-sources-scrape`, `keep-hf-awake`.  
 Also paused: `pipeline-monitor` (hourly `/health` + `/pipeline/status`).

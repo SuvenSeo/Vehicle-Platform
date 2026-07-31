@@ -2,6 +2,11 @@ name: One-shot Ikman Multi-Vehicle Scrape
 
 # Temporary/manual volume check after multi-vehicle scraper land.
 # Triggered by touching .github/triggers/scrape-ikman or workflow_dispatch.
+#
+# Prefer the full loop (scrape + snapshot refresh + Vercel redeploy):
+#   Actions → "Scrape → Export → Redeploy"
+#   docs/scrape-export-redeploy-walkthrough.md
+
 
 on:
   push:
