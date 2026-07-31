@@ -6,13 +6,71 @@
 // or ?token=<SNAPSHOT_EXPORT_SECRET>
 //
 // Query:
-//   kind=stats-summary|live-market|district-prices|listing-makes|listing-sources|listings|ping
+//   kind=stats-summary|live-market|district-prices|district-velocity|
+//        dashboard-insights|price-drops|listing-makes|listing-sources|listings|ping
 //   cursor=<int> limit=<int>  (listings only)
 
 import pg from "pg";
 const { Client } = pg;
 
 const MIN_PRICE = 100_000;
+
+/** Sri Lanka district centroids — mirrored from backend/app/utils/districts.py */
+const SL_DISTRICT_COORDS = {
+  Colombo: { lat: 6.9271, lng: 79.8612 },
+  Gampaha: { lat: 7.084, lng: 80.0098 },
+  Kalutara: { lat: 6.5854, lng: 79.9607 },
+  Kandy: { lat: 7.2906, lng: 80.6337 },
+  Matale: { lat: 7.4675, lng: 80.6234 },
+  "Nuwara Eliya": { lat: 6.9497, lng: 80.7891 },
+  Galle: { lat: 6.0535, lng: 80.221 },
+  Matara: { lat: 5.9549, lng: 80.555 },
+  Hambantota: { lat: 6.1243, lng: 81.1185 },
+  Jaffna: { lat: 9.6615, lng: 80.0255 },
+  Kilinochchi: { lat: 9.3803, lng: 80.377 },
+  Mannar: { lat: 8.981, lng: 79.9044 },
+  Vavuniya: { lat: 8.7514, lng: 80.4971 },
+  Batticaloa: { lat: 7.731, lng: 81.6747 },
+  Ampara: { lat: 7.2964, lng: 81.6747 },
+  Trincomalee: { lat: 8.5874, lng: 81.2152 },
+  Kurunegala: { lat: 7.4863, lng: 80.3647 },
+  Puttalam: { lat: 8.0362, lng: 79.8283 },
+  Anuradhapura: { lat: 8.3114, lng: 80.4037 },
+  Polonnaruwa: { lat: 7.9403, lng: 81.0188 },
+  Badulla: { lat: 6.9934, lng: 81.055 },
+  Monaragala: { lat: 6.8728, lng: 81.3507 },
+  Ratnapura: { lat: 6.6828, lng: 80.3992 },
+  Kegalle: { lat: 7.2513, lng: 80.3464 },
+  "Sri Lanka": { lat: 7.8731, lng: 80.7718 },
+};
+
+const DISTRICT_ALIASES = {
+  nuwaraeliya: "Nuwara Eliya",
+  "nuwara eliya": "Nuwara Eliya",
+  "gampaha district": "Gampaha",
+  "colombo district": "Colombo",
+  "kegalle district": "Kegalle",
+};
+
+function titleCaseDistrict(value) {
+  return String(value)
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+/** Normalize raw district strings toward SL_DISTRICT_COORDS keys. */
+function normalizeDistrictName(value) {
+  if (value == null) return null;
+  const cleaned = String(value).trim().replace(/-/g, " ").replace(/\s+/g, " ");
+  if (!cleaned) return null;
+  const key = cleaned.toLowerCase();
+  if (DISTRICT_ALIASES[key]) return DISTRICT_ALIASES[key];
+  const title = titleCaseDistrict(cleaned);
+  return Object.prototype.hasOwnProperty.call(SL_DISTRICT_COORDS, title) ? title : null;
+}
 
 function dbUrl() {
   return (
@@ -96,6 +154,20 @@ export default async function handler(req, res) {
         `SELECT COUNT(DISTINCT district)::int AS c FROM car_listings
          WHERE COALESCE(is_active, true) = true AND district IS NOT NULL AND district <> ''`,
       );
+      const goodDeals = await client.query(
+        `SELECT COUNT(*)::int AS c FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND deal_score IS NOT NULL AND deal_score >= 8`,
+      );
+      const sources = await client.query(
+        `SELECT COUNT(DISTINCT source)::int AS c FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND source IS NOT NULL AND source <> ''`,
+      );
+      const lastUpdated = await client.query(
+        `SELECT MAX(scraped_at) AS ts FROM car_listings
+         WHERE scraped_at IS NOT NULL`,
+      );
       return json(res, 200, {
         total_listings: total.rows[0]?.c || 0,
         priced_listings: priced.rows[0]?.c || 0,
@@ -104,6 +176,9 @@ export default async function handler(req, res) {
         price_change_mom: null,
         top_makes: makes.rows,
         district_count: districts.rows[0]?.c || 0,
+        good_deals_count: goodDeals.rows[0]?.c || 0,
+        source_count: sources.rows[0]?.c || 0,
+        last_updated: lastUpdated.rows[0]?.ts || null,
         generated_at: new Date().toISOString(),
       });
     }
@@ -139,16 +214,209 @@ export default async function handler(req, res) {
          ORDER BY count DESC`,
         [MIN_PRICE],
       );
+
+      // Optional cheap top_make per raw district (mode by count).
+      const topMakeRows = await client.query(
+        `SELECT district, make, COUNT(*)::int AS c
+         FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND district IS NOT NULL AND district <> ''
+           AND make IS NOT NULL AND make <> ''
+           AND price_lkr >= $1
+         GROUP BY district, make`,
+        [MIN_PRICE],
+      );
+      const topMakeByRaw = new Map();
+      for (const row of topMakeRows.rows) {
+        const prev = topMakeByRaw.get(row.district);
+        if (!prev || row.c > prev.c) {
+          topMakeByRaw.set(row.district, { make: row.make, c: row.c });
+        }
+      }
+
+      // Merge alias/case variants into canonical districts.
+      const agg = new Map();
+      for (const r of rows.rows) {
+        const district = normalizeDistrictName(r.district);
+        if (!district || district === "Sri Lanka") continue;
+        const coords = SL_DISTRICT_COORDS[district];
+        if (!coords) continue;
+        const count = Number(r.count) || 0;
+        const avg = Number(r.avg_price_lkr) || 0;
+        const median = Number(r.median_price_lkr) || avg;
+        const topMake = topMakeByRaw.get(r.district)?.make || null;
+        const existing = agg.get(district);
+        if (!existing) {
+          agg.set(district, {
+            district,
+            count,
+            avg_price_lkr: avg,
+            median_price_lkr: median,
+            lat: coords.lat,
+            lng: coords.lng,
+            top_make: topMake,
+            _avgWeight: count,
+            _medianWeight: count,
+            _topMakeCounts: topMake ? { [topMake]: count } : {},
+          });
+          continue;
+        }
+        const combined = existing.count + count;
+        existing.avg_price_lkr =
+          combined > 0
+            ? (existing.avg_price_lkr * existing._avgWeight + avg * count) / combined
+            : 0;
+        existing.median_price_lkr =
+          combined > 0
+            ? (existing.median_price_lkr * existing._medianWeight + median * count) / combined
+            : 0;
+        existing.count = combined;
+        existing._avgWeight = combined;
+        existing._medianWeight = combined;
+        if (topMake) {
+          existing._topMakeCounts[topMake] = (existing._topMakeCounts[topMake] || 0) + count;
+        }
+      }
+
+      const points = [...agg.values()]
+        .map((p) => {
+          let top_make = p.top_make;
+          const counts = p._topMakeCounts || {};
+          const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+          if (ranked.length) top_make = ranked[0][0];
+          return {
+            district: p.district,
+            count: p.count,
+            avg_price_lkr: p.avg_price_lkr,
+            median_price_lkr: p.median_price_lkr,
+            lat: p.lat,
+            lng: p.lng,
+            top_make: top_make || null,
+          };
+        })
+        .sort((a, b) => b.count - a.count);
+
+      return json(res, 200, { points });
+    }
+
+    if (kind === "district-velocity") {
+      const rows = await client.query(
+        `SELECT district,
+                COUNT(*)::int AS listing_count,
+                COUNT(*) FILTER (
+                  WHERE scraped_at >= NOW() - INTERVAL '7 days'
+                )::int AS new_7d_count
+         FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND district IS NOT NULL AND district <> ''
+         GROUP BY district`,
+      );
+
+      const agg = new Map();
+      for (const r of rows.rows) {
+        const district = normalizeDistrictName(r.district);
+        if (!district || district === "Sri Lanka") continue;
+        const coords = SL_DISTRICT_COORDS[district];
+        if (!coords) continue;
+        const listing_count = Number(r.listing_count) || 0;
+        const new_7d_count = Number(r.new_7d_count) || 0;
+        const existing = agg.get(district);
+        if (!existing) {
+          agg.set(district, {
+            district,
+            lat: coords.lat,
+            lng: coords.lng,
+            listing_count,
+            new_7d_count,
+          });
+        } else {
+          existing.listing_count += listing_count;
+          existing.new_7d_count += new_7d_count;
+        }
+      }
+
+      const points = [...agg.values()]
+        .map((p) => ({
+          district: p.district,
+          lat: p.lat,
+          lng: p.lng,
+          listing_count: p.listing_count,
+          new_7d_count: p.new_7d_count,
+          velocity_score:
+            Math.round((p.new_7d_count / Math.max(p.listing_count, 1)) * 10000) / 10000,
+        }))
+        .sort((a, b) => b.listing_count - a.listing_count);
+
       return json(res, 200, {
-        points: rows.rows.map((r) => ({
-          district: r.district,
-          count: r.count,
-          avg_price_lkr: r.avg_price_lkr,
-          median_price_lkr: r.median_price_lkr,
-          lat: null,
-          lng: null,
-        })),
+        points,
+        generated_at: new Date().toISOString(),
       });
+    }
+
+    if (kind === "dashboard-insights") {
+      const new24h = await client.query(
+        `SELECT COUNT(*)::int AS c FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND scraped_at >= NOW() - INTERVAL '24 hours'`,
+      );
+
+      const trending = await client.query(
+        `SELECT make, model,
+                COUNT(*)::int AS listing_count,
+                AVG(price_lkr)::float AS avg_price_lkr,
+                MAX(thumbnail_url) AS thumbnail_url
+         FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND make IS NOT NULL AND make <> ''
+           AND model IS NOT NULL AND model <> ''
+           AND price_lkr IS NOT NULL AND price_lkr >= $1
+         GROUP BY make, model
+         ORDER BY listing_count DESC
+         LIMIT 8`,
+        [MIN_PRICE],
+      );
+
+      const hotDeals = await client.query(
+        `SELECT id, make, model, year, district, source, price_lkr, deal_score, thumbnail_url
+         FROM car_listings
+         WHERE COALESCE(is_active, true) = true
+           AND deal_score IS NOT NULL AND deal_score >= 8
+           AND price_lkr IS NOT NULL AND price_lkr >= $1
+         ORDER BY deal_score DESC, scraped_at DESC NULLS LAST
+         LIMIT 12`,
+        [MIN_PRICE],
+      );
+
+      return json(res, 200, {
+        new_listings_24h: new24h.rows[0]?.c || 0,
+        segment_performance: [],
+        trending_models: trending.rows.map((r) => ({
+          make: r.make || "",
+          model: r.model || "",
+          listing_count: r.listing_count || 0,
+          avg_price_lkr: r.avg_price_lkr != null ? Number(r.avg_price_lkr) : 0,
+          movement_pct: null,
+          thumbnail_url: r.thumbnail_url || null,
+        })),
+        hot_deals: hotDeals.rows.map((r) => ({
+          id: r.id,
+          make: r.make || "",
+          model: r.model || "",
+          year: r.year != null ? Number(r.year) : 0,
+          district: r.district || null,
+          source: r.source || "unknown",
+          price_lkr: Number(r.price_lkr),
+          deal_score: r.deal_score != null ? Number(r.deal_score) : 0,
+          thumbnail_url: r.thumbnail_url || null,
+        })),
+        generated_at: new Date().toISOString(),
+      });
+    }
+
+    if (kind === "price-drops") {
+      // vehicle_price_history exists in prod, but a full LAG join + nested listing
+      // payload is heavy for this exporter; soft-empty is enough for snapshot UI.
+      return json(res, 200, { items: [] });
     }
 
     if (kind === "listing-makes") {
@@ -225,4 +493,4 @@ export default async function handler(req, res) {
       /* ignore */
     }
   }
-};
+}

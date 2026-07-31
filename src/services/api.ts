@@ -44,6 +44,7 @@ import type {
 import { normalizeVehicleImageUrlWithBase, pickVehicleImageUrl } from "@/lib/listingImage";
 import { formatPriceLkrMillions } from "@/lib/formatting";
 import { authHeaders } from "@/lib/authToken";
+import { districtCoords, normalizeDistrictName } from "@/data/districts";
 
 const DEFAULT_PRODUCTION_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const HF_COLD_START_TIMEOUT_MS = 60_000;
@@ -671,13 +672,20 @@ function normalizeDistrictPricesPayload(data: JsonRecord): DistrictPrice[] {
   const points = Array.isArray(data.points) ? data.points : [];
   return points.map((point): DistrictPrice => {
     const p = asJsonRecord(point);
+    const district = String(p.district || "");
+    const canonical = normalizeDistrictName(district) || district;
+    const coords = districtCoords(canonical);
+    const rawLat = toNumberOrNull(p.lat);
+    const rawLng = toNumberOrNull(p.lng);
+    const lat = rawLat && rawLat !== 0 ? rawLat : (coords?.lat ?? null);
+    const lng = rawLng && rawLng !== 0 ? rawLng : (coords?.lng ?? null);
     return {
-      district: String(p.district || ""),
+      district: canonical,
       avg_price: toNumberOrNull(p.avg_price_lkr ?? p.avg_price) ?? 0,
       median_price: toNumberOrNull(p.median_price_lkr ?? p.median_price) ?? undefined,
       listing_count: Number(p.count ?? p.listing_count) || 0,
-      lat: toNumberOrNull(p.lat) ?? 0,
-      lng: toNumberOrNull(p.lng) ?? 0,
+      lat: lat ?? Number.NaN,
+      lng: lng ?? Number.NaN,
       top_make: p?.top_make ? String(p.top_make) : undefined,
       top_model: p?.top_model ? String(p.top_model) : undefined,
       top_model_count: toNumberOrNull(p?.top_model_count) ?? undefined,
@@ -1093,7 +1101,14 @@ async function postJSON<T>(path: string, body: Record<string, unknown>, headers?
 
 export const getStats = async (): Promise<StatsOverview> => {
   const snapshot = await readSnapshot<JsonRecord>("stats-summary.json");
-  if (snapshot) return normalizeStatsOverview(snapshot);
+  if (snapshot) {
+    const stats = normalizeStatsOverview(snapshot);
+    if (stats.good_deals_count > 0) return stats;
+    const catalog = await getSnapshotListingCatalog();
+    if (!catalog) return stats;
+    const goodDeals = catalog.filter((row) => Number(row.deal_score || 0) >= 8).length;
+    return { ...stats, good_deals_count: goodDeals };
+  }
   if (SNAPSHOT_ONLY) refuseLiveApiFallback("stats summary");
 
   const data = await fetchJSON<JsonRecord>("/stats/summary");
@@ -1162,8 +1177,7 @@ export const getListing = async (id: string | number) => {
   return normalizeListing(data);
 };
 
-export const getPriceDrops = async (days = 7, limit = 12): Promise<PriceDropItem[]> => {
-  const data = await fetchJSON<JsonRecord>(`/listings/price-drops?days=${days}&limit=${limit}`);
+function normalizePriceDropItems(data: JsonRecord, limit = 12): PriceDropItem[] {
   if (!Array.isArray(data?.items)) return [];
   return data.items
     .map((row: unknown) => {
@@ -1176,7 +1190,17 @@ export const getPriceDrops = async (days = 7, limit = 12): Promise<PriceDropItem
         dropped_at: String(record?.dropped_at || ""),
       };
     })
-    .filter((item) => item.listing.id && item.drop_pct > 0);
+    .filter((item) => item.listing.id && item.drop_pct > 0)
+    .slice(0, limit);
+}
+
+export const getPriceDrops = async (days = 7, limit = 12): Promise<PriceDropItem[]> => {
+  const snapshot = await readSnapshot<JsonRecord>("price-drops.json");
+  if (snapshot) return normalizePriceDropItems(snapshot, limit);
+  if (SNAPSHOT_ONLY) return [];
+
+  const data = await fetchJSON<JsonRecord>(`/listings/price-drops?days=${days}&limit=${limit}`);
+  return normalizePriceDropItems(data, limit);
 };
 
 export const getListingHistoryReport = async (id: string | number): Promise<HistoryReport> => {
@@ -1316,25 +1340,68 @@ export const getDistrictPrices = async (): Promise<DistrictPrice[]> => {
   return normalizeDistrictPricesPayload(data);
 };
 
-export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
-  if (SNAPSHOT_ONLY) {
-    return { points: [], generated_at: new Date().toISOString() };
-  }
-  const raw = await fetchJSON<Record<string, unknown>>("/stats/district-velocity");
+function normalizeDistrictVelocityPayload(raw: Record<string, unknown>): DistrictVelocityData {
   const points: DistrictVelocityPoint[] = Array.isArray(raw?.points)
-    ? (raw.points as Record<string, unknown>[]).map((p) => ({
-        district: String(p?.district ?? ""),
-        lat: Number(p?.lat ?? 0),
-        lng: Number(p?.lng ?? 0),
-        listing_count: Math.round(Number(p?.listing_count ?? 0)),
-        new_7d_count: Math.round(Number(p?.new_7d_count ?? 0)),
-        velocity_score: Number(p?.velocity_score ?? 0),
-      }))
+    ? (raw.points as Record<string, unknown>[]).map((p) => {
+        const district = normalizeDistrictName(String(p?.district ?? "")) || String(p?.district ?? "");
+        const coords = districtCoords(district);
+        const rawLat = Number(p?.lat ?? 0);
+        const rawLng = Number(p?.lng ?? 0);
+        return {
+          district,
+          lat: rawLat && rawLat !== 0 ? rawLat : (coords?.lat ?? Number.NaN),
+          lng: rawLng && rawLng !== 0 ? rawLng : (coords?.lng ?? Number.NaN),
+          listing_count: Math.round(Number(p?.listing_count ?? 0)),
+          new_7d_count: Math.round(Number(p?.new_7d_count ?? 0)),
+          velocity_score: Number(p?.velocity_score ?? 0),
+        };
+      }).filter((p) => Boolean(p.district) && Number.isFinite(p.lat) && Number.isFinite(p.lng))
     : [];
   return {
     points,
     generated_at: String(raw?.generated_at ?? new Date().toISOString()),
   };
+}
+
+async function deriveDistrictVelocityFromCatalog(): Promise<DistrictVelocityData | null> {
+  const catalog = await getSnapshotListingCatalog();
+  if (!catalog || catalog.length === 0) return null;
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const byDistrict = new Map<string, { listing_count: number; new_7d_count: number }>();
+  for (const listing of catalog) {
+    const district = normalizeDistrictName(listing.district || "") || String(listing.district || "").trim();
+    if (!district || !districtCoords(district)) continue;
+    const entry = byDistrict.get(district) || { listing_count: 0, new_7d_count: 0 };
+    entry.listing_count += 1;
+    if (listingTimestamp(listing) >= weekAgo) entry.new_7d_count += 1;
+    byDistrict.set(district, entry);
+  }
+  const points: DistrictVelocityPoint[] = Array.from(byDistrict.entries()).map(([district, counts]) => {
+    const coords = districtCoords(district)!;
+    return {
+      district,
+      lat: coords.lat,
+      lng: coords.lng,
+      listing_count: counts.listing_count,
+      new_7d_count: counts.new_7d_count,
+      velocity_score: counts.new_7d_count / Math.max(counts.listing_count, 1),
+    };
+  });
+  return { points, generated_at: new Date().toISOString() };
+}
+
+export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
+  const snapshot = await readSnapshot<Record<string, unknown>>("district-velocity.json");
+  if (snapshot && Array.isArray(snapshot.points) && snapshot.points.length > 0) {
+    return normalizeDistrictVelocityPayload(snapshot);
+  }
+  const derived = await deriveDistrictVelocityFromCatalog();
+  if (derived) return derived;
+  if (SNAPSHOT_ONLY) {
+    return { points: [], generated_at: new Date().toISOString() };
+  }
+  const raw = await fetchJSON<Record<string, unknown>>("/stats/district-velocity");
+  return normalizeDistrictVelocityPayload(raw);
 };
 
 export const getMakes = async () => {
@@ -1636,10 +1703,77 @@ export const triggerPipelineJob = async (job: PipelineTriggerJob, adminKey?: str
   };
 };
 
+async function deriveDashboardInsightsFromCatalog(): Promise<DashboardInsights | null> {
+  const catalog = await getSnapshotListingCatalog();
+  if (!catalog || catalog.length === 0) return null;
+
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const newListings24h = catalog.filter((row) => listingTimestamp(row) >= dayAgo).length;
+
+  const hotDeals = [...catalog]
+    .filter((row) => Number(row.deal_score || 0) >= 8 && isPricedListing(row))
+    .sort((a, b) => Number(b.deal_score || 0) - Number(a.deal_score || 0))
+    .slice(0, 12)
+    .map((row) => ({
+      id: Number(row.id),
+      make: String(row.make || ""),
+      model: String(row.model || ""),
+      year: Number(row.year || 0),
+      district: row.district ? String(row.district) : null,
+      source: String(row.source || "unknown"),
+      price_lkr: Number(row.price_lkr || 0),
+      deal_score: Number(row.deal_score || 0),
+      thumbnail_url: row.thumbnail_url ? String(row.thumbnail_url) : null,
+    }));
+
+  const modelCounts = new Map<string, { make: string; model: string; listing_count: number; priceSum: number }>();
+  for (const row of catalog) {
+    const make = String(row.make || "").trim();
+    const model = String(row.model || "").trim();
+    if (!make || !model) continue;
+    const key = `${make}::${model}`;
+    const entry = modelCounts.get(key) || { make, model, listing_count: 0, priceSum: 0 };
+    entry.listing_count += 1;
+    const price = toNumberOrNull(row.price_lkr);
+    if (price !== null) entry.priceSum += price;
+    modelCounts.set(key, entry);
+  }
+  const trendingModels = Array.from(modelCounts.values())
+    .sort((a, b) => b.listing_count - a.listing_count)
+    .slice(0, 8)
+    .map((row) => ({
+      make: row.make,
+      model: row.model,
+      listing_count: row.listing_count,
+      avg_price_lkr: row.listing_count ? row.priceSum / row.listing_count : 0,
+      movement_pct: null as number | null,
+      thumbnail_url: null as string | null,
+    }));
+
+  return {
+    new_listings_24h: newListings24h,
+    segment_performance: [],
+    trending_models: trendingModels,
+    hot_deals: hotDeals,
+  };
+}
+
 export const getDashboardInsights = async (): Promise<DashboardInsights> => {
   const snapshot = await readSnapshot<Record<string, unknown>>("dashboard-insights.json");
-  if (snapshot) return normalizeDashboardInsights(snapshot);
-  if (SNAPSHOT_ONLY) refuseLiveApiFallback("dashboard insights");
+  if (snapshot) {
+    const normalized = normalizeDashboardInsights(snapshot);
+    if (normalized.hot_deals.length > 0 || normalized.trending_models.length > 0) {
+      return normalized;
+    }
+    const derived = await deriveDashboardInsightsFromCatalog();
+    if (derived) return derived;
+    return normalized;
+  }
+  if (SNAPSHOT_ONLY) {
+    const derived = await deriveDashboardInsightsFromCatalog();
+    if (derived) return derived;
+    refuseLiveApiFallback("dashboard insights");
+  }
 
   const data = await fetchJSON<Record<string, unknown>>("/stats/insights");
   return normalizeDashboardInsights(data);

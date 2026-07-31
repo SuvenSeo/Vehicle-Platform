@@ -153,8 +153,26 @@ const OPTIONAL_KINDS = [
     kind: 'dashboard-insights',
     file: 'dashboard-insights.json',
     default: {
-      insights: [],
+      new_listings_24h: 0,
+      segment_performance: [],
+      trending_models: [],
+      hot_deals: [],
       generated_at: new Date().toISOString(),
+    },
+  },
+  {
+    kind: 'district-velocity',
+    file: 'district-velocity.json',
+    default: {
+      points: [],
+      generated_at: new Date().toISOString(),
+    },
+  },
+  {
+    kind: 'price-drops',
+    file: 'price-drops.json',
+    default: {
+      items: [],
     },
   },
 ];
