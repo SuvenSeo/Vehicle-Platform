@@ -159,16 +159,14 @@ async function upsertListing(client, payload) {
   if (existing.rows.length) {
     await client.query(
       `UPDATE car_listings SET
-         title = $3, make = $4, model = $5, year = $6, price_lkr = $7, url = $8,
-         thumbnail_url = COALESCE($9, thumbnail_url), district = $10, city = $11,
-         mileage = COALESCE($12, mileage), fuel_type = COALESCE($13, fuel_type),
-         transmission = COALESCE($14, transmission), body_type = COALESCE($15, body_type),
-         condition = COALESCE($16, condition), vehicle_category = COALESCE($17, vehicle_category),
-         scraped_at = $18::timestamptz, last_seen_at = $18::timestamptz, is_active = true
-       WHERE id = $19`,
+         title = $1, make = $2, model = $3, year = $4, price_lkr = $5, url = $6,
+         thumbnail_url = COALESCE($7, thumbnail_url), district = $8, city = $9,
+         mileage = COALESCE($10, mileage), fuel_type = COALESCE($11, fuel_type),
+         transmission = COALESCE($12, transmission), body_type = COALESCE($13, body_type),
+         condition = COALESCE($14, condition), vehicle_category = COALESCE($15, vehicle_category),
+         scraped_at = $16::timestamptz, last_seen_at = $16::timestamptz, is_active = true
+       WHERE id = $17`,
       [
-        SOURCE,
-        payload.source_id,
         payload.title,
         payload.make,
         payload.model,
