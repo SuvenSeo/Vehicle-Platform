@@ -327,7 +327,7 @@ class TestBenchmarkUrlsEndpoint:
         client, _ = self._client()
         original_max = dealer._dealer_rate_limiter.max_requests
         dealer._dealer_rate_limiter.max_requests = 2
-        dealer._dealer_rate_limiter._buckets.clear()
+        dealer._dealer_rate_limiter.reset()
         try:
             for _ in range(2):
                 resp = client.post("/dealer/benchmark-urls", json={"urls": []})
@@ -336,4 +336,4 @@ class TestBenchmarkUrlsEndpoint:
             assert resp.status_code == 429
         finally:
             dealer._dealer_rate_limiter.max_requests = original_max
-            dealer._dealer_rate_limiter._buckets.clear()
+            dealer._dealer_rate_limiter.reset()

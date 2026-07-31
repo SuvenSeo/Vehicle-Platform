@@ -23,7 +23,7 @@ _NOW = datetime(2026, 7, 16, 10, 0)
 
 
 def setup_function():
-    b2b._b2b_rate_limiter._buckets.clear()
+    b2b._b2b_rate_limiter.reset()
 
 
 def _client_with_data(rows):

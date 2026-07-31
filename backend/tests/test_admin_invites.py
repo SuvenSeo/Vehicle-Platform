@@ -59,9 +59,9 @@ def client(monkeypatch):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    auth._login_rate_limiter._buckets.clear()
-    auth._me_rate_limiter._buckets.clear()
-    auth._signup_rate_limiter._buckets.clear()
+    auth._login_rate_limiter.reset()
+    auth._me_rate_limiter.reset()
+    auth._signup_rate_limiter.reset()
 
     with TestClient(app) as test_client:
         yield test_client

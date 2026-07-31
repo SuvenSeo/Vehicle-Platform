@@ -72,6 +72,11 @@ public/snapshots/latest/*.json
 .agents/
 .codex/
 .qoder/
+
+# Database snapshots & checkpoints (contain live data — never commit)
+backend/db_snapshots/
+backend/scrape_checkpoints/
+backend/rescue_exports/
 /PROJECT.md
 /ORIGINAL_REQUEST.md
 .env*

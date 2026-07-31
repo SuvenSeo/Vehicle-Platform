@@ -24,7 +24,7 @@ class DummyRequest:
 
 
 def setup_function():
-    feedback._feedback_rate_limiter._buckets.clear()
+    feedback._feedback_rate_limiter.reset()
 
 
 def test_create_feedback_persists_user_report():

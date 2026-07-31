@@ -82,7 +82,27 @@ def safe_host(url: str) -> str:
 
 
 def connect(url: str):
-    return psycopg2.connect(url, connect_timeout=15)
+    try:
+        return psycopg2.connect(url, connect_timeout=15)
+    except psycopg2.OperationalError:
+        # Fallback: parse URL components manually (handles dots in usernames
+        # like postgres.<project-ref> which psycopg2 DSN parsing chokes on).
+        parsed = urlparse(url)
+        user = parsed.username or ""
+        password = parsed.password or ""
+        host = parsed.hostname or ""
+        port = parsed.port or 5432
+        dbname = parsed.path.lstrip("/") if parsed.path else "postgres"
+        # Ensure postgres:// normalized already
+        if parsed.scheme == "postgres":
+            url = "postgresql://" + url[len("postgres://") :]
+        import urllib.parse
+        password = urllib.parse.unquote(password)
+        return psycopg2.connect(
+            host=host, port=port, dbname=dbname,
+            user=user, password=password,
+            connect_timeout=15,
+        )
 
 
 def quote_ident(name: str) -> str:

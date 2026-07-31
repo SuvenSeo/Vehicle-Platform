@@ -6,7 +6,7 @@ import uuid
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 from starlette.middleware.gzip import GZipMiddleware
 
@@ -131,13 +131,14 @@ if any(origin == "*" for origin in allow_origins):
         allow_origins=allow_origins,
     )
 
-# CORS configuration
+# CORS configuration — restrict to methods/headers actually used by the frontend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=allow_credentials,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Alert-Token", "X-Requested-With"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining"],
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -150,6 +151,8 @@ async def add_security_headers(request: Request, call_next):
     request.state.request_id = request_id
 
     response = await call_next(request)
+
+    # Security headers
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -167,6 +170,7 @@ async def add_security_headers(request: Request, call_next):
         for rl_name, rl_value in ratelimit_headers.items():
             response.headers[rl_name] = rl_value
     response.headers["X-Request-ID"] = request_id
+
     return response
 
 
@@ -210,6 +214,20 @@ async def health_check():
     if db_status != "ok":
         return JSONResponse(status_code=503, content=content)
     return content
+
+
+SECURITY_TXT = """\
+Contact: mailto:security@motormila.com
+Preferred-Languages: en
+Policy: https://motormila.vercel.app/security
+Expires: 2027-01-01T00:00:00.000Z
+"""
+
+
+@app.get("/.well-known/security.txt")
+async def security_txt():
+    return PlainTextResponse(SECURITY_TXT, media_type="text/plain")
+
 
 # Include API router
 app.include_router(api_router, prefix="/api/v1")

@@ -41,8 +41,8 @@ def _configure(monkeypatch, *, plan: str = "enterprise", subscription_status: st
 
 
 def setup_function():
-    auth._login_rate_limiter._buckets.clear()
-    auth._me_rate_limiter._buckets.clear()
+    auth._login_rate_limiter.reset()
+    auth._me_rate_limiter.reset()
 
 
 def test_login_rejected_when_not_configured(monkeypatch):

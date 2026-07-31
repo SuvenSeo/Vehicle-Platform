@@ -284,7 +284,10 @@ class DummyRequest:
 
 def setup_function():
     from app.api.v1.endpoints import chat
-    chat._chat_rate_limiter._buckets.clear()
+    from app.services.rate_limit import _InMemoryRateLimiter, _get_backend
+    backend = _get_backend()
+    if isinstance(backend, _InMemoryRateLimiter):
+        backend._buckets.clear()
 
 
 def test_chat_response_includes_web_sources_key(monkeypatch):

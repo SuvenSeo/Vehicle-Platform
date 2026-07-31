@@ -25,7 +25,7 @@ class DummyRequest:
 
 
 def setup_function():
-    chat._chat_rate_limiter._buckets.clear()
+    chat._chat_rate_limiter.reset()
 
 
 def _seed(db):

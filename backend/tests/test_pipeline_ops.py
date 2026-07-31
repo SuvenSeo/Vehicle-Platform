@@ -289,7 +289,7 @@ def test_pipeline_runs_endpoint_is_rate_limited():
     limiter = pipeline._pipeline_read_rate_limiter
     original_max_requests = limiter.max_requests
     original_window_seconds = limiter.window_seconds
-    limiter._buckets.clear()
+    limiter.reset()
     limiter.max_requests = 1
     limiter.window_seconds = 60
 
@@ -299,7 +299,7 @@ def test_pipeline_runs_endpoint_is_rate_limited():
     finally:
         limiter.max_requests = original_max_requests
         limiter.window_seconds = original_window_seconds
-        limiter._buckets.clear()
+        limiter.reset()
         client.close()
 
     assert first.status_code == 200
@@ -311,7 +311,7 @@ def test_pipeline_status_endpoint_is_rate_limited():
     limiter = pipeline._pipeline_read_rate_limiter
     original_max_requests = limiter.max_requests
     original_window_seconds = limiter.window_seconds
-    limiter._buckets.clear()
+    limiter.reset()
     limiter.max_requests = 1
     limiter.window_seconds = 60
 
@@ -321,7 +321,7 @@ def test_pipeline_status_endpoint_is_rate_limited():
     finally:
         limiter.max_requests = original_max_requests
         limiter.window_seconds = original_window_seconds
-        limiter._buckets.clear()
+        limiter.reset()
         client.close()
 
     assert first.status_code == 200
