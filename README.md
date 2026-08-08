@@ -6,7 +6,7 @@ Vehicle market intelligence platform inspired by the Sri Lanka Property Price In
 
 - Frontend: React + Vite + TypeScript + Tailwind + React Query
 - Backend: FastAPI + SQLAlchemy
-- Database: PostgreSQL (Supabase recommended)
+- Database: PostgreSQL (Neon — single DB, see `docs/neon-egress-budget.md`)
 
 ## Project Structure
 
@@ -29,17 +29,19 @@ The Vite dev proxy target (`http://127.0.0.1:8000`) is configured in
 
 ### Backend (`backend/.env`)
 
-Copy `backend/.env.example` to `backend/.env` and set Supabase:
+Copy `backend/.env.example` to `backend/.env` and set Neon (pooled DSN):
 
 ```env
-DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql://<user>:<password>@<endpoint>-pooler.<region>.aws.neon.tech/neondb?sslmode=require
 ALLOW_SQLITE_FALLBACK=false
 CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173,https://motormila.vercel.app,https://vehicle-platform-one.vercel.app
 ```
 
 Notes:
 
-- Use Supabase transaction pooler URL on port `6543`.
+- Use the Neon **pooled** connection string (PgBouncer, `-pooler` endpoint).
+- Single-DB mode: set only `HOT_DATABASE_URL` (or `DATABASE_URL`) and COLD
+  falls back to it (see `backend/db/session.py` and `docs/neon-egress-budget.md`).
 - If your URL starts with `postgres://`, backend auto-converts it to `postgresql://`.
 
 ## 2) Install Dependencies
@@ -89,11 +91,14 @@ If you hit a blank screen, check these first:
 
 This project now includes an app-level error boundary so runtime crashes show a fallback UI instead of a silent blank page.
 
-### Supabase not connecting
+### Neon not connecting
 
-- Confirm `DATABASE_URL` is set in `backend/.env`.
+- Confirm `DATABASE_URL` (or `HOT_DATABASE_URL`) is set in `backend/.env`.
 - Set `ALLOW_SQLITE_FALLBACK=false` to force fast failure.
-- Ensure IP/network policy allows your machine.
+- Check the Neon IP-allowlist / region settings.
+- If Neon's free data-transfer allowance is exhausted, DB access is blocked
+  until reset — see `docs/neon-egress-budget.md` and the `neon-egress-watch`
+  GitHub workflow for the early-warning check.
 
 ## 5) Verification
 
@@ -233,7 +238,7 @@ It supports:
 
 In GitHub repo -> **Settings** -> **Secrets and variables** -> **Actions**, add secret:
 
-- `HOT_DATABASE_URL` = your production PostgreSQL/Supabase URL
+- `HOT_DATABASE_URL` = your production Neon pooled PostgreSQL URL (single DB)
 
 Notes:
 

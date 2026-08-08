@@ -1,6 +1,10 @@
-# Permanent free ops: R2 snapshots + optional Oracle Postgres
+# Permanent free ops: R2 snapshots + Neon single DB
 
-Motormila burns free Neon/Supabase because **public browsing hits live Postgres**.
+> **Updated** — Motormila runs **Neon-only** (single DB) with R2 snapshots as
+> the public read layer. See **`docs/neon-egress-budget.md`** for the current
+> runbook. The Oracle-optional path below is kept as a fallback option.
+
+Motormila burned free Neon/Supabase because **public browsing hits live Postgres**.
 The durable $0 path is: **R2 for public reads**, DB only for scrapes/auth/alerts.
 
 > **WARNING — Vercel Git deploys omit gitignored snapshot JSON.**  

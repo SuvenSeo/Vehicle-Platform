@@ -1,9 +1,10 @@
-# SCHEDULE PAUSED 2026-07-30 — Supabase free egress exceeded.
-# Digest queries HOT_DATABASE_URL (Postgres/Supabase); pausing cron until R2/egress
-# recovery + snapshot-only ops. Manual workflow_dispatch only until then.
+# Neon-first: digest reads aggregate/ScrapeRun data (small, bounded). Runs
+# weekly on Mondays; public browsing reads R2 snapshots, not this API.
 name: Weekly Pro Digest
 
 on:
+  schedule:
+    - cron: "0 1 * * 1"   # Monday 01:00 UTC
   workflow_dispatch:
     inputs:
       dry_run:

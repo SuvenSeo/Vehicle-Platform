@@ -246,16 +246,29 @@ def build_models_by_make(catalog: list[dict[str, Any]]) -> dict[str, list[dict[s
     }
 
 
-def build_snapshot(output_dir: Path, catalog_limit: int | None = None) -> dict[str, Any]:
+def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_catalog: bool = False) -> dict[str, Any]:
     db = SessionLocal()
     generated_at = datetime.now(timezone.utc)
     try:
-        catalog = build_listing_catalog(db, limit=catalog_limit)
-        priced_count = sum(
-            1
-            for item in catalog
-            if item.get("price_lkr") is not None and float(item.get("price_lkr") or 0) >= MIN_REASONABLE_PRICE_LKR
-        )
+        # Full-catalog reads transfer the whole car_listings table (egress).
+        # Daily/stats-only runs pass skip_catalog=True so only the small JSON
+        # files are rebuilt; listing-catalog.json keeps its last full export
+        # (weekly or manual), which the frontend still reads from R2/CDN.
+        if skip_catalog:
+            catalog = []
+            priced_count = 0
+        else:
+            catalog = build_listing_catalog(db, limit=catalog_limit)
+            priced_count = sum(
+                1
+                for item in catalog
+                if item.get("price_lkr") is not None and float(item.get("price_lkr") or 0) >= MIN_REASONABLE_PRICE_LKR
+            )
+
+        # listing-models.json is derived from the full catalog, so it must be
+        # skipped together with the catalog — writing an empty {} would clobber
+        # the last good file on R2 and break make→model drilldowns.
+        skip_derived = skip_catalog
 
         files = {
             "manifest.json": {
@@ -271,9 +284,8 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None) -> dict[s
                     "dashboard-insights.json",
                     "listing-sources.json",
                     "listing-makes.json",
-                    "listing-models.json",
-                    "listing-catalog.json",
-                ],
+                ]
+                + ([] if skip_derived else ["listing-models.json", "listing-catalog.json"]),
             },
             "stats-summary.json": build_stats_summary(db),
             "live-market.json": stats_endpoint.build_live_market_snapshot(db),
@@ -289,6 +301,10 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None) -> dict[s
                 "items": catalog,
             },
         }
+
+        if skip_derived:
+            files.pop("listing-models.json")
+            files.pop("listing-catalog.json")
 
         for filename, payload in files.items():
             write_json(output_dir / filename, payload)
@@ -311,18 +327,25 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Optional max listings for listing-catalog.json. 0 means export all listings.",
     )
+    parser.add_argument(
+        "--skip-catalog",
+        action="store_true",
+        help="Stats-only export: skip the full listing-catalog read (saves Neon egress). "
+        "Use for daily refreshes; run a full export weekly or manually.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     limit = args.catalog_limit if args.catalog_limit and args.catalog_limit > 0 else None
-    manifest = build_snapshot(args.output, catalog_limit=limit)
+    manifest = build_snapshot(args.output, catalog_limit=limit, skip_catalog=args.skip_catalog)
     print(
         "Snapshot ready:",
         args.output,
         f"listings={manifest['listing_count']}",
         f"priced={manifest['priced_listing_count']}",
+        "catalog=skipped" if args.skip_catalog else "catalog=full",
     )
 
 

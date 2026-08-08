@@ -8,12 +8,13 @@ load_dotenv(find_dotenv(".env.local", usecwd=True), override=False)
 load_dotenv()
 
 # ============================================================================
-# Dual database mode
-# HOT_DATABASE_URL  = Supabase — API reads, market analysis
-# COLD_DATABASE_URL = NeonDB  — scraper writes
+# Database mode — Neon-first, single DB by default (Supabase retired).
+# HOT_DATABASE_URL  = Neon pooled DSN (production reads + writes)
+# COLD_DATABASE_URL = optional override for a separate write target
 #
-# If only one URL is set both engines point to it (single-DB fallback).
+# If only HOT_DATABASE_URL is set, both engines point to it (single-DB mode).
 # ALLOW_SQLITE_FALLBACK=true lets local dev work without any Postgres URL.
+# See docs/neon-egress-budget.md for pooled-DSN and egress guidance.
 # ============================================================================
 
 def _normalise(url: str) -> str:

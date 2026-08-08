@@ -11,9 +11,11 @@ Actions name: **Scrape → Export → Redeploy**
 
 ## Before you start
 
-### 1) Check Supabase free egress
-If the free quota is still exhausted, the scrape job will fail or hang on DB
-writes. Wait for the monthly reset (or confirm the project can accept writes).
+### 1) Check Neon data-transfer budget
+If Neon's free transfer allowance is exhausted, the scrape job will fail or
+hang on DB writes. Run Actions → **Neon Egress Watchdog** (or check the
+`neon-egress-watch` Monday run) to see where the month stands.
+See `docs/neon-egress-budget.md`.
 
 ### 2) Confirm GitHub Actions billing
 Recent Motormila CI failed with *“spending limit needs to be increased”*.  
@@ -105,15 +107,18 @@ bash scripts/redeploy-prod-with-snapshots.sh
 
 ## After it works once
 
-- Prefer **weekly** manual runs, not daily cron.
-- Prefer **one source** (`ikman` or midday pair) before the full matrix.
-- Keep `VITE_SNAPSHOT_ONLY=true` — do not flip back to live API browsing on free Supabase.
-- Every scrape should end with snapshot refresh + redeploy (this workflow).
+- Daily + midday cron are **enabled again** (Neon-first) — writes are free.
+- Daily runs export **stats-only** snapshots (`--skip-catalog`); this workflow
+  is the weekly/manual **full catalog** refresh.
+- Keep `VITE_SNAPSHOT_ONLY=true` — do not flip back to live API browsing; the
+  DB must only serve scrapes/auth/alerts, never public page reads.
+- Every full-catalog scrape should end with snapshot refresh + redeploy (this workflow).
 
 ## Do not (yet)
 
-- Re-enable `daily-scrape` / `midday` cron schedules
-- Run `historical-backfill` while egress is tight
+- Run the full scrape matrix more than daily (egress is fine, but source sites
+  may rate-limit)
+- Run `historical-backfill` while the Neon budget is tight
 - Unset `VITE_SNAPSHOT_ONLY` “to make maps live again”
 
 ---

@@ -1,7 +1,11 @@
-# SCHEDULE PAUSED 2026-07-29 — Supabase free egress exceeded. Manual workflow_dispatch only until quota resets / snapshots enabled.
+# Neon-first: scrapers WRITE to NeonDB (ingress is free). Stats-only snapshot
+# export keeps dashboards fresh without a full-catalog read (egress control).
 name: Midday Top Sources Scraper
 
 on:
+  schedule:
+    # 12:00 Sri Lanka time = 06:30 UTC
+    - cron: "30 6 * * *"
   workflow_dispatch:
 
 # Separate from the full daily scrape so midday never cancels (or is cancelled by) it.
@@ -193,11 +197,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt boto3
 
-      - name: Export public snapshots
+      - name: Export public snapshots (stats-only — catalog refreshes weekly)
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
-        run: python export_public_snapshots.py --output snapshots/latest
+        run: python export_public_snapshots.py --output snapshots/latest --skip-catalog
 
       - name: Upload snapshots to R2
         env:

@@ -62,7 +62,11 @@ database transfer for every visitor.
 `Unified Vehicle Scraper` runs twice daily at 07:30 and 18:10 Sri Lanka time
 (02:00 and 12:40 UTC). `Midday Top Sources Scraper` refreshes ikman and
 riyasewana at 12:00 Sri Lanka time (06:30 UTC). After each scrape and market
-analysis job, workflows export and upload snapshots.
+analysis job, workflows export and upload **stats-only** snapshots
+(`export_public_snapshots.py --skip-catalog`) so dashboards stay fresh without
+a full-table read. The **full catalog** refresh runs weekly or manually via
+**Ikman Deep Backfill** / **Scrape → Export → Redeploy** — this keeps Neon
+egress well inside the free allowance (see `docs/neon-egress-budget.md`).
 If R2 secrets are not set yet, upload is skipped without failing the exporter
 script locally; in GitHub, the export step still fails clearly if the database
 itself is unavailable.

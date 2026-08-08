@@ -1,7 +1,14 @@
-# SCHEDULE PAUSED 2026-07-29 — Supabase free egress exceeded. Manual workflow_dispatch only until quota resets / snapshots enabled.
+# Neon-first: scrapers WRITE to NeonDB (ingress is free). Public reads stay on
+# R2 snapshots (VITE_SNAPSHOT_ONLY=true) so DB egress stays flat.
+# Daily runs export stats-only snapshots; the full catalog refreshes weekly
+# via "Scrape → Export → Redeploy" (see docs/neon-egress-budget.md).
 name: Unified Vehicle Scraper
 
 on:
+  schedule:
+    # 07:30 and 18:10 Sri Lanka time = 02:00 and 12:40 UTC
+    - cron: "0 2 * * *"
+    - cron: "40 12 * * *"
   workflow_dispatch:
 
 # Separate group from midday so the two workflows never cancel each other.
@@ -240,11 +247,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt boto3
 
-      - name: Export public snapshots
+      - name: Export public snapshots (stats-only — catalog refreshes weekly)
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
-        run: python export_public_snapshots.py --output snapshots/latest
+        run: python export_public_snapshots.py --output snapshots/latest --skip-catalog
 
       - name: Upload snapshots to R2
         env:

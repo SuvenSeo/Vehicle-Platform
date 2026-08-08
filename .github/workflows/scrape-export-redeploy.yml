@@ -1,6 +1,8 @@
 # Scrape → refresh public snapshots → optional Vercel redeploy
 #
-# Manual only (no cron). Keeps free-tier egress under control by:
+# Manual + weekly full-catalog refresh (no cron). This is the FULL catalog
+# export (one big read — budgeted weekly per docs/neon-egress-budget.md);
+# daily runs use --skip-catalog stats-only exports instead.
 #   1) scraping one source (default: ikman)
 #   2) rebuilding /snapshots for the public SPA
 #   3) redeploying production WITH gitignored snapshot JSON (if VERCEL_TOKEN set)

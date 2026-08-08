@@ -1,0 +1,192 @@
+# Ikman Deep Backfill (Neon-first)
+#
+# One-shot / scheduled deep crawl of api.ikman.lk using the scraper's API mode
+# (api.ikman.lk/v1/serp with sort=date&order=desc). It is the tool to run after
+# scrapers were paused for days/weeks — a big page budget pulls a large amount
+# of listings across all vehicle categories (cars gets the full budget,
+# secondary categories a capped share, see backend/app/scrapers/page_budget.py).
+#
+# DB WRITES ONLY (ingress is free on Neon). Optional snapshot refresh afterwards
+# keeps the public R2/CDN catalog in sync — run it with refresh_catalog=true.
+#
+# Run: Actions → "Ikman Deep Backfill" → Run workflow
+#   max_pages: 150 (≈ deep) / 300 (very deep; watch ikman rate limits)
+
+name: Ikman Deep Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_pages:
+        description: "SCRAPE_MAX_PAGES_IKMAN — deep backfill page budget (cars primary)"
+        type: string
+        default: "150"
+      refresh_catalog:
+        description: "Refresh public listing catalog (full DB read — weekly cadence)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ikman-bulk-backfill
+  cancel-in-progress: false
+
+jobs:
+  scrape-ikman:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ensure schema (idempotent)
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: python -c "from db.session import init_db; init_db(); print('Schema ready.')"
+
+      - name: Count ikman listings before
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python - <<'PY'
+          from sqlalchemy import text
+          from db.session import cold_engine
+          with cold_engine.connect() as c:
+              total = c.execute(text("select count(*) from car_listings where source='ikman' and is_active is true")).scalar()
+              print(f"ikman_active_before={total}")
+          PY
+
+      - name: Run ikman deep API backfill
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          SCRAPE_PROFILE: "all"
+          SCRAPE_ENABLED_SOURCES: "ikman"
+          RUN_SCRAPERS: "true"
+          RUN_MARKET_ANALYSIS: "false"
+          RUN_MARKET_SIGNALS: "false"
+          RUN_LISTING_LIFECYCLE: "false"
+          RUN_OUTLIER_DETECTION: "false"
+          SCRAPE_MAX_PAGES: "20"
+          SCRAPE_MAX_PAGES_IKMAN: ${{ github.event.inputs.max_pages || '150' }}
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "10800"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "10800"
+          # API mode only — no Playwright fallback (faster, cheaper, less risk).
+          IKMAN_SCRAPE_MODE: "api"
+        run: python run_sync.py
+
+      - name: Count ikman listings after
+        if: always()
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          python - <<'PY'
+          from sqlalchemy import text
+          from db.session import cold_engine
+          with cold_engine.connect() as c:
+              total = c.execute(text("select count(*) from car_listings where source='ikman' and is_active is true")).scalar()
+              recent = c.execute(text("select count(*) from car_listings where source='ikman' and scraped_at > now() - interval '12 hours'")).scalar()
+              print(f"ikman_active_after={total}")
+              print(f"ikman_scraped_last_12h={recent}")
+          PY
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MESSAGE=":rotating_light: Ikman deep backfill failed. Run: ${RUN_URL}"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"
+
+  refresh-snapshots:
+    runs-on: ubuntu-latest
+    needs: scrape-ikman
+    if: ${{ !cancelled() && needs.scrape-ikman.result == 'success' && inputs.refresh_catalog }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend deps (DB export fallback)
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Refresh via Vercel snapshot export API (preferred — one big read)
+        id: vercel_export
+        continue-on-error: true
+        env:
+          SNAPSHOT_EXPORT_SECRET: ${{ secrets.SNAPSHOT_EXPORT_SECRET }}
+        run: |
+          if [ -z "${SNAPSHOT_EXPORT_SECRET}" ]; then
+            echo "SNAPSHOT_EXPORT_SECRET not set — will try DB export fallback."
+            exit 1
+          fi
+          node scripts/pull-vercel-snapshots.mjs
+
+      - name: Fallback — export from HOT_DATABASE_URL
+        if: steps.vercel_export.outcome != 'success'
+        working-directory: backend
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: |
+          if [ -z "${HOT_DATABASE_URL}" ]; then
+            echo "ERROR: HOT_DATABASE_URL secret missing; cannot export snapshots."
+            exit 1
+          fi
+          python export_public_snapshots.py --output ../public/snapshots/latest
+          node ../scripts/split-listing-catalog.mjs ../public/snapshots/latest/listing-catalog.json
+
+      - name: Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ikman-backfill-snapshots-${{ github.run_id }}
+          path: public/snapshots/latest/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Optional R2 upload
+        continue-on-error: true
+        working-directory: backend
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ secrets.R2_PREFIX }}
+          SNAPSHOT_SOURCE_DIR: ../public/snapshots/latest
+        run: |
+          if [ -z "${R2_ACCOUNT_ID}" ] || [ -z "${R2_ACCESS_KEY_ID}" ] || [ -z "${R2_SECRET_ACCESS_KEY}" ] || [ -z "${R2_BUCKET}" ]; then
+            echo "R2 secrets not fully configured — skipping R2 upload."
+            exit 0
+          fi
+          pip install -q boto3
+          python upload_snapshots_r2.py

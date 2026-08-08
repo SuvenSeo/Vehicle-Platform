@@ -1,0 +1,89 @@
+# Neon Egress Watchdog (weekly)
+#
+# Early-warning check before Neon's free data-transfer allowance is exhausted.
+# When the free transfer quota is hit, Neon BLOCKS all database connections —
+# the incident that paused every scraper before. This workflow watches usage
+# and posts to Slack when we cross 80% or go over budget.
+#
+# Requires repo secrets:
+#   NEON_API_KEY, NEON_PROJECT_ID   — preferred (live usage from Neon API)
+#   HOT_DATABASE_URL                — fallback estimate path (single Neon DSN)
+#   SLACK_WEBHOOK_URL               — alert destination
+#
+# See docs/neon-egress-budget.md for the full budget runbook.
+
+name: Neon Egress Watchdog
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"   # Monday 04:00 UTC — check right after the weekend runs
+  workflow_dispatch:
+
+jobs:
+  check-egress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Neon data transfer budget
+        id: egress
+        continue-on-error: true
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_ORG_ID: ${{ secrets.NEON_ORG_ID }}
+          NEON_TRANSFER_BUDGET_GB: "5"
+          NEON_WARN_FRACTION: "0.8"
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+        run: python scripts/ops/check_neon_egress.py
+
+      - name: Post to Slack when over budget or warning threshold
+        if: ${{ steps.egress.outputs.neon_egress_status == 'over' || steps.egress.outputs.neon_egress_status == 'warning' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EGRESS_STATUS: ${{ steps.egress.outputs.neon_egress_status }}
+          EGRESS_USED: ${{ steps.egress.outputs.neon_egress_used_gb }}
+          EGRESS_BUDGET: ${{ steps.egress.outputs.neon_egress_budget_gb }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
+          if [ "${EGRESS_STATUS}" = "over" ]; then
+            EMOJI=":rotating_light:"
+            MSG="Neon egress OVER budget (${EGRESS_USED} / ${EGRESS_BUDGET} GB). DB access will be blocked soon — pause heavy exports or upgrade."
+          else
+            EMOJI=":warning:"
+            MSG="Neon egress at warning threshold (${EGRESS_USED} / ${EGRESS_BUDGET} GB used)."
+          fi
+          MESSAGE="${EMOJI} *Motormila Neon Egress Watch* — ${MSG} <${RUN_URL}|View run>"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"
+
+      - name: Fail when over budget (warning = pass)
+        if: ${{ steps.egress.outputs.neon_egress_status == 'over' }}
+        run: |
+          echo "::error::Neon egress over budget."
+          exit 1
+
+      - name: Summarize result
+        env:
+          EGRESS_STATUS: ${{ steps.egress.outputs.neon_egress_status }}
+          EGRESS_USED: ${{ steps.egress.outputs.neon_egress_used_gb }}
+          EGRESS_BUDGET: ${{ steps.egress.outputs.neon_egress_budget_gb }}
+        run: |
+          echo "Egress status: ${EGRESS_STATUS:-unknown} (${EGRESS_USED:-?} / ${EGRESS_BUDGET:-?} GB)"

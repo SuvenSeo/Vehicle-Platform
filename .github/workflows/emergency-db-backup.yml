@@ -8,7 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      DB_URL: ${{ secrets.HOT_DATABASE_URL || secrets.SUPABASE_DB_URL }}
+      # HOT_DATABASE_URL now points at the Neon pooled DSN (single DB).
+      DB_URL: ${{ secrets.HOT_DATABASE_URL }}
 
     steps:
       - name: Checkout code
@@ -19,7 +20,7 @@ jobs:
         run: |
           if [ -z "${DB_URL}" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "WARNING: Neither HOT_DATABASE_URL nor SUPABASE_DB_URL is set. Skipping backup."
+            echo "WARNING: HOT_DATABASE_URL is not set. Skipping backup."
           else
             echo "available=true" >> "$GITHUB_OUTPUT"
           fi
@@ -54,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      SOURCE_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL || secrets.SUPABASE_DB_URL }}
+      SOURCE_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
 
     defaults:
       run:
@@ -69,7 +70,7 @@ jobs:
         run: |
           if [ -z "${SOURCE_DATABASE_URL}" ]; then
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "WARNING: Neither HOT_DATABASE_URL nor SUPABASE_DB_URL is set. Skipping rescue export."
+            echo "WARNING: HOT_DATABASE_URL is not set. Skipping rescue export."
           else
             echo "available=true" >> "$GITHUB_OUTPUT"
           fi

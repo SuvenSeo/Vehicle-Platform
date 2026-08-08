@@ -1,9 +1,12 @@
-# SCHEDULE PAUSED 2026-07-30 — Supabase free egress exceeded.
-# Full pg_dump pulls the DB through Supabase egress; re-enable after R2/egress recovery
-# (snapshot-only mode). Manual workflow_dispatch only until then.
-name: Daily DB Backup
+# Neon-first: pg_dump pulls the WHOLE database through Neon egress, so this
+# runs WEEKLY (not daily) to stay inside the free transfer allowance. Neon's
+# built-in PITR/branch history covers day-to-day recovery. Public browsing
+# reads R2 snapshots, not this dump.
+name: Weekly DB Backup
 
 on:
+  schedule:
+    - cron: "30 2 * * 0"   # Sunday 02:30 UTC
   workflow_dispatch:
 
 jobs:
@@ -16,9 +19,8 @@ jobs:
         id: check-secret
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$HOT_DATABASE_URL" ] && [ -z "$SUPABASE_DB_URL" ]; then
+          if [ -z "$HOT_DATABASE_URL" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "No database URL secret configured — skipping backup."
           else
@@ -36,9 +38,8 @@ jobs:
         id: dump
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          DATABASE_URL="${HOT_DATABASE_URL:-$SUPABASE_DB_URL}"
+          DATABASE_URL="${HOT_DATABASE_URL}"
           TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
           FILENAME="motormila-backup-${TIMESTAMP}.dump"
           echo "BACKUP_FILE=${FILENAME}" >> "$GITHUB_ENV"
@@ -71,4 +72,4 @@ jobs:
           fi
           curl -s -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"text\":\":x: *Motormila daily DB backup failed*\nWorkflow: <${RUN_URL}|View run>\"}"
+            -d "{\"text\":\":x: *Motormila weekly DB backup failed*\nWorkflow: <${RUN_URL}|View run>\"}"

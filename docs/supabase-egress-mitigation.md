@@ -1,7 +1,12 @@
 # Supabase Egress Mitigation
 
+> **ARCHIVED / SUPERSEDED** — Motormila moved **fully to NeonDB** (single DB).
+> See **`docs/neon-egress-budget.md`** for the current architecture, the
+> weekly egress budget, and the `neon-egress-watch` watchdog. This page is
+> kept for historical context of the Supabase-era mitigations.
+
 Project: `vehicle-platform` · Region: ap-southeast-1 · Tier: Nano (free)  
-Threshold: 5 GB / month · Status: **exceeded** — grace period ended.
+Threshold: 5 GB / month · Status: **exceeded** — grace period ended (historical).
 
 ## Immediate operational step
 

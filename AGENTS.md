@@ -17,7 +17,7 @@ the UI.
 - Backend Python deps live in a virtualenv at `backend/.venv` (created by the
   update script). Run backend commands with `backend/.venv/bin/...` (e.g.
   `backend/.venv/bin/uvicorn`, `backend/.venv/bin/python -m pytest`).
-- No external Postgres/Supabase is needed for local dev: set
+- No external Postgres/Neon is needed for local dev: set
   `ALLOW_SQLITE_FALLBACK=true` and the backend uses a local SQLite file
   (`backend/autolens.db`). Without it the backend aborts startup with
   "No database URL configured" (this flag defaults to `false`).

@@ -1,0 +1,77 @@
+# Weekly Full-Catalog Snapshot Refresh
+#
+# Daily scrape runs export STATS-ONLY snapshots (--skip-catalog) to protect
+# Neon egress. This weekly job does the ONE full-catalog read of the month's
+# budget: rebuilds listing-catalog.json (+ models) from the DB and uploads to
+# R2 so the public site's listings stay fresh.
+#
+# Runs: Sunday 03:00 UTC (after the Saturday night scrape cycle).
+# Manual: Actions → "Weekly Full-Catalog Snapshot Refresh" → Run workflow.
+
+name: Weekly Full-Catalog Snapshot Refresh
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"   # Sunday 03:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-catalog-refresh
+  cancel-in-progress: false
+
+jobs:
+  export-catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt boto3
+
+      - name: Export public snapshots (FULL catalog)
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: python export_public_snapshots.py --output snapshots/latest
+
+      - name: Upload snapshots to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ secrets.R2_PREFIX }}
+          SNAPSHOT_SOURCE_DIR: snapshots/latest
+        run: python upload_snapshots_r2.py
+
+      - name: Upload manifest artifact (fallback for manual redeploy)
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-catalog-snapshots-${{ github.run_id }}
+          path: backend/snapshots/latest/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MESSAGE=":rotating_light: Weekly full-catalog snapshot refresh failed. Run: ${RUN_URL}"
+          curl -X POST -H "Content-type: application/json" --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"
