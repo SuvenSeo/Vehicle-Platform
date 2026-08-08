@@ -16,6 +16,8 @@
 
 set -euo pipefail
 
+if command -v python3 >/dev/null 2>&1; then PY=python3; else PY=python; fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SNAP_DIR="${ROOT}/public/snapshots/latest"
 SOURCE_DIR="${SNAPSHOT_SOURCE_DIR:-${SNAP_DIR}}"
@@ -33,7 +35,7 @@ if [[ ! -s "${SNAP_DIR}/listing-catalog.json" ]]; then
       echo "ERROR: could not fetch listing-catalog.json from ${LIVE_BASE}" >&2
       exit 1
     }
-  python3 - "${SNAP_DIR}" "${LIVE_BASE}" <<'PY'
+  "${PY}" - "${SNAP_DIR}" "${LIVE_BASE}" <<'PY'
 import json, os, subprocess, sys
 snap, base = sys.argv[1], sys.argv[2]
 try:
@@ -65,7 +67,7 @@ fi
 # ---------------------------------------------------------------------------
 # 3) Validate every JSON file parses.
 # ---------------------------------------------------------------------------
-python3 - "${SNAP_DIR}" <<'PY'
+"${PY}" - "${SNAP_DIR}" <<'PY'
 import glob, json, sys
 snap = sys.argv[1]
 files = sorted(glob.glob(f"{snap}/*.json"))
