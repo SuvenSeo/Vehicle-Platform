@@ -96,6 +96,9 @@ def _extract_data_transfer_gb(payload: dict | None) -> float | None:
     """Parse Neon usage API responses (project or org level)."""
     if not isinstance(payload, dict):
         return None
+    # Project object responses nest the metrics under {"project": {...}}.
+    if isinstance(payload.get("project"), dict):
+        payload = payload["project"]
     # Common shapes: {"usage": [...]} or {"consumption": [...]} or direct list.
     usage_rows = payload.get("usage") or payload.get("consumption")
     if not isinstance(usage_rows, list):
@@ -123,6 +126,13 @@ def _extract_data_transfer_gb(payload: dict | None) -> float | None:
                 return float(direct)
             except (TypeError, ValueError):
                 pass
+        # Project object shape: data_transfer_bytes (bytes) → GB
+        bytes_val = row.get("data_transfer_bytes") or row.get("dataTransferBytes")
+        if bytes_val is not None:
+            try:
+                return float(bytes_val) / (1024 ** 3)
+            except (TypeError, ValueError):
+                pass
     return None
 
 
@@ -133,7 +143,10 @@ def check_via_api() -> tuple[float | None, str]:
     if not api_key or not project_id:
         return None, "NEON_API_KEY / NEON_PROJECT_ID not set — skipped"
 
+    # Current API versions return usage inline on the project object
+    # (data_transfer_bytes); older /usage routes are tried as fallbacks.
     candidates = [
+        f"https://console.neon.tech/api/v2/projects/{project_id}",
         f"https://console.neon.tech/api/v2/projects/{project_id}/usage",
     ]
     if org_id:
