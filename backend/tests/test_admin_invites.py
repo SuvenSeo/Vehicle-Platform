@@ -25,6 +25,7 @@ _BCRYPT_HASH = auth._hash_password("correct-horse")
 @pytest.fixture()
 def client(monkeypatch):
     monkeypatch.setenv("AUTH_TOKEN_SECRET", "test-secret-admin")
+    monkeypatch.setattr("app.main.SKIP_DB_INIT", True)
     monkeypatch.setenv("APP_ACCESS_ENFORCED", "true")
     monkeypatch.setenv("PRO_ACCESS_ENFORCED", "true")
     monkeypatch.setenv(
