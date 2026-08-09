@@ -56,6 +56,7 @@ vi.mock("@/services/api", () => ({
   },
   LISTINGS_PAGE_SIZE: 12,
   SNAPSHOT_BASE: "",
+  SNAPSHOT_ONLY: false,
   getStats: vi.fn(),
   getListings: vi.fn(),
   getDistrictPrices: vi.fn(),

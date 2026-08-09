@@ -8,6 +8,10 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
+    // Tests exercise the same-origin dev/proxy path, matching real dev runs.
+    env: {
+      VITE_API_URL: "/api/v1",
+    },
   },
   resolve: {
     alias: {

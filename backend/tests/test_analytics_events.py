@@ -24,7 +24,7 @@ class DummyRequest:
 
 
 def setup_function():
-    events_module._events_rate_limiter._buckets.clear()
+    events_module._events_rate_limiter.reset()
 
 
 def test_record_event_persists_row():
