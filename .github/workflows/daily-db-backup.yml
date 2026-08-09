@@ -27,11 +27,18 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install postgresql-client
+      # Neon runs PostgreSQL 17; the distro postgresql-client (16 on
+      # ubuntu-24.04) aborts with a server version mismatch, so install
+      # client 17 from the official PGDG repo.
+      - name: Install postgresql-client-17
         if: steps.check-secret.outputs.skip == 'false'
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends postgresql-client
+          sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg lsb-release
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
 
       - name: Run pg_dump
         if: steps.check-secret.outputs.skip == 'false'

@@ -171,7 +171,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: scrape-source
     if: ${{ !cancelled() }}
-    timeout-minutes: 45
+    # First pass after a migration/dedup rebuild is heavy (deal scores,
+    # lifecycle, outlier, thumbnail/phash backfill over the full table).
+    timeout-minutes: 180
 
     defaults:
       run:

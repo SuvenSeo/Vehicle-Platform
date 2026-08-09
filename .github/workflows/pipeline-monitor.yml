@@ -15,6 +15,7 @@ jobs:
       - name: Check backend health and scrape freshness
         env:
           BACKEND_URL: https://seo292-vehicle-platform-backend.hf.space
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
         run: |
           set -euo pipefail
 
@@ -27,7 +28,9 @@ jobs:
             exit 1
           fi
 
-          pipeline_code=$(curl -sS -o pipeline.json -w "%{http_code}" --max-time 20 "$BACKEND_URL/api/v1/pipeline/status")
+          pipeline_code=$(curl -sS -o pipeline.json -w "%{http_code}" --max-time 20 \
+            -H "X-Admin-Key: ${ADMIN_API_KEY}" \
+            "$BACKEND_URL/api/v1/pipeline/status")
           echo "Pipeline status HTTP ${pipeline_code}"
           cat pipeline.json
           echo

@@ -35,6 +35,10 @@ logger = logging.getLogger(__name__)
 MIN_REASONABLE_PRICE_LKR = 100_000
 DEFAULT_OUTPUT_DIR = BASE_DIR / "snapshots" / "latest"
 
+# Vercel caps a single deployed file at 100 MB; keep each catalog part well
+# under that (the serialized JSON overhead grows with item count).
+CATALOG_PART_TARGET_BYTES = 90 * 1024 * 1024
+
 
 def jsonable(value: Any) -> Any:
     if isinstance(value, Decimal):
@@ -246,6 +250,47 @@ def build_models_by_make(catalog: list[dict[str, Any]]) -> dict[str, list[dict[s
     }
 
 
+def write_catalog_parts(output_dir: Path, catalog: list[dict[str, Any]], generated_at: datetime) -> None:
+    """Write the listing catalog as a small manifest + paginated part files.
+
+    Vercel rejects a single deployed file over 100 MB, and the full catalog
+    routinely exceeds that, so items are split into listing-catalog-part-NNN.json
+    files (each wrapped as {"items": [...]}) with a manifest pointing at them —
+    the multi-part shape the frontend already consumes.
+    """
+    part_names: list[str] = []
+    current: list[dict[str, Any]] = []
+    current_bytes = 0
+    for item in catalog:
+        current.append(item)
+        current_bytes += len(
+            json.dumps(jsonable(item), separators=(",", ":"), sort_keys=True).encode("utf-8")
+        )
+        if current_bytes >= CATALOG_PART_TARGET_BYTES:
+            part_names.append(f"listing-catalog-part-{len(part_names):03d}.json")
+            write_json(output_dir / part_names[-1], {"items": current})
+            current = []
+            current_bytes = 0
+    if current:
+        part_names.append(f"listing-catalog-part-{len(part_names):03d}.json")
+        write_json(output_dir / part_names[-1], {"items": current})
+
+    # Drop stale parts from an earlier export that had more parts.
+    for stale in output_dir.glob("listing-catalog-part-*.json"):
+        if stale.name not in part_names:
+            stale.unlink(missing_ok=True)
+
+    write_json(
+        output_dir / "listing-catalog.json",
+        {
+            "generated_at": generated_at.isoformat(),
+            "listing_count": len(catalog),
+            "paginated": True,
+            "parts": part_names,
+        },
+    )
+
+
 def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_catalog: bool = False) -> dict[str, Any]:
     db = SessionLocal()
     generated_at = datetime.now(timezone.utc)
@@ -295,16 +340,14 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
             "listing-sources.json": listings_endpoint.get_sources(db=db),
             "listing-makes.json": listings_endpoint.get_makes(db=db),
             "listing-models.json": build_models_by_make(catalog),
-            "listing-catalog.json": {
-                "generated_at": generated_at.isoformat(),
-                "total": len(catalog),
-                "items": catalog,
-            },
         }
 
         if skip_derived:
             files.pop("listing-models.json")
-            files.pop("listing-catalog.json")
+        else:
+            # Full catalog is paginated into <100 MB parts behind a small
+            # manifest — the shape the frontend already reads.
+            write_catalog_parts(output_dir, catalog, generated_at)
 
         for filename, payload in files.items():
             write_json(output_dir / filename, payload)

@@ -61,6 +61,11 @@ fi
 # ---------------------------------------------------------------------------
 if [[ -d "${SOURCE_DIR}" ]]; then
   echo "==> Overlaying fresh snapshots from ${SOURCE_DIR}"
+  # A full export carries its own paginated catalog manifest; drop any stale
+  # part files from an earlier deploy with a different part count.
+  if [[ -f "${SOURCE_DIR}/listing-catalog.json" ]]; then
+    rm -f "${SNAP_DIR}"/listing-catalog-part-*.json
+  fi
   cp -f "${SOURCE_DIR}"/*.json "${SNAP_DIR}/" 2>/dev/null || true
 fi
 
