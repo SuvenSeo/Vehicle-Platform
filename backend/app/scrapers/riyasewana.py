@@ -22,6 +22,10 @@ from app.utils.listing_upsert import upsert_listing
 log = structlog.get_logger()
 
 
+class RiyasewanaBlockedError(RuntimeError):
+    """Raised when riyasewana.com hard-blocks the scraper (Cloudflare block page)."""
+
+
 class RiyasewanaScraper:
     SOURCE = "riyasewana"
     # For-sale vehicle leaves only (skip rentals/parts via category choice).
@@ -140,6 +144,23 @@ class RiyasewanaScraper:
             or "checking your browser before accessing" in body_text
         )
 
+    @staticmethod
+    def _is_hard_block_page(soup: BeautifulSoup) -> bool:
+        title = soup.title.get_text(" ", strip=True).lower() if soup.title else ""
+        if "attention required" not in title:
+            return False
+
+        body_text = soup.get_text(" ", strip=True).lower()
+        return any(
+            marker in body_text
+            for marker in (
+                "sorry, you have been blocked",
+                "you are unable to access",
+                "please enable cookies",
+                "your current ip address has been blocked",
+            )
+        )
+
     async def _load_page_with_retries(self, page, page_url: str, page_num: int) -> tuple[BeautifulSoup, list]:
         last_soup = BeautifulSoup("", "lxml")
         last_cards: list = []
@@ -159,6 +180,13 @@ class RiyasewanaScraper:
             await page.wait_for_timeout(1_500)
 
             soup = BeautifulSoup(await page.content(), "lxml")
+            if self._is_hard_block_page(soup):
+                title = soup.title.get_text(strip=True) if soup.title else "(no title)"
+                log.error("riyasewana_hard_blocked", page=page_num, attempt=attempt, title=title)
+                raise RiyasewanaBlockedError(
+                    f"riyasewana.com served a Cloudflare block page on page {page_num} "
+                    f"(title={title!r}); source unreachable"
+                )
             cards = self._extract_cards(soup)
             if cards:
                 return soup, cards
@@ -405,6 +433,8 @@ class RiyasewanaScraper:
                             consecutive_empty_pages = 0
                             page_num += 1
                             consecutive_page_errors = 0
+                        except RiyasewanaBlockedError:
+                            raise
                         except Exception as e:
                             log.error(
                                 "riyasewana_page_error",

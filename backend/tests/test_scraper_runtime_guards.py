@@ -8,7 +8,7 @@ import run_alt_sync
 import run_sync
 from app.scrapers.autolanka import AutoLankaScraper
 from app.scrapers.ikman import IkmanCarScraper
-from app.scrapers.riyasewana import RiyasewanaScraper
+from app.scrapers.riyasewana import RiyasewanaBlockedError, RiyasewanaScraper
 from bs4 import BeautifulSoup
 
 
@@ -407,6 +407,45 @@ def test_riyasewana_detects_cloudflare_challenge_pages():
 
     assert RiyasewanaScraper._is_challenge_page(challenge_soup) is True
     assert RiyasewanaScraper._is_challenge_page(normal_soup) is False
+
+
+def test_riyasewana_detects_cloudflare_hard_block_page():
+    block_soup = BeautifulSoup(
+        """
+        <html>
+          <head><title>Attention Required! | Cloudflare</title></head>
+          <body>
+            <h1>Sorry, you have been blocked</h1>
+            <p>You are unable to access riyasewana.com</p>
+            <p>Please enable cookies.</p>
+          </body>
+        </html>
+        """,
+        "lxml",
+    )
+    challenge_soup = BeautifulSoup(
+        """
+        <html>
+          <head><title>Attention Required! | Cloudflare</title></head>
+          <body>Please verify you are human</body>
+        </html>
+        """,
+        "lxml",
+    )
+    normal_soup = BeautifulSoup(
+        """
+        <html>
+          <head><title>Cars for Sale on the Largest Car Marketplace in Sri Lanka</title></head>
+          <body>Normal listing content</body>
+        </html>
+        """,
+        "lxml",
+    )
+
+    assert RiyasewanaScraper._is_hard_block_page(block_soup) is True
+    assert RiyasewanaScraper._is_hard_block_page(challenge_soup) is False
+    assert RiyasewanaScraper._is_hard_block_page(normal_soup) is False
+    assert issubclass(RiyasewanaBlockedError, Exception)
 
 
 def test_riyasewana_extract_cards_falls_back_to_buy_links():
