@@ -10,7 +10,8 @@
 # keeps the public R2/CDN catalog in sync — run it with refresh_catalog=true.
 #
 # Run: Actions → "Ikman Deep Backfill" → Run workflow
-#   max_pages: 150 (≈ deep) / 300 (very deep; watch ikman rate limits)
+#   start_page: 1 for newest / 201 to continue after a previous 200-page run
+#   max_pages: 150 (≈ deep) / 200 per continuation segment; watch API rate limits
 
 name: Ikman Deep Backfill
 
@@ -18,9 +19,13 @@ on:
   workflow_dispatch:
     inputs:
       max_pages:
-        description: "SCRAPE_MAX_PAGES_IKMAN — deep backfill page budget (cars primary)"
+        description: "Number of API pages for this segment (cars primary)"
         type: string
         default: "150"
+      start_page:
+        description: "First API page to fetch; use 201 after a 1–200 segment"
+        type: string
+        default: "1"
       refresh_catalog:
         description: "Refresh public listing catalog (full DB read — weekly cadence)"
         type: boolean
@@ -81,6 +86,7 @@ jobs:
           RUN_OUTLIER_DETECTION: "false"
           SCRAPE_MAX_PAGES: "20"
           SCRAPE_MAX_PAGES_IKMAN: ${{ github.event.inputs.max_pages || '150' }}
+          IKMAN_START_PAGE: ${{ github.event.inputs.start_page || '1' }}
           SCRAPE_SOURCE_TIMEOUT_SECONDS: "10800"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "10800"
           # API mode only — no Playwright fallback (faster, cheaper, less risk).

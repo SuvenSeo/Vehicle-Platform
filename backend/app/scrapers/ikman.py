@@ -431,15 +431,18 @@ class IkmanCarScraper:
         *,
         category_id: int,
         max_pages: int,
+        start_page: int = 1,
         seen_urls: set[str],
     ) -> int:
         page_limit = self._page_budget_for_category(category_id, max_pages)
+        start_page = max(1, int(start_page or 1))
+        end_page = start_page + page_limit
         consecutive_empty_pages = 0
         consecutive_page_errors = 0
         next_page_token: str | None = None
         upserted = 0
 
-        for page_num in range(1, page_limit + 1):
+        for page_num in range(start_page, end_page):
             log.info(
                 "scraping_page",
                 source=self.SOURCE,
@@ -453,7 +456,7 @@ class IkmanCarScraper:
                     client,
                     category_id=category_id,
                     page_num=page_num,
-                    next_page_token=next_page_token if page_num > 1 else None,
+                    next_page_token=next_page_token if page_num > start_page else None,
                 )
             except Exception as exc:
                 consecutive_page_errors += 1
@@ -464,7 +467,7 @@ class IkmanCarScraper:
                     error=str(exc),
                     consecutive_page_errors=consecutive_page_errors,
                 )
-                if page_num == 1:
+                if page_num == start_page:
                     raise IkmanApiUnavailable(str(exc)) from exc
                 if consecutive_page_errors >= self.API_PAGE_ERROR_LIMIT:
                     break
@@ -479,9 +482,9 @@ class IkmanCarScraper:
                     consecutive_empty_pages=consecutive_empty_pages,
                     pagination=pagination,
                 )
-                if page_num == 1:
+                if page_num == start_page:
                     raise IkmanApiUnavailable(
-                        f"ikman api returned zero results on page 1 for category {category_id}"
+                        f"ikman api returned zero results on page {start_page} for category {category_id}"
                     )
                 if consecutive_empty_pages >= self.API_EMPTY_PAGE_LIMIT:
                     break
@@ -548,12 +551,12 @@ class IkmanCarScraper:
                 pagination_total=pagination.get("total"),
             )
 
-            if page_num < page_limit:
+            if page_num < end_page - 1:
                 await asyncio.sleep(self.API_PAGE_DELAY_SECONDS)
 
         return upserted
 
-    async def _scrape_via_api(self, max_pages: int = 5) -> int:
+    async def _scrape_via_api(self, max_pages: int = 5, *, start_page: int = 1) -> int:
         seen_urls: set[str] = set()
         upserted = 0
         category_failures = 0
@@ -567,6 +570,7 @@ class IkmanCarScraper:
                         client,
                         category_id=category_id,
                         max_pages=max_pages,
+                        start_page=start_page,
                         seen_urls=seen_urls,
                     )
                     upserted += category_upserted
@@ -793,8 +797,17 @@ class IkmanCarScraper:
             return
 
         try:
-            upserted = await self._scrape_via_api(max_pages)
-            log.info("ikman_api_scrape_complete", upserted=upserted, max_pages=max_pages)
+            try:
+                start_page = max(1, int(os.getenv("IKMAN_START_PAGE", "1") or "1"))
+            except (TypeError, ValueError):
+                start_page = 1
+            upserted = await self._scrape_via_api(max_pages, start_page=start_page)
+            log.info(
+                "ikman_api_scrape_complete",
+                upserted=upserted,
+                max_pages=max_pages,
+                start_page=start_page,
+            )
             return
         except IkmanApiUnavailable as exc:
             if mode == "api":
