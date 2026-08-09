@@ -178,7 +178,10 @@ def _row_from_parts(
     href = str(href or "").strip()
     if not title or not href:
         return None
-    absolute = urljoin("https://ikman.lk/", href if href.startswith("/") else f"/en/ad/{href}")
+    if href.startswith("http"):
+        absolute = href
+    else:
+        absolute = urljoin("https://ikman.lk/", href if href.startswith("/") else f"/en/ad/{href}")
     if "/ad/" not in absolute and not href.startswith("http"):
         absolute = urljoin("https://ikman.lk/en/ad/", href)
 
@@ -398,12 +401,28 @@ def parse_ikman_serp_html(
     return rows
 
 
+_WAYBACK_HREF_RE = re.compile(r"^(?:https?://web\.archive\.org)?/web/\d+(?:id_)?/?")
+
+
+def _normalize_riyasewana_href(href: str) -> str:
+    """Strip Wayback timestamp prefixes and resolve relative hrefs against the
+    riyasewana site root so listings always point at the live site."""
+    href = (href or "").strip()
+    if not href:
+        return href
+    href = _WAYBACK_HREF_RE.sub("", href, count=1)
+    if href.startswith("http"):
+        return href
+    return urljoin("https://riyasewana.com", href)
+
+
 def parse_riyasewana_serp_html(
     html: str,
     *,
     observed_at: datetime,
     archive_source: str = "wayback_riyasewana",
     snapshot_url: str = "",
+    original_url: str = "",
 ) -> list[dict[str, Any]]:
     """Extract listing cards from archived riyasewana.com/search/cars snapshots."""
     soup = BeautifulSoup(html or "", "lxml")
@@ -419,6 +438,7 @@ def parse_riyasewana_serp_html(
         href = (title_el.get("href") or "").strip()
         if not title or not href:
             continue
+        href = _normalize_riyasewana_href(href)
 
         price_text = ""
         for box in item.select(".boxintxt, .boxtext div"):
@@ -458,6 +478,7 @@ def parse_riyasewana_serp_html(
         )
         if row:
             # Prefer riyasewana absolute URLs already present on href.
+            row["source_id"] = row["url"]
             rows.append(row)
     return rows
 
@@ -476,6 +497,7 @@ def parse_archive_serp_html(
             html,
             observed_at=observed_at,
             snapshot_url=snapshot_url,
+            original_url=original_url,
         )
     return parse_ikman_serp_html(
         html,

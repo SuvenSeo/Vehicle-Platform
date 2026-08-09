@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.utils.time import utc_now
 import os
 import re
+from typing import Any
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import structlog
@@ -17,6 +18,11 @@ from app.scrapers.net import (
     stealth_init_script,
 )
 from app.scrapers.page_budget import page_budget_for_category
+from app.services.historical_archive import (
+    fetch_cdx_hits,
+    fetch_wayback_html,
+    parse_riyasewana_serp_html,
+)
 from app.utils.listing_upsert import upsert_listing
 
 log = structlog.get_logger()
@@ -24,6 +30,18 @@ log = structlog.get_logger()
 
 class RiyasewanaBlockedError(RuntimeError):
     """Raised when riyasewana.com hard-blocks the scraper (Cloudflare block page)."""
+
+
+_ARCHIVE_FALLBACK_DISABLED = os.getenv("RIYASEWANA_ARCHIVE_FALLBACK", "1").lower() in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
+
+
+def _archive_fallback_enabled() -> bool:
+    return not _ARCHIVE_FALLBACK_DISABLED
 
 
 class RiyasewanaScraper:
@@ -214,7 +232,7 @@ class RiyasewanaScraper:
             max_pages=max_pages,
         )
 
-    async def scrape(self, max_pages: int = 5):
+    async def _scrape_live(self, max_pages: int = 5):
         seen_urls: set[str] = set()
         default_user_agent = (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -449,4 +467,80 @@ class RiyasewanaScraper:
             finally:
                 await context.close()
                 await browser.close()
+
+    async def scrape(self, max_pages: int = 5):
+        try:
+            return await self._scrape_live(max_pages=max_pages)
+        except RiyasewanaBlockedError:
+            if not _archive_fallback_enabled():
+                raise
+            log.warning(
+                "riyasewana_archive_fallback",
+                max_pages=max_pages,
+            )
+            return self._run_archive_fallback(max_pages=max_pages)
+
+    def _run_archive_fallback(self, max_pages: int = 5) -> dict[str, Any]:
+        """Upsert listings parsed from the most recent Wayback snapshot of the
+        riyasewana search page, tagged with the snapshot URL."""
+        from_ts = (utc_now() - timedelta(days=120)).strftime("%Y%m%d")
+        to_ts = utc_now().strftime("%Y%m%d")
+        hits = fetch_cdx_hits(
+            self.BASE_URL,
+            from_ts=from_ts,
+            to_ts=to_ts,
+            limit=max_pages,
+        )
+        if not hits:
+            log.warning("riyasewana_archive_no_snapshots", base_url=self.BASE_URL)
+            return {"snapshot": None, "inserted": 0}
+
+        hit = hits[-1]
+        html = fetch_wayback_html(hit)
+        rows = parse_riyasewana_serp_html(
+            html,
+            observed_at=utc_now(),
+            snapshot_url=hit.raw_url,
+            original_url=self.BASE_URL,
+        )
+        inserted = 0
+        for row in rows:
+            try:
+                normalized = self.cleaner.normalize_listing_payload(
+                    {
+                        "source_id": row["source_id"],
+                        "source": self.SOURCE,
+                        "title": row["title"],
+                        "make": row["make"],
+                        "model": row["model"] or "Other",
+                        "year": row["year"],
+                        "price_lkr": row["price_lkr"],
+                        "url": row["url"],
+                        "thumbnail_url": row.get("thumbnail_url", ""),
+                        "district": row.get("district") or "Sri Lanka",
+                        "condition": row.get("condition", "used"),
+                        "vehicle_category": row.get("vehicle_category") or "cars",
+                        "scraped_at": row["observed_at"],
+                        "archive_url": hit.raw_url,
+                    }
+                )
+                if not normalized:
+                    continue
+                normalized.pop("archive_url", None)
+                if self._upsert_listing(normalized):
+                    inserted += 1
+                self.db.commit()
+            except Exception as e:
+                self.db.rollback()
+                log.error(
+                    "riyasewana_archive_row_error",
+                    url=row.get("url"),
+                    error=str(e),
+                )
+        log.info(
+            "riyasewana_archive_upserted",
+            snapshot=hit.raw_url,
+            inserted=inserted,
+        )
+        return {"snapshot": hit.raw_url, "inserted": inserted}
 
