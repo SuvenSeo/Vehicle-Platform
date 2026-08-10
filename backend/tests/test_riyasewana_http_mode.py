@@ -146,7 +146,7 @@ def test_scrape_auto_uses_http_and_falls_back_to_playwright(scraper, monkeypatch
     monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "auto")
     calls = {"http": 0, "playwright": 0}
 
-    async def fake_http(max_pages: int = 5):
+    async def fake_http(max_pages: int = 5, *, mode: str = "auto"):
         calls["http"] += 1
         raise RiyasewanaBlockedError("http blocked")
 
@@ -162,11 +162,43 @@ def test_scrape_auto_uses_http_and_falls_back_to_playwright(scraper, monkeypatch
     assert result == {"status": "ok"}
 
 
+def test_scrape_auto_rate_limit_falls_back_to_playwright(scraper, monkeypatch):
+    """auto mode: sustained HTTP errors (rate limit) raise a block so Playwright takes over."""
+    monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "auto")
+    calls = {"playwright": 0}
+
+    class _FakeClient:
+        async def get(self, url):
+            return type("R", (), {"status_code": 403, "text": "<html></html>"})()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+    async def fake_playwright(max_pages: int = 5):
+        calls["playwright"] += 1
+        return {"status": "ok"}
+
+    monkeypatch.setattr(
+        riyasewana_module,
+        "CurlCffiAsyncSession",
+        lambda **kwargs: _FakeClient(),
+    )
+    monkeypatch.setattr(scraper, "_scrape_live", fake_playwright)
+    monkeypatch.setattr(scraper, "CATEGORY_PATHS", ("cars",))
+
+    result = asyncio.run(scraper.scrape(max_pages=30))
+    assert calls["playwright"] == 1
+    assert result == {"status": "ok"}
+
+
 def test_scrape_http_mode_routes_to_archive_on_block(scraper, monkeypatch):
     monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "http")
     monkeypatch.setattr(riyasewana_module, "_archive_fallback_enabled", lambda: True)
 
-    async def fake_http(max_pages: int = 5):
+    async def fake_http(max_pages: int = 5, *, mode: str = "auto"):
         raise RiyasewanaBlockedError("http blocked")
 
     def fake_fallback(max_pages: int = 5):
@@ -184,7 +216,7 @@ def test_scrape_playwright_mode_skips_http(scraper, monkeypatch):
     monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "playwright")
     calls = {"http": 0, "playwright": 0}
 
-    async def fake_http(max_pages: int = 5):
+    async def fake_http(max_pages: int = 5, *, mode: str = "auto"):
         calls["http"] += 1
 
     async def fake_playwright(max_pages: int = 5):

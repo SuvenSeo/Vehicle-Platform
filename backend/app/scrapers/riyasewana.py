@@ -573,7 +573,7 @@ class RiyasewanaScraper:
             raise last_exc
         return BeautifulSoup("", "lxml")
 
-    async def _scrape_via_http(self, max_pages: int = 5):
+    async def _scrape_via_http(self, max_pages: int = 5, *, mode: str = "auto"):
         """Fast plain-HTTP crawl of riyasewana SERP pages.
 
         Riyasewana renders the full listing grid server-side, so no browser is
@@ -629,8 +629,24 @@ class RiyasewanaScraper:
                             error=str(e),
                         )
                         consecutive_page_errors += 1
-                        if consecutive_page_errors >= 25:
-                            break
+                        # Cloudflare rate-limits datacenter IPs after a burst
+                        # (403s). In auto mode raise so scrape() falls back to
+                        # the Playwright browser; in explicit http mode stop the
+                        # crawl and keep the partial results already upserted.
+                        if consecutive_page_errors >= 15:
+                            if mode == "auto":
+                                raise RiyasewanaBlockedError(
+                                    f"riyasewana.com rate-limited the HTTP crawl "
+                                    f"({consecutive_page_errors} consecutive page errors "
+                                    f"on {category_path}); falling back to Playwright"
+                                )
+                            log.warning(
+                                "riyasewana_http_rate_limited_stop",
+                                category=category_path,
+                                consecutive_page_errors=consecutive_page_errors,
+                                note="keeping partial results upserted so far",
+                            )
+                            return
                         page_num += 1
                         continue
 
@@ -696,7 +712,7 @@ class RiyasewanaScraper:
 
         # auto / http: try the fast plain-HTTP crawl first.
         try:
-            return await self._scrape_via_http(max_pages=max_pages)
+            return await self._scrape_via_http(max_pages=max_pages, mode=mode)
         except RiyasewanaBlockedError as exc:
             if mode == "http":
                 if not _archive_fallback_enabled():
