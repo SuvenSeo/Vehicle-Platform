@@ -23,7 +23,7 @@ from app.scrapers.net import (
     stealth_init_script,
 )
 from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
-from app.utils.listing_upsert import upsert_listing
+from app.utils.listing_upsert import upsert_listings_batch
 from app.utils.time import utc_now
 
 log = structlog.get_logger()
@@ -493,6 +493,7 @@ class IkmanCarScraper:
             consecutive_empty_pages = 0
             consecutive_page_errors = 0
             new_on_page = 0
+            page_payloads: list[dict] = []
 
             for row in rows:
                 try:
@@ -530,16 +531,29 @@ class IkmanCarScraper:
                         continue
                     seen_urls.add(listing_url)
                     new_on_page += 1
-                    self._upsert_listing(payload)
-                    self.db.commit()
-                    upserted += 1
+                    page_payloads.append(payload)
                 except Exception as exc:
                     log.error(
                         "ikman_api_item_error",
                         category_id=category_id,
                         error=str(exc),
                     )
-                    self.db.rollback()
+
+            if page_payloads:
+                inserted = upsert_listings_batch(
+                    self.db,
+                    self.SOURCE,
+                    page_payloads,
+                    log_tag="ikman",
+                )
+                upserted += len(page_payloads)
+                if inserted:
+                    log.info(
+                        "ikman_api_batch_inserted",
+                        category_id=category_id,
+                        page=page_num,
+                        inserted=inserted,
+                    )
 
             log.info(
                 "ikman_api_page_complete",

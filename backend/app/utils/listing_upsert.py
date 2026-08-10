@@ -39,6 +39,40 @@ def _record_price_point(db: Session, listing_id: int, price) -> None:
     )
 
 
+def upsert_listings_batch(
+    db: Session,
+    source: str,
+    payloads: list[dict],
+    *,
+    log_tag: str = "listing_batch",
+) -> int:
+    """Upsert many listings with a single commit.
+
+    Scrapers previously called :func:`upsert_listing` + ``db.commit()`` once
+    per listing — on a remote Postgres that's one network round-trip per row
+    (~44 per riyasewana page), which dominates crawl time.  Batching to one
+    commit per page cuts that ~44x.  Each row runs in its own savepoint so a
+    bad row only drops that row, never the whole page.
+
+    Returns how many rows were newly inserted.
+    """
+    inserted = 0
+    for payload in payloads:
+        try:
+            with db.begin_nested():
+                if upsert_listing(db, source, payload):
+                    inserted += 1
+        except Exception:
+            # Savepoint already rolled back; sibling rows survive.
+            log.warning(
+                f"{log_tag}_row_skipped",
+                source=source,
+                source_id=str(payload.get("source_id") or "")[:200],
+            )
+    db.commit()
+    return inserted
+
+
 def upsert_listing(db: Session, source: str, payload: dict) -> bool:
     """Insert or update a listing keyed on (source, source_id).
 
