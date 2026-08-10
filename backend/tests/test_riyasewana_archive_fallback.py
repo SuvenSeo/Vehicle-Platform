@@ -49,6 +49,8 @@ async def _raise_blocked(*args, **kwargs):
 
 
 def test_archive_fallback_disabled_re_raises(monkeypatch, scraper):
+    # Pin playwright mode so the block originates from the browser path.
+    monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "playwright")
     monkeypatch.setattr(riyasewana_module, "_archive_fallback_enabled", lambda: False)
     monkeypatch.setattr(scraper, "_scrape_live", _raise_blocked)
 
@@ -57,6 +59,8 @@ def test_archive_fallback_disabled_re_raises(monkeypatch, scraper):
 
 
 def test_archive_fallback_routes_when_enabled(monkeypatch, scraper):
+    # Pin playwright mode so the block originates from the browser path.
+    monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "playwright")
     monkeypatch.setattr(riyasewana_module, "_archive_fallback_enabled", lambda: True)
     monkeypatch.setattr(scraper, "_scrape_live", _raise_blocked)
 

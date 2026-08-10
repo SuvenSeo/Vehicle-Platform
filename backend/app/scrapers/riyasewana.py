@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
-from app.utils.time import utc_now
+import asyncio
 import os
+import random
 import re
+from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qs, urljoin, urlparse
 
@@ -11,12 +12,22 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 from sqlalchemy.orm import Session
 
+try:
+    from curl_cffi.requests import AsyncSession as CurlCffiAsyncSession
+
+    CURL_CFFI_AVAILABLE = True
+except Exception:  # pragma: no cover - fallback path
+    CurlCffiAsyncSession = None  # type: ignore[assignment]
+    CURL_CFFI_AVAILABLE = False
+
 from app.scrapers.cleaner import CarCleaner
 from app.scrapers.net import (
+    get_proxy,
     playwright_context_kwargs,
     playwright_launch_proxy,
     stealth_init_script,
 )
+from app.utils.time import utc_now
 from app.scrapers.page_budget import page_budget_for_category
 from app.services.historical_archive import (
     fetch_cdx_hits,
@@ -42,6 +53,25 @@ _ARCHIVE_FALLBACK_DISABLED = os.getenv("RIYASEWANA_ARCHIVE_FALLBACK", "1").lower
 
 def _archive_fallback_enabled() -> bool:
     return not _ARCHIVE_FALLBACK_DISABLED
+
+
+# Scrape mode: "auto" (fast plain-HTTP crawl, falls back to Playwright on hard
+# block), "http" (plain-HTTP only), "playwright" (full browser, pre-HTTP-mode
+# behavior).  Riyasewana serves complete server-rendered SERP HTML over plain
+# HTTP, so the http path is ~50x cheaper/faster than a Playwright browser per
+# page and can crawl the full catalog depth (hundreds of pages per category).
+_DEFAULT_SCRAPE_MODE = str(os.getenv("RIYASEWANA_SCRAPE_MODE", "auto") or "auto").strip().lower()
+_VALID_SCRAPE_MODES = {"auto", "http", "playwright"}
+
+# When true, every category gets the full requested page budget instead of the
+# capped secondary share (see page_budget.py).  Used by deep backfills so a
+# large max_pages crawls all categories deeply, not just the primary one.
+_FLAT_BUDGET_ENABLED = str(os.getenv("RIYASEWANA_FLAT_BUDGET", "") or "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 
 class RiyasewanaScraper:
@@ -150,6 +180,134 @@ class RiyasewanaScraper:
             fallback_cards.append(card)
         return fallback_cards
 
+    def _process_cards(
+        self,
+        cards: list,
+        category_path: str,
+        page_num: int,
+        seen_urls: set[str],
+    ) -> int:
+        """Parse SERP cards into listings and upsert them.
+
+        Shared by the Playwright and plain-HTTP scrape paths so both keep
+        identical parsing/upsert behavior.  Returns how many cards were new
+        (not already seen this run).
+        """
+        new_on_page = 0
+
+        for card in cards:
+            try:
+                link = card.select_one(
+                    "div.v-card-title a[href*='/buy/']"
+                ) or card.select_one("a[href*='/buy/']")
+                if not link:
+                    continue
+
+                listing_url = urljoin(
+                    "https://riyasewana.com",
+                    str(link.get("href") or "").strip(),
+                )
+                if not listing_url or listing_url in seen_urls:
+                    continue
+
+                seen_urls.add(listing_url)
+                new_on_page += 1
+
+                title = link.get_text(" ", strip=True)
+                if not title:
+                    continue
+
+                raw_price = self._text(
+                    card, ["div.v-card-price", ".price", "[class*='price']"]
+                )
+                price = self.cleaner.normalize_price_lkr(raw_price)
+                if price is None:
+                    continue
+
+                data = self.cleaner.clean_title(title)
+                year_text = self._text(
+                    card, ["div.v-card-year", ".year", "[class*='year']"]
+                )
+                if not data["year"]:
+                    year_match = re.search(r"\b(19|20)\d{2}\b", year_text)
+                    if year_match:
+                        data["year"] = int(year_match.group(0))
+
+                if not data["make"]:
+                    continue
+
+                meta_text = self._text(
+                    card, ["div.v-card-meta", ".meta", "[class*='meta']"]
+                )
+                district = (
+                    meta_text.split("·", 1)[0].strip()
+                    if meta_text
+                    else "Sri Lanka"
+                )
+
+                thumb_url = self._attr(
+                    card,
+                    [
+                        ("div.v-card-img img[src]", "src"),
+                        ("div.v-card-img img[data-src]", "data-src"),
+                    ],
+                )
+                thumb_url = (
+                    urljoin("https://riyasewana.com", thumb_url)
+                    if thumb_url
+                    else ""
+                )
+
+                payload = {
+                    "source_id": listing_url,
+                    "source": self.SOURCE,
+                    "title": title,
+                    "make": data["make"],
+                    "model": data["model"] or "Other",
+                    "year": data["year"],
+                    "price_lkr": price,
+                    "url": listing_url,
+                    "thumbnail_url": thumb_url,
+                    "district": district or "Sri Lanka",
+                    "condition": None,
+                    "vehicle_category": (
+                        "motorbikes"
+                        if category_path == "motorcycles"
+                        else (
+                            "three-wheelers"
+                            if category_path == "three-wheels"
+                            else category_path
+                        )
+                    ),
+                    # Include meta + card text so fuel/gear/body
+                    # keywords outside the title still enrich.
+                    "_text_blobs": [
+                        title,
+                        meta_text,
+                        card.get_text(" ", strip=True),
+                    ],
+                    "scraped_at": utc_now(),
+                }
+
+                normalized_payload = self.cleaner.normalize_listing_payload(
+                    payload
+                )
+                if not normalized_payload:
+                    continue
+
+                self._upsert_listing(normalized_payload)
+                self.db.commit()
+            except Exception as e:
+                log.error(
+                    "riyasewana_item_error",
+                    category=category_path,
+                    page=page_num,
+                    error=str(e),
+                )
+                self.db.rollback()
+
+        return new_on_page
+
     @staticmethod
     def _is_challenge_page(soup: BeautifulSoup) -> bool:
         title = soup.title.get_text(" ", strip=True).lower() if soup.title else ""
@@ -227,6 +385,8 @@ class RiyasewanaScraper:
 
     @classmethod
     def _page_budget_for_category(cls, category_path: str, max_pages: int) -> int:
+        if _FLAT_BUDGET_ENABLED:
+            return max(1, int(max_pages or 1))
         return page_budget_for_category(
             is_primary=category_path == cls.PRIMARY_CATEGORY,
             max_pages=max_pages,
@@ -322,118 +482,9 @@ class RiyasewanaScraper:
                                 page_num += 1
                                 continue
 
-                            new_on_page = 0
-
-                            for card in cards:
-                                try:
-                                    link = card.select_one(
-                                        "div.v-card-title a[href*='/buy/']"
-                                    ) or card.select_one("a[href*='/buy/']")
-                                    if not link:
-                                        continue
-
-                                    listing_url = urljoin(
-                                        "https://riyasewana.com",
-                                        str(link.get("href") or "").strip(),
-                                    )
-                                    if not listing_url or listing_url in seen_urls:
-                                        continue
-
-                                    seen_urls.add(listing_url)
-                                    new_on_page += 1
-
-                                    title = link.get_text(" ", strip=True)
-                                    if not title:
-                                        continue
-
-                                    raw_price = self._text(
-                                        card, ["div.v-card-price", ".price", "[class*='price']"]
-                                    )
-                                    price = self.cleaner.normalize_price_lkr(raw_price)
-                                    if price is None:
-                                        continue
-
-                                    data = self.cleaner.clean_title(title)
-                                    year_text = self._text(
-                                        card, ["div.v-card-year", ".year", "[class*='year']"]
-                                    )
-                                    if not data["year"]:
-                                        year_match = re.search(r"\b(19|20)\d{2}\b", year_text)
-                                        if year_match:
-                                            data["year"] = int(year_match.group(0))
-
-                                    if not data["make"]:
-                                        continue
-
-                                    meta_text = self._text(
-                                        card, ["div.v-card-meta", ".meta", "[class*='meta']"]
-                                    )
-                                    district = (
-                                        meta_text.split("·", 1)[0].strip()
-                                        if meta_text
-                                        else "Sri Lanka"
-                                    )
-
-                                    thumb_url = self._attr(
-                                        card,
-                                        [
-                                            ("div.v-card-img img[src]", "src"),
-                                            ("div.v-card-img img[data-src]", "data-src"),
-                                        ],
-                                    )
-                                    thumb_url = (
-                                        urljoin("https://riyasewana.com", thumb_url)
-                                        if thumb_url
-                                        else ""
-                                    )
-
-                                    payload = {
-                                        "source_id": listing_url,
-                                        "source": self.SOURCE,
-                                        "title": title,
-                                        "make": data["make"],
-                                        "model": data["model"] or "Other",
-                                        "year": data["year"],
-                                        "price_lkr": price,
-                                        "url": listing_url,
-                                        "thumbnail_url": thumb_url,
-                                        "district": district or "Sri Lanka",
-                                        "condition": None,
-                                        "vehicle_category": (
-                                            "motorbikes"
-                                            if category_path == "motorcycles"
-                                            else (
-                                                "three-wheelers"
-                                                if category_path == "three-wheels"
-                                                else category_path
-                                            )
-                                        ),
-                                        # Include meta + card text so fuel/gear/body
-                                        # keywords outside the title still enrich.
-                                        "_text_blobs": [
-                                            title,
-                                            meta_text,
-                                            card.get_text(" ", strip=True),
-                                        ],
-                                        "scraped_at": utc_now(),
-                                    }
-
-                                    normalized_payload = self.cleaner.normalize_listing_payload(
-                                        payload
-                                    )
-                                    if not normalized_payload:
-                                        continue
-
-                                    self._upsert_listing(normalized_payload)
-                                    self.db.commit()
-                                except Exception as e:
-                                    log.error(
-                                        "riyasewana_item_error",
-                                        category=category_path,
-                                        page=page_num,
-                                        error=str(e),
-                                    )
-                                    self.db.rollback()
+                            new_on_page = self._process_cards(
+                                cards, category_path, page_num, seen_urls
+                            )
 
                             if new_on_page == 0:
                                 consecutive_empty_pages += 1
@@ -468,17 +519,210 @@ class RiyasewanaScraper:
                 await context.close()
                 await browser.close()
 
-    async def scrape(self, max_pages: int = 5):
-        try:
-            return await self._scrape_live(max_pages=max_pages)
-        except RiyasewanaBlockedError:
-            if not _archive_fallback_enabled():
+    async def _http_fetch_page(self, client: Any, page_url: str, page_num: int) -> BeautifulSoup:
+        """Fetch one SERP page with retries + block detection.
+
+        ``client`` is a curl_cffi ``AsyncSession`` (browser-grade TLS
+        fingerprint) — plain httpx gets 403'd by riyasewana's Cloudflare.
+        """
+        last_exc: Exception | None = None
+        for attempt in range(1, 4):
+            try:
+                response = await client.get(page_url)
+                if response.status_code != 200:
+                    raise RuntimeError(f"HTTP {response.status_code} for {page_url}")
+                soup = BeautifulSoup(response.text, "lxml")
+                if self._is_hard_block_page(soup):
+                    title = soup.title.get_text(strip=True) if soup.title else "(no title)"
+                    log.error(
+                        "riyasewana_http_hard_blocked",
+                        page=page_num,
+                        attempt=attempt,
+                        title=title,
+                    )
+                    raise RiyasewanaBlockedError(
+                        f"riyasewana.com served a Cloudflare block page over HTTP on page {page_num} "
+                        f"(title={title!r}); source unreachable"
+                    )
+                if self._is_challenge_page(soup):
+                    log.warning(
+                        "riyasewana_http_challenge_retry",
+                        page=page_num,
+                        attempt=attempt,
+                    )
+                    if attempt < 3:
+                        await asyncio.sleep(5 * attempt)
+                        continue
+                # Fetch succeeded and isn't a challenge/block page; the caller
+                # decides whether the page is legitimately empty.
+                return soup
+            except RiyasewanaBlockedError:
                 raise
-            log.warning(
-                "riyasewana_archive_fallback",
-                max_pages=max_pages,
+            except Exception as exc:
+                last_exc = exc
+                log.warning(
+                    "riyasewana_http_retry",
+                    page=page_num,
+                    attempt=attempt,
+                    error=str(exc),
+                )
+                if attempt < 3:
+                    await asyncio.sleep(2 * attempt)
+                    continue
+        if last_exc is not None:
+            raise last_exc
+        return BeautifulSoup("", "lxml")
+
+    async def _scrape_via_http(self, max_pages: int = 5):
+        """Fast plain-HTTP crawl of riyasewana SERP pages.
+
+        Riyasewana renders the full listing grid server-side, so no browser is
+        needed: a plain GET returns the same cards the Playwright path parses.
+        This is dramatically cheaper/faster and can reach deep page numbers that
+        would take hours through a headless browser.  Uses curl_cffi's Chrome
+        impersonation because Cloudflare TLS-fingerprints plain httpx into a
+        403.  Shared card parsing lives in :meth:`_process_cards`.
+        """
+        if not CURL_CFFI_AVAILABLE:
+            raise RiyasewanaBlockedError(
+                "curl_cffi is not installed; riyasewana plain-HTTP mode unavailable"
             )
-            return self._run_archive_fallback(max_pages=max_pages)
+
+        seen_urls: set[str] = set()
+        session_kwargs: dict[str, Any] = {
+            "impersonate": "chrome",
+            "timeout": 30.0,
+        }
+        proxy = get_proxy()
+        if proxy:
+            session_kwargs["proxies"] = {"http": proxy, "https": proxy}
+
+        async with CurlCffiAsyncSession(**session_kwargs) as client:
+            for category_path in self.CATEGORY_PATHS:
+                page_limit = self._page_budget_for_category(category_path, max_pages)
+                base_url = self._category_base_url(category_path)
+                page_num = 1
+                consecutive_empty_pages = 0
+                consecutive_page_errors = 0
+                stop_at_page: int | None = None
+
+                while page_num <= page_limit:
+                    if stop_at_page is not None and page_num > stop_at_page:
+                        break
+                    page_url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
+                    log.info(
+                        "scraping_page_http",
+                        source=self.SOURCE,
+                        category=category_path,
+                        page=page_num,
+                        page_limit=page_limit,
+                    )
+                    try:
+                        soup = await self._http_fetch_page(client, page_url, page_num)
+                    except RiyasewanaBlockedError:
+                        raise
+                    except Exception as e:
+                        log.error(
+                            "riyasewana_http_page_error",
+                            category=category_path,
+                            page=page_num,
+                            error=str(e),
+                        )
+                        consecutive_page_errors += 1
+                        if consecutive_page_errors >= 25:
+                            break
+                        page_num += 1
+                        continue
+
+                    cards = self._extract_cards(soup)
+                    if not cards:
+                        consecutive_empty_pages += 1
+                        log.info(
+                            "riyasewana_http_no_cards",
+                            category=category_path,
+                            page=page_num,
+                            consecutive_empty_pages=consecutive_empty_pages,
+                        )
+                        if consecutive_empty_pages >= 10:
+                            break
+                        page_num += 1
+                        continue
+
+                    new_on_page = self._process_cards(cards, category_path, page_num, seen_urls)
+
+                    # The SERP advertises its last page via the pagination block;
+                    # honor it so deep crawls stop at the true end instead of
+                    # burning requests on exhausted pages.
+                    if stop_at_page is None:
+                        _has_next, max_page_hint = self._parse_pagination(soup, page_num)
+                        if max_page_hint and max_page_hint > page_num:
+                            stop_at_page = min(max_page_hint, page_limit)
+                        elif not _has_next:
+                            stop_at_page = page_num
+
+                    if new_on_page == 0:
+                        consecutive_empty_pages += 1
+                        if consecutive_empty_pages >= 10:
+                            break
+                    else:
+                        consecutive_empty_pages = 0
+
+                    consecutive_page_errors = 0
+                    page_num += 1
+                    await asyncio.sleep(random.uniform(0.4, 1.2))
+
+    async def scrape(self, max_pages: int = 5):
+        mode = _DEFAULT_SCRAPE_MODE
+        if mode not in _VALID_SCRAPE_MODES:
+            log.warning(
+                "riyasewana_scrape_mode_unknown",
+                mode=mode,
+                fallback="auto",
+            )
+            mode = "auto"
+
+        if mode == "playwright":
+            try:
+                return await self._scrape_live(max_pages=max_pages)
+            except RiyasewanaBlockedError:
+                if not _archive_fallback_enabled():
+                    raise
+                log.warning(
+                    "riyasewana_archive_fallback",
+                    max_pages=max_pages,
+                    reason="playwright_blocked",
+                )
+                return self._run_archive_fallback(max_pages=max_pages)
+
+        # auto / http: try the fast plain-HTTP crawl first.
+        try:
+            return await self._scrape_via_http(max_pages=max_pages)
+        except RiyasewanaBlockedError as exc:
+            if mode == "http":
+                if not _archive_fallback_enabled():
+                    raise
+                log.warning(
+                    "riyasewana_archive_fallback",
+                    max_pages=max_pages,
+                    reason="http_blocked",
+                )
+                return self._run_archive_fallback(max_pages=max_pages)
+            log.warning(
+                "riyasewana_http_fallback_to_playwright",
+                max_pages=max_pages,
+                error=str(exc),
+            )
+            try:
+                return await self._scrape_live(max_pages=max_pages)
+            except RiyasewanaBlockedError:
+                if not _archive_fallback_enabled():
+                    raise
+                log.warning(
+                    "riyasewana_archive_fallback",
+                    max_pages=max_pages,
+                    reason="playwright_blocked",
+                )
+                return self._run_archive_fallback(max_pages=max_pages)
 
     def _run_archive_fallback(self, max_pages: int = 5) -> dict[str, Any]:
         """Upsert listings parsed from the most recent Wayback snapshot of the
