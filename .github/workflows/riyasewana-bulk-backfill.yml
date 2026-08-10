@@ -50,14 +50,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: backend/requirements.txt
+      # setup-python@v5 needs admin rights on Windows self-hosted runners
+      # (it cleans registry entries), so use the system Python instead.
+      - name: Check Python
+        run: |
+          python --version
+          python -m pip --version
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
       - name: Ensure schema (idempotent)
         env:
