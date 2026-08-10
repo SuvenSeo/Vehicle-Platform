@@ -28,6 +28,21 @@ if (!existsSync(catalogPath)) {
 
 const outDir = dirname(catalogPath);
 const raw = JSON.parse(readFileSync(catalogPath, 'utf8'));
+
+// Already-split catalogs (export_public_snapshots.py writes a `parts`
+// manifest) must NOT be rewritten: this script only understands a
+// monolithic { items: [...] } file, and treating a parts manifest as a
+// 0-item catalog clobbers the live listing search with an empty file.
+if (Array.isArray(raw.parts) && raw.parts.length > 0) {
+  const missing = raw.parts.filter((name) => !existsSync(join(outDir, name)));
+  if (missing.length > 0) {
+    console.error(`ERROR: catalog is multi-part but missing part file(s): ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  console.log(`OK already multi-part manifest (${raw.parts.length} parts, ${raw.listing_count ?? '?'} items) — skipping`);
+  process.exit(0);
+}
+
 const items = Array.isArray(raw.items) ? raw.items : [];
 const generatedAt = raw.generated_at || new Date().toISOString();
 

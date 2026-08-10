@@ -209,8 +209,11 @@ jobs:
             echo "ERROR: HOT_DATABASE_URL secret missing; cannot export snapshots."
             exit 1
           fi
+          # export_public_snapshots.py already splits the catalog into
+          # listing-catalog-part-NNN.json files internally — do NOT chain
+          # split-listing-catalog.mjs here (it clobbers the parts manifest
+          # to a 0-item catalog because it expects a monolithic items array).
           python export_public_snapshots.py --output ../public/snapshots/latest
-          node ../scripts/split-listing-catalog.mjs ../public/snapshots/latest/listing-catalog.json
 
       - name: Upload snapshot artifact
         uses: actions/upload-artifact@v4
