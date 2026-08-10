@@ -1,266 +1,274 @@
-# Motormila - Vehicle Price Intelligence Platform
+<p align="center">
+  <img src="public/logo-wordmark.svg" alt="Motormila" width="280" />
+</p>
 
-Vehicle market intelligence platform inspired by the Sri Lanka Property Price Intelligence stack, adapted for car listings.
+<p align="center">
+  <strong>The fair mila for every motor.</strong><br />
+  Sri Lanka's vehicle price intelligence platform — every listing, every source, one honest number.
+</p>
 
-## Stack
+<p align="center">
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 18" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="Neon PostgreSQL" />
+  <img src="https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright" />
+  <img src="https://img.shields.io/badge/Expo-React%20Native-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo" />
+  <img src="https://img.shields.io/badge/Deployed-Vercel%20%2B%20HF%20Spaces-000000?style=flat-square&logo=vercel&logoColor=white" alt="Vercel + HF Spaces" />
+  <img src="https://img.shields.io/badge/WCAG-2.2%20AA-3D9970?style=flat-square" alt="WCAG 2.2 AA" />
+</p>
 
-- Frontend: React + Vite + TypeScript + Tailwind + React Query
-- Backend: FastAPI + SQLAlchemy
-- Database: PostgreSQL (Neon — single DB, see `docs/neon-egress-budget.md`)
+<p align="center">
+  <a href="https://motormila.vercel.app">🌐 Live App</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#the-pipeline">The Pipeline</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#operations">Operations</a>
+</p>
 
-## Project Structure
+---
 
-- `src/`: frontend app
-- `backend/app/`: FastAPI routes and services
-- `backend/db/`: SQLAlchemy models and DB session config
+<img src="public/og-card.jpg" alt="Motormila dashboard" width="100%" />
 
-## 1) Environment Setup
+---
 
-### Frontend (`.env`)
+## 🚗 What is Motormila?
 
-Copy `.env.example` to `.env` and keep:
+Motormila is a **vehicle market intelligence platform for Sri Lanka**. It watches every major used-car marketplace, deduplicates the same car across sites, and turns ~180,000 live listings into clear answers:
 
-```env
-VITE_API_URL=/api/v1
+> **What is this car actually worth today?** · Is it a good deal, or a trap? · Which districts move fastest? · Is the market going up or down — and where?
+
+Think Bloomberg terminal for the Sri Lankan second-hand car market — but free to browse, obsessive about fairness, and built on real listing data refreshed multiple times a day.
+
+### The problem it solves
+
+Sri Lanka's car market is fragmented across a dozen+ marketplaces with wildly different formats, currencies (LKR vs USD), duplicate postings, and no price history. Buyers guess. Sellers guess. Dealers hedge.
+
+Motormila fixes that with one obsessive idea: **watch everything, deduplicate ruthlessly, price honestly.**
+
+- **13+ sources scraped** — ikman, riyasewana, patpat, autolanka, autodirect, saleme, riyahub, dimo, hitad, cartivate, and more
+- **~180,000 listings tracked** with price history, not just snapshots
+- **Same car across sites merged** via VIN + multi-signal fuzzy matching — one canonical record, not five duplicates
+- **Refreshed 2× a day** (plus midday top-source refreshes) by an autonomous GitHub Actions fleet
+
+---
+
+## ✨ Features
+
+### 📊 Market Intelligence
+| | |
+|---|---|
+| **Live Market Snapshot** | Real-time SSE stream of market moves as scrapes land (`/stats/live/stream`) |
+| **Price Trends & Index** | Price trend series per make/model — see where a car's value is heading |
+| **District Intelligence** | Price maps + **district velocity** — where cars sell fastest |
+| **Dashboard Insights** | Auto-generated market signals, curated daily by the analysis pipeline |
+
+### 💰 Valuation & Deals
+| | |
+|---|---|
+| **Fair Market Value (FMV)** | Per-listing valuation built from comparable live listings |
+| **Deal Score** | Every listing scored — spot underpriced gems and overpriced traps |
+| **Best Picks** | A daily shortlist of the sharpest deals on the market |
+| **Price Drop Alerts** | Get pinged when a watched car drops — thresholds, % moves, and more |
+
+### 🧭 Deep Research
+| | |
+|---|---|
+| **Make & Model Hubs** | `/cars/toyota/axio` — full market profile per car, per model |
+| **Listing History** | Per-listing price timeline, seller trust profile, similar cars |
+| **Compare Tool** | Side-by-side listings, spec sheets, and valuation |
+| **EV Hub** | Electric & hybrid market coverage, incl. hybrid tax trends |
+| **Official Pulse** | Import permits, official sources, and policy pulse in one place |
+| **Price Index** | A Bloomberg-style index of the whole SL used-car market |
+
+### 👑 Pro & Platform
+| | |
+|---|---|
+| **Pro Workspace** | Vehicle lanes, district deep-dives, **arbitrage gap detection** |
+| **Dealer Dashboard** | Fleet-level view for dealers & resellers |
+| **Invite-only Auth** | Plan-gated access, JWT sessions with instant revocation |
+| **Admin Console** | Invite users, assign Free/Pro plans, manage access |
+
+### 📱 Mobile
+A companion **Expo / React Native app** (`mobile/`) with biometric unlock, camera capture, location-aware search, and push notifications.
+
+---
+
+## 🕸️ The Pipeline
+
+Everything is automated. Nobody touches a database.
+
+```mermaid
+flowchart LR
+    subgraph Sources["13+ Sri Lankan Marketplaces"]
+        IK[ikman.lk] --> GH
+        RI[riyasewana.com] --> GH
+        PA[patpat.lk] --> GH
+        AL[autolanka] --> GH
+        OT[7 more sources] --> GH
+    end
+
+    subgraph GH["GitHub Actions fleet"]
+        SC["Scrape jobs<br/>(Playwright + API hybrid)"]
+        MA["Market analysis<br/>dedup · deal scores · signals"]
+        EX["Snapshot export<br/>→ R2 → Vercel deploy"]
+    end
+
+    GH --> NEON[("Neon PostgreSQL<br/>single DB, ingress-free")]
+    NEON --> EX
+    EX --> R2[("Cloudflare R2<br/>public snapshots")]
+    R2 --> FE[("React frontend<br/>Vercel")]
+    NEON --> API[("FastAPI<br/>HF Spaces")]
+    API --> FE
 ```
 
-The Vite dev proxy target (`http://127.0.0.1:8000`) is configured in
-`vite.config.ts` — no env var needed.
+**The egress-first rule:** scrapers *write* to Neon (free ingress); the public site *reads* from R2 snapshots, so database egress stays flat even with ~180k listings. Full catalog snapshots refresh weekly; stats-only snapshots refresh every scrape.
 
-### Backend (`backend/.env`)
+| Workflow | Cadence | Job |
+|---|---|---|
+| **Unified Vehicle Scraper** | 02:00 & 12:40 UTC | All 13 sources → analysis → export |
+| **Midday Top Sources** | 06:30 UTC | ikman + riyasewana refresh |
+| **Weekly Full-Catalog Refresh** | Weekly | Full snapshot rebuild |
+| **DB Backup** | Daily / emergency | Neon backups |
+| **Pipeline Monitor + Keep-Alive** | Continuous | Health + HF Space warm-up |
 
-Copy `backend/.env.example` to `backend/.env` and set Neon (pooled DSN):
+---
 
-```env
-DATABASE_URL=postgresql://<user>:<password>@<endpoint>-pooler.<region>.aws.neon.tech/neondb?sslmode=require
-ALLOW_SQLITE_FALLBACK=false
-CORS_ORIGINS=http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173,http://127.0.0.1:5173,https://motormila.vercel.app,https://vehicle-platform-one.vercel.app
+## 🧱 Architecture
+
+| Layer | Tech | Where |
+|---|---|---|
+| **Frontend** | React 18 · Vite · TypeScript · Tailwind · React Query · Recharts · Leaflet · framer-motion | Vercel |
+| **Backend** | FastAPI · SQLAlchemy · APScheduler · structlog · Playwright | HF Spaces |
+| **Database** | PostgreSQL (Neon, single-DB) · SQLite fallback for local dev | Neon |
+| **Snapshots** | JSON snapshots + manifest → Cloudflare R2 → Vercel deploy | R2 |
+| **Scrapers** | Python + Playwright (API-first, browser fallback), per-source isolation | GitHub Actions |
+| **Mobile** | Expo · React Native · expo-router · secure-store · biometrics | `mobile/` |
+| **Quality** | Vitest · Testing Library · vitest-axe · ESLint · GitHub Actions CI | CI |
+
+```
+.
+├── src/            # React frontend (pages, components, services, lib)
+├── backend/        # FastAPI app, scrapers, services, db models
+│   ├── app/scrapers/   # 13+ per-source scraper modules
+│   ├── app/services/   # market signals, aggregator, stats cache
+│   └── db/             # SQLAlchemy models + session config
+├── mobile/         # Expo / React Native companion app
+├── api/            # (edge helpers)
+├── scripts/        # ops tooling (snapshot deploy, auth bootstrap)
+├── .github/workflows/  # scrape fleet, CI, backups, monitors
+└── docs/           # architecture & design docs
 ```
 
-Notes:
+---
 
-- Use the Neon **pooled** connection string (PgBouncer, `-pooler` endpoint).
-- Single-DB mode: set only `HOT_DATABASE_URL` (or `DATABASE_URL`) and COLD
-  falls back to it (see `backend/db/session.py` and `docs/neon-egress-budget.md`).
-- If your URL starts with `postgres://`, backend auto-converts it to `postgresql://`.
+## ⚡ Quickstart
 
-## 2) Install Dependencies
+### Prerequisites
+- Node 20+ · Python 3.12 · (optional) Expo Go for mobile
 
-Frontend:
+### 1 · Frontend
 
 ```bash
 npm install
+npm run dev            # → http://localhost:8080 (proxies /api → 127.0.0.1:8000)
 ```
 
-Backend:
+### 2 · Backend
 
 ```bash
 cd backend
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+# local dev needs no Neon — SQLite fallback is fine:
+ALLOW_SQLITE_FALLBACK=true \
+PRO_ACCESS_ENFORCED=false APP_ACCESS_ENFORCED=false \
+.venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-## 3) Run Locally
+> The SQLite DB starts **empty** — scrapers hit live external sites, so expect zeroes until a run lands. Insert rows into `car_listings` to demo the UI, or run a scrape:
+> ```bash
+> RUN_SCRAPERS=true SCRAPE_ENABLED_SOURCES=ikman python run_sync.py
+> ```
 
-Start backend (from repo root):
+### 3 · Mobile
 
 ```bash
-cd backend
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+cd mobile
+npm install
+npm run start          # Expo dev server
 ```
 
-Start frontend (from repo root):
+### Verify
 
 ```bash
-npm run dev
+npm run typecheck && npm run lint && npm run test && npm run build   # frontend
+cd backend && .venv/bin/python -m pytest tests                       # backend
 ```
 
-Open:
+---
 
-- Frontend: `http://localhost:8080`
-- API health: `http://127.0.0.1:8000/health`
+## 🔐 Auth & Pro Platform (production)
 
-## 4) Common Issues
-
-### White blank screen
-
-If you hit a blank screen, check these first:
-
-- Frontend env has `VITE_API_URL=/api/v1`.
-- Backend is running on `127.0.0.1:8000`.
-- Browser console for runtime errors.
-
-This project now includes an app-level error boundary so runtime crashes show a fallback UI instead of a silent blank page.
-
-### Neon not connecting
-
-- Confirm `DATABASE_URL` (or `HOT_DATABASE_URL`) is set in `backend/.env`.
-- Set `ALLOW_SQLITE_FALLBACK=false` to force fast failure.
-- Check the Neon IP-allowlist / region settings.
-- If Neon's free data-transfer allowance is exhausted, DB access is blocked
-  until reset — see `docs/neon-egress-budget.md` and the `neon-egress-watch`
-  GitHub workflow for the early-warning check.
-
-## 5) Verification
-
-The frontend targets WCAG 2.2 AA — axe-core reports zero violations on the
-key pages as of 2026-07-16; keep it that way when adding UI.
-
+Platform access is invite-only. Bootstrap an admin, then invite users from `/admin`:
 
 ```bash
-npm run test
-npm run build
+python scripts/bootstrap_platform_auth.py --email you@example.com --password '…' --name 'Owner'
 ```
 
-Both should pass before deployment.
+- Set `AUTH_TOKEN_SECRET` + `AUTH_USERS` on the **HF Space secrets** and `VITE_ENABLE_BACKEND_AUTH=true` on **Vercel**
+- Sessions re-check plan/role/active from the DB on every gated request; `token_version` kills old JWTs instantly
+- Optional: `RESEND_API_KEY` (email invites) · `BILLING_WEBHOOK_SECRET` (Stripe/PayHere plan upgrades) · `PUBLIC_APP_ORIGIN`
+- Local dev: `PRO_ACCESS_ENFORCED=false APP_ACCESS_ENFORCED=false` opts out of gating
 
-## 6) Deploy Backend On Hugging Face Spaces
+---
 
-The production backend runs on Hugging Face Spaces:
+## 🚀 Deploying
 
-```text
-https://seo292-vehicle-platform-backend.hf.space
-```
+- **Backend → HF Spaces:** pushed automatically by `.github/workflows/deploy-hf-backend.yml`; verify with `curl https://seo292-vehicle-platform-backend.hf.space/health`
+- **Frontend → Vercel:** Git integration on `main`; `vercel.json` rewrites `/api/v1/*` to the HF Space (same-origin, no CORS headaches)
+- **Data → Vercel:** snapshots are exported and deployed to production by the scrape pipeline itself
 
-After deploy, verify:
+> ⚠️ **Vercel requires verified commits** — unsigned commits get deployments cancelled. Use SSH/GPG signing, or land commits via GitHub's web UI / PR merge (GitHub signs those automatically).
 
-```bash
-curl https://seo292-vehicle-platform-backend.hf.space/health
-curl https://seo292-vehicle-platform-backend.hf.space/api/v1/stats/summary
-```
+---
 
-## 7) Connect Vercel Frontend To Hugging Face Backend
+## 🧪 Quality & Accessibility
 
-In Vercel Project Settings -> Environment Variables, set:
+- **WCAG 2.2 AA** — axe-core reports **zero violations** on key pages; enforced by tests (`vitest-axe`)
+- **60+ component/unit tests** across dashboard, alerts, pricing gates, search, and accessibility
+- **CI** runs frontend typecheck + lint + test + build and backend `pytest` on every push/PR
+- **Error boundaries** everywhere — no silent blank screens
+- **Sentry** error tracking + Vercel Analytics on the live site
 
-```env
-VITE_API_URL=/api/v1
-```
+---
 
-`vercel.json` rewrites `/api/v1/*` to the Hugging Face Space, so the browser
-talks same-origin (avoids HF CORS preflight stripping credentials). Absolute
-HF URLs still work as a fallback.
+## 🗺️ Roadmap
 
-## 8) Make Deployments Fully Automatic
+- [x] 13+ sources live, ~180k listings, VIN + fuzzy dedup
+- [x] Valuation (FMV), deal scores, price alerts, district velocity
+- [x] Pro workspace: vehicle lanes, district profiles, arbitrage gaps
+- [x] Mobile companion app (Expo)
+- [ ] 50+ sources (see `SCRAPER_ARCHITECTURE.md`)
+- [ ] LLM extraction for unstructured listing descriptions
+- [ ] Adaptive per-source scheduling based on market turnover
+- [ ] Historical price analytics & forecasting
 
-After one-time setup, every push updates production automatically.
+---
 
-### CI
+## 📚 Docs
 
-Every push to `main` and every pull request runs [ci.yml](.github/workflows/ci.yml): frontend typecheck/lint/test/build and backend pytest. Deploys are handled separately by Vercel's Git integration and `deploy-hf-backend.yml` — CI does not deploy anything.
+| Doc | What it covers |
+|---|---|
+| [`SCRAPER_ARCHITECTURE.md`](SCRAPER_ARCHITECTURE.md) | Scaling to 50+ sources, proxies, resilience |
+| [`docs/neon-egress-budget.md`](docs/neon-egress-budget.md) | Egress budget & snapshot strategy |
+| [`docs/MASTER PLAN FOR FUTURE OF MOTORMILA.txt`](docs/MASTER%20PLAN%20FOR%20FUTURE%20OF%20MOTORMILA.txt) | The long game |
+| `docs/mobile-*.md` | Mobile app architecture & quickstart |
 
-### Backend auto-deploy (GitHub -> Hugging Face Spaces)
+---
 
-This repo includes [deploy-hf-backend.yml](.github/workflows/deploy-hf-backend.yml). It syncs backend code to the Hugging Face Space when backend files change on `main`.
-
-### Frontend auto-deploy (GitHub -> Vercel)
-
-Use Vercel Git integration:
-
-1. In Vercel project settings, connect this GitHub repo.
-2. Set production branch to `main`.
-3. Keep auto deploy enabled.
-4. Set env var:
-
-```env
-VITE_API_URL=https://seo292-vehicle-platform-backend.hf.space/api/v1
-```
-
-Now pushes to `main` will:
-
-1. Auto deploy backend to Hugging Face Spaces (if backend files changed).
-2. Auto deploy frontend to Vercel (if frontend files changed).
-
-### Optional: trigger Vercel redeploy even when only backend changes
-
-Normally not required because frontend calls the same backend URL, but if needed you can manually click "Redeploy" in Vercel Deployments.
-
-### Real Pro authentication (enforced by default)
-
-The backend ships an env-configured auth layer, and `/api/v1/pro/*` routes
-require a valid pro/enterprise bearer token **by default**. Bootstrap secrets:
-
-```bash
-python scripts/bootstrap_platform_auth.py --email you@example.com --password 'your-strong-password' --name 'Owner'
-```
-
-Paste the printed `AUTH_TOKEN_SECRET` + `AUTH_USERS` into **Hugging Face Space
-secrets**, and set on **Vercel Production**:
-
-```env
-VITE_ENABLE_BACKEND_AUTH=true
-VITE_API_URL=/api/v1
-```
-
-Then redeploy both. Sign in at https://motormila.vercel.app/sign-in and open
-`/admin` to invite users.
-
-Optional:
-- `RESEND_API_KEY` (+ `RESEND_FROM`) — email invite links automatically
-- `BILLING_WEBHOOK_SECRET` — `POST /api/v1/billing/webhook` upgrades plans from Stripe/PayHere adapters
-- `PUBLIC_APP_ORIGIN=https://motormila.vercel.app` — invite link host
-
-Generate a bcrypt password hash with:
-
-```bash
-python -c "import bcrypt; print(bcrypt.hashpw(b'your-password', bcrypt.gensalt()).decode())"
-```
-
-Legacy unsalted SHA-256 entries (`password_sha256`) are no longer accepted.
-
-Sessions re-check plan/role/active from the DB on every gated request, and
-`token_version` is bumped on logout / admin plan changes so old JWTs die
-immediately. Default token TTL is 24 hours (`AUTH_TOKEN_TTL_SECONDS`).
-
-Then set `VITE_ENABLE_BACKEND_AUTH=true` on the frontend build. Sign-in
-goes through `POST /api/v1/auth/login` and the issued bearer token is sent
-on every `/api/v1/pro/*` call. For local development only, you can opt out
-of server-side gating with `PRO_ACCESS_ENFORCED=false`.
-
-### In-Space scheduler is off by default
-
-The backend also ships an optional APScheduler-based sync
-(`DAILY_SYNC_ENABLED`, default `false`). GitHub Actions is the single
-owner of scraping; only enable the in-process scheduler on deployments
-that have no external scrape runner, because Playwright competes with
-API traffic for the container's memory.
-
-## 9) Run Daily Scraping In GitHub Cloud
-
-This repo now includes `.github/workflows/daily-scrape.yml` to run scraping in GitHub Actions (no local data/wifi usage from your side).
-
-It supports:
-
-- **Scheduled run**: twice daily at 02:00 UTC (07:30 SLT) and 12:40 UTC (18:10 SLT); midday ikman/riyasewana refresh at 06:30 UTC (12:00 SLT) via `midday-top-sources-scrape.yml`
-- **Manual run**: GitHub -> Actions -> **Unified Vehicle Scraper** -> **Run workflow**
-- **Independent source jobs**: every source runs as its own matrix job so one source cannot stop the others
-
-### One-time GitHub setup
-
-In GitHub repo -> **Settings** -> **Secrets and variables** -> **Actions**, add secret:
-
-- `HOT_DATABASE_URL` = your production Neon pooled PostgreSQL URL (single DB)
-
-Notes:
-
-- Page depth and per-source timeouts are pinned inside the workflow file
-  (`SCRAPE_MAX_PAGES: 20`, 100 for ikman/riyasewana, 90 min timeout for those two) — edit
-  `.github/workflows/daily-scrape.yml` to change them.
-- Workflow forces `ALLOW_SQLITE_FALLBACK=false` so it fails fast if DB config is missing.
-- Playwright dependencies and Chromium are installed inside the runner automatically.
-- The workflow uses `SCRAPE_ENABLED_SOURCES` internally so each job runs only one source.
-
-### Vercel requires verified commits
-
-Vercel cancels production builds created from unsigned ("unverified") commits
-with: *"The Deployment was canceled because it was created with an unverified
-commit."* Options:
-
-- Sign local commits (SSH signing: `git config gpg.format ssh`,
-  `git config user.signingkey <key>`, `git config commit.gpgsign true`,
-  and add the key as a *signing key* on GitHub), or
-- Relax the check in Vercel project settings, or
-- Land a commit via the GitHub web UI/API (GitHub signs those automatically),
-  which deploys the full tree at that commit.
-
-Note: only web-UI and PR-merge commits are auto-signed by GitHub — token/API
-commits are NOT, so the PR-merge route is the scriptable one.
+<p align="center">
+  Built with obsession in Sri Lanka 🇱🇰<br />
+  <sub>Data is for intelligence, not for flipping the market — use the fair mila wisely.</sub>
+</p>
