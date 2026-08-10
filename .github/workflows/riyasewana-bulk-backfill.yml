@@ -38,10 +38,14 @@ concurrency:
 
 jobs:
   scrape-riyasewana:
-    runs-on: ubuntu-latest
+    # Runs on the laptop self-hosted runner (residential IP) so Cloudflare
+    # rate-limits don't cut the deep crawl short like they do on datacenter
+    # hosted runners. Requires Git Bash on the runner for the bash steps.
+    runs-on: self-hosted
     timeout-minutes: 240
     defaults:
       run:
+        shell: bash
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
