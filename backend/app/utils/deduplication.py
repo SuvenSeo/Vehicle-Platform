@@ -11,6 +11,7 @@ Matching criteria for a duplicate pair:
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Optional
 
 import structlog
@@ -129,8 +130,12 @@ def find_duplicate_candidates(
     return results[:limit]
 
 
-def mark_duplicates_batch(db: Session, batch_size: int = 1000) -> int:
-    """Scan all non-duplicate listings in ascending id order and flag the
+def mark_duplicates_batch(
+    db: Session,
+    batch_size: int = 1000,
+    since: Optional[datetime] = None,
+) -> int:
+    """Scan non-duplicate listings in ascending id order and flag the
     lower-id record as ``is_duplicate=True`` when a cross-source duplicate pair
     is detected.
 
@@ -139,18 +144,29 @@ def mark_duplicates_batch(db: Session, batch_size: int = 1000) -> int:
     scrape) is marked as the duplicate, because we want to keep the earliest
     ingested record as the source of truth.
 
+    When *since* is provided, only listings whose ``scraped_at`` is at or
+    after *since* are scanned (the indexed ``scraped_at`` column, which every
+    scrape touch refreshes). This is safe because pair resolution always flags
+    the lower-id member: a pair involving an unchanged listing can only be
+    created when a newer/changed member arrives, and scanning that member
+    resolves the pair identically to a full-table scan. Pass ``since=None``
+    for a full pass (rare maintenance / after a bulk import).
+
     Returns the number of listings newly marked as duplicates.
     """
     total_marked = 0
     last_id = 0
 
     while True:
+        filters = [
+            CarListing.id > last_id,
+            CarListing.is_duplicate == False,  # noqa: E712
+        ]
+        if since is not None:
+            filters.append(CarListing.scraped_at >= since)
         batch: list[CarListing] = (
             db.query(CarListing)
-            .filter(
-                CarListing.id > last_id,
-                CarListing.is_duplicate == False,  # noqa: E712
-            )
+            .filter(and_(*filters))
             .order_by(CarListing.id.asc())
             .limit(batch_size)
             .all()

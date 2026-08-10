@@ -1,6 +1,6 @@
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 import structlog
@@ -611,6 +611,13 @@ async def main(profile_override: str | None = None):
     run_market_signals = _resolve_bool_env("RUN_MARKET_SIGNALS", run_market_analysis)
     run_deal_score_refresh = _resolve_bool_env("RUN_DEAL_SCORE_REFRESH", True)
     run_dedup = _resolve_bool_env("RUN_DEDUP", False)
+    # Incremental dedup: only re-examine listings scraped within the window so
+    # the pass stays a few minutes instead of hours on a 180k-row table.
+    # Set DEDUP_FULL_PASS=true for a rare full-table sweep (post-migration).
+    dedup_since = None
+    if run_dedup and not _resolve_bool_env("DEDUP_FULL_PASS", False):
+        dedup_hours = _resolve_positive_env_int("DEDUP_SINCE_HOURS", 48)
+        dedup_since = _utcnow() - timedelta(hours=dedup_hours)
     run_listing_lifecycle = _resolve_bool_env("RUN_LISTING_LIFECYCLE", True)
     run_outlier_detection = _resolve_bool_env("RUN_OUTLIER_DETECTION", True)
     # Default with market analysis so summary/district caches stay fresh after sync.
@@ -630,6 +637,7 @@ async def main(profile_override: str | None = None):
         run_market_signals=run_market_signals,
         run_deal_score_refresh=run_deal_score_refresh,
         run_dedup=run_dedup,
+        dedup_since=dedup_since.isoformat() if dedup_since is not None else None,
         run_listing_lifecycle=run_listing_lifecycle,
         run_outlier_detection=run_outlier_detection,
         run_stats_cache_refresh=run_stats_cache_refresh,
@@ -657,8 +665,11 @@ async def main(profile_override: str | None = None):
         if run_dedup:
             db = SessionLocal()
             try:
-                log.info("running_deduplication")
-                marked = mark_duplicates_batch(db)
+                log.info(
+                    "running_deduplication",
+                    since=dedup_since.isoformat() if dedup_since is not None else None,
+                )
+                marked = mark_duplicates_batch(db, since=dedup_since)
                 log.info("deduplication_complete", listings_marked=marked)
             except Exception as exc:
                 db.rollback()

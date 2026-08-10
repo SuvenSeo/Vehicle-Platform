@@ -43,11 +43,12 @@ def _listing(
     year: int | None = 2020,
     price_lkr: int | None = 10_000_000,
     mileage: int | None = 50_000,
+    scraped_at: datetime = _NOW,
 ) -> CarListing:
     return CarListing(
         source=source,
         source_id=source_id,
-        scraped_at=_NOW,
+        scraped_at=scraped_at,
         first_seen_at=_NOW,
         last_seen_at=_NOW,
         make=make,
@@ -334,6 +335,58 @@ def test_mark_duplicates_batch_skips_same_source_duplicates():
     marked = mark_duplicates_batch(db)
 
     assert marked == 0
+
+
+def test_mark_duplicates_batch_since_skips_old_pairs():
+    """With a `since` cutoff, untouched (old) listings are not re-scanned."""
+    db = _session()
+    old = _listing("ikman", "ik-since-old", scraped_at=_NOW - timedelta(days=10))
+    old_twin = _listing("riyasewana", "rs-since-old", scraped_at=_NOW - timedelta(days=10))
+    db.add(old)
+    db.commit()
+    db.add(old_twin)
+    db.commit()
+
+    marked = mark_duplicates_batch(db, since=_NOW - timedelta(days=1))
+
+    assert marked == 0
+
+
+def test_mark_duplicates_batch_since_resolves_pair_when_new_member_scanned():
+    """A new/changed listing still resolves a pair against older candidates."""
+    db = _session()
+    old = _listing("ikman", "ik-since-new", scraped_at=_NOW - timedelta(days=10))
+    db.add(old)
+    db.commit()
+    fresh = _listing("riyasewana", "rs-since-new", scraped_at=_NOW)
+    db.add(fresh)
+    db.commit()
+
+    marked = mark_duplicates_batch(db, since=_NOW - timedelta(days=1))
+
+    db.expire_all()
+    old_row = db.query(CarListing).filter_by(source_id="ik-since-new").one()
+    fresh_row = db.query(CarListing).filter_by(source_id="rs-since-new").one()
+
+    assert marked == 1
+    assert old_row.is_duplicate is True
+    assert old_row.duplicate_of == fresh_row.id
+    assert fresh_row.is_duplicate is False
+
+
+def test_mark_duplicates_batch_since_none_matches_full_pass():
+    """Explicit since=None scans the whole table (existing behaviour)."""
+    db = _session()
+    early = _listing("ikman", "ik-none-1", scraped_at=_NOW - timedelta(days=10))
+    late = _listing("riyasewana", "rs-none-1", scraped_at=_NOW)
+    db.add(early)
+    db.commit()
+    db.add(late)
+    db.commit()
+
+    marked = mark_duplicates_batch(db, since=None)
+
+    assert marked == 1
 
 
 def test_mark_duplicates_batch_custom_batch_size():
