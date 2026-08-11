@@ -19,7 +19,11 @@ concurrency:
 
 jobs:
   scrape-source:
-    runs-on: ubuntu-latest
+    # Laptop self-hosted runner: the residential IP dodges Cloudflare rate-limits
+    # (hosted runners get 403-walled after ~9 pages/category; 1,400 errors seen),
+    # and workerCount=4 lets several matrix sources scrape in parallel. Jobs queue
+    # if the laptop is off and run when it returns. Requires Git Bash.
+    runs-on: self-hosted
     # Heavy sources need setup (~10m) + scrape headroom. Lighter sources finish sooner.
     timeout-minutes: ${{ contains(fromJSON('["ikman","riyasewana"]'), matrix.source) && 180 || 60 }}
     strategy:
@@ -29,36 +33,26 @@ jobs:
 
     defaults:
       run:
+        shell: bash
         working-directory: backend
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: backend/requirements.txt
+      # setup-python@v5 needs admin rights on Windows self-hosted runners
+      # (it cleans registry entries), so use the system Python instead.
+      - name: Check Python
+        run: |
+          python --version
+          python -m pip --version
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
-      - name: Install Playwright system dependencies
-        run: python -m playwright install-deps chromium
-
-      - name: Cache Playwright browsers
-        id: cache-playwright
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('backend/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
+      # install-deps is Linux-only; Playwright is only the fallback path
+      # (riyasewana auto-uses plain-HTTP mode, ikman uses its API).
       - name: Install Playwright browser
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: python -m playwright install chromium
 
       - name: Validate scraper modules compile
@@ -110,21 +104,21 @@ jobs:
           # a deeper scan is needed after the Supabase migration.
           SCRAPE_MAX_PAGES: "20"
           SCRAPE_MAX_PAGES_ALT: "20"
-          # Cap heavy sources so Playwright fallback can finish inside job timeout.
-          # API mode still covers recent inventory well at 60 pages.
-          SCRAPE_MAX_PAGES_IKMAN: "60"
-          SCRAPE_MAX_PAGES_RIYASEWANA: "60"
-          SCRAPE_MAX_PAGES_PATPAT: "20"
-          SCRAPE_MAX_PAGES_AUTOLANKA: "20"
-          SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "20"
-          SCRAPE_MAX_PAGES_AUTODIRECT: "20"
-          SCRAPE_MAX_PAGES_AUTOSTREAM: "20"
-          SCRAPE_MAX_PAGES_CARSHOP: "20"
-          SCRAPE_MAX_PAGES_SALEME: "20"
-          SCRAPE_MAX_PAGES_RIYAHUB: "20"
-          SCRAPE_MAX_PAGES_DIMO: "20"
-          SCRAPE_MAX_PAGES_HITAD: "20"
-          SCRAPE_MAX_PAGES_CARTIVATE: "20"
+          # Residential IP + batched commits removed the old hosted-runner caps;
+          # deeper budgets now capture far more of each source's catalog daily.
+          SCRAPE_MAX_PAGES_IKMAN: "120"
+          SCRAPE_MAX_PAGES_RIYASEWANA: "120"
+          SCRAPE_MAX_PAGES_PATPAT: "30"
+          SCRAPE_MAX_PAGES_AUTOLANKA: "30"
+          SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "30"
+          SCRAPE_MAX_PAGES_AUTODIRECT: "30"
+          SCRAPE_MAX_PAGES_AUTOSTREAM: "30"
+          SCRAPE_MAX_PAGES_CARSHOP: "30"
+          SCRAPE_MAX_PAGES_SALEME: "30"
+          SCRAPE_MAX_PAGES_RIYAHUB: "30"
+          SCRAPE_MAX_PAGES_DIMO: "30"
+          SCRAPE_MAX_PAGES_HITAD: "30"
+          SCRAPE_MAX_PAGES_CARTIVATE: "30"
           # Source timeouts must stay below job timeout minus setup (~10m).
           SCRAPE_SOURCE_TIMEOUT_SECONDS: "2400"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "2400"
