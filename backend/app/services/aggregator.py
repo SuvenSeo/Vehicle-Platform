@@ -58,6 +58,10 @@ class CarPriceAggregator:
                 continue
             grouped_prices[(make, model, year, district)].append(float(price_lkr))
 
+        # Compute stats in Python (one read round-trip above), then persist with
+        # a single DELETE + bulk INSERT instead of one SELECT+UPDATE per group
+        # (previously ~12k network round-trips to the DB per run).
+        aggregates: list[dict] = []
         for (make, model, year, district), prices in grouped_prices.items():
             if not prices:
                 continue
@@ -69,32 +73,31 @@ class CarPriceAggregator:
             p25_price = _percentile(prices, 0.25)
             p75_price = _percentile(prices, 0.75)
 
-            agg = self.db.query(PriceAggregate).filter(
-                PriceAggregate.make == make,
-                PriceAggregate.model == model,
-                PriceAggregate.year == year,
-                PriceAggregate.district == district,
-                PriceAggregate.period_year == period_year,
-                PriceAggregate.period_month == period_month
-            ).first()
-            
-            if not agg:
-                agg = PriceAggregate(
-                    make=make,
-                    model=model,
-                    year=year,
-                    district=district,
-                    period_year=period_year,
-                    period_month=period_month
-                )
-                self.db.add(agg)
+            aggregates.append(
+                {
+                    "make": make,
+                    "model": model,
+                    "year": year,
+                    "district": district,
+                    "period_year": period_year,
+                    "period_month": period_month,
+                    "avg_price_lkr": Decimal(str(round(avg_price, 2))),
+                    "median_price_lkr": Decimal(str(round(median_price, 2))),
+                    "p25_price_lkr": Decimal(str(round(p25_price, 2))),
+                    "p75_price_lkr": Decimal(str(round(p75_price, 2))),
+                    "listing_count": count,
+                }
+            )
 
-            agg.avg_price_lkr = Decimal(str(round(avg_price, 2)))
-            agg.median_price_lkr = Decimal(str(round(median_price, 2)))
-            agg.p25_price_lkr = Decimal(str(round(p25_price, 2)))
-            agg.p75_price_lkr = Decimal(str(round(p75_price, 2)))
-            agg.listing_count = count
-            agg.computed_at = func.now()
+        # Replace the whole period in one statement pair.
+        self.db.execute(
+            PriceAggregate.__table__.delete().where(
+                PriceAggregate.period_year == period_year,
+                PriceAggregate.period_month == period_month,
+            )
+        )
+        if aggregates:
+            self.db.bulk_insert_mappings(PriceAggregate, aggregates)
 
         self.db.commit()
-        logger.info("aggregates_computed", count=len(grouped_prices))
+        logger.info("aggregates_computed", count=len(aggregates))

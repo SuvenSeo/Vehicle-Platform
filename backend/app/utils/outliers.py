@@ -61,6 +61,10 @@ def mark_price_outliers(
         )
         groups.setdefault(key, []).append(row)
 
+    # Accumulate pending mutations and flush with two bulk UPDATE statements
+    # instead of one UPDATE round-trip per row (~4k round-trips per pass).
+    flag_updates: list[dict] = []
+    clear_updates: list[dict] = []
     flagged = 0
     cleared = 0
     for key, members in groups.items():
@@ -69,10 +73,7 @@ def mark_price_outliers(
             # Too thin for a fence — clear only flags this pass created earlier.
             for m in members:
                 if m.is_outlier and (m.outlier_reason or "").startswith(REASON_PREFIX):
-                    db.query(CarListing).filter(CarListing.id == m.id).update(
-                        {"is_outlier": False, "outlier_reason": None},
-                        synchronize_session=False,
-                    )
+                    clear_updates.append({"id": m.id, "is_outlier": False, "outlier_reason": None})
                     cleared += 1
             continue
 
@@ -89,19 +90,17 @@ def mark_price_outliers(
                     f"{key[0]} {key[1]} {key[2] or 'unknown-year'} (n={len(prices)})"
                 )
                 if not m.is_outlier or m.outlier_reason != reason:
-                    db.query(CarListing).filter(CarListing.id == m.id).update(
-                        {"is_outlier": True, "outlier_reason": reason},
-                        synchronize_session=False,
-                    )
+                    flag_updates.append({"id": m.id, "is_outlier": True, "outlier_reason": reason})
                     flagged += 1
             elif m.is_outlier and is_iqr_flag:
                 # Back inside the fence (price corrected or cohort shifted).
-                db.query(CarListing).filter(CarListing.id == m.id).update(
-                    {"is_outlier": False, "outlier_reason": None},
-                    synchronize_session=False,
-                )
+                clear_updates.append({"id": m.id, "is_outlier": False, "outlier_reason": None})
                 cleared += 1
 
+    if flag_updates:
+        db.bulk_update_mappings(CarListing, flag_updates)
+    if clear_updates:
+        db.bulk_update_mappings(CarListing, clear_updates)
     db.commit()
     log.info(
         "outlier_pass_complete",
