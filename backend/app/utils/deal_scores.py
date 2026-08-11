@@ -4,6 +4,7 @@ from datetime import datetime
 
 import structlog
 from sqlalchemy import and_, func, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from db.models import CarListing, PriceAggregate, live_listing_filter
@@ -176,6 +177,28 @@ def _build_listing_median_select():
     )
 
 
+def _apply_score_batch(db: Session, batch: list[dict]) -> None:
+    """Write one batch of (id, deal_score, market_median_lkr) rows.
+
+    On Postgres a multi-row ``INSERT ... ON CONFLICT DO UPDATE`` is a single
+    statement — one round-trip per batch.  (``executemany`` UPDATE is one
+    round-trip per row, which on a remote Neon DB is ~5000x slower.)  SQLite
+    (used by the test suite) falls back to executemany UPDATE.
+    """
+    if db.bind.dialect.name == "postgresql":
+        stmt = pg_insert(CarListing).values(batch)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[CarListing.id],
+            set_={
+                "deal_score": stmt.excluded.deal_score,
+                "market_median_lkr": stmt.excluded.market_median_lkr,
+            },
+        )
+        db.execute(stmt)
+    else:
+        db.execute(update(CarListing), batch)
+
+
 def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
     """
     Bulk-refresh ``deal_score`` and ``market_median_lkr`` on all eligible
@@ -259,7 +282,7 @@ def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
         )
 
         if len(batch) >= batch_size:
-            db.execute(update(CarListing), batch)
+            _apply_score_batch(db, batch)
             db.commit()
             updated += len(batch)
             batches += 1
@@ -271,7 +294,7 @@ def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
             batch = []
 
     if batch:
-        db.execute(update(CarListing), batch)
+        _apply_score_batch(db, batch)
         db.commit()
         updated += len(batch)
         batches += 1
