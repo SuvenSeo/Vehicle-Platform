@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
-from app.utils.listing_upsert import upsert_listing
+from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 from app.utils.time import utc_now
 
 log = structlog.get_logger()
@@ -34,7 +34,7 @@ class CartivateScraper:
         self.cleaner = CarCleaner()
 
     def _upsert_listing(self, payload: dict):
-        return upsert_listing(self.db, self.SOURCE, payload)
+        return buffered_upsert_listing(self, payload)
 
     @staticmethod
     def _page_url(page_num: int) -> str:
@@ -214,3 +214,5 @@ class CartivateScraper:
                     if consecutive_page_errors >= 25:
                         break
                     page_num += 1
+
+        flush_upsert_buffer(self)

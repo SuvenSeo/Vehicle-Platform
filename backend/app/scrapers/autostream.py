@@ -6,7 +6,7 @@ import structlog
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
-from app.utils.listing_upsert import upsert_listing
+from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 
 log = structlog.get_logger()
 
@@ -22,7 +22,7 @@ class AutoStreamScraper:
         self.cleaner = CarCleaner()
 
     def _upsert_listing(self, payload: dict):
-        return upsert_listing(self.db, self.SOURCE, payload)
+        return buffered_upsert_listing(self, payload)
 
     @staticmethod
     def _pick_thumbnail(row: dict) -> str:
@@ -130,3 +130,5 @@ class AutoStreamScraper:
                     except Exception as exc:
                         log.error("autostream_item_error", error=str(exc))
                         self.db.rollback()
+
+        flush_upsert_buffer(self)

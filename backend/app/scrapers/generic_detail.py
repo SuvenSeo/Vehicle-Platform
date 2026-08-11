@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
 from app.scrapers.net import httpx_client_kwargs
-from app.utils.listing_upsert import upsert_listing
+from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 
 log = structlog.get_logger()
 
@@ -66,7 +66,7 @@ class GenericDetailScraper:
         self.cleaner = CarCleaner()
 
     def _upsert_listing(self, payload: dict):
-        return upsert_listing(self.db, self.SOURCE, payload)
+        return buffered_upsert_listing(self, payload)
 
     @staticmethod
     def _absolute_url(base_url: str, href: str) -> str:
@@ -407,3 +407,5 @@ class GenericDetailScraper:
                     consecutive_empty_pages += 1
                     if consecutive_empty_pages >= self.EMPTY_PAGE_LIMIT:
                         break
+
+        flush_upsert_buffer(self)

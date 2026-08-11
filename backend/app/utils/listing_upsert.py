@@ -73,6 +73,40 @@ def upsert_listings_batch(
     return inserted
 
 
+def buffered_upsert_listing(scraper, payload: dict, *, batch_size: int = 40) -> bool:
+    """Buffer a payload on the scraper, flushing to the DB when full.
+
+    Many scrapers call ``_upsert_listing(payload)`` followed by
+    ``db.commit()`` once per row.  Buffering here turns N per-row commits
+    into N/batch_size commits; the caller's leftover ``db.commit()`` becomes
+    a no-op (verified: an idle commit sends zero SQL).  Call
+    :func:`flush_upsert_buffer` at the end of a scrape to persist trailing
+    rows.
+    """
+    buffer = getattr(scraper, "_upsert_buffer", None)
+    if buffer is None:
+        buffer = scraper._upsert_buffer = []
+    if len(buffer) >= batch_size:
+        flush_upsert_buffer(scraper)
+        buffer = scraper._upsert_buffer
+    buffer.append(payload)
+    return True
+
+
+def flush_upsert_buffer(scraper) -> None:
+    """Persist any rows still sitting in the scraper's upsert buffer."""
+    pending = getattr(scraper, "_upsert_buffer", None)
+    if not pending:
+        return
+    upsert_listings_batch(
+        scraper.db,
+        scraper.SOURCE,
+        pending,
+        log_tag=f"{scraper.SOURCE}_batch",
+    )
+    scraper._upsert_buffer = []
+
+
 def upsert_listing(db: Session, source: str, payload: dict) -> bool:
     """Insert or update a listing keyed on (source, source_id).
 
