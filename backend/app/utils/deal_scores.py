@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 import structlog
-from sqlalchemy import and_, func, select, update
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import and_, func, select, text, update
 from sqlalchemy.orm import Session
 
 from db.models import CarListing, PriceAggregate, live_listing_filter
@@ -180,21 +179,29 @@ def _build_listing_median_select():
 def _apply_score_batch(db: Session, batch: list[dict]) -> None:
     """Write one batch of (id, deal_score, market_median_lkr) rows.
 
-    On Postgres a multi-row ``INSERT ... ON CONFLICT DO UPDATE`` is a single
-    statement — one round-trip per batch.  (``executemany`` UPDATE is one
+    On Postgres a single ``UPDATE ... FROM (VALUES ...)`` statement updates
+    the whole batch in one round-trip.  (``executemany`` UPDATE is one
     round-trip per row, which on a remote Neon DB is ~5000x slower.)  SQLite
     (used by the test suite) falls back to executemany UPDATE.
     """
     if db.bind.dialect.name == "postgresql":
-        stmt = pg_insert(CarListing).values(batch)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[CarListing.id],
-            set_={
-                "deal_score": stmt.excluded.deal_score,
-                "market_median_lkr": stmt.excluded.market_median_lkr,
-            },
+        rows = ", ".join(
+            f"(:id_{i}, :score_{i}, :med_{i})" for i in range(len(batch))
         )
-        db.execute(stmt)
+        params: dict = {}
+        for i, row in enumerate(batch):
+            params[f"id_{i}"] = row["id"]
+            params[f"score_{i}"] = row["deal_score"]
+            params[f"med_{i}"] = row["market_median_lkr"]
+        db.execute(
+            text(
+                "UPDATE car_listings SET deal_score = v.deal_score, "
+                "market_median_lkr = v.market_median_lkr "
+                f"FROM (VALUES {rows}) AS v(id, deal_score, market_median_lkr) "
+                "WHERE car_listings.id = v.id"
+            ),
+            params,
+        )
     else:
         db.execute(update(CarListing), batch)
 
