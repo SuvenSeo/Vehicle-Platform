@@ -144,22 +144,27 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run market analysis once
+        # Midday is intentionally analysis-light: the heavy full-table stages
+        # (aggregates, deal scores, outliers, price recovery, alert match,
+        # thumbnail/phash backfill) run once on the daily 03:00 UTC job. Keeping
+        # only the cheap passes here halves Neon public-network transfer (the
+        # 5 GB/mo free cap was 80% used) without stalling the pipeline.
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
           SCRAPE_PROFILE: "all"
           RUN_SCRAPERS: "false"
-          RUN_MARKET_ANALYSIS: "true"
-          RUN_MARKET_SIGNALS: "true"
-          RUN_DEAL_SCORE_REFRESH: "true"
+          RUN_MARKET_ANALYSIS: "false"
+          RUN_MARKET_SIGNALS: "false"
+          RUN_DEAL_SCORE_REFRESH: "false"
           RUN_STATS_CACHE_REFRESH: "true"
           RUN_DEDUP: "true"
           RUN_LISTING_LIFECYCLE: "true"
-          RUN_OUTLIER_DETECTION: "true"
-          RUN_PRICE_RECOVERY: "true"
-          RUN_ALERT_MATCH: "true"
-          RUN_THUMBNAIL_CACHE: "true"
-          RUN_IMAGE_PHASH: "true"
+          RUN_OUTLIER_DETECTION: "false"
+          RUN_PRICE_RECOVERY: "false"
+          RUN_ALERT_MATCH: "false"
+          RUN_THUMBNAIL_CACHE: "false"
+          RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
 
       - name: Notify Slack on job failure
