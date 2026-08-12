@@ -136,9 +136,46 @@ jobs:
             backend/debug_*.html
           retention-days: 7
 
-  market-analysis:
+  merge-manus-dump:
+    # Pulls the newest manus-scrape-* release/dump from GitHub and merges it
+    # into the local DB (by source, source_id) so Manus cloud scrapes flow
+    # into the site automatically. Skips silently when there is no dump yet.
     runs-on: self-hosted
     needs: scrape-source
+    if: ${{ !cancelled() }}
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Pull latest Manus dump and merge into local DB
+        run: |
+          set -euo pipefail
+          # The repo is public, so release listing + asset download need no auth.
+          RELEASES=$(curl -fsSL \
+            "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100" || echo "[]")
+          META=$(printf '%s' "$RELEASES" | python -c "import json,sys; rels=json.load(sys.stdin); print(next((r['assets'][0]['browser_download_url'] for r in rels if (r.get('tag_name') or '').startswith('manus-scrape-') and r.get('assets')), ''))" 2>/dev/null || echo "")
+          if [ -z "$META" ]; then
+            echo "no manus-scrape dump found — skipping merge"
+            exit 0
+          fi
+          echo "pulling $META"
+          curl -fsSL -L -o manus-dump.db.gz "$META"
+          python scripts/ops/merge_sqlite_dump.py manus-dump.db.gz
+          rm -f manus-dump.db.gz
+
+  market-analysis:
+    runs-on: self-hosted
+    needs: [scrape-source, merge-manus-dump]
     if: ${{ !cancelled() }}
     timeout-minutes: 180
 
