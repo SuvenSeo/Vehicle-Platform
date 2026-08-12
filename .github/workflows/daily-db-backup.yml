@@ -46,6 +46,10 @@ jobs:
         env:
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
         run: |
+          # PGDG installs pg_dump 17 to /usr/lib/postgresql/17/bin, which is NOT
+          # on PATH — the runner image's pg_dump 16 would otherwise run and abort
+          # with "server version mismatch" against Neon's PostgreSQL 17.
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
           DATABASE_URL="${HOT_DATABASE_URL}"
           TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
           FILENAME="motormila-backup-${TIMESTAMP}.dump"

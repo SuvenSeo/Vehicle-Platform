@@ -56,7 +56,24 @@ for url, label in [(HOT_URL, "HOT_DATABASE_URL"), (COLD_URL, "COLD_DATABASE_URL"
 
 def _make_engine(url: str):
     if url.startswith("sqlite"):
-        return create_engine(url, connect_args={"check_same_thread": False})
+        # Local fallback used by the laptop-runner outage pipeline (Neon quota
+        # blocked). WAL + a generous busy timeout let the parallel scraper jobs
+        # write to the same file without "database is locked" aborts.
+        engine = create_engine(
+            url,
+            connect_args={"check_same_thread": False, "timeout": 30},
+        )
+        from sqlalchemy import event
+
+        @event.listens_for(engine, "connect")
+        def _sqlite_pragmas(dbapi_conn, _record):
+            cur = dbapi_conn.cursor()
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA busy_timeout=30000")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.close()
+
+        return engine
     # Bounded connect for remote Postgres (HF Spaces / poolers).
     # Do NOT pass libpq `options=-c statement_timeout=...` here: Supabase
     # transaction poolers (pgbouncer) reject/break startup options and can
@@ -130,9 +147,15 @@ def get_cold_db():
 def init_db():
     """Create missing tables/columns on cold and hot databases."""
     from .schema_patches import apply_schema_patches
+    from .models import Base
 
+    # create_all is a checkfirst no-op wherever tables already exist, and makes
+    # init_db work against a truly empty database (e.g. the laptop-runner
+    # outage pipeline's fresh local SQLite file).
+    Base.metadata.create_all(cold_engine)
     apply_schema_patches(cold_engine)
     if hot_engine is not cold_engine:
+        Base.metadata.create_all(hot_engine)
         apply_schema_patches(hot_engine)
 
 

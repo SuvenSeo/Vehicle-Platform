@@ -16,7 +16,7 @@ name: Neon Egress Watchdog
 
 on:
   schedule:
-    - cron: "0 4 * * 1"   # Monday 04:00 UTC — check right after the weekend runs
+    - cron: "0 4 * * *"   # Daily 04:00 UTC — watch the monthly transfer budget closely while the quota is blocked
   workflow_dispatch:
 
 jobs:

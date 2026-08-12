@@ -1,0 +1,237 @@
+# OUTAGE-ONLY pipeline — runs entirely on the laptop self-hosted runners
+# against a local SQLite database at C:/motormila/motormila.db.
+#
+# Why: Neon's free-tier public-network transfer quota is exhausted
+# (5.12 GB / 5.00 GB, Aug 2026) and Neon refuses ALL connections until the
+# monthly reset (Sept 1). This workflow keeps the site publishing fresh
+# scrapes + analysis during the outage, from scratch, on the laptop.
+#
+# The canonical Neon pipeline (daily-scrape.yml) is untouched and re-enables
+# after the reset. When Neon is back: disable this workflow, re-enable
+# daily-scrape.yml, and (optionally) restore the local DB into Neon.
+name: Outage Local Pipeline (laptop)
+
+on:
+  schedule:
+    # 18:10 Sri Lanka time = 12:40 UTC — same slot as the evening Neon run.
+    - cron: "40 12 * * *"
+  workflow_dispatch:
+
+# Separate concurrency group from the Neon workflows.
+concurrency:
+  group: outage-local-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  COLD_DATABASE_URL: sqlite:///C:/motormila/motormila.db
+
+jobs:
+  scrape-source:
+    # Laptop self-hosted runner: residential IP dodges Cloudflare rate-limits.
+    runs-on: self-hosted
+    timeout-minutes: ${{ contains(fromJSON('["ikman","riyasewana"]'), matrix.source) && 180 || 60 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, saleme, riyahub, dimo, hitad, cartivate]
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Python
+        run: |
+          python --version
+          python -m pip --version
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Install Playwright browser
+        run: python -m playwright install chromium
+
+      - name: Validate scraper modules compile
+        run: |
+          python -m py_compile \
+            run_sync.py \
+            app/scrapers/ikman.py \
+            app/scrapers/riyasewana.py \
+            app/scrapers/patpat.py \
+            app/scrapers/autolanka.py \
+            app/scrapers/auto_lanka_site.py \
+            app/scrapers/autodirect.py \
+            app/scrapers/autostream.py \
+            app/scrapers/generic_detail.py \
+            app/scrapers/carshop.py \
+            app/scrapers/saleme.py \
+            app/scrapers/riyahub.py \
+            app/scrapers/dimo.py \
+            app/scrapers/hitad.py \
+            app/scrapers/cartivate.py \
+            app/services/market_signals.py \
+            app/services/aggregator.py
+
+      - name: Ensure schema (idempotent)
+        run: |
+          python -c "
+          from db.session import init_db
+          init_db()
+          print('Schema ready.')
+          "
+
+      - name: Run scraper — ${{ matrix.source }}
+        env:
+          SCRAPE_PROFILE: "all"
+          SCRAPE_ENABLED_SOURCES: ${{ matrix.source }}
+          RUN_SCRAPERS: "true"
+          RUN_MARKET_ANALYSIS: "false"
+          RUN_MARKET_SIGNALS: "false"
+          RUN_LISTING_LIFECYCLE: "false"
+          RUN_OUTLIER_DETECTION: "false"
+          SCRAPE_MAX_PAGES: "20"
+          SCRAPE_MAX_PAGES_ALT: "20"
+          SCRAPE_MAX_PAGES_IKMAN: "120"
+          SCRAPE_MAX_PAGES_RIYASEWANA: "120"
+          SCRAPE_MAX_PAGES_PATPAT: "30"
+          SCRAPE_MAX_PAGES_AUTOLANKA: "30"
+          SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "30"
+          SCRAPE_MAX_PAGES_AUTODIRECT: "30"
+          SCRAPE_MAX_PAGES_AUTOSTREAM: "30"
+          SCRAPE_MAX_PAGES_CARSHOP: "30"
+          SCRAPE_MAX_PAGES_SALEME: "30"
+          SCRAPE_MAX_PAGES_RIYAHUB: "30"
+          SCRAPE_MAX_PAGES_DIMO: "30"
+          SCRAPE_MAX_PAGES_HITAD: "30"
+          SCRAPE_MAX_PAGES_CARTIVATE: "30"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_ALT: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "9000"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "9000"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_PATPAT: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOLANKA: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTO_LANKA_SITE: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTODIRECT: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_AUTOSTREAM: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARSHOP: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_SALEME: "2700"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYAHUB: "2700"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_HITAD: "2400"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_CARTIVATE: "2400"
+        run: python run_sync.py
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outage-scrape-${{ matrix.source }}-failure-${{ github.run_id }}
+          path: |
+            backend/*.log
+            backend/*.db
+            backend/debug_*.html
+          retention-days: 7
+
+  market-analysis:
+    runs-on: self-hosted
+    needs: scrape-source
+    if: ${{ !cancelled() }}
+    timeout-minutes: 180
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run market analysis once
+        env:
+          SCRAPE_PROFILE: "all"
+          RUN_SCRAPERS: "false"
+          RUN_MARKET_ANALYSIS: "true"
+          RUN_MARKET_SIGNALS: "true"
+          RUN_DEAL_SCORE_REFRESH: "true"
+          RUN_STATS_CACHE_REFRESH: "true"
+          RUN_DEDUP: "true"
+          RUN_LISTING_LIFECYCLE: "true"
+          RUN_OUTLIER_DETECTION: "true"
+          RUN_PRICE_RECOVERY: "true"
+          RUN_ALERT_MATCH: "true"
+          RUN_THUMBNAIL_CACHE: "true"
+          RUN_IMAGE_PHASH: "true"
+        run: python run_sync.py
+
+  snapshot-export:
+    runs-on: self-hosted
+    needs: [scrape-source, market-analysis]
+    if: ${{ !cancelled() && needs.market-analysis.result == 'success' }}
+    timeout-minutes: 90
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      # Full export (not --skip-catalog): the local DB is the ONLY catalog
+      # during the outage, so the site's listing parts must come from it.
+      - name: Export public snapshots
+        working-directory: backend
+        run: python export_public_snapshots.py --output snapshots/latest
+
+      # Hand the snapshots to the hosted deploy job (it needs no DB access —
+      # it just uploads the files to Vercel). Keeps the laptop runner free of
+      # Node/npx requirements.
+      - name: Upload snapshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: outage-snapshots-${{ github.run_id }}
+          path: backend/snapshots/latest
+          retention-days: 3
+
+  deploy-site:
+    runs-on: ubuntu-latest
+    needs: snapshot-export
+    if: ${{ !cancelled() && needs.snapshot-export.result == 'success' }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download snapshots artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: outage-snapshots-${{ github.run_id }}
+          path: snapshots-artifact
+
+      # Copy the fresh snapshot set (stats + catalog parts + manifest) into the
+      # deploy dir. The manifest being present makes deploy-snapshots-to-prod.sh
+      # skip fetching the old Neon-era catalog from the live site.
+      - name: Stage snapshots into public dir
+        run: |
+          mkdir -p public/snapshots/latest
+          cp -r snapshots-artifact/. public/snapshots/latest/
+
+      - name: Deploy snapshots to Vercel production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SNAPSHOT_SOURCE_DIR: public/snapshots/latest
+        run: bash scripts/deploy-snapshots-to-prod.sh
