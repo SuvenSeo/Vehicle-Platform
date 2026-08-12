@@ -11,11 +11,11 @@ Matching criteria for a duplicate pair:
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import structlog
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, text, update
 from sqlalchemy.orm import Session
 
 from db.models import CarListing
@@ -130,71 +130,133 @@ def find_duplicate_candidates(
     return results[:limit]
 
 
+def _price_match(listing, candidate) -> bool:
+    """Replicate the DB-side price filter of :func:`find_duplicate_candidates`
+    for the *listing* being scanned: a candidate matches when it is within the
+    listing's 3% band, or when both sides are null-priced."""
+    band = _price_band(listing.price_lkr)
+    if band is None:
+        return candidate.price_lkr is None
+    low, high = band
+    return candidate.price_lkr is not None and low <= float(candidate.price_lkr) <= high
+
+
+def _as_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """Normalise to tz-aware UTC so in-memory comparisons are safe
+    (SQLite returns naive datetimes, *since* arrives tz-aware)."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _mileage_match(listing, candidate) -> bool:
+    """Replicate the DB-side mileage filter of :func:`find_duplicate_candidates`
+    for the *listing* being scanned: no constraint when the listing has no
+    usable mileage, otherwise candidate must be NULL or within the 5% band."""
+    band = _mileage_band(listing.mileage)
+    if band is None:
+        return True
+    low, high = band
+    return candidate.mileage is None or low <= int(candidate.mileage) <= high
+
+
 def mark_duplicates_batch(
     db: Session,
     batch_size: int = 1000,
     since: Optional[datetime] = None,
 ) -> int:
-    """Scan non-duplicate listings in ascending id order and flag the
-    lower-id record as ``is_duplicate=True`` when a cross-source duplicate pair
-    is detected.
+    """Scan non-duplicate listings and flag the lower-id record as
+    ``is_duplicate=True`` when a cross-source duplicate pair is detected.
 
-    Convention: the *higher*-id record is the canonical listing; the *lower*-id
-    record (the one inserted later with a higher id is actually the newer
-    scrape) is marked as the duplicate, because we want to keep the earliest
-    ingested record as the source of truth.
+    Matching (mirrors :func:`find_duplicate_candidates`): normalised make and
+    model equal, year equal (None counts as equal), price within 3% (or both
+    null-priced), mileage within 5% or either side unknown.  For each scanned
+    listing the *lower*-id member of the pair is flagged as the duplicate and
+    ``duplicate_of`` points at the higher-id canonical record.
+
+    Implementation: the old version issued one candidate SELECT per listing
+    (~one round-trip per row on remote Neon — over an hour on a 190k-row
+    table).  This version fetches the candidate set once and resolves pairs in
+    memory, then writes flags with batched statements (one round-trip per
+    ``batch_size`` rows).
 
     When *since* is provided, only listings whose ``scraped_at`` is at or
-    after *since* are scanned (the indexed ``scraped_at`` column, which every
-    scrape touch refreshes). This is safe because pair resolution always flags
-    the lower-id member: a pair involving an unchanged listing can only be
-    created when a newer/changed member arrives, and scanning that member
-    resolves the pair identically to a full-table scan. Pass ``since=None``
-    for a full pass (rare maintenance / after a bulk import).
+    after *since* are scanned. A scanned listing still resolves pairs against
+    older, unscanned candidates (the lower-id member gets flagged regardless
+    of which member is scanned). Pass ``since=None`` for a full pass.
 
     Returns the number of listings newly marked as duplicates.
     """
-    total_marked = 0
-    last_id = 0
-
-    while True:
-        filters = [
-            CarListing.id > last_id,
-            CarListing.is_duplicate == False,  # noqa: E712
-        ]
-        if since is not None:
-            filters.append(CarListing.scraped_at >= since)
-        batch: list[CarListing] = (
-            db.query(CarListing)
-            .filter(and_(*filters))
-            .order_by(CarListing.id.asc())
-            .limit(batch_size)
-            .all()
+    filters = [CarListing.is_duplicate == False]  # noqa: E712
+    rows = (
+        db.query(
+            CarListing.id,
+            CarListing.source,
+            CarListing.make,
+            CarListing.model,
+            CarListing.year,
+            CarListing.price_lkr,
+            CarListing.mileage,
+            CarListing.scraped_at,
         )
-        if not batch:
-            break
+        .filter(and_(*filters))
+        .all()
+    )
 
-        for listing in batch:
-            last_id = int(listing.id)
+    # Bucket by (normalised make, normalised model, year) — make/model/year
+    # equality is a hard requirement, so only members of the same bucket can
+    # ever match. Buckets are small (avg ~6 members), so pairwise checks are
+    # cheap and stay in memory.
+    buckets: dict[tuple[str, str, Optional[int]], list] = {}
+    for row in rows:
+        key = (_norm(row.make), _norm(row.model), row.year)
+        if not key[0] or not key[1]:
+            continue  # no usable make/model — the query path matches nothing
+        buckets.setdefault(key, []).append(row)
+    del rows
 
-            candidates = find_duplicate_candidates(db, listing, limit=1)
-            if not candidates:
+    total_marked = 0
+    flagged_ids: set[int] = set()
+    flag_updates: list[dict] = []
+
+    for bucket in buckets.values():
+        bucket.sort(key=lambda r: r.id)
+        for listing in bucket:
+            if since is not None and _as_utc(listing.scraped_at) < since:
                 continue
 
-            canonical = candidates[0]
+            # Best (lowest-id) matching candidate that is not already flagged
+            # and comes from a different source.
+            best = None
+            for candidate in bucket:
+                if candidate.id == listing.id or candidate.source == listing.source:
+                    continue
+                if candidate.id in flagged_ids:
+                    continue
+                if not _price_match(listing, candidate):
+                    continue
+                if not _mileage_match(listing, candidate):
+                    continue
+                if best is None or candidate.id < best.id:
+                    best = candidate
+            if best is None:
+                continue
 
-            # Determine which record is lower-id (the "duplicate" to flag).
-            if int(listing.id) < int(canonical.id):
-                lower, higher = listing, canonical
+            if best.id < listing.id:
+                lower, higher = best, listing
             else:
-                lower, higher = canonical, listing
+                lower, higher = listing, best
 
-            # Guard against re-flagging within the same batch (autoflush=False).
-            if lower.is_duplicate:
-                continue
-
-            lower.is_duplicate = True
-            lower.duplicate_of = int(higher.id)
+            flag_updates.append(
+                {
+                    "id": int(lower.id),
+                    "duplicate_of": int(higher.id),
+                    "is_duplicate": True,
+                }
+            )
+            flagged_ids.add(int(lower.id))
             total_marked += 1
 
             log.info(
@@ -208,7 +270,32 @@ def mark_duplicates_batch(
                 year=lower.year,
             )
 
-        db.commit()
+    # Persist flags: one statement per batch (single round-trip on Postgres).
+    if db.bind.dialect.name == "postgresql":
+        for start in range(0, len(flag_updates), batch_size):
+            chunk = flag_updates[start : start + batch_size]
+            rows_sql = ", ".join(
+                f"(:id_{i}, :dup_{i})" for i in range(len(chunk))
+            )
+            params: dict = {}
+            for i, row in enumerate(chunk):
+                params[f"id_{i}"] = row["id"]
+                params[f"dup_{i}"] = row["duplicate_of"]
+            db.execute(
+                text(
+                    "UPDATE car_listings SET is_duplicate = true, "
+                    "duplicate_of = v.dup_id "
+                    f"FROM (VALUES {rows_sql}) AS v(id, dup_id) "
+                    "WHERE car_listings.id = v.id"
+                ),
+                params,
+            )
+            db.commit()
+    else:
+        for start in range(0, len(flag_updates), batch_size):
+            chunk = flag_updates[start : start + batch_size]
+            db.execute(update(CarListing), chunk)
+            db.commit()
 
     log.info("dedup_batch_complete", total_marked=total_marked)
     return total_marked
