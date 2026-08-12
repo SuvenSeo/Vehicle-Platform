@@ -27,6 +27,7 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -163,8 +164,9 @@ def recover_missing_prices(
         "listings": [_listing_to_dict(lst) for lst in listings],
     }
 
-    resolved_output = output_path or (
-        f"/tmp/missing_price_retry_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    resolved_output = output_path or os.path.join(
+        tempfile.gettempdir(),
+        f"missing_price_retry_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json",
     )
     Path(resolved_output).write_text(json.dumps(manifest, indent=2))
     print(f"Retry manifest written to: {resolved_output}")
