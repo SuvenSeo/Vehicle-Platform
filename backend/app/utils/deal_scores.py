@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import datetime
 
 import structlog
@@ -193,17 +194,38 @@ def _apply_score_batch(db: Session, batch: list[dict]) -> None:
             params[f"id_{i}"] = row["id"]
             params[f"score_{i}"] = row["deal_score"]
             params[f"med_{i}"] = row["market_median_lkr"]
-        db.execute(
-            text(
-                "UPDATE car_listings SET deal_score = v.deal_score, "
-                "market_median_lkr = v.market_median_lkr "
-                f"FROM (VALUES {rows}) AS v(id, deal_score, market_median_lkr) "
-                "WHERE car_listings.id = v.id"
-            ),
-            params,
+        statement = text(
+            "UPDATE car_listings SET deal_score = v.deal_score, "
+            "market_median_lkr = v.market_median_lkr "
+            f"FROM (VALUES {rows}) AS v(id, deal_score, market_median_lkr) "
+            "WHERE car_listings.id = v.id"
         )
+        _execute_with_deadlock_retry(db, statement, params)
     else:
         db.execute(update(CarListing), batch)
+
+
+def _execute_with_deadlock_retry(db: Session, statement, params: dict, retries: int = 3) -> None:
+    """Execute a statement, retrying on Postgres deadlocks.
+
+    Concurrent scrapers and analysis jobs both batch-update ``car_listings``;
+    two such transactions can deadlock (Postgres aborts one with
+    DeadlockDetected). The UPDATE is idempotent, so rolling back the aborted
+    transaction and re-executing is safe. ``statement`` may be either a
+    SQLAlchemy Core construct or a ``text()`` — callers pass what they already
+    build; we only need ``db.execute`` to work on it.
+    """
+    for attempt in range(retries + 1):
+        try:
+            db.execute(statement, params)
+            return
+        except Exception as exc:  # noqa: BLE001 - need dialect-agnostic catch
+            is_deadlock = "deadlock" in str(type(exc).__name__).lower() or "deadlock" in str(exc).lower()
+            if not is_deadlock or attempt >= retries:
+                raise
+            logger.warning("deadlock_retry", attempt=attempt + 1, retries=retries)
+            db.rollback()
+            time.sleep(0.5 * (attempt + 1))
 
 
 def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:

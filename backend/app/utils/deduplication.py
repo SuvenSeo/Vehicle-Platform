@@ -281,7 +281,8 @@ def mark_duplicates_batch(
             for i, row in enumerate(chunk):
                 params[f"id_{i}"] = row["id"]
                 params[f"dup_{i}"] = row["duplicate_of"]
-            db.execute(
+            _execute_with_deadlock_retry(
+                db,
                 text(
                     "UPDATE car_listings SET is_duplicate = true, "
                     "duplicate_of = v.dup_id "
@@ -299,3 +300,26 @@ def mark_duplicates_batch(
 
     log.info("dedup_batch_complete", total_marked=total_marked)
     return total_marked
+
+
+def _execute_with_deadlock_retry(db: Session, statement, params: dict, retries: int = 3) -> None:
+    """Execute a statement, retrying on Postgres deadlocks.
+
+    Concurrent scrapers and analysis jobs both batch-update ``car_listings``;
+    two such transactions can deadlock (Postgres aborts one with
+    DeadlockDetected). The UPDATE is idempotent, so rolling back the aborted
+    transaction and re-executing is safe.
+    """
+    import time
+
+    for attempt in range(retries + 1):
+        try:
+            db.execute(statement, params)
+            return
+        except Exception as exc:  # noqa: BLE001 - need dialect-agnostic catch
+            is_deadlock = "deadlock" in str(type(exc).__name__).lower() or "deadlock" in str(exc).lower()
+            if not is_deadlock or attempt >= retries:
+                raise
+            log.warning("deadlock_retry", attempt=attempt + 1, retries=retries)
+            db.rollback()
+            time.sleep(0.5 * (attempt + 1))
