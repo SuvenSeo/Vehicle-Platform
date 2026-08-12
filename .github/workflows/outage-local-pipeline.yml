@@ -33,7 +33,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, saleme, riyahub, dimo, hitad, cartivate]
+        # saleme intentionally excluded: its serial detail-fetch never finishes
+        # within the 60-min job timeout and blocks the whole publish chain.
+        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, riyahub, dimo, hitad, cartivate]
 
     defaults:
       run:
