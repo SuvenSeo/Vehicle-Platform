@@ -16,6 +16,11 @@ on:
     # 18:10 Sri Lanka time = 12:40 UTC — same slot as the evening Neon run.
     - cron: "40 12 * * *"
   workflow_dispatch:
+    inputs:
+      skip-riyasewana:
+        description: "Skip riyasewana (Cloudflare throttling it) and publish with existing data"
+        type: boolean
+        default: false
 
 # Separate concurrency group from the Neon workflows.
 concurrency:
@@ -35,7 +40,9 @@ jobs:
       matrix:
         # saleme intentionally excluded: its serial detail-fetch never finishes
         # within the 60-min job timeout and blocks the whole publish chain.
-        source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, riyahub, dimo, hitad, cartivate]
+        # riyasewana can be skipped on demand via the skip-riyasewana dispatch
+        # input (Cloudflare sometimes rate-limits it into a slow retry loop).
+        source: ${{ fromJSON(inputs.skip-riyasewana == true && '["ikman", "patpat", "autolanka", "auto-lanka", "autodirect", "autostream", "carshop", "riyahub", "dimo", "hitad", "cartivate"]' || '["ikman", "riyasewana", "patpat", "autolanka", "auto-lanka", "autodirect", "autostream", "carshop", "riyahub", "dimo", "hitad", "cartivate"]') }}
 
     defaults:
       run:
