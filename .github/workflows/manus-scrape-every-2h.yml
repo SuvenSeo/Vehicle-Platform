@@ -2,7 +2,8 @@ name: Manus Scrape Dump Every Two Hours
 
 on:
   schedule:
-    - cron: "0 */2 * * *"
+    # GitHub Actions uses UTC; this starts at 06:00, 08:00, 10:00, etc. in Sri Lanka.
+    - cron: "30 */2 * * *"
   workflow_dispatch:
 
 permissions:
