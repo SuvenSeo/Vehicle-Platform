@@ -25,11 +25,13 @@
 # riyasewana/patpat Cloudflare-wall datacenter IPs — keep those on the laptop.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "${ROOT}/backend"
 
 MAX="${MANUS_MAX_PAGES:-120}"
 REPO="${MANUS_RELEASE_REPO:-SuvenSeo/Vehicle-Platform}"
+# Bound a stalled source so later sources and the dump upload can still run.
+SOURCE_TIMEOUT="${MANUS_SOURCE_TIMEOUT_SECONDS:-900}"
 
 echo "== installing deps =="
 python3 -m pip install -q -r requirements.txt
@@ -40,16 +42,17 @@ rm -f autolens.db autolens.db.gz
 for src in "$@"; do
   upper="$(printf '%s' "$src" | tr '[:lower:]' '[:upper:]')"
   echo "== scraping ${src} (max ${MAX} pages) =="
-  ALLOW_SQLITE_FALLBACK=true \
-  RUN_SCRAPERS=true \
-  RUN_MARKET_ANALYSIS=false \
-  RUN_MARKET_SIGNALS=false \
-  RUN_LISTING_LIFECYCLE=false \
-  RUN_OUTLIER_DETECTION=false \
-  SCRAPE_ENABLED_SOURCES="${src}" \
-  "SCRAPE_MAX_PAGES_${upper}=${MAX}" \
-  SCRAPE_SOURCE_TIMEOUT_SECONDS=7200 \
-  python3 run_sync.py || echo "!! ${src} scrape failed — continuing with the rest"
+  env \
+    ALLOW_SQLITE_FALLBACK=true \
+    RUN_SCRAPERS=true \
+    RUN_MARKET_ANALYSIS=false \
+    RUN_MARKET_SIGNALS=false \
+    RUN_LISTING_LIFECYCLE=false \
+    RUN_OUTLIER_DETECTION=false \
+    SCRAPE_ENABLED_SOURCES="${src}" \
+    "SCRAPE_MAX_PAGES_${upper}=${MAX}" \
+    SCRAPE_SOURCE_TIMEOUT_SECONDS="${SOURCE_TIMEOUT}" \
+    timeout --foreground --kill-after=30s "${SOURCE_TIMEOUT}s" python3 run_sync.py || echo "!! ${src} scrape failed or timed out — continuing with the rest"
 done
 
 TOTAL="$(python3 -c "

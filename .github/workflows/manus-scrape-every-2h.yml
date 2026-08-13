@@ -1,0 +1,51 @@
+name: Manus Scrape Dump Every Two Hours
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A delayed run queues instead of cancelling an active scrape, preventing
+# competing SQLite dumps and duplicate source traffic.
+concurrency:
+  group: manus-scrape-dump-two-hour
+  cancel-in-progress: false
+
+jobs:
+  scrape-and-dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 115
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MANUS_MAX_PAGES: "120"
+      # Each source is bounded so a blocked marketplace cannot prevent later
+      # sources or the dump upload from running.
+      MANUS_SOURCE_TIMEOUT_SECONDS: "900"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Scrape sources and upload dump
+        run: |
+          bash backend/scripts/ops/manus_scrape_dump.sh \
+            ikman autolanka hitad autostream saleme riyahub carshop dimo autodirect cartivate
+
+      - name: Upload local dump if delivery failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manus-scrape-failure-${{ github.run_id }}
+          path: backend/autolens.db.gz
+          if-no-files-found: ignore
+          retention-days: 7
