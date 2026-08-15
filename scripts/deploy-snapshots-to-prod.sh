@@ -61,10 +61,25 @@ fi
 # ---------------------------------------------------------------------------
 if [[ -d "${SOURCE_DIR}" ]]; then
   echo "==> Overlaying fresh snapshots from ${SOURCE_DIR}"
-  # A full export carries its own paginated catalog manifest; drop any stale
-  # part files from an earlier deploy with a different part count.
+  # A full export carries its own paginated catalog manifest. Remove only the
+  # part files that the incoming manifest does NOT reference, so stale parts
+  # from an earlier export with a different part count don't linger. This also
+  # works when SOURCE_DIR is the same directory as SNAP_DIR (the outage
+  # pipeline stages the artifact straight into public/snapshots/latest) — a
+  # blanket rm there deleted the fresh parts before they were deployed.
   if [[ -f "${SOURCE_DIR}/listing-catalog.json" ]]; then
-    rm -f "${SNAP_DIR}"/listing-catalog-part-*.json
+    "${PY}" - "${SNAP_DIR}" "${SOURCE_DIR}" <<'PY'
+import glob, json, os, sys
+snap, src = sys.argv[1], sys.argv[2]
+try:
+    with open(os.path.join(src, "listing-catalog.json"), encoding="utf-8") as fh:
+        keep = set(json.load(fh).get("parts", []))
+except Exception:
+    keep = set()
+for old in glob.glob(os.path.join(snap, "listing-catalog-part-*.json")):
+    if os.path.basename(old) not in keep:
+        os.remove(old)
+PY
   fi
   cp -f "${SOURCE_DIR}"/*.json "${SNAP_DIR}/" 2>/dev/null || true
 fi
@@ -95,14 +110,36 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5) Verify the production alias serves the fresh stats file.
+# 5) Verify the production alias serves the fresh stats file AND every catalog
+#    part the manifest references (a missing part silently breaks listing
+#    search while the stats check alone still passes).
 # ---------------------------------------------------------------------------
 sleep 10
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+# Vercel's SPA rewrite answers 200 with text/html for missing files, so check
+# the content type, not just the status code.
+STATUS=$(curl -s -o /dev/null -w "%{http_code}|%{content_type}" --max-time 30 \
   "${LIVE_BASE}/stats-summary.json")
-echo "==> Production snapshot check: HTTP ${STATUS}"
-if [[ "${STATUS}" != "200" ]]; then
+CODE="${STATUS%%|*}"; CTYPE="${STATUS#*|}"
+echo "==> Production stats check: HTTP ${CODE} (${CTYPE})"
+if [[ "${CODE}" != "200" || "${CTYPE}" != *json* ]]; then
   echo "ERROR: production snapshots did not come up (HTTP ${STATUS})" >&2
   exit 1
 fi
+"${PY}" - "${LIVE_BASE}" <<'PY'
+import json, subprocess, sys, urllib.request
+base = sys.argv[1]
+with urllib.request.urlopen(f"{base}/listing-catalog.json", timeout=30) as r:
+    manifest = json.load(r)
+for part in manifest.get("parts", []):
+    probe = subprocess.run(
+        ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}|%{content_type}",
+         "--max-time", "30", f"{base}/{part}"],
+        capture_output=True, text=True,
+    ).stdout.strip()
+    code, ctype = probe.split("|", 1)
+    if code != "200" or "json" not in ctype.lower():
+        print(f"ERROR: catalog part {part} came back HTTP {code} ({ctype}) — listing search will be empty")
+        sys.exit(1)
+    print(f"  OK part {part} HTTP {code} ({ctype})")
+PY
 echo "==> Done — motormila.vercel.app snapshots updated."

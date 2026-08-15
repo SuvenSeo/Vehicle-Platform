@@ -61,8 +61,95 @@ analysis + export (`gh workflow run outage-local-pipeline.yml` and wait, or
 run `python run_sync.py` + `python export_public_snapshots.py` locally) so the
 site picks up the merged data.
 
-## Post-reset note
+## Hosted merge → live site (no laptop needed)
 
-After Neon's quota resets (Sept 1), the canonical pipeline (daily-scrape.yml)
-resumes against Neon; the merged local DB can be imported into Neon the same
-way (keyed on `source, source_id`), so Manus-era scrapes aren't lost.
+`.github/workflows/manus-to-live.yml` runs entirely on GitHub-hosted runners
+and keeps the live site updated **~whenever a dump is published** — no laptop
+or Manus session required. It triggers:
+
+- right after `manus-scrape-every-2h.yml` completes,
+- right after `neon-export.yml` completes,
+- every 30 minutes on a schedule (catches laptop-made dumps + retries),
+- manually, with an optional `release-tag` input to force-merge a specific dump.
+
+Each run:
+
+1. restores a **durable merged SQLite DB** published as the `merged-db`
+   release (`merged-autolens.db.gz` + `last-merged.txt` marker),
+2. merges every dump newer than the marker — it scans **all** dump prefixes:
+   `manus-scrape-*`, `manus-scrape-dedicated-*` (laptop riyasewana runs),
+   `laptop-db-*` (full laptop DB, below), and `neon-export-*`,
+3. runs market analysis + dedup (`run_sync.py`),
+4. exports full public snapshots and deploys them to Vercel via
+   `scripts/deploy-snapshots-to-prod.sh`,
+5. re-publishes the merged DB + marker **only after a successful deploy**,
+   so a failed run is retried from the same point.
+
+Requires the repo secrets `VERCEL_TOKEN` / `VERCEL_ORG_ID` /
+`VERCEL_PROJECT_ID` (already used by the other workflows). Optional:
+`SLACK_WEBHOOK_URL` for failure alerts.
+
+The first run merges all existing `manus-scrape-*` dumps at once. Subsequent
+runs only merge what's new. Because `last-merged.txt` lives on the release,
+the merged DB is durable across runner restarts and GitHub-hosted runners are
+fully interchangeable.
+
+### Verified data inventory (2026-08-14, 33 releases)
+
+A local replay of the first-run merge over all released dumps produced:
+
+| Metric | Count |
+|---|---:|
+| Dump releases merged | 32 (`manus-scrape-*` + 1 `manus-scrape-dedicated-*`) |
+| Raw scraped rows across all dumps | 218,682 |
+| **Unique listings after (source, source_id) merge** | **16,485** |
+| Re-scrape rows that were duplicates/updates | 202,197 (92.5%) |
+| Cross-source duplicates flagged by dedup | 3,084 (same car on 2+ sites) |
+| Outliers flagged | 518 |
+| Listings exported to the live catalog | 15,967 (unique − outliers) |
+| Price-history points recorded | 15,995 |
+
+Per-source unique listings: ikman 7,917 · riyasewana 5,370 (laptop dedicated
+dump) · autostream 1,420 · riyahub 1,113 · hitad 439 · saleme 81 ·
+cartivate 51 · dimo 29 · autolanka 26 · autodirect 24 · carshop 15.
+
+The `manus-scrape-parallel-*` experimental release (asset
+`autolens-recovered.db.gz`) is intentionally skipped — the merge only looks
+for assets named `autolens.db.gz`. riyasewana/patpat/auto-lanka bulk coverage
+comes from `laptop-db-*` releases and the post-reset Neon export.
+
+### Laptop full-DB upload
+
+`outage-local-pipeline.yml` now also uploads the laptop's complete DB
+(all 12 sources, incl. `patpat`/`auto-lanka`, which Manus dumps don't cover)
+as a `laptop-db-*` release. The hosted workflow merges it too, so the live
+catalog stays complete even when the laptop is off. The laptop pipeline still
+scrapes + deploys directly when it runs; the hosted workflow is the safety
+net that keeps the site fresh the rest of the time.
+
+## Post-reset Neon export (Sept 1)
+
+After Neon's quota resets, export the full pre-outage database (the 180k+
+listings and their price history) before/while the canonical pipeline resumes:
+
+1. Make sure the repo secret `HOT_DATABASE_URL` (the Neon DSN) is set —
+   the canonical daily-scrape.yml already uses it.
+2. Run the **Neon Export** workflow (Actions → Neon Export → Run workflow).
+   It streams `car_listings` + `vehicle_price_history` out of Neon into a
+   gzipped SQLite dump and publishes a `neon-export-*` release.
+   (Use `limit: 5000` first as a quick connectivity check.)
+3. `manus-to-live.yml` picks up that release automatically and merges it into
+   the merged DB — the live site's catalog and price history are restored,
+   and the canonical pipeline can keep going from there.
+
+Locally, the same export can be run with:
+
+```
+cd backend
+export DATABASE_URL=postgresql://...
+python scripts/ops/export_neon_to_sqlite.py --output autolens.db.gz
+```
+
+After the outage ends, the merged DB can also be imported into Neon the other
+way (keyed on `source, source_id`) so Manus/laptop-era scrapes aren't lost
+from the canonical database.

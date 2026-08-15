@@ -1,0 +1,266 @@
+# Hosted "scrapes → live site" pipeline for the Neon outage.
+#
+# During the outage the laptop pipeline (outage-local-pipeline.yml) was the
+# ONLY thing that merged Manus dumps and published snapshots — and it depends
+# on the laptop self-hosted runner being online. This workflow does the same
+# job entirely on GitHub-hosted runners, so the live site keeps updating
+# whenever a dump is published:
+#   - Manus cloud scrapes      -> manus-scrape-* releases
+#   - Laptop dedicated scrapes -> manus-scrape-dedicated-* releases
+#   - Laptop full-DB uploads   -> laptop-db-* releases (patpat/auto-lanka)
+#   - Post-reset Neon exports  -> neon-export-* releases
+#
+# It maintains a durable merged SQLite DB published as the `merged-db` release
+# (merged-autolens.db.gz + last-merged.txt marker). Each run:
+#   1. restores the merged DB (or starts fresh),
+#   2. merges every dump release newer than last-merged.txt,
+#   3. runs market analysis + dedup,
+#   4. exports public snapshots and deploys them to Vercel,
+#   5. re-publishes the merged DB + marker — only after a successful deploy,
+#      so a failed run is retried from the same point next time.
+name: Manus to Live (hosted merge and deploy)
+
+on:
+  workflow_run:
+    # Run right after a Manus scrape completes and after a Neon export.
+    workflows: ["Manus Scrape Dump Every Two Hours", "Neon Export"]
+    types: [completed]
+  schedule:
+    # Every 30 minutes: catches laptop-made dumps and retries failed runs.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: "Force-merge this exact dump release tag (e.g. manus-scrape-20260814T1601Z)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+# Never run two merges at once — they share the merged-db release. A queued
+# run just re-checks and exits early if there is nothing new.
+concurrency:
+  group: manus-to-live
+  cancel-in-progress: false
+
+env:
+  COLD_DATABASE_URL: sqlite:///motormila.db
+  MOTORMILA_LOCAL_DB: motormila.db
+  ALLOW_SQLITE_FALLBACK: "true"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  merge-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore merged DB (or start fresh)
+        run: |
+          set -euo pipefail
+          mkdir -p ../merged-store
+          if gh release view merged-db >/dev/null 2>&1; then
+            gh release download merged-db \
+              --pattern "merged-autolens.db.gz" --pattern "last-merged.txt" \
+              --dir ../merged-store --clobber
+            echo "downloaded merged-db release"
+          fi
+          if [[ -s ../merged-store/merged-autolens.db.gz ]]; then
+            gunzip -f -c ../merged-store/merged-autolens.db.gz > motormila.db
+            echo "restored merged DB ($(du -h motormila.db | cut -f1))"
+          else
+            python -c "from db.session import init_db; init_db(); print('fresh DB created')"
+          fi
+
+      - name: Discover new dump releases
+        id: discover
+        run: |
+          set -euo pipefail
+          LAST_MERGED=""
+          if [[ -f ../merged-store/last-merged.txt ]]; then
+            LAST_MERGED="$(cat ../merged-store/last-merged.txt)"
+          fi
+          echo "last merged: ${LAST_MERGED:-<none>}"
+          LAST_MERGED="$LAST_MERGED" FORCE_TAG="${{ inputs.release-tag }}" python - <<'PY'
+          import json, os, re, sys, urllib.request
+
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          last = os.environ.get("LAST_MERGED", "") or ""
+          forced = os.environ.get("FORCE_TAG", "") or ""
+          token = os.environ.get("GH_TOKEN", "")
+
+          # Authenticated so the releases listing never trips the 60 req/hr
+          # unauthenticated rate limit (runners share GitHub egress IPs).
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/releases?per_page=100",
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "manus-to-live",
+              },
+          )
+          with urllib.request.urlopen(req, timeout=60) as resp:
+              releases = json.load(resp)
+
+          ts_re = re.compile(r"(\d{8}T\d{4}Z)")
+          candidates = []
+          for rel in releases:
+              tag = rel.get("tag_name") or ""
+              if not tag.startswith(("manus-scrape-", "neon-export-", "laptop-db-")):
+                  continue
+              names = {a.get("name") for a in rel.get("assets", [])}
+              if "autolens.db.gz" not in names:
+                  continue
+              m = ts_re.search(tag)
+              candidates.append((m.group(1) if m else tag, tag))
+          candidates.sort(key=lambda c: c[0])
+          ts_by_tag = {tag: ts for ts, tag in candidates}
+          known = set(ts_by_tag)
+
+          if forced:
+              if forced not in known:
+                  print(f"ERROR: release-tag {forced} not found (or lacks an autolens.db.gz asset)")
+                  sys.exit(1)
+              selected = [forced]
+          else:
+              selected = [tag for ts, tag in candidates if ts > last]
+
+          with open("new-dumps.txt", "w") as fh:
+              fh.write("\n".join(selected))
+          new_last = max([last] + [ts_by_tag[t] for t in selected], key=lambda s: s or "")
+          with open("last-merged-new.txt", "w") as fh:
+              fh.write(new_last)
+
+          print(f"dumps to merge: {len(selected)}")
+          for t in selected:
+              print("  ", t)
+          PY
+          COUNT=$(wc -l < new-dumps.txt)
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+          if [[ "${COUNT}" == "0" ]]; then
+            echo "no new dumps — nothing to do"
+            exit 0
+          fi
+
+      - name: Merge new dumps into merged DB
+        if: steps.discover.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          mkdir -p dump-store
+          while IFS= read -r TAG; do
+            [[ -z "$TAG" ]] && continue
+            echo "== merging ${TAG} =="
+            gh release download "$TAG" --pattern "autolens.db.gz" --dir dump-store --clobber
+            python scripts/ops/merge_sqlite_dump.py dump-store/autolens.db.gz --target motormila.db
+            rm -f dump-store/autolens.db.gz
+          done < new-dumps.txt
+          python - <<'PY'
+          import sqlite3
+          con = sqlite3.connect("motormila.db")
+          print("merged DB listings:", con.execute("SELECT COUNT(*) FROM car_listings").fetchone()[0])
+          print("merged DB history:", con.execute("SELECT COUNT(*) FROM vehicle_price_history").fetchone()[0])
+          PY
+
+      - name: Run market analysis + dedup
+        if: steps.discover.outputs.count != '0'
+        env:
+          SCRAPE_PROFILE: "all"
+          RUN_SCRAPERS: "false"
+          RUN_MARKET_ANALYSIS: "true"
+          RUN_MARKET_SIGNALS: "true"
+          RUN_DEAL_SCORE_REFRESH: "true"
+          RUN_DEDUP: "true"
+          DEDUP_FULL_PASS: "true"
+          RUN_STATS_CACHE_REFRESH: "true"
+          RUN_LISTING_LIFECYCLE: "true"
+          RUN_OUTLIER_DETECTION: "true"
+          # Skipped on hosted runners (network-heavy, not needed for export):
+          RUN_ALERT_MATCH: "false"
+          RUN_PRICE_RECOVERY: "false"
+          RUN_THUMBNAIL_CACHE: "false"
+          RUN_IMAGE_PHASH: "false"
+        run: python run_sync.py
+
+      - name: Export public snapshots (full, includes catalog)
+        if: steps.discover.outputs.count != '0'
+        run: python export_public_snapshots.py --output snapshots/latest
+
+      - name: Stage snapshots and deploy to Vercel production
+        if: steps.discover.outputs.count != '0'
+        working-directory: ${{ github.workspace }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SNAPSHOT_SOURCE_DIR: public/snapshots/latest
+        run: |
+          set -euo pipefail
+          mkdir -p public/snapshots/latest
+          cp -r backend/snapshots/latest/. public/snapshots/latest/
+          bash scripts/deploy-snapshots-to-prod.sh
+
+      # Only publish the marker after the deploy succeeded — otherwise the
+      # next run re-merges everything (idempotent) and retries the deploy.
+      - name: Publish merged DB back to release
+        if: steps.discover.outputs.count != '0'
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          NEW_LAST="$(cat backend/last-merged-new.txt)"
+          gzip -f -c backend/motormila.db > merged-autolens.db.gz
+          printf '%s' "$NEW_LAST" > last-merged.txt
+          if gh release view merged-db >/dev/null 2>&1; then
+            gh release upload merged-db merged-autolens.db.gz last-merged.txt --clobber
+          else
+            gh release create merged-db merged-autolens.db.gz last-merged.txt \
+              --title "Merged outage DB" \
+              --notes "Durable merged SQLite DB maintained by manus-to-live.yml. Last merged dump: ${NEW_LAST}" \
+              --latest=false --prerelease
+          fi
+          echo "merged DB published (last merged: ${NEW_LAST})"
+
+      - name: Print run summary
+        if: always()
+        run: |
+          echo "== merged DB state =="
+          python - <<'PY'
+          import sqlite3
+          con = sqlite3.connect("motormila.db")
+          print("listings:", con.execute("SELECT COUNT(*) FROM car_listings").fetchone()[0])
+          print("history:", con.execute("SELECT COUNT(*) FROM vehicle_price_history").fetchone()[0])
+          print("live (active, non-outlier):",
+                con.execute("SELECT COUNT(*) FROM car_listings WHERE is_active = 1 AND is_outlier = 0").fetchone()[0])
+          PY
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MESSAGE=":rotating_light: manus-to-live workflow failed. Run: ${RUN_URL}"
+          curl -X POST -H "Content-type: application/json" \
+            --data "{\"text\":\"${MESSAGE}\"}" "${SLACK_WEBHOOK_URL}"

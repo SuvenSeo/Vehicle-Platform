@@ -11,6 +11,9 @@
 # daily-scrape.yml, and (optionally) restore the local DB into Neon.
 name: Outage Local Pipeline (laptop)
 
+permissions:
+  contents: write
+
 on:
   schedule:
     # 18:10 Sri Lanka time = 12:40 UTC — same slot as the evening Neon run.
@@ -240,6 +243,71 @@ jobs:
       - name: Export public snapshots
         working-directory: backend
         run: python export_public_snapshots.py --output snapshots/latest
+
+      # Publish the laptop's full DB (all 12 sources, incl. patpat/auto-lanka
+      # which the Manus dumps don't cover) as a laptop-db-* release, so the
+      # hosted manus-to-live.yml workflow can merge it into the shared merged
+      # DB. That keeps the live catalog complete even while this laptop
+      # pipeline is idle — the hosted workflow only needs this release to
+      # exist, not the laptop to be online.
+      - name: Publish laptop DB for hosted merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip, json, os, shutil, sqlite3, urllib.request
+          from datetime import datetime, timezone
+
+          src = r"C:/motormila/motormila.db"
+          if not os.path.exists(src):
+              raise SystemExit("laptop DB not found at " + src)
+
+          # sqlite3 backup API — WAL-safe (gzipping the raw file could miss
+          # uncheckpointed WAL frames).
+          dst = "motormila-backup.db"
+          s = sqlite3.connect(src)
+          d = sqlite3.connect(dst)
+          s.backup(d)
+          d.close()
+          s.close()
+          rows = sqlite3.connect(dst).execute(
+              "SELECT COUNT(*) FROM car_listings"
+          ).fetchone()[0]
+          print("laptop db rows:", rows)
+
+          with open(dst, "rb") as fin, gzip.open("autolens.db.gz", "wb") as fout:
+              shutil.copyfileobj(fin, fout)
+
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ.get("GITHUB_REPOSITORY", "")
+          tag = f"laptop-db-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%MZ')}"
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/releases",
+              data=json.dumps({
+                  "tag_name": tag, "name": tag,
+                  "body": f"Laptop full outage DB — {rows} listings",
+                  "draft": False, "prerelease": True, "latest": False,
+              }).encode(),
+              headers={"Authorization": f"Bearer {token}",
+                       "Accept": "application/vnd.github+json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as resp:
+              release = json.load(resp)
+          with open("autolens.db.gz", "rb") as fh:
+              payload = fh.read()
+          upload = urllib.request.Request(
+              f"https://uploads.github.com/repos/{repo}/releases/"
+              f"{release['id']}/assets?name=autolens.db.gz",
+              data=payload,
+              headers={"Authorization": f"Bearer {token}",
+                       "Content-Type": "application/gzip"},
+              method="POST",
+          )
+          with urllib.request.urlopen(upload) as resp:
+              print("published", tag, "(asset autolens.db.gz)")
+          PY
 
       # Hand the snapshots to the hosted deploy job (it needs no DB access —
       # it just uploads the files to Vercel). Keeps the laptop runner free of

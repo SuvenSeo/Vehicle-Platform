@@ -1,0 +1,71 @@
+# One-shot Neon export — run AFTER the Neon quota resets (Sept 1).
+#
+# Streams the full car_listings table (180k+ rows) + price history out of
+# Neon into a gzipped SQLite dump and publishes it as a neon-export-* release.
+# The manus-to-live workflow picks that release up automatically (within
+# minutes via its workflow_run trigger, or ≤30 min via its schedule) and
+# merges it back into the shared merged DB, restoring the pre-outage catalog
+# and price history on the live site.
+#
+# Requires the repo secret HOT_DATABASE_URL (the Neon DSN) — the same secret
+# the canonical daily-scrape.yml uses.
+name: Neon Export
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Max listings to copy (0 = full export; small number = connectivity test)"
+        type: number
+        default: 0
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Export Neon to SQLite dump
+        env:
+          DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "ERROR: secrets.HOT_DATABASE_URL is not set — add the Neon DSN in repo Settings → Secrets."
+            exit 1
+          fi
+          python scripts/ops/export_neon_to_sqlite.py --output autolens.db.gz --limit ${{ inputs.limit }}
+
+      - name: Publish dump release
+        run: |
+          set -euo pipefail
+          TAG="neon-export-$(date -u +%Y%m%dT%H%MZ)"
+          gh release create "$TAG" autolens.db.gz \
+            --title "$TAG" \
+            --notes "Neon full export — see workflow log for listing/history counts. Merged into the live site automatically by manus-to-live.yml." \
+            --prerelease --latest=false
+          echo "published ${TAG} — manus-to-live.yml will merge it shortly"

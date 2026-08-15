@@ -57,6 +57,21 @@ CONTENT_COLS = [
 DATETIME_COLS = {"scraped_at", "first_seen_at", "last_seen_at", "content_updated_at"}
 
 
+def norm_ts(value) -> str:
+    """Normalise a datetime-ish value to the string form sqlite3 stores.
+
+    sqlite3's default datetime adapter writes naive "YYYY-MM-DD HH:MM:SS.ffffff"
+    (tz dropped), so comparing raw text reads against each other works; this
+    also handles aware datetimes and ISO strings with a Z suffix.
+    """
+    from datetime import datetime
+
+    if isinstance(value, datetime):
+        value = value.replace(tzinfo=None) if value.tzinfo else value
+        return str(value).replace(".000000", "")
+    return str(value).replace("Z", "").replace("+00:00", "").replace(".000000", "")
+
+
 def coerce_datetimes(row: dict) -> dict:
     from datetime import datetime
 
@@ -154,7 +169,108 @@ def main() -> int:
     else:
         total_new = sum(v[1] for v in per_source.values())
         print(f"\nDRY-RUN: would insert {total_new} new rows, update the rest.")
+        return 0
+
+    # Neon exports carry a vehicle_price_history_src table keyed by
+    # (source, source_id); re-attach those price points to the just-upserted
+    # listings so pre-outage price history survives. Plain manus dumps do not
+    # have this table, so this is a no-op for them.
+    try:
+        hist = import_price_history(dump_engine, target_engine, TargetSession)
+        if hist:
+            print(f"price history imported={hist} (non-fatal)")
+    except Exception as exc:
+        print(f"WARNING: price-history import failed ({exc}) — continuing without it")
     return 0
+
+
+def import_price_history(dump_engine, target_engine, TargetSession) -> int:
+    """Copy vehicle_price_history_src rows (neon-export dumps) into the target.
+
+    Returns the number of rows inserted; 0 when the dump has no history table.
+    Skipped rows are those whose listing is missing in the target or whose
+    (vehicle_id, scraped_at) point already exists.
+    """
+    from datetime import datetime
+
+    with dump_engine.connect() as conn:
+        has = conn.execute(
+            text(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='vehicle_price_history_src'"
+            )
+        ).first()
+        if not has:
+            return 0
+        rows = conn.execute(
+            text(
+                "SELECT source, source_id, price_lkr, scraped_at "
+                "FROM vehicle_price_history_src"
+            )
+        ).mappings().all()
+    print(f"price-history rows in dump: {len(rows)}")
+
+    with target_engine.connect() as tconn:
+        id_by_key = {
+            f"{r[0]}|{r[1]}": r[2]
+            for r in tconn.execute(
+                text("SELECT source, source_id, id FROM car_listings")
+            )
+        }
+        existing = {
+            (r[0], norm_ts(r[1]))
+            for r in tconn.execute(
+                text("SELECT vehicle_id, scraped_at FROM vehicle_price_history")
+            )
+        }
+
+    inserted = 0
+    skipped = 0
+    pend: list[dict] = []
+    db = TargetSession()
+    try:
+        for row in rows:
+            lid = id_by_key.get(f"{row['source']}|{row['source_id']}")
+            if lid is None:
+                skipped += 1
+                continue
+            ts = row["scraped_at"]
+            if isinstance(ts, str):
+                try:
+                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                except ValueError:
+                    pass
+            if (lid, norm_ts(ts)) in existing:
+                skipped += 1
+                continue
+            pend.append({"vehicle_id": lid, "price_lkr": row["price_lkr"], "scraped_at": ts})
+            if len(pend) >= 2000:
+                db.execute(
+                    text(
+                        "INSERT INTO vehicle_price_history "
+                        "(vehicle_id, price_lkr, scraped_at) "
+                        "VALUES (:vehicle_id, :price_lkr, :scraped_at)"
+                    ),
+                    pend,
+                )
+                db.commit()
+                inserted += len(pend)
+                pend = []
+        if pend:
+            db.execute(
+                text(
+                    "INSERT INTO vehicle_price_history "
+                    "(vehicle_id, price_lkr, scraped_at) "
+                    "VALUES (:vehicle_id, :price_lkr, :scraped_at)"
+                ),
+                pend,
+            )
+            db.commit()
+            inserted += len(pend)
+    finally:
+        db.close()
+    print(f"price history: imported={inserted} skipped={skipped}")
+    return inserted
 
 
 if __name__ == "__main__":
