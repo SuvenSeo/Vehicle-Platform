@@ -2830,6 +2830,23 @@ export type AdminPermit = {
   updatedAt?: string | null;
 };
 
+export type AdminProviderHealth = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  configured: boolean;
+  lastRun?: {
+    id?: number;
+    status?: string;
+    rows?: number | null;
+    failures?: number | null;
+    checksum?: string | null;
+    startedAt?: string | null;
+    endedAt?: string | null;
+    error?: string | null;
+  } | null;
+};
+
 export type AdminSystem = {
   adminEmail?: string;
   databaseOk: boolean;
@@ -2845,6 +2862,7 @@ export type AdminSystem = {
     publicAppOrigin?: string | null;
   };
   statsCacheKeys: string[];
+  providers?: AdminProviderHealth[];
   generatedAt: string;
 };
 

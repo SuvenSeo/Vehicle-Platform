@@ -77,6 +77,8 @@ _INDEX_PATCHES = (
     ),
     ("idx_scrape_runs_started_at", "scrape_runs", "started_at"),
     ("idx_scrape_runs_source_started_at", "scrape_runs", "source, started_at"),
+    ("idx_provider_sync_runs_provider_started", "provider_sync_runs", "provider, started_at"),
+    ("idx_provider_sync_runs_started_at", "provider_sync_runs", "started_at"),
 )
 
 _POSTGRES_TRGM_INDEX_PATCHES = (
@@ -539,6 +541,71 @@ def _ensure_analytics_events_table(
         log.warning("schema_analytics_events_table_failed", error=str(exc))
 
 
+def _ensure_provider_sync_runs_table(
+    engine: Engine,
+    *,
+    dialect: str,
+    bounded_ddl,
+) -> None:
+    """Idempotent CREATE for enrichment provider sync-run logging."""
+    inspector = inspect(engine)
+    try:
+        if "provider_sync_runs" in inspector.get_table_names():
+            return
+    except Exception as exc:
+        log.warning("schema_provider_sync_inspect_failed", error=str(exc))
+
+    if dialect == "postgresql":
+        ddl = """
+        CREATE TABLE IF NOT EXISTS provider_sync_runs (
+            id SERIAL PRIMARY KEY,
+            provider VARCHAR(40) NOT NULL,
+            status VARCHAR(20) NOT NULL,
+            rows INTEGER,
+            failures INTEGER,
+            checksum VARCHAR(128),
+            error_message TEXT,
+            details JSONB,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            ended_at TIMESTAMPTZ
+        )
+        """
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_provider_sync_runs_provider_started ON provider_sync_runs (provider, started_at)",
+            "CREATE INDEX IF NOT EXISTS idx_provider_sync_runs_started_at ON provider_sync_runs (started_at)",
+        )
+    else:
+        ddl = """
+        CREATE TABLE IF NOT EXISTS provider_sync_runs (
+            id INTEGER PRIMARY KEY,
+            provider VARCHAR(40) NOT NULL,
+            status VARCHAR(20) NOT NULL,
+            rows INTEGER,
+            failures INTEGER,
+            checksum VARCHAR(128),
+            error_message TEXT,
+            details JSON,
+            started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            ended_at DATETIME
+        )
+        """
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_provider_sync_runs_provider_started ON provider_sync_runs (provider, started_at)",
+            "CREATE INDEX IF NOT EXISTS idx_provider_sync_runs_started_at ON provider_sync_runs (started_at)",
+        )
+
+    try:
+        bounded_ddl(ddl)
+        for index_sql in indexes:
+            try:
+                bounded_ddl(index_sql)
+            except Exception as exc:
+                log.warning("schema_provider_sync_index_failed", error=str(exc))
+        log.info("schema_provider_sync_runs_table_ensured")
+    except Exception as exc:
+        log.warning("schema_provider_sync_runs_table_failed", error=str(exc))
+
+
 def apply_schema_patches(engine: Engine) -> None:
     """Add missing columns and create new tables without a full Alembic migration."""
     from db.models import Base
@@ -617,6 +684,7 @@ def apply_schema_patches(engine: Engine) -> None:
     _ensure_historical_price_observations_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
     _ensure_analytics_events_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
     _ensure_user_notifications_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
+    _ensure_provider_sync_runs_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
 
     for index_name, table_name, columns in _INDEX_PATCHES:
         try:

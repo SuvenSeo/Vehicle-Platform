@@ -25,6 +25,7 @@ from app.api.v1.endpoints.auth import (
     resolve_user_record,
 )
 from app.services.invite_email import try_send_invite_email
+from app.services.providers.health import provider_health
 from db.models import (
     CarListing,
     DealerProfile,
@@ -800,5 +801,6 @@ def admin_system(
             "publicAppOrigin": os.getenv("PUBLIC_APP_ORIGIN", "").strip() or None,
         },
         "statsCacheKeys": cache_keys,
+        "providers": provider_health(db),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }

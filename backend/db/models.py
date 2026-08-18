@@ -489,3 +489,29 @@ class AnalyticsEvent(Base):
         Index("idx_analytics_events_event_created", "event", "created_at"),
         Index("idx_analytics_events_session", "session_id"),
     )
+
+
+class ProviderSyncRun(Base):
+    """One ingest/refresh attempt for a third-party enrichment provider.
+
+    Used for admin health, retries, and checksum/traceability. Never stores
+    API keys — only provider id, status, row counts, and a payload checksum.
+    """
+
+    __tablename__ = "provider_sync_runs"
+
+    id = Column(Integer, primary_key=True)
+    provider = Column(String(40), nullable=False)
+    status = Column(String(20), nullable=False)  # running, success, partial, failed
+    rows = Column(Integer, nullable=True)
+    failures = Column(Integer, nullable=True)
+    checksum = Column(String(128), nullable=True)
+    error_message = Column(Text, nullable=True)
+    details = Column(JSON, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    ended_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("idx_provider_sync_runs_provider_started", "provider", "started_at"),
+        Index("idx_provider_sync_runs_started_at", "started_at"),
+    )
