@@ -152,6 +152,7 @@ Run Actions → **Ikman Deep Backfill** (`.github/workflows/ikman-bulk-backfill.
 | Weekly DB Backup | Sun 02:30 | pg_dump — weekly to protect egress |
 | Neon Egress Watchdog | Mon 04:00 | budget early-warning |
 | Weekly Full-Catalog Refresh | Sun 03:00 | the one full-catalog export of the week |
+| Neon Export | daily 03:20 | no-op while Neon is blocked; one full dump after quota reset, then skip for the rest of the month |
 
 ---
 
@@ -164,3 +165,22 @@ Run Actions → **Ikman Deep Backfill** (`.github/workflows/ikman-bulk-backfill.
    watchdog reads real usage instead of the size estimate.
 4. As a last resort Neon bills overage per GB (paid), which is cheaper than a
    blocked database — upgrade only if the product outgrows free.
+
+---
+
+## 6. After a quota block: getting 180k+ listings on the site again
+
+The block is **connections**, not a wipe. Neon still holds the table. Public
+pages read R2 snapshots, so they show whatever `manus-to-live.yml` last
+deployed (Manus unique listings, not the full Neon catalog) until an export
+runs.
+
+1. Wait for the monthly transfer quota to reset (1st of the month).
+2. Let **Neon Export** succeed once (or run it with `limit: 5000` then `0`).
+   That publishes `neon-export-*` and `manus-to-live.yml` merges it.
+3. Do **not** immediately re-export, run weekly pg_dump, and full-catalog
+   snapshot from Neon on the same day — that is how the quota is blown again.
+   Keep `VITE_SNAPSHOT_ONLY=true`.
+
+To copy outage-era unique rows *into* Neon (the other direction), see
+`docs/manus-scraping.md` → `import_sqlite_to_neon.py`.

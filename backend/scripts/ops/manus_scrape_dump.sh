@@ -6,11 +6,14 @@
 # outage pipeline DB (scripts/ops/merge_sqlite_dump.py).
 #
 # Delivery tries, in order:
-#   1) `gh` CLI if already authenticated (Manus's GitHub integration often
-#      provides this)      -> creates a GitHub Release + uploads the asset
+#   1) `gh` CLI if already authenticated (GitHub Actions and some Manus
+#      sessions)  -> creates a GitHub Release + uploads autolens.db.gz
 #   2) GH_TOKEN env var     -> same via the REST API (curl)
-#   3) git push             -> commits the dump into data/manus-dumps/ and
-#                              pushes (uses Manus's git credentials)
+#
+# There is no git-commit fallback. Committing dumps onto main does not update
+# the live site (manus-to-live.yml only reads Release assets) and pollutes
+# history. Old manus-scrape-* releases are NOT pruned here — the hosted merge
+# needs unmerged dumps to stay published.
 #
 # Usage (after cloning the repo on the Manus VM):
 #   bash backend/scripts/ops/manus_scrape_dump.sh ikman autolanka hitad autostream
@@ -83,7 +86,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
     echo "== uploaded via gh. DONE =="
     exit 0
   fi
-  echo "!! gh release create failed — trying the API / commit fallbacks."
+  echo "!! gh release create failed — trying the API fallback."
 fi
 
 # ---------------------------------------------------------------------------
@@ -105,53 +108,15 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
     --data-binary "@autolens.db.gz" \
     "https://uploads.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets?name=autolens.db.gz" >/dev/null
 
-  echo "== pruning old manus-scrape releases (keep 5) =="
-  python3 - <<'PY'
-import json, os, subprocess
-
-repo = os.environ["REPO"]
-token = os.environ["GH_TOKEN"]
-out = subprocess.run(
-    ["curl", "-fsSL", "-H", f"Authorization: Bearer {token}",
-     f"https://api.github.com/repos/{repo}/releases?per_page=100"],
-    capture_output=True, text=True, check=True,
-).stdout
-releases = [r for r in json.loads(out) if (r.get("tag_name") or "").startswith("manus-scrape-")]
-for old in releases[5:]:
-    subprocess.run(
-        ["curl", "-fsSL", "-X", "DELETE",
-         "-H", f"Authorization: Bearer {token}",
-         f"https://api.github.com/repos/{repo}/releases/{old['id']}"],
-        check=False,
-    )
-    print("deleted", old["tag_name"])
-PY
-
   echo "== uploaded via API. DONE =="
   exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# Delivery path 3: commit the dump into the repo (git credentials fallback)
+# No git-commit fallback: committing autolens.db.gz onto main does not update
+# the live site (manus-to-live only reads GitHub Releases) and pollutes history.
 # ---------------------------------------------------------------------------
-echo "== no release auth — committing the dump into the repo instead =="
-cd "${ROOT}"
-mkdir -p data/manus-dumps
-cp backend/autolens.db.gz "data/manus-dumps/${TAG}.db.gz"
-# Keep the last 5 dumps in the repo
-python3 - <<'PY'
-import glob, os
-files = sorted(glob.glob("data/manus-dumps/manus-scrape-*.db.gz"))
-for old in files[:-5]:
-    os.remove(old)
-    print("removed", old)
-PY
-git add data/manus-dumps
-git -c user.name="manus-scrape" -c user.email="manus-scrape@users.noreply.github.com" \
-  commit -m "Manus scrape dump ${TAG}: sources [$*] — ${TOTAL} listings"
-git push || {
-  echo "!! git push failed — the dump is at data/manus-dumps/${TAG}.db.gz" >&2
-  echo "   Tell Manus to push it, or download it manually." >&2
-  exit 1
-}
-echo "== committed + pushed ${TAG}.db.gz. DONE =="
+echo "ERROR: cannot publish ${TAG}. Set GH_TOKEN (contents:read + releases:write)" >&2
+echo "       or authenticate \`gh\`. The dump is at backend/autolens.db.gz" >&2
+echo "       manus-to-live.yml only merges GitHub Release assets named autolens.db.gz." >&2
+exit 1

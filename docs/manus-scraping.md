@@ -40,8 +40,21 @@ Manus VMs run on datacenter IPs. riyasewana and patpat block datacenter IPs
 > still report what succeeded.
 
 You can run several Manus tasks in parallel for different subsets, and repeat
-the task daily — each run creates a fresh release. Old `manus-scrape-*`
-releases are pruned automatically (5 kept).
+the task daily — each run creates a fresh **GitHub Release** tagged
+`manus-scrape-*` with asset `autolens.db.gz`. Do **not** commit dumps onto
+`main`; `manus-to-live.yml` only reads Release assets. Old dumps are kept so
+unmerged hours are not deleted.
+
+## Cadence
+
+- **GitHub Actions** `.github/workflows/manus-scrape-every-2h.yml` — cron
+  `30 */2 * * *` (every two hours). This is the durable scrape. Hourly would
+  roughly double Actions minutes for mostly-overlapping pages.
+- **Manus cloud computer** can run the same dump script on its own schedule
+  (often ~hourly). Those extra dumps are useful as long as they upload as
+  Releases. If `gh` / `GH_TOKEN` is missing, the script now **fails** instead
+  of `git push`ing binaries onto `main` (that path never updated the live
+  site).
 
 ## Merging into the laptop pipeline
 
@@ -76,9 +89,14 @@ Each run:
 
 1. restores a **durable merged SQLite DB** published as the `merged-db`
    release (`merged-autolens.db.gz` + `last-merged.txt` marker),
-2. merges every dump newer than the marker — it scans **all** dump prefixes:
-   `manus-scrape-*`, `manus-scrape-dedicated-*` (laptop riyasewana runs),
-   `laptop-db-*` (full laptop DB, below), and `neon-export-*`,
+2. merges every dump newer than the marker — it **paginates** GitHub
+   Releases (a single `per_page=100` page is not enough) and compares the
+   `YYYYMMDDTHHMMZ` timestamp inside the tag **and** inside
+   `last-merged.txt` (so a marker that stored a full tag name still works).
+   Dump prefixes: `manus-scrape-*`, `manus-scrape-dedicated-*` (laptop
+   riyasewana runs), `laptop-db-*` (full laptop DB, below), and
+   `neon-export-*`. Discovery lives in
+   `backend/scripts/ops/discover_dump_releases.py`.
 3. runs market analysis + dedup (`run_sync.py`),
 4. exports full public snapshots and deploys them to Vercel via
    `scripts/deploy-snapshots-to-prod.sh`,
@@ -127,22 +145,40 @@ catalog stays complete even when the laptop is off. The laptop pipeline still
 scrapes + deploys directly when it runs; the hosted workflow is the safety
 net that keeps the site fresh the rest of the time.
 
-## Post-reset Neon export (Sept 1)
+## Post-reset Neon export (180k+ listings)
 
-After Neon's quota resets, export the full pre-outage database (the 180k+
-listings and their price history) before/while the canonical pipeline resumes:
+Hitting Neon's free **5 GB/mo transfer** quota **does not delete rows**. It
+blocks every connection until the quota resets on the **1st of the next
+month**. The 180k+ listings stay in Neon the whole time. "Getting them back"
+on the live site means: **read Neon once**, publish a `neon-export-*`
+release, let `manus-to-live.yml` merge it into the snapshot catalog.
 
-1. Make sure the repo secret `HOT_DATABASE_URL` (the Neon DSN) is set —
-   the canonical daily-scrape.yml already uses it.
-2. Run the **Neon Export** workflow (Actions → Neon Export → Run workflow).
-   It streams `car_listings` + `vehicle_price_history` out of Neon into a
-   gzipped SQLite dump and publishes a `neon-export-*` release.
-   (Use `limit: 5000` first as a quick connectivity check.)
-3. `manus-to-live.yml` picks up that release automatically and merges it into
-   the merged DB — the live site's catalog and price history are restored,
-   and the canonical pipeline can keep going from there.
+The live site during the outage is the **Manus-merged SQLite catalog**
+(~16k unique listings as of 2026-08-14), not the 180k Neon table.
 
-Locally, the same export can be run with:
+### Automatic path (preferred)
+
+`.github/workflows/neon-export.yml` runs **daily at 03:20 UTC**:
+
+1. If a `neon-export-YYYYMM*` release already exists this calendar month,
+   skip (do not burn the new quota with a second full-table read). Override
+   with `force=true`.
+2. Probe Neon (`SELECT 1`). If it is still blocked, **skip** (green), do
+   not fail Slack.
+3. Stream `car_listings` + `vehicle_price_history` into `autolens.db.gz`.
+4. Publish `neon-export-YYYYMMDDTHHMMZ`.
+5. `manus-to-live.yml` merges it (workflow_run + 30 min schedule).
+
+Use `limit: 5000` once as a connectivity test **after** the probe is green,
+then run a full export (`limit: 0`). One full export is a large egress
+event — keep `VITE_SNAPSHOT_ONLY=true` so public browsing does not hit
+Neon afterwards.
+
+### Manual / local
+
+1. Repo secret `HOT_DATABASE_URL` must be set.
+2. Actions → **Neon Export** → Run workflow (`limit: 5000` first, then `0`).
+3. Or locally:
 
 ```
 cd backend
@@ -150,6 +186,18 @@ export DATABASE_URL=postgresql://...
 python scripts/ops/export_neon_to_sqlite.py --output autolens.db.gz
 ```
 
-After the outage ends, the merged DB can also be imported into Neon the other
-way (keyed on `source, source_id`) so Manus/laptop-era scrapes aren't lost
-from the canonical database.
+### Push Manus-only rows back into Neon (optional)
+
+The site does **not** need this to show the 180k catalog (that data is
+already in Neon). Use it only so the canonical DB also contains unique
+listings scraped during the outage that Neon never saw:
+
+```
+cd backend
+export HOT_DATABASE_URL=postgresql://...
+python scripts/ops/import_sqlite_to_neon.py merged-autolens.db.gz --dry-run
+python scripts/ops/import_sqlite_to_neon.py merged-autolens.db.gz
+```
+
+Download `merged-autolens.db.gz` from the `merged-db` release first. Rows
+upsert on `(source, source_id)`.
