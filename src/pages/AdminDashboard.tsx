@@ -35,6 +35,7 @@ import {
   getAdminSystem,
   getAdminUsers,
   revokeAdminInvite,
+  runRevcarDataPilot,
   triggerAdminPipeline,
   updateAdminFeedback,
   updateAdminUser,
@@ -315,6 +316,17 @@ export default function AdminDashboard() {
       void systemQuery.refetch();
     },
     onError: (error: Error) => toast.error(error.message || "Cache clear failed"),
+  });
+
+  const revcarPilotMutation = useMutation({
+    mutationFn: () => runRevcarDataPilot(),
+    onSuccess: (result) => {
+      toast.success(
+        `RevCarData pilot: ${result.matched ?? 0}/${result.attempted ?? 0} matched. MSRP not applied to FMV.`,
+      );
+      void systemQuery.refetch();
+    },
+    onError: (error: Error) => toast.error(error.message || "RevCarData pilot failed"),
   });
 
   const overview = overviewQuery.data;
@@ -1270,6 +1282,18 @@ export default function AdminDashboard() {
               ) : (
                 <p className="mt-4 text-[13px] text-muted-foreground">Provider health unavailable.</p>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4"
+                disabled={revcarPilotMutation.isPending}
+                onClick={() => revcarPilotMutation.mutate()}
+              >
+                {revcarPilotMutation.isPending ? "Running spec pilot…" : "Run RevCarData 100-record pilot"}
+              </Button>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Match-rate sample only. Foreign MSRP is never written into LKR fair market value.
+              </p>
             </div>
           </TabsContent>
         </Tabs>

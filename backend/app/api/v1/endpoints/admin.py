@@ -26,6 +26,7 @@ from app.api.v1.endpoints.auth import (
 )
 from app.services.invite_email import try_send_invite_email
 from app.services.geo_service import sample_geocode
+from app.services.revcardata_pilot import run_pilot
 from app.services.providers.health import provider_health
 from db.models import (
     CarListing,
@@ -730,6 +731,19 @@ def admin_sample_geoapify(
     """Geocode a live sample of listings. Does not overwrite raw_location."""
     result = sample_geocode(db, limit=limit)
     ok = result.get("status") in {"success", "partial", "skipped"}
+    return {"ok": ok, "triggeredBy": admin["email"], **result}
+
+
+@router.post("/enrichment/revcardata", response_model=dict)
+def admin_revcardata_pilot(
+    popular_n: int = Query(default=50, ge=0, le=50),
+    hard_n: int = Query(default=50, ge=0, le=50),
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """100-record match-rate pilot. Does not write MSRP into LKR FMV."""
+    result = run_pilot(db, popular_n=popular_n, hard_n=hard_n)
+    ok = result.get("status") in {"success", "skipped"}
     return {"ok": ok, "triggeredBy": admin["email"], **result}
 
 

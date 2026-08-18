@@ -11,6 +11,7 @@ _PROVIDER_FLAGS: dict[str, tuple[str, bool]] = {
     "open_charge_map": ("ENRICHMENT_OPEN_CHARGE_MAP", True),
     "geoapify": ("ENRICHMENT_GEOAPIFY", False),
     "revcardata": ("ENRICHMENT_REVCARDATA", False),
+    # Product brief only — do not build a Smartcar live-data path.
     "smartcar": ("ENRICHMENT_SMARTCAR", False),
 }
 

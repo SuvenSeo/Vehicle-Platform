@@ -3059,6 +3059,18 @@ export const getAdminSystem = async (): Promise<AdminSystem> => {
   return fetchJSON<AdminSystem>("/admin/system", undefined, authHeaders());
 };
 
+export const runRevcarDataPilot = async (): Promise<{
+  ok: boolean;
+  status?: string;
+  attempted?: number;
+  matched?: number;
+  false_matches?: number;
+  match_rate?: number;
+  msrp_used_for_lkr_fmv?: boolean;
+}> => {
+  return postJSON("/admin/enrichment/revcardata", {}, authHeaders());
+};
+
 export const updateAdminUser = async (
   userId: number,
   patch: {
