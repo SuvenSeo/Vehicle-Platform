@@ -94,6 +94,13 @@ export function RouteMeta() {
           "Electric vehicle pricing, range, battery health, and charging intelligence for Sri Lanka.",
         ),
       },
+      "/ev-chargers": {
+        title: t("seo.evChargersTitle", "EV Chargers — {site}", siteVars),
+        description: t(
+          "seo.evChargersDesc",
+          "Cached Open Charge Map public charging stations in Sri Lanka. Confirm status before you travel.",
+        ),
+      },
       "/best-picks": {
         title: t("seo.bestPicksTitle", "Best Picks — {site}", siteVars),
         description: t(

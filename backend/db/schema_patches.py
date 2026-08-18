@@ -82,6 +82,8 @@ _INDEX_PATCHES = (
     ("idx_vehicle_catalog_matches_key_provider", "vehicle_catalog_matches", "vehicle_key, provider"),
     ("idx_vehicle_safety_snapshots_refreshed", "vehicle_safety_snapshots", "refreshed_at"),
     ("idx_vehicle_reliability_snapshots_refreshed", "vehicle_reliability_snapshots", "refreshed_at"),
+    ("idx_charge_points_lat_lng", "charge_points", "lat, lng"),
+    ("idx_charge_points_town", "charge_points", "town"),
 )
 
 _POSTGRES_TRGM_INDEX_PATCHES = (
@@ -656,6 +658,25 @@ def _ensure_enrichment_snapshot_tables(
                 payload {json_type} NOT NULL,
                 source_version VARCHAR(80),
                 checksum VARCHAR(128),
+                refreshed_at {ts}
+            )
+        """,
+        "charge_points": f"""
+            CREATE TABLE IF NOT EXISTS charge_points (
+                ocm_id INTEGER PRIMARY KEY,
+                name VARCHAR(200),
+                operator VARCHAR(120),
+                address TEXT,
+                town VARCHAR(100),
+                lat NUMERIC(9, 6) NOT NULL,
+                lng NUMERIC(9, 6) NOT NULL,
+                status VARCHAR(40),
+                connectors {json_type},
+                power_kw NUMERIC(8, 2),
+                data_provider VARCHAR(200),
+                license_note VARCHAR(200),
+                attribution TEXT,
+                source_updated_at VARCHAR(40),
                 refreshed_at {ts}
             )
         """,

@@ -566,3 +566,30 @@ class VehicleReliabilitySnapshot(Base):
     __table_args__ = (
         Index("idx_vehicle_reliability_snapshots_refreshed", "refreshed_at"),
     )
+
+
+class ChargePoint(Base):
+    """Cached Open Charge Map POI for Sri Lanka charger search."""
+
+    __tablename__ = "charge_points"
+
+    ocm_id = Column(Integer, primary_key=True)
+    name = Column(String(200), nullable=True)
+    operator = Column(String(120), nullable=True)
+    address = Column(Text, nullable=True)
+    town = Column(String(100), nullable=True)
+    lat = Column(Numeric(9, 6), nullable=False)
+    lng = Column(Numeric(9, 6), nullable=False)
+    status = Column(String(40), nullable=True)
+    connectors = Column(JSON, nullable=True)
+    power_kw = Column(Numeric(8, 2), nullable=True)
+    data_provider = Column(String(200), nullable=True)
+    license_note = Column(String(200), nullable=True)
+    attribution = Column(Text, nullable=True)
+    source_updated_at = Column(String(40), nullable=True)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_charge_points_lat_lng", "lat", "lng"),
+        Index("idx_charge_points_town", "town"),
+    )

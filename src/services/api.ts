@@ -260,6 +260,38 @@ export interface SafetyResearchResponse {
   reliability: EnrichmentEnvelope;
 }
 
+export interface ChargingStationConnector {
+  type?: string | number | null;
+  power_kw?: number | null;
+  level?: string | null;
+}
+
+export interface ChargingStation {
+  ocm_id: number;
+  name: string | null;
+  operator: string | null;
+  lat: number;
+  lng: number;
+  address: string | null;
+  town?: string | null;
+  status?: string | null;
+  connectors: ChargingStationConnector[];
+  power_kw?: number | null;
+  distance_km: number;
+  data_provider?: string | null;
+  attribution?: string | null;
+}
+
+export interface ChargingStationsResponse {
+  count: number;
+  lat?: number;
+  lng?: number;
+  radius_km: number;
+  attribution: string;
+  limitation?: string;
+  stations: ChargingStation[];
+}
+
 export interface ListingSearchSuggestion {
   id: number;
   make: string;
@@ -2695,6 +2727,28 @@ export const getVehicleSafetyResearch = async (input: {
   const params: QueryParams = { make: input.make, model: input.model };
   if (input.year) params.year = input.year;
   return fetchJSON<SafetyResearchResponse>("/vehicles/safety-research", params);
+};
+
+export const getChargingStations = async (input?: {
+  lat?: number;
+  lng?: number;
+  radius_km?: number;
+}): Promise<ChargingStationsResponse> => {
+  const params: QueryParams = {};
+  if (input?.lat != null) params.lat = input.lat;
+  if (input?.lng != null) params.lng = input.lng;
+  if (input?.radius_km != null) params.radius_km = input.radius_km;
+  const data = await fetchJSON<ChargingStationsResponse>("/ev/charging-stations", params);
+  const stations = Array.isArray(data?.stations) ? data.stations : [];
+  return {
+    count: Number(data?.count ?? stations.length),
+    lat: data?.lat,
+    lng: data?.lng,
+    radius_km: Number(data?.radius_km ?? input?.radius_km ?? 25),
+    attribution: String(data?.attribution || "Data © Open Charge Map contributors and original data providers."),
+    limitation: data?.limitation,
+    stations,
+  };
 };
 
 export const getMacroContext = async (): Promise<MacroContext> => {

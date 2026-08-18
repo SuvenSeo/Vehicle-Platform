@@ -708,6 +708,18 @@ def admin_ingest_problemsbyvin(
     return {"ok": result.get("status") == "success", "triggeredBy": admin["email"], **result}
 
 
+@router.post("/enrichment/openchargemap", response_model=dict)
+def admin_ingest_openchargemap(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Refresh the Sri Lanka Open Charge Map cache."""
+    from app.services.openchargemap import ingest_lk_stations
+
+    result = ingest_lk_stations(db)
+    return {"ok": result.get("status") == "success", "triggeredBy": admin["email"], **result}
+
+
 @router.get("/permits", response_model=dict)
 def list_permits_admin(
     admin: dict = Depends(require_admin_access),

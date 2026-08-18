@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
   Share2, Fuel, Gauge, Settings2, MessageCircle,
-  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
+  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap
 } from 'lucide-react';
 import { getListing, getListingFmv, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
 import type { ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
@@ -322,6 +322,14 @@ export default function ListingDetail() {
             <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
               <Share2 aria-hidden className="h-3 w-3" /> {t("listing.share", "Share")}
             </button>
+            {importFuelType === 'electric' && (
+              <Link
+                to={listing.district ? `/ev-chargers?district=${encodeURIComponent(listing.district)}` : '/ev-chargers'}
+                className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]"
+              >
+                <PlugZap aria-hidden className="h-3 w-3" /> {t("listing.chargersNearby", "Charging stations")}
+              </Link>
+            )}
           </div>
         </div>
       </motion.section>
