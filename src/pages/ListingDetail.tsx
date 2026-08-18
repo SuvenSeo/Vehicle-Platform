@@ -5,8 +5,8 @@ import {
   Share2, Fuel, Gauge, Settings2, MessageCircle,
   Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
 } from 'lucide-react';
-import { getListing, getListingFmv, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
-import type { ListingFmvDetail } from '@/services/api';
+import { getListing, getListingFmv, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
+import type { ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { summarizeFmv } from '@/lib/fmv';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
@@ -14,6 +14,7 @@ import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { toast } from 'sonner';
 import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
+import { SafetyResearchCard } from '@/components/SafetyResearchCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
@@ -57,6 +58,7 @@ export default function ListingDetail() {
   const [sellerProfile, setSellerProfile] = useState<SellerTrustProfile | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryInfo | null>(null);
   const [fmvDetail, setFmvDetail] = useState<ListingFmvDetail | null>(null);
+  const [safetyResearch, setSafetyResearch] = useState<SafetyResearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
@@ -95,7 +97,7 @@ export default function ListingDetail() {
   useEffect(() => {
     if (!id) return;
     window.scrollTo(0, 0); // peer links navigate mid-scroll; open each listing at the top
-    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null);
+    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null); setSafetyResearch(null);
     Promise.all([
       getListing(id).catch(() => null),
       getSimilarListings(id).catch(() => []),
@@ -110,6 +112,7 @@ export default function ListingDetail() {
           trackEvent("listing_viewed", { listing_id: detail.id, make: detail.make, model: detail.model, source: detail.source });
         }
       });
+    getListingSafetyResearch(id).then(setSafetyResearch).catch(() => setSafetyResearch(null));
   }, [id]);
 
   // Enrich the generic route JSON-LD (set by RouteMeta) with real vehicle data
@@ -615,6 +618,12 @@ export default function ListingDetail() {
                 <div className="py-6 text-center"><CarIcon aria-hidden className="mx-auto mb-2 h-5 w-5 text-muted-foreground/40" /><p className="text-[11px] text-muted-foreground">{t("listing.noPeers", "No active peers tracked.")}</p></div>
               )}
             </motion.div>
+
+            {listing.make && (
+              <motion.div variants={revealItem}>
+                <SafetyResearchCard research={safetyResearch} />
+              </motion.div>
+            )}
 
             {/* NHTSA catalog disclosure */}
             {listing.make && (

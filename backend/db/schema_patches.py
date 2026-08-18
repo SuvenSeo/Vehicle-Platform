@@ -79,6 +79,9 @@ _INDEX_PATCHES = (
     ("idx_scrape_runs_source_started_at", "scrape_runs", "source, started_at"),
     ("idx_provider_sync_runs_provider_started", "provider_sync_runs", "provider, started_at"),
     ("idx_provider_sync_runs_started_at", "provider_sync_runs", "started_at"),
+    ("idx_vehicle_catalog_matches_key_provider", "vehicle_catalog_matches", "vehicle_key, provider"),
+    ("idx_vehicle_safety_snapshots_refreshed", "vehicle_safety_snapshots", "refreshed_at"),
+    ("idx_vehicle_reliability_snapshots_refreshed", "vehicle_reliability_snapshots", "refreshed_at"),
 )
 
 _POSTGRES_TRGM_INDEX_PATCHES = (
@@ -606,6 +609,67 @@ def _ensure_provider_sync_runs_table(
         log.warning("schema_provider_sync_runs_table_failed", error=str(exc))
 
 
+def _ensure_enrichment_snapshot_tables(
+    engine: Engine,
+    *,
+    dialect: str,
+    bounded_ddl,
+) -> None:
+    """Idempotent CREATE for safety/reliability snapshot tables."""
+    inspector = inspect(engine)
+    try:
+        existing = set(inspector.get_table_names())
+    except Exception as exc:
+        log.warning("schema_enrichment_inspect_failed", error=str(exc))
+        existing = set()
+
+    pg = dialect == "postgresql"
+    json_type = "JSONB" if pg else "JSON"
+    ts = "TIMESTAMPTZ NOT NULL DEFAULT NOW()" if pg else "DATETIME DEFAULT CURRENT_TIMESTAMP"
+    pk_int = "SERIAL PRIMARY KEY" if pg else "INTEGER PRIMARY KEY"
+
+    tables = {
+        "vehicle_catalog_matches": f"""
+            CREATE TABLE IF NOT EXISTS vehicle_catalog_matches (
+                id {pk_int},
+                vehicle_key VARCHAR(180) NOT NULL,
+                provider VARCHAR(40) NOT NULL,
+                provider_vehicle_id VARCHAR(80),
+                match_confidence NUMERIC(5, 4),
+                matched_attributes {json_type},
+                fetched_at {ts}
+            )
+        """,
+        "vehicle_safety_snapshots": f"""
+            CREATE TABLE IF NOT EXISTS vehicle_safety_snapshots (
+                vehicle_key VARCHAR(180) PRIMARY KEY,
+                provider VARCHAR(40) NOT NULL DEFAULT 'nhtsa',
+                payload {json_type} NOT NULL,
+                source_version VARCHAR(80),
+                refreshed_at {ts}
+            )
+        """,
+        "vehicle_reliability_snapshots": f"""
+            CREATE TABLE IF NOT EXISTS vehicle_reliability_snapshots (
+                vehicle_key VARCHAR(180) PRIMARY KEY,
+                provider VARCHAR(40) NOT NULL DEFAULT 'problemsbyvin',
+                payload {json_type} NOT NULL,
+                source_version VARCHAR(80),
+                checksum VARCHAR(128),
+                refreshed_at {ts}
+            )
+        """,
+    }
+    for table_name, ddl in tables.items():
+        if table_name in existing:
+            continue
+        try:
+            bounded_ddl(ddl)
+            log.info("schema_enrichment_table_ensured", table=table_name)
+        except Exception as exc:
+            log.warning("schema_enrichment_table_failed", table=table_name, error=str(exc))
+
+
 def apply_schema_patches(engine: Engine) -> None:
     """Add missing columns and create new tables without a full Alembic migration."""
     from db.models import Base
@@ -685,6 +749,7 @@ def apply_schema_patches(engine: Engine) -> None:
     _ensure_analytics_events_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
     _ensure_user_notifications_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
     _ensure_provider_sync_runs_table(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
+    _ensure_enrichment_snapshot_tables(engine, dialect=dialect, bounded_ddl=_bounded_ddl)
 
     for index_name, table_name, columns in _INDEX_PATCHES:
         try:

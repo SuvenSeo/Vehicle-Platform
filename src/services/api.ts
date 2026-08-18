@@ -237,6 +237,29 @@ export interface NhtsaModelsResult {
   models: NhtsaModel[];
 }
 
+export interface EnrichmentEnvelope<T = unknown> {
+  available: boolean;
+  provider: string;
+  market_scope: string;
+  license_note?: string | null;
+  fetched_at: string;
+  match_confidence: number | null;
+  source_url?: string | null;
+  limitation: string;
+  unavailable_reason?: string | null;
+  data: T | null;
+}
+
+export interface SafetyResearchResponse {
+  listing_id?: number | null;
+  year?: number | string | null;
+  make: string;
+  model: string;
+  vehicle_key?: string | null;
+  safety: EnrichmentEnvelope;
+  reliability: EnrichmentEnvelope;
+}
+
 export interface ListingSearchSuggestion {
   id: number;
   make: string;
@@ -2656,6 +2679,22 @@ export const getNhtsaModels = async (make: string): Promise<NhtsaModelsResult> =
     count: Number(data?.count ?? 0),
     models: Array.isArray(data?.models) ? data.models : [],
   };
+};
+
+export const getListingSafetyResearch = async (
+  id: string | number,
+): Promise<SafetyResearchResponse> => {
+  return fetchJSON<SafetyResearchResponse>(`/listings/${id}/safety-research`);
+};
+
+export const getVehicleSafetyResearch = async (input: {
+  make: string;
+  model: string;
+  year?: number | null;
+}): Promise<SafetyResearchResponse> => {
+  const params: QueryParams = { make: input.make, model: input.model };
+  if (input.year) params.year = input.year;
+  return fetchJSON<SafetyResearchResponse>("/vehicles/safety-research", params);
 };
 
 export const getMacroContext = async (): Promise<MacroContext> => {

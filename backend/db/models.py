@@ -515,3 +515,54 @@ class ProviderSyncRun(Base):
         Index("idx_provider_sync_runs_provider_started", "provider", "started_at"),
         Index("idx_provider_sync_runs_started_at", "started_at"),
     )
+
+
+class VehicleCatalogMatch(Base):
+    """Traceable mapping from a MotorMila vehicle key to an external catalog id."""
+
+    __tablename__ = "vehicle_catalog_matches"
+
+    id = Column(Integer, primary_key=True)
+    vehicle_key = Column(String(180), nullable=False)
+    provider = Column(String(40), nullable=False)
+    provider_vehicle_id = Column(String(80), nullable=True)
+    match_confidence = Column(Numeric(5, 4), nullable=True)
+    matched_attributes = Column(JSON, nullable=True)
+    fetched_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vehicle_catalog_matches_key_provider", "vehicle_key", "provider", unique=True),
+    )
+
+
+class VehicleSafetySnapshot(Base):
+    """Cached NHTSA safety-research card for a canonical vehicle key."""
+
+    __tablename__ = "vehicle_safety_snapshots"
+
+    vehicle_key = Column(String(180), primary_key=True)
+    provider = Column(String(40), nullable=False, default="nhtsa")
+    payload = Column(JSON, nullable=False)
+    source_version = Column(String(80), nullable=True)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vehicle_safety_snapshots_refreshed", "refreshed_at"),
+    )
+
+
+class VehicleReliabilitySnapshot(Base):
+    """Weekly ProblemsByVin reliability / known-issues snapshot."""
+
+    __tablename__ = "vehicle_reliability_snapshots"
+
+    vehicle_key = Column(String(180), primary_key=True)
+    provider = Column(String(40), nullable=False, default="problemsbyvin")
+    payload = Column(JSON, nullable=False)
+    source_version = Column(String(80), nullable=True)
+    checksum = Column(String(128), nullable=True)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vehicle_reliability_snapshots_refreshed", "refreshed_at"),
+    )

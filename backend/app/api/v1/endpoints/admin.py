@@ -696,6 +696,18 @@ def admin_trigger_pipeline(
     return {"ok": True, "triggeredBy": admin["email"], **result}
 
 
+@router.post("/enrichment/problemsbyvin", response_model=dict)
+def admin_ingest_problemsbyvin(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Download weekly ProblemsByVin datasets into local snapshots."""
+    from app.services.problemsbyvin import ingest_datasets
+
+    result = ingest_datasets(db)
+    return {"ok": result.get("status") == "success", "triggeredBy": admin["email"], **result}
+
+
 @router.get("/permits", response_model=dict)
 def list_permits_admin(
     admin: dict = Depends(require_admin_access),
