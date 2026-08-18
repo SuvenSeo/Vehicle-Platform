@@ -35,6 +35,7 @@ import {
   getAdminSystem,
   getAdminUsers,
   revokeAdminInvite,
+  runRevcarDataPilot,
   triggerAdminPipeline,
   updateAdminFeedback,
   updateAdminUser,
@@ -89,6 +90,18 @@ function formatCount(value: number | undefined) {
 
 function formatPrice(value: number | undefined) {
   return `Rs ${Math.round(Number(value || 0)).toLocaleString()}`;
+}
+
+function providerStatusLabel(provider: {
+  enabled: boolean;
+  configured: boolean;
+  lastRun?: { status?: string | null } | null;
+}) {
+  if (!provider.enabled) return "flagged off";
+  if (!provider.configured) return "needs key";
+  const status = provider.lastRun?.status;
+  if (!status) return "ready · no runs yet";
+  return status;
 }
 
 function MetricTile({
@@ -305,6 +318,17 @@ export default function AdminDashboard() {
     onError: (error: Error) => toast.error(error.message || "Cache clear failed"),
   });
 
+  const revcarPilotMutation = useMutation({
+    mutationFn: () => runRevcarDataPilot(),
+    onSuccess: (result) => {
+      toast.success(
+        `RevCarData pilot: ${result.matched ?? 0}/${result.attempted ?? 0} matched. MSRP not applied to FMV.`,
+      );
+      void systemQuery.refetch();
+    },
+    onError: (error: Error) => toast.error(error.message || "RevCarData pilot failed"),
+  });
+
   const overview = overviewQuery.data;
   const analytics = analyticsQuery.data;
   const pendingInvites = useMemo(
@@ -515,6 +539,9 @@ export default function AdminDashboard() {
                     DB {systemQuery.data.databaseOk ? "ok" : "down"} · App gate{" "}
                     {systemQuery.data.flags.appAccessEnforced ? "on" : "off"} · Pro gate{" "}
                     {systemQuery.data.flags.proAccessEnforced ? "on" : "off"}
+                    {systemQuery.data.providers?.length
+                      ? ` · Enrichment ${systemQuery.data.providers.filter((p) => p.enabled && p.configured).length}/${systemQuery.data.providers.length} ready`
+                      : ""}
                   </p>
                 ) : null}
               </div>
@@ -1222,6 +1249,51 @@ export default function AdminDashboard() {
                   <p className="mt-3 text-[11px] text-muted-foreground">No cache rows currently.</p>
                 )}
               </div>
+            </div>
+            <div className="data-card p-6">
+              <h2 className="font-display text-lg font-semibold">Enrichment providers</h2>
+              <p className="mt-2 text-[13px] text-muted-foreground">
+                Third-party research adapters. Keys stay on the backend. A failed provider must
+                never take down listing pages.
+              </p>
+              {systemQuery.isLoading ? (
+                <Skeleton className="mt-4 h-32 rounded-2xl" />
+              ) : systemQuery.data?.providers?.length ? (
+                <ul className="mt-4 grid gap-2 md:grid-cols-2">
+                  {systemQuery.data.providers.map((provider) => (
+                    <li
+                      key={provider.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-[13px]"
+                    >
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-foreground">{provider.label}</span>
+                        <span className="block text-[11px] text-muted-foreground">
+                          {provider.lastRun?.endedAt
+                            ? `Last run ${new Date(provider.lastRun.endedAt).toLocaleString()}`
+                            : "No ingest run recorded"}
+                        </span>
+                      </span>
+                      <span className="shrink-0 font-semibold text-foreground">
+                        {providerStatusLabel(provider)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-[13px] text-muted-foreground">Provider health unavailable.</p>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4"
+                disabled={revcarPilotMutation.isPending}
+                onClick={() => revcarPilotMutation.mutate()}
+              >
+                {revcarPilotMutation.isPending ? "Running spec pilot…" : "Run RevCarData 100-record pilot"}
+              </Button>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Match-rate sample only. Foreign MSRP is never written into LKR fair market value.
+              </p>
             </div>
           </TabsContent>
         </Tabs>

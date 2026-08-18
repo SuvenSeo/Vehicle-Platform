@@ -324,6 +324,11 @@ export default function EVHub() {
                 {t("ev.browseCta", "Browse electric inventory")} <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </Button>
+            <Button asChild variant="outline" size="lg" className="mt-3 w-full">
+              <Link to="/ev-chargers">
+                {t("ev.chargersCta", "Public charging stations")} <PlugZap className="h-4 w-4" aria-hidden />
+              </Link>
+            </Button>
           </div>
         </motion.section>
       </PageBody>

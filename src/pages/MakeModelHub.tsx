@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart2, Car, TrendingUp } from "lucide-react";
-import { getMakeModelInsight, getListings, getListingsForExport, formatPrice } from "@/services/api";
+import { getMakeModelInsight, getListings, getListingsForExport, getVehicleSafetyResearch, formatPrice } from "@/services/api";
 import { revealContainer, revealItem } from "@/lib/motion";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
@@ -13,6 +13,7 @@ import { ModelPriceTimeMachine } from "@/components/ModelPriceTimeMachine";
 import { MileagePriceScatter } from "@/components/MileagePriceScatter";
 import { SectionHeader } from "@/components/SectionHeader";
 import { NhtsaModelsCard } from "@/components/NhtsaModelsCard";
+import { SafetyResearchCard } from "@/components/SafetyResearchCard";
 import { Button } from "@/components/ui/button";
 import { BRAND } from "@/lib/brand";
 import { QUERY_STALE } from "@/lib/queryPolicy";
@@ -60,6 +61,19 @@ export default function MakeModelHub() {
       getListingsForExport({ make: makeParam, model: modelParam, sort: "price_asc", page: 1 }, 80),
     enabled: Boolean(makeParam && modelParam),
     staleTime: QUERY_STALE.listings,
+  });
+
+  const sampleYear = listingsQuery.data?.listings?.[0]?.year;
+  const safetyQuery = useQuery({
+    queryKey: ["vehicle-safety-research", makeParam, modelParam, sampleYear],
+    queryFn: () =>
+      getVehicleSafetyResearch({
+        make: makeDisplay,
+        model: modelDisplay,
+        year: typeof sampleYear === "number" ? sampleYear : undefined,
+      }),
+    enabled: Boolean(makeParam && modelParam),
+    staleTime: QUERY_STALE.market,
   });
 
   const insight = insightQuery.data;
@@ -364,6 +378,13 @@ export default function MakeModelHub() {
           </motion.section>
         )}
 
+        <motion.div variants={revealItem}>
+          <SafetyResearchCard
+            research={safetyQuery.data}
+            isLoading={safetyQuery.isPending}
+            isError={safetyQuery.isError}
+          />
+        </motion.div>
         <motion.div variants={revealItem}>
           <NhtsaModelsCard make={makeParam} model={modelParam} />
         </motion.div>

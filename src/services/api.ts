@@ -237,6 +237,61 @@ export interface NhtsaModelsResult {
   models: NhtsaModel[];
 }
 
+export interface EnrichmentEnvelope<T = unknown> {
+  available: boolean;
+  provider: string;
+  market_scope: string;
+  license_note?: string | null;
+  fetched_at: string;
+  match_confidence: number | null;
+  source_url?: string | null;
+  limitation: string;
+  unavailable_reason?: string | null;
+  data: T | null;
+}
+
+export interface SafetyResearchResponse {
+  listing_id?: number | null;
+  year?: number | string | null;
+  make: string;
+  model: string;
+  vehicle_key?: string | null;
+  safety: EnrichmentEnvelope;
+  reliability: EnrichmentEnvelope;
+}
+
+export interface ChargingStationConnector {
+  type?: string | number | null;
+  power_kw?: number | null;
+  level?: string | null;
+}
+
+export interface ChargingStation {
+  ocm_id: number;
+  name: string | null;
+  operator: string | null;
+  lat: number;
+  lng: number;
+  address: string | null;
+  town?: string | null;
+  status?: string | null;
+  connectors: ChargingStationConnector[];
+  power_kw?: number | null;
+  distance_km: number;
+  data_provider?: string | null;
+  attribution?: string | null;
+}
+
+export interface ChargingStationsResponse {
+  count: number;
+  lat?: number;
+  lng?: number;
+  radius_km: number;
+  attribution: string;
+  limitation?: string;
+  stations: ChargingStation[];
+}
+
 export interface ListingSearchSuggestion {
   id: number;
   make: string;
@@ -2658,6 +2713,55 @@ export const getNhtsaModels = async (make: string): Promise<NhtsaModelsResult> =
   };
 };
 
+export const getListingSafetyResearch = async (
+  id: string | number,
+): Promise<SafetyResearchResponse> => {
+  return fetchJSON<SafetyResearchResponse>(`/listings/${id}/safety-research`);
+};
+
+export const getListingGeo = async (
+  id: string | number,
+): Promise<EnrichmentEnvelope<{
+  lat?: number | null;
+  lng?: number | null;
+  formatted?: string | null;
+  result_type?: string | null;
+}>> => {
+  return fetchJSON(`/listings/${id}/geo`);
+};
+
+export const getVehicleSafetyResearch = async (input: {
+  make: string;
+  model: string;
+  year?: number | null;
+}): Promise<SafetyResearchResponse> => {
+  const params: QueryParams = { make: input.make, model: input.model };
+  if (input.year) params.year = input.year;
+  return fetchJSON<SafetyResearchResponse>("/vehicles/safety-research", params);
+};
+
+export const getChargingStations = async (input?: {
+  lat?: number;
+  lng?: number;
+  radius_km?: number;
+}): Promise<ChargingStationsResponse> => {
+  const params: QueryParams = {};
+  if (input?.lat != null) params.lat = input.lat;
+  if (input?.lng != null) params.lng = input.lng;
+  if (input?.radius_km != null) params.radius_km = input.radius_km;
+  const data = await fetchJSON<ChargingStationsResponse>("/ev/charging-stations", params);
+  const stations = Array.isArray(data?.stations) ? data.stations : [];
+  return {
+    count: Number(data?.count ?? stations.length),
+    lat: data?.lat,
+    lng: data?.lng,
+    radius_km: Number(data?.radius_km ?? input?.radius_km ?? 25),
+    attribution: String(data?.attribution || "Data © Open Charge Map contributors and original data providers."),
+    limitation: data?.limitation,
+    stations,
+  };
+};
+
 export const getMacroContext = async (): Promise<MacroContext> => {
   return await fetchJSON<MacroContext>("/calculators/macro");
 };
@@ -2830,6 +2934,23 @@ export type AdminPermit = {
   updatedAt?: string | null;
 };
 
+export type AdminProviderHealth = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  configured: boolean;
+  lastRun?: {
+    id?: number;
+    status?: string;
+    rows?: number | null;
+    failures?: number | null;
+    checksum?: string | null;
+    startedAt?: string | null;
+    endedAt?: string | null;
+    error?: string | null;
+  } | null;
+};
+
 export type AdminSystem = {
   adminEmail?: string;
   databaseOk: boolean;
@@ -2845,6 +2966,7 @@ export type AdminSystem = {
     publicAppOrigin?: string | null;
   };
   statsCacheKeys: string[];
+  providers?: AdminProviderHealth[];
   generatedAt: string;
 };
 
@@ -2935,6 +3057,18 @@ export const clearAdminStatsCache = async (key?: string): Promise<{ ok: boolean;
 
 export const getAdminSystem = async (): Promise<AdminSystem> => {
   return fetchJSON<AdminSystem>("/admin/system", undefined, authHeaders());
+};
+
+export const runRevcarDataPilot = async (): Promise<{
+  ok: boolean;
+  status?: string;
+  attempted?: number;
+  matched?: number;
+  false_matches?: number;
+  match_rate?: number;
+  msrp_used_for_lkr_fmv?: boolean;
+}> => {
+  return postJSON("/admin/enrichment/revcardata", {}, authHeaders());
 };
 
 export const updateAdminUser = async (

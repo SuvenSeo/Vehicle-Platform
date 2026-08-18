@@ -56,6 +56,7 @@ export function AppFooter() {
   const toolLinks = useMemo(
     () => [
       { label: t("nav.evHub", "EV Hub"), to: "/ev-hub" },
+      { label: t("nav.evChargers", "EV Chargers"), to: "/ev-chargers" },
       { label: t("nav.valuation", "Valuation"), to: "/estimate" },
       { label: t("nav.pricing", "Pricing"), to: "/pricing" },
       { label: t("nav.docs", "Docs"), to: "/docs" },

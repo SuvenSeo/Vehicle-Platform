@@ -25,6 +25,9 @@ from app.api.v1.endpoints.auth import (
     resolve_user_record,
 )
 from app.services.invite_email import try_send_invite_email
+from app.services.geo_service import sample_geocode
+from app.services.revcardata_pilot import run_pilot
+from app.services.providers.health import provider_health
 from db.models import (
     CarListing,
     DealerProfile,
@@ -695,6 +698,55 @@ def admin_trigger_pipeline(
     return {"ok": True, "triggeredBy": admin["email"], **result}
 
 
+@router.post("/enrichment/problemsbyvin", response_model=dict)
+def admin_ingest_problemsbyvin(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Download weekly ProblemsByVin datasets into local snapshots."""
+    from app.services.problemsbyvin import ingest_datasets
+
+    result = ingest_datasets(db)
+    return {"ok": result.get("status") == "success", "triggeredBy": admin["email"], **result}
+
+
+@router.post("/enrichment/openchargemap", response_model=dict)
+def admin_ingest_openchargemap(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Refresh the Sri Lanka Open Charge Map cache."""
+    from app.services.openchargemap import ingest_lk_stations
+
+    result = ingest_lk_stations(db)
+    return {"ok": result.get("status") == "success", "triggeredBy": admin["email"], **result}
+
+
+@router.post("/enrichment/geoapify", response_model=dict)
+def admin_sample_geoapify(
+    limit: int = Query(default=100, ge=1, le=100),
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Geocode a live sample of listings. Does not overwrite raw_location."""
+    result = sample_geocode(db, limit=limit)
+    ok = result.get("status") in {"success", "partial", "skipped"}
+    return {"ok": ok, "triggeredBy": admin["email"], **result}
+
+
+@router.post("/enrichment/revcardata", response_model=dict)
+def admin_revcardata_pilot(
+    popular_n: int = Query(default=50, ge=0, le=50),
+    hard_n: int = Query(default=50, ge=0, le=50),
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """100-record match-rate pilot. Does not write MSRP into LKR FMV."""
+    result = run_pilot(db, popular_n=popular_n, hard_n=hard_n)
+    ok = result.get("status") in {"success", "skipped"}
+    return {"ok": ok, "triggeredBy": admin["email"], **result}
+
+
 @router.get("/permits", response_model=dict)
 def list_permits_admin(
     admin: dict = Depends(require_admin_access),
@@ -800,5 +852,6 @@ def admin_system(
             "publicAppOrigin": os.getenv("PUBLIC_APP_ORIGIN", "").strip() or None,
         },
         "statsCacheKeys": cache_keys,
+        "providers": provider_health(db),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }

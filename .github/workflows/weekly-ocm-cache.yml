@@ -1,0 +1,50 @@
+# Weekly Sri Lanka Open Charge Map cache refresh.
+#
+# Page views never hit the public OCM API — they read local charge_points.
+# This job pulls LK POIs into Neon so /ev-chargers stays current.
+# Skips cleanly when OPENCHARGEMAP_API_KEY is unset.
+
+name: Weekly Open Charge Map cache
+
+on:
+  schedule:
+    - cron: "30 4 * * 0"  # Sunday 04:30 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-ocm-cache
+  cancel-in-progress: false
+
+jobs:
+  refresh-ocm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ingest Sri Lanka Open Charge Map POIs
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          OPENCHARGEMAP_API_KEY: ${{ secrets.OPENCHARGEMAP_API_KEY }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          ENRICHMENT_OPEN_CHARGE_MAP: "true"
+        run: |
+          if [ -z "${OPENCHARGEMAP_API_KEY}" ]; then
+            echo "OPENCHARGEMAP_API_KEY is not configured; skipping OCM ingest."
+            exit 0
+          fi
+          python scripts/ingest_openchargemap.py

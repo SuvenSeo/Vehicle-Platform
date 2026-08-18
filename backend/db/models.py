@@ -489,3 +489,130 @@ class AnalyticsEvent(Base):
         Index("idx_analytics_events_event_created", "event", "created_at"),
         Index("idx_analytics_events_session", "session_id"),
     )
+
+
+class ProviderSyncRun(Base):
+    """One ingest/refresh attempt for a third-party enrichment provider.
+
+    Used for admin health, retries, and checksum/traceability. Never stores
+    API keys — only provider id, status, row counts, and a payload checksum.
+    """
+
+    __tablename__ = "provider_sync_runs"
+
+    id = Column(Integer, primary_key=True)
+    provider = Column(String(40), nullable=False)
+    status = Column(String(20), nullable=False)  # running, success, partial, failed
+    rows = Column(Integer, nullable=True)
+    failures = Column(Integer, nullable=True)
+    checksum = Column(String(128), nullable=True)
+    error_message = Column(Text, nullable=True)
+    details = Column(JSON, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    ended_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("idx_provider_sync_runs_provider_started", "provider", "started_at"),
+        Index("idx_provider_sync_runs_started_at", "started_at"),
+    )
+
+
+class VehicleCatalogMatch(Base):
+    """Traceable mapping from a MotorMila vehicle key to an external catalog id."""
+
+    __tablename__ = "vehicle_catalog_matches"
+
+    id = Column(Integer, primary_key=True)
+    vehicle_key = Column(String(180), nullable=False)
+    provider = Column(String(40), nullable=False)
+    provider_vehicle_id = Column(String(80), nullable=True)
+    match_confidence = Column(Numeric(5, 4), nullable=True)
+    matched_attributes = Column(JSON, nullable=True)
+    fetched_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vehicle_catalog_matches_key_provider", "vehicle_key", "provider", unique=True),
+    )
+
+
+class VehicleSafetySnapshot(Base):
+    """Cached NHTSA safety-research card for a canonical vehicle key."""
+
+    __tablename__ = "vehicle_safety_snapshots"
+
+    vehicle_key = Column(String(180), primary_key=True)
+    provider = Column(String(40), nullable=False, default="nhtsa")
+    payload = Column(JSON, nullable=False)
+    source_version = Column(String(80), nullable=True)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vehicle_safety_snapshots_refreshed", "refreshed_at"),
+    )
+
+
+class VehicleReliabilitySnapshot(Base):
+    """Weekly ProblemsByVin reliability / known-issues snapshot."""
+
+    __tablename__ = "vehicle_reliability_snapshots"
+
+    vehicle_key = Column(String(180), primary_key=True)
+    provider = Column(String(40), nullable=False, default="problemsbyvin")
+    payload = Column(JSON, nullable=False)
+    source_version = Column(String(80), nullable=True)
+    checksum = Column(String(128), nullable=True)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_vehicle_reliability_snapshots_refreshed", "refreshed_at"),
+    )
+
+
+class ChargePoint(Base):
+    """Cached Open Charge Map POI for Sri Lanka charger search."""
+
+    __tablename__ = "charge_points"
+
+    ocm_id = Column(Integer, primary_key=True)
+    name = Column(String(200), nullable=True)
+    operator = Column(String(120), nullable=True)
+    address = Column(Text, nullable=True)
+    town = Column(String(100), nullable=True)
+    lat = Column(Numeric(9, 6), nullable=False)
+    lng = Column(Numeric(9, 6), nullable=False)
+    status = Column(String(40), nullable=True)
+    connectors = Column(JSON, nullable=True)
+    power_kw = Column(Numeric(8, 2), nullable=True)
+    data_provider = Column(String(200), nullable=True)
+    license_note = Column(String(200), nullable=True)
+    attribution = Column(Text, nullable=True)
+    source_updated_at = Column(String(40), nullable=True)
+    refreshed_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_charge_points_lat_lng", "lat", "lng"),
+        Index("idx_charge_points_town", "town"),
+    )
+
+
+class ListingGeoEnrichment(Base):
+    """Geocoded ad-location pin. Never written onto car_listings.raw_location."""
+
+    __tablename__ = "listing_geo_enrichment"
+
+    listing_id = Column(Integer, primary_key=True)
+    provider = Column(String(40), nullable=False, default="geoapify")
+    source_location_hash = Column(String(64), nullable=False)
+    lat = Column(Numeric(9, 6), nullable=True)
+    lng = Column(Numeric(9, 6), nullable=True)
+    formatted_address = Column(Text, nullable=True)
+    result_type = Column(String(40), nullable=True)
+    match_confidence = Column(Numeric(5, 4), nullable=True)
+    payload = Column(JSON, nullable=True)
+    source_url = Column(Text, nullable=True)
+    fetched_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_listing_geo_hash", "source_location_hash"),
+        Index("idx_listing_geo_fetched", "fetched_at"),
+    )

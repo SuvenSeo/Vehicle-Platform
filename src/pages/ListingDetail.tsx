@@ -3,10 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
   Share2, Fuel, Gauge, Settings2, MessageCircle,
-  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle
+  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap
 } from 'lucide-react';
-import { getListing, getListingFmv, getListingPriceHistory, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
-import type { ListingFmvDetail } from '@/services/api';
+import { getListing, getListingFmv, getListingGeo, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
+import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { summarizeFmv } from '@/lib/fmv';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
@@ -14,6 +14,8 @@ import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { toast } from 'sonner';
 import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
+import { SafetyResearchCard } from '@/components/SafetyResearchCard';
+import { ListingGeoCard } from '@/components/ListingGeoCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
@@ -57,6 +59,8 @@ export default function ListingDetail() {
   const [sellerProfile, setSellerProfile] = useState<SellerTrustProfile | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryInfo | null>(null);
   const [fmvDetail, setFmvDetail] = useState<ListingFmvDetail | null>(null);
+  const [safetyResearch, setSafetyResearch] = useState<SafetyResearchResponse | null>(null);
+  const [listingGeo, setListingGeo] = useState<EnrichmentEnvelope | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
@@ -95,7 +99,7 @@ export default function ListingDetail() {
   useEffect(() => {
     if (!id) return;
     window.scrollTo(0, 0); // peer links navigate mid-scroll; open each listing at the top
-    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null);
+    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null); setSafetyResearch(null); setListingGeo(null);
     Promise.all([
       getListing(id).catch(() => null),
       getSimilarListings(id).catch(() => []),
@@ -110,6 +114,8 @@ export default function ListingDetail() {
           trackEvent("listing_viewed", { listing_id: detail.id, make: detail.make, model: detail.model, source: detail.source });
         }
       });
+    getListingSafetyResearch(id).then(setSafetyResearch).catch(() => setSafetyResearch(null));
+    getListingGeo(id).then(setListingGeo).catch(() => setListingGeo(null));
   }, [id]);
 
   // Enrich the generic route JSON-LD (set by RouteMeta) with real vehicle data
@@ -319,6 +325,14 @@ export default function ListingDetail() {
             <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
               <Share2 aria-hidden className="h-3 w-3" /> {t("listing.share", "Share")}
             </button>
+            {importFuelType === 'electric' && (
+              <Link
+                to={listing.district ? `/ev-chargers?district=${encodeURIComponent(listing.district)}` : '/ev-chargers'}
+                className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]"
+              >
+                <PlugZap aria-hidden className="h-3 w-3" /> {t("listing.chargersNearby", "Charging stations")}
+              </Link>
+            )}
           </div>
         </div>
       </motion.section>
@@ -614,6 +628,16 @@ export default function ListingDetail() {
               ) : (
                 <div className="py-6 text-center"><CarIcon aria-hidden className="mx-auto mb-2 h-5 w-5 text-muted-foreground/40" /><p className="text-[11px] text-muted-foreground">{t("listing.noPeers", "No active peers tracked.")}</p></div>
               )}
+            </motion.div>
+
+            {listing.make && (
+              <motion.div variants={revealItem}>
+                <SafetyResearchCard research={safetyResearch} />
+              </motion.div>
+            )}
+
+            <motion.div variants={revealItem}>
+              <ListingGeoCard geo={listingGeo} />
             </motion.div>
 
             {/* NHTSA catalog disclosure */}

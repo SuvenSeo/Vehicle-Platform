@@ -156,6 +156,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
       { label: "Calculator", to: "/calculator" },
       { label: "Official Pulse", to: "/official-pulse" },
       { label: "EV Hub", to: "/ev-hub" },
+      { label: "EV Chargers", to: "/ev-chargers" },
     ],
   },
   {

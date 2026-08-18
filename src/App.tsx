@@ -34,6 +34,7 @@ const Trends = lazyWithRetry(() => import("./pages/Trends"));
 const Estimate = lazyWithRetry(() => import("./pages/Estimate"));
 const Calculator = lazyWithRetry(() => import("./pages/Calculator"));
 const EVHub = lazyWithRetry(() => import("./pages/EVHub"));
+const EVChargers = lazyWithRetry(() => import("./pages/EVChargers"));
 const BestPicks = lazyWithRetry(() => import("./pages/BestPicks"));
 const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
 const SignUp = lazyWithRetry(() => import("./pages/SignUp"));
@@ -142,6 +143,7 @@ const App = () => {
                   <Route path="/estimate" element={<Estimate />} />
                   <Route path="/calculator" element={<Calculator />} />
                   <Route path="/ev-hub" element={<EVHub />} />
+                  <Route path="/ev-chargers" element={<EVChargers />} />
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />

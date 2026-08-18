@@ -9,7 +9,9 @@ import type { MakeModelInsight } from "@/types/car";
 vi.mock("@/services/api", () => ({
   getMakeModelInsight: vi.fn(),
   getListings: vi.fn(),
+  getListingsForExport: vi.fn(),
   getModelPriceHistory: vi.fn(),
+  getVehicleSafetyResearch: vi.fn(),
   formatPrice: (value: number | null) =>
     value == null ? "N/A" : `Rs. ${(value / 1_000_000).toFixed(1)}M`,
 }));
@@ -51,6 +53,30 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getMakeModelInsight).mockResolvedValue(INSIGHT_FIXTURE);
   vi.mocked(api.getListings).mockResolvedValue({ listings: [], total: 0 });
+  vi.mocked(api.getListingsForExport).mockResolvedValue({ listings: [], total: 0 });
+  vi.mocked(api.getVehicleSafetyResearch).mockResolvedValue({
+    make: "Toyota",
+    model: "Prius",
+    vehicle_key: "2015|toyota|prius",
+    safety: {
+      available: false,
+      provider: "nhtsa",
+      market_scope: "US federal (NHTSA)",
+      fetched_at: "2026-08-18T00:00:00Z",
+      match_confidence: null,
+      limitation: "US research not available for this model.",
+      data: null,
+    },
+    reliability: {
+      available: false,
+      provider: "problemsbyvin",
+      market_scope: "US NHTSA-derived (ProblemsByVin)",
+      fetched_at: "2026-08-18T00:00:00Z",
+      match_confidence: null,
+      limitation: "US research not available for this model.",
+      data: null,
+    },
+  });
   vi.mocked(api.getModelPriceHistory).mockResolvedValue({
     make: "Toyota",
     model: "Prius",
