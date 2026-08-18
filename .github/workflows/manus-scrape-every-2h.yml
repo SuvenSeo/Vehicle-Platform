@@ -3,6 +3,9 @@ name: Manus Scrape Dump Every Two Hours
 on:
   schedule:
     # GitHub Actions uses UTC; this starts at 06:00, 08:00, 10:00, etc. in Sri Lanka.
+    # Every two hours (not hourly): extra ~hourly dumps come from the Manus VM
+    # running manus_scrape_dump.sh. Both must publish GitHub Releases — git
+    # commits of *.db.gz on main are ignored by manus-to-live.yml.
     - cron: "30 */2 * * *"
   workflow_dispatch:
 

@@ -39,6 +39,82 @@ from db.models import Base, CarListing  # noqa: E402
 
 CHUNK = 5000
 
+# SQLAlchemy / psycopg class names that mean "cannot talk to Neon", not a
+# bad query. Exceeding the free transfer quota blocks every connection until
+# the monthly reset — treat that as skip, not a red workflow.
+_UNAVAILABLE_EXC_NAMES = frozenset(
+    {
+        "OperationalError",
+        "InterfaceError",
+        "DisconnectionError",
+        "TimeoutError",
+        "OSError",
+        "URLError",
+        "ConnectionError",
+    }
+)
+_UNAVAILABLE_NEEDLES = (
+    "could not connect",
+    "connection timed out",
+    "connection refused",
+    "timeout expired",
+    "ssl connection has been closed",
+    "remaining transfer",
+    "quota exceeded",
+    "compute time exceeded",
+    "endpoint is disabled",
+    "the database is not currently accepting",
+    "server closed the connection",
+    "connection reset",
+    "name or service not known",
+    "no route to host",
+)
+
+
+def neon_is_unavailable(exc: BaseException) -> bool:
+    """True when Neon is unreachable (egress block, timeout, network), not a SQL bug."""
+    if isinstance(exc, (TimeoutError, ConnectionError, OSError)):
+        return True
+    name = type(exc).__name__
+    if name in _UNAVAILABLE_EXC_NAMES:
+        return True
+    message = str(exc).lower()
+    return any(needle in message for needle in _UNAVAILABLE_NEEDLES)
+
+
+def _emit_github_output(**values: str) -> None:
+    github_output = os.getenv("GITHUB_OUTPUT", "").strip()
+    if not github_output:
+        return
+    try:
+        with open(github_output, "a", encoding="utf-8") as handle:
+            for key, value in values.items():
+                handle.write(f"{key}={value}\n")
+    except OSError as exc:
+        print(f"[warn] could not write GITHUB_OUTPUT: {exc}")
+
+
+def normalize_dsn(dsn: str) -> str:
+    value = (dsn or "").strip()
+    if value.startswith("postgres://"):
+        return "postgresql://" + value[len("postgres://") :]
+    return value
+
+
+def probe_neon(dsn: str) -> None:
+    """SELECT 1 against Neon. Raises on failure."""
+    engine = create_engine(
+        dsn,
+        poolclass=NullPool,
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": 10},
+    )
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    finally:
+        engine.dispose()
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
@@ -59,14 +135,31 @@ def main() -> int:
         default=0,
         help="max listings to copy (0 = all; use a small number for connectivity tests)",
     )
+    ap.add_argument(
+        "--probe",
+        action="store_true",
+        help="SELECT 1 only; exit 0 with skip=true if Neon is unreachable",
+    )
     args = ap.parse_args()
 
-    dsn = args.dsn.strip()
-    if not dsn.startswith(("postgres://", "postgresql://")):
+    dsn = normalize_dsn(args.dsn)
+    if not dsn.startswith("postgresql://"):
         print("ERROR: no PostgreSQL DSN. Pass --dsn or set DATABASE_URL/HOT_DATABASE_URL.", file=sys.stderr)
         return 2
-    if dsn.startswith("postgres://"):
-        dsn = "postgresql://" + dsn[len("postgres://"):]
+
+    if args.probe:
+        try:
+            probe_neon(dsn)
+        except Exception as exc:  # noqa: BLE001 — classify, then skip or fail
+            if neon_is_unavailable(exc):
+                print(f"Neon unreachable ({type(exc).__name__}: {exc}). Skipping export.")
+                _emit_github_output(skip="true", neon_ok="false")
+                return 0
+            print(f"ERROR: Neon probe failed: {exc}", file=sys.stderr)
+            return 1
+        print("Neon reachable.")
+        _emit_github_output(skip="false", neon_ok="true")
+        return 0
 
     limit = int(args.limit) if args.limit else 0
     limit_sql = f" LIMIT {limit}" if limit else ""
@@ -84,6 +177,8 @@ def main() -> int:
     col_list = ", ".join(cols)
     placeholders = ", ".join(f":{c}" for c in cols)
 
+    listings = 0
+    history = 0
     try:
         with pg.connect() as conn:
             total = conn.execute(text("SELECT COUNT(*) FROM car_listings")).fetchone()[0]
@@ -138,6 +233,13 @@ def main() -> int:
                 history += len(chunk)
                 if history % 100_000 == 0:
                     print(f"  history copied: {history}")
+    except Exception as exc:  # noqa: BLE001 — classify quota-block vs real failure
+        if neon_is_unavailable(exc):
+            print(f"Neon unreachable during export ({type(exc).__name__}: {exc}). Skipping.")
+            _emit_github_output(skip="true", neon_ok="false")
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            return 0
+        raise
     finally:
         pg.dispose()
 
@@ -152,6 +254,7 @@ def main() -> int:
         shutil.copyfileobj(fin, fout)
     print(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")
     shutil.rmtree(tmpdir, ignore_errors=True)
+    _emit_github_output(skip="false", neon_ok="true", listings=str(listings), history=str(history))
     return 0
 
 

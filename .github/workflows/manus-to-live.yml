@@ -13,7 +13,10 @@
 # It maintains a durable merged SQLite DB published as the `merged-db` release
 # (merged-autolens.db.gz + last-merged.txt marker). Each run:
 #   1. restores the merged DB (or starts fresh),
-#   2. merges every dump release newer than last-merged.txt,
+#   2. paginates every dump release newer than last-merged.txt (compares the
+#      YYYYMMDDTHHMMZ timestamp so a full tag in the marker still works; the
+#      dumps file always ends with a newline so a single pending dump is not
+#      skipped by `wc -l` / `while read`),
 #   3. runs market analysis + dedup,
 #   4. exports public snapshots and deploys them to Vercel,
 #   5. re-publishes the merged DB + marker — only after a successful deploy,
@@ -93,80 +96,22 @@ jobs:
 
       - name: Discover new dump releases
         id: discover
+        env:
+          FORCE_TAG: ${{ github.event.inputs.release-tag || '' }}
         run: |
           set -euo pipefail
-          LAST_MERGED=""
-          if [[ -f ../merged-store/last-merged.txt ]]; then
-            LAST_MERGED="$(cat ../merged-store/last-merged.txt)"
-          fi
-          echo "last merged: ${LAST_MERGED:-<none>}"
-          LAST_MERGED="$LAST_MERGED" FORCE_TAG="${{ inputs.release-tag }}" python - <<'PY'
-          import json, os, re, sys, urllib.request
-
-          repo = os.environ.get("GITHUB_REPOSITORY", "")
-          last = os.environ.get("LAST_MERGED", "") or ""
-          forced = os.environ.get("FORCE_TAG", "") or ""
-          token = os.environ.get("GH_TOKEN", "")
-
-          # Authenticated so the releases listing never trips the 60 req/hr
-          # unauthenticated rate limit (runners share GitHub egress IPs).
-          req = urllib.request.Request(
-              f"https://api.github.com/repos/{repo}/releases?per_page=100",
-              headers={
-                  "Authorization": f"Bearer {token}",
-                  "Accept": "application/vnd.github+json",
-                  "User-Agent": "manus-to-live",
-              },
-          )
-          with urllib.request.urlopen(req, timeout=60) as resp:
-              releases = json.load(resp)
-
-          ts_re = re.compile(r"(\d{8}T\d{4}Z)")
-          candidates = []
-          for rel in releases:
-              tag = rel.get("tag_name") or ""
-              if not tag.startswith(("manus-scrape-", "neon-export-", "laptop-db-")):
-                  continue
-              names = {a.get("name") for a in rel.get("assets", [])}
-              if "autolens.db.gz" not in names:
-                  continue
-              m = ts_re.search(tag)
-              candidates.append((m.group(1) if m else tag, tag))
-          candidates.sort(key=lambda c: c[0])
-          ts_by_tag = {tag: ts for ts, tag in candidates}
-          known = set(ts_by_tag)
-
-          if forced:
-              if forced not in known:
-                  print(f"ERROR: release-tag {forced} not found (or lacks an autolens.db.gz asset)")
-                  sys.exit(1)
-              selected = [forced]
-          else:
-              selected = [tag for ts, tag in candidates if ts > last]
-
-          with open("new-dumps.txt", "w") as fh:
-              fh.write("\n".join(selected))
-          new_last = max([last] + [ts_by_tag[t] for t in selected], key=lambda s: s or "")
-          with open("last-merged-new.txt", "w") as fh:
-              fh.write(new_last)
-
-          print(f"dumps to merge: {len(selected)}")
-          for t in selected:
-              print("  ", t)
-          PY
-          COUNT=$(wc -l < new-dumps.txt)
-          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
-          if [[ "${COUNT}" == "0" ]]; then
-            echo "no new dumps — nothing to do"
-            exit 0
-          fi
+          python scripts/ops/discover_dump_releases.py \
+            --last-merged-file ../merged-store/last-merged.txt \
+            --out-dumps new-dumps.txt \
+            --out-last last-merged-new.txt \
+            --force-tag "${FORCE_TAG}"
 
       - name: Merge new dumps into merged DB
         if: steps.discover.outputs.count != '0'
         run: |
           set -euo pipefail
           mkdir -p dump-store
-          while IFS= read -r TAG; do
+          while IFS= read -r TAG || [[ -n "${TAG}" ]]; do
             [[ -z "$TAG" ]] && continue
             echo "== merging ${TAG} =="
             gh release download "$TAG" --pattern "autolens.db.gz" --dir dump-store --clobber

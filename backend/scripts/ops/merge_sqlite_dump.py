@@ -3,8 +3,8 @@
 
 Manus runs scripts/ops/manus_scrape_dump.sh on its cloud computer and uploads
 the compressed SQLite DB as a GitHub Release asset. This script pulls those
-rows into the local DB (C:/motormila/motormila.db by default) so the laptop
-pipeline's next analysis/export includes them.
+rows into a target DB (local SQLite by default, or a Postgres/Neon DSN via
+`--target postgresql://…`).
 
 Rows are upserted by (source, source_id) through the app's upsert_listing, so
 nothing is duplicated and vehicle_price_history rows are recorded correctly.
@@ -86,6 +86,21 @@ def coerce_datetimes(row: dict) -> dict:
     return out
 
 
+def engine_url_for_target(target: str) -> str:
+    """Build a SQLAlchemy URL for a dump merge target.
+
+    SQLite paths (the outage merged-db) stay sqlite:///… . Postgres DSNs
+    (Neon restore) must be passed through — wrapping them as sqlite:///DSN
+    silently wrote a garbage file instead of importing into Neon.
+    """
+    value = (target or "").strip()
+    if value.startswith("postgres://"):
+        return "postgresql://" + value[len("postgres://") :]
+    if value.startswith(("postgresql://", "postgresql+psycopg2://", "sqlite:")):
+        return value
+    return f"sqlite:///{value}"
+
+
 def load_dump_path(path: str) -> Path:
     """Return a usable .db path, decompressing .gz dumps into a temp file."""
     p = Path(path)
@@ -111,7 +126,7 @@ def main() -> int:
     args = ap.parse_args()
 
     dump_path = load_dump_path(args.dump)
-    target_url = args.target if args.target.startswith("sqlite") else f"sqlite:///{args.target}"
+    target_url = engine_url_for_target(args.target)
 
     dump_engine = create_engine(f"sqlite:///{dump_path}")
     target_engine = create_engine(target_url)

@@ -1,23 +1,32 @@
-# One-shot Neon export — run AFTER the Neon quota resets (Sept 1).
+# Neon export — recover the 180k+ listing catalog after the monthly quota reset.
 #
-# Streams the full car_listings table (180k+ rows) + price history out of
-# Neon into a gzipped SQLite dump and publishes it as a neon-export-* release.
-# The manus-to-live workflow picks that release up automatically (within
-# minutes via its workflow_run trigger, or ≤30 min via its schedule) and
-# merges it back into the shared merged DB, restoring the pre-outage catalog
-# and price history on the live site.
+# Hitting Neon's free 5 GB/mo transfer quota does NOT delete data. It blocks
+# every connection until the quota resets on the 1st of the next month. This
+# workflow streams car_listings + price history into a gzipped SQLite dump and
+# publishes it as a neon-export-* release. manus-to-live.yml merges that
+# release into the public snapshot catalog (the live site).
 #
-# Requires the repo secret HOT_DATABASE_URL (the Neon DSN) — the same secret
-# the canonical daily-scrape.yml uses.
+# Scheduled daily: before the reset, the probe skips (Neon unreachable). After
+# a successful full export this calendar month, later runs skip so we do not
+# immediately burn the new quota with another full-table read.
+#
+# Requires repo secret HOT_DATABASE_URL (the Neon DSN).
 name: Neon Export
 
 on:
+  schedule:
+    # 03:20 UTC daily — after weekly backup/catalog jobs on Sundays.
+    - cron: "20 3 * * *"
   workflow_dispatch:
     inputs:
       limit:
         description: "Max listings to copy (0 = full export; small number = connectivity test)"
         type: number
         default: 0
+      force:
+        description: "Export even if a neon-export-* release already exists this month"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -49,7 +58,25 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Export Neon to SQLite dump
+      - name: Skip if a full export already ran this month
+        id: month
+        env:
+          FORCE: ${{ github.event.inputs.force || false }}
+        run: |
+          set -euo pipefail
+          MONTH="$(date -u +%Y%m)"
+          echo "month=${MONTH}" >> "$GITHUB_OUTPUT"
+          python scripts/ops/discover_dump_releases.py --check-month-export "$MONTH" | tee month-check.txt
+          if grep -q '^found=true$' month-check.txt && [[ "${FORCE}" != "true" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "A neon-export-${MONTH}* release already exists — skipping to protect the new quota. Re-run with force=true to override."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Probe Neon (skip while quota-blocked)
+        id: probe
+        if: steps.month.outputs.skip != 'true'
         env:
           DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
         run: |
@@ -58,14 +85,29 @@ jobs:
             echo "ERROR: secrets.HOT_DATABASE_URL is not set — add the Neon DSN in repo Settings → Secrets."
             exit 1
           fi
-          python scripts/ops/export_neon_to_sqlite.py --output autolens.db.gz --limit ${{ inputs.limit }}
+          python scripts/ops/export_neon_to_sqlite.py --probe
 
-      - name: Publish dump release
+      - name: Export Neon to SQLite dump
+        id: export
+        if: steps.probe.outputs.neon_ok == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
         run: |
           set -euo pipefail
+          LIMIT="${{ github.event.inputs.limit || 0 }}"
+          python scripts/ops/export_neon_to_sqlite.py --output autolens.db.gz --limit "${LIMIT}"
+
+      - name: Publish dump release
+        if: steps.export.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          if [[ ! -f autolens.db.gz ]]; then
+            echo "ERROR: export reported success but autolens.db.gz is missing"
+            exit 1
+          fi
           TAG="neon-export-$(date -u +%Y%m%dT%H%MZ)"
           gh release create "$TAG" autolens.db.gz \
             --title "$TAG" \
-            --notes "Neon full export — see workflow log for listing/history counts. Merged into the live site automatically by manus-to-live.yml." \
+            --notes "Neon export (listings=${{ steps.export.outputs.listings || 'unknown' }}, history=${{ steps.export.outputs.history || 'unknown' }}). Merged into the live site automatically by manus-to-live.yml. Full-table read — do not re-run this month unless force=true." \
             --prerelease --latest=false
           echo "published ${TAG} — manus-to-live.yml will merge it shortly"

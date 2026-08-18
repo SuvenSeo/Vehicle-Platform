@@ -22,6 +22,7 @@ sys.path.insert(0, str(OPS))
 sys.path.insert(0, str(BACKEND))
 
 import merge_sqlite_dump as msd  # noqa: E402
+import import_sqlite_to_neon as neon_imp  # noqa: E402
 from db.models import Base  # noqa: E402
 
 HISTORY_SRC_ROWS = [
@@ -176,6 +177,40 @@ def test_manus_dump_without_history_table_merges_listings_only(
 # ---------------------------------------------------------------------------
 # Dry run
 # ---------------------------------------------------------------------------
+
+
+def test_import_sqlite_to_neon_wrapper_dry_run_uses_dsn(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The Neon import CLI must pass a DSN through to merge_sqlite_dump."""
+    dump = _make_dump(tmp_path / "autolens.db")
+    target = tmp_path / "neon.db"
+    _fresh_target(target)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "import_sqlite_to_neon.py",
+            str(dump),
+            "--dsn",
+            f"sqlite:///{target}",
+            "--dry-run",
+        ],
+    )
+    assert neon_imp.main() == 0
+    assert _count(target, "car_listings") == 0
+
+
+def test_engine_url_for_postgres_dsn_is_not_wrapped_as_sqlite() -> None:
+    """Neon restore must open the real DSN, not sqlite:///postgresql://…."""
+    assert msd.engine_url_for_target("postgresql://user:pass@host/db") == (
+        "postgresql://user:pass@host/db"
+    )
+    assert msd.engine_url_for_target("postgres://user:pass@host/db") == (
+        "postgresql://user:pass@host/db"
+    )
+    assert msd.engine_url_for_target("sqlite:///motormila.db") == "sqlite:///motormila.db"
+    assert msd.engine_url_for_target("/tmp/merged.db") == "sqlite:////tmp/merged.db"
 
 
 def test_dry_run_writes_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
