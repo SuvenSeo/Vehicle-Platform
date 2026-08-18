@@ -84,6 +84,8 @@ _INDEX_PATCHES = (
     ("idx_vehicle_reliability_snapshots_refreshed", "vehicle_reliability_snapshots", "refreshed_at"),
     ("idx_charge_points_lat_lng", "charge_points", "lat, lng"),
     ("idx_charge_points_town", "charge_points", "town"),
+    ("idx_listing_geo_hash", "listing_geo_enrichment", "source_location_hash"),
+    ("idx_listing_geo_fetched", "listing_geo_enrichment", "fetched_at"),
 )
 
 _POSTGRES_TRGM_INDEX_PATCHES = (
@@ -678,6 +680,21 @@ def _ensure_enrichment_snapshot_tables(
                 attribution TEXT,
                 source_updated_at VARCHAR(40),
                 refreshed_at {ts}
+            )
+        """,
+        "listing_geo_enrichment": f"""
+            CREATE TABLE IF NOT EXISTS listing_geo_enrichment (
+                listing_id INTEGER PRIMARY KEY,
+                provider VARCHAR(40) NOT NULL DEFAULT 'geoapify',
+                source_location_hash VARCHAR(64) NOT NULL,
+                lat NUMERIC(9, 6),
+                lng NUMERIC(9, 6),
+                formatted_address TEXT,
+                result_type VARCHAR(40),
+                match_confidence NUMERIC(5, 4),
+                payload {json_type},
+                source_url TEXT,
+                fetched_at {ts}
             )
         """,
     }

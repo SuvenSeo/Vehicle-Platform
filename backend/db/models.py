@@ -593,3 +593,26 @@ class ChargePoint(Base):
         Index("idx_charge_points_lat_lng", "lat", "lng"),
         Index("idx_charge_points_town", "town"),
     )
+
+
+class ListingGeoEnrichment(Base):
+    """Geocoded ad-location pin. Never written onto car_listings.raw_location."""
+
+    __tablename__ = "listing_geo_enrichment"
+
+    listing_id = Column(Integer, primary_key=True)
+    provider = Column(String(40), nullable=False, default="geoapify")
+    source_location_hash = Column(String(64), nullable=False)
+    lat = Column(Numeric(9, 6), nullable=True)
+    lng = Column(Numeric(9, 6), nullable=True)
+    formatted_address = Column(Text, nullable=True)
+    result_type = Column(String(40), nullable=True)
+    match_confidence = Column(Numeric(5, 4), nullable=True)
+    payload = Column(JSON, nullable=True)
+    source_url = Column(Text, nullable=True)
+    fetched_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_listing_geo_hash", "source_location_hash"),
+        Index("idx_listing_geo_fetched", "fetched_at"),
+    )

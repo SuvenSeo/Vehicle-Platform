@@ -19,6 +19,7 @@ from db.session import get_db
 from db.models import CarListing, VehiclePriceHistory, live_listing_filter
 from app.services.nhtsa_specs import fetch_models_for_make as _nhtsa_fetch_models
 from app.services.safety_research import combined_research
+from app.services.geo_service import enrich_listing
 from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
@@ -2125,6 +2126,15 @@ def get_listing_safety_research(listing_id: int, db: Session = Depends(get_db)):
         db=db,
         listing_id=listing.id,
     )
+
+
+@router.get("/{listing_id}/geo")
+def get_listing_geo(listing_id: int, db: Session = Depends(get_db)):
+    """Geocoded ad-location pin. Never mutates raw_location; never 500s the listing page."""
+    listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+    return enrich_listing(db, listing)
 
 
 @router.get("/{listing_id}/price-history", response_model=PriceHistoryResponse)

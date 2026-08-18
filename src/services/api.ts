@@ -2719,6 +2719,17 @@ export const getListingSafetyResearch = async (
   return fetchJSON<SafetyResearchResponse>(`/listings/${id}/safety-research`);
 };
 
+export const getListingGeo = async (
+  id: string | number,
+): Promise<EnrichmentEnvelope<{
+  lat?: number | null;
+  lng?: number | null;
+  formatted?: string | null;
+  result_type?: string | null;
+}>> => {
+  return fetchJSON(`/listings/${id}/geo`);
+};
+
 export const getVehicleSafetyResearch = async (input: {
   make: string;
   model: string;

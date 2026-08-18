@@ -5,8 +5,8 @@ import {
   Share2, Fuel, Gauge, Settings2, MessageCircle,
   Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap
 } from 'lucide-react';
-import { getListing, getListingFmv, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
-import type { ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
+import { getListing, getListingFmv, getListingGeo, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
+import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { summarizeFmv } from '@/lib/fmv';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
@@ -15,6 +15,7 @@ import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { toast } from 'sonner';
 import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
 import { SafetyResearchCard } from '@/components/SafetyResearchCard';
+import { ListingGeoCard } from '@/components/ListingGeoCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
@@ -59,6 +60,7 @@ export default function ListingDetail() {
   const [priceHistory, setPriceHistory] = useState<PriceHistoryInfo | null>(null);
   const [fmvDetail, setFmvDetail] = useState<ListingFmvDetail | null>(null);
   const [safetyResearch, setSafetyResearch] = useState<SafetyResearchResponse | null>(null);
+  const [listingGeo, setListingGeo] = useState<EnrichmentEnvelope | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleBack = () => {
@@ -97,7 +99,7 @@ export default function ListingDetail() {
   useEffect(() => {
     if (!id) return;
     window.scrollTo(0, 0); // peer links navigate mid-scroll; open each listing at the top
-    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null); setSafetyResearch(null);
+    setLoading(true); setSellerProfile(null); setPriceHistory(null); setFmvDetail(null); setSafetyResearch(null); setListingGeo(null);
     Promise.all([
       getListing(id).catch(() => null),
       getSimilarListings(id).catch(() => []),
@@ -113,6 +115,7 @@ export default function ListingDetail() {
         }
       });
     getListingSafetyResearch(id).then(setSafetyResearch).catch(() => setSafetyResearch(null));
+    getListingGeo(id).then(setListingGeo).catch(() => setListingGeo(null));
   }, [id]);
 
   // Enrich the generic route JSON-LD (set by RouteMeta) with real vehicle data
@@ -632,6 +635,10 @@ export default function ListingDetail() {
                 <SafetyResearchCard research={safetyResearch} />
               </motion.div>
             )}
+
+            <motion.div variants={revealItem}>
+              <ListingGeoCard geo={listingGeo} />
+            </motion.div>
 
             {/* NHTSA catalog disclosure */}
             {listing.make && (

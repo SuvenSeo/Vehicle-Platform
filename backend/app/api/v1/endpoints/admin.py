@@ -25,6 +25,7 @@ from app.api.v1.endpoints.auth import (
     resolve_user_record,
 )
 from app.services.invite_email import try_send_invite_email
+from app.services.geo_service import sample_geocode
 from app.services.providers.health import provider_health
 from db.models import (
     CarListing,
@@ -718,6 +719,18 @@ def admin_ingest_openchargemap(
 
     result = ingest_lk_stations(db)
     return {"ok": result.get("status") == "success", "triggeredBy": admin["email"], **result}
+
+
+@router.post("/enrichment/geoapify", response_model=dict)
+def admin_sample_geoapify(
+    limit: int = Query(default=100, ge=1, le=100),
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Geocode a live sample of listings. Does not overwrite raw_location."""
+    result = sample_geocode(db, limit=limit)
+    ok = result.get("status") in {"success", "partial", "skipped"}
+    return {"ok": ok, "triggeredBy": admin["email"], **result}
 
 
 @router.get("/permits", response_model=dict)
