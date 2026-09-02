@@ -42,14 +42,14 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 BUDGET_GB_DEFAULT = 5.0
-WARN_FRACTION_DEFAULT = 0.8
+WARN_FRACTION_DEFAULT = 0.70
 
 # Documented full-table reads that move the whole car_listings table out of Neon
 # each month. Kept as a conservative estimate when the API is unavailable.
 FULL_READS_PER_MONTH = {
-    "listing_catalog_full_exports": 5,   # weekly full export + manual backfills
-    "pg_dump_weekly": 4,                 # weekly full dump
-    "scrape_export_redeploy": 2,         # occasional manual full refreshes
+    "listing_catalog_full_exports": 4,   # 1 weekly full export
+    "pg_dump_weekly": 4,                 # 1 weekly full compressed backup
+    "scrape_export_redeploy": 1,         # occasional manual full refresh
 }
 
 
@@ -202,8 +202,8 @@ def check_via_db_estimate() -> tuple[float | None, str]:
     total_reads = sum(FULL_READS_PER_MONTH.values())
     estimated_gb = (table_mb * total_reads) / 1024.0
     detail = (
-        f"car_listings ≈ {table_mb:.1f} MB; "
-        f"{total_reads} full reads/mo ⇒ ≈ {estimated_gb:.2f} GB/mo egress"
+        f"car_listings ~ {table_mb:.1f} MB; "
+        f"{total_reads} full reads/mo => ~ {estimated_gb:.2f} GB/mo egress"
     )
     return estimated_gb, f"DB size estimate ({detail})"
 

@@ -1,12 +1,11 @@
-name: Manus Scrape Dump Every Two Hours
+name: Manus Scrape Dump (3x Daily)
 
 on:
   schedule:
-    # GitHub Actions uses UTC; this starts at 06:00, 08:00, 10:00, etc. in Sri Lanka.
-    # Every two hours (not hourly): extra ~hourly dumps come from the Manus VM
-    # running manus_scrape_dump.sh. Both must publish GitHub Releases — git
-    # commits of *.db.gz on main are ignored by manus-to-live.yml.
-    - cron: "30 */2 * * *"
+    # Runs at 07:30, 15:30, and 23:30 Sri Lanka Time (02:00, 10:00, 18:00 UTC).
+    # 3x daily with an incremental page budget prevents IP blocks and avoids
+    # redundant scrapes while capturing fresh listings cleanly.
+    - cron: "0 2,10,18 * * *"
   workflow_dispatch:
 
 permissions:
@@ -15,19 +14,19 @@ permissions:
 # A delayed run queues instead of cancelling an active scrape, preventing
 # competing SQLite dumps and duplicate source traffic.
 concurrency:
-  group: manus-scrape-dump-two-hour
+  group: manus-scrape-dump-cadence
   cancel-in-progress: false
 
 jobs:
   scrape-and-dump:
     runs-on: ubuntu-latest
-    timeout-minutes: 115
+    timeout-minutes: 90
     env:
       GH_TOKEN: ${{ github.token }}
-      MANUS_MAX_PAGES: "120"
+      MANUS_MAX_PAGES: "30"
       # Each source is bounded so a blocked marketplace cannot prevent later
       # sources or the dump upload from running.
-      MANUS_SOURCE_TIMEOUT_SECONDS: "900"
+      MANUS_SOURCE_TIMEOUT_SECONDS: "600"
 
     steps:
       - name: Check out repository

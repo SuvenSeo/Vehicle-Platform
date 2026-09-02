@@ -104,10 +104,10 @@ jobs:
           # a deeper scan is needed after the Supabase migration.
           SCRAPE_MAX_PAGES: "20"
           SCRAPE_MAX_PAGES_ALT: "20"
-          # Residential IP + batched commits removed the old hosted-runner caps;
-          # deeper budgets now capture far more of each source's catalog daily.
-          SCRAPE_MAX_PAGES_IKMAN: "120"
-          SCRAPE_MAX_PAGES_RIYASEWANA: "120"
+          # Routine daily runs use 40 pages (covers ~1,200 newest listings per run).
+          # Full backfills (120+ pages) are available on demand via *-bulk-backfill.yml.
+          SCRAPE_MAX_PAGES_IKMAN: "40"
+          SCRAPE_MAX_PAGES_RIYASEWANA: "40"
           SCRAPE_MAX_PAGES_PATPAT: "30"
           SCRAPE_MAX_PAGES_AUTOLANKA: "30"
           SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "30"

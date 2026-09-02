@@ -145,14 +145,16 @@ Run Actions → **Ikman Deep Backfill** (`.github/workflows/ikman-bulk-backfill.
 | Workflow | Cron (UTC) | Notes |
 |----------|-----------|-------|
 | Unified Vehicle Scraper (`daily-scrape.yml`) | 02:00, 12:40 | 13 sources, stats-only snapshot export |
+| Manus Scrape Dump (`manus-scrape-every-2h.yml`) | 02:00, 10:00, 18:00 | 3x daily polite incremental scrapes (30 pages/src) |
+| Manus to Live (`manus-to-live.yml`) | on complete, fallback 6h | hosted merge & deploy, only triggers when needed |
 | Midday Top Sources (`midday-top-sources-scrape.yml`) | 06:30 | ikman + riyasewana, stats-only export |
-| Keep HF Space Awake | every 30 min | cheap `SELECT 1` probe — 10 min would exhaust Neon compute hours (scale-to-zero) |
+| Keep HF Space Awake | every 30 min | cheap `SELECT 1` probe — scale-to-zero compute protection |
 | Monitor Vehicle Pipeline | hourly | `ScrapeRun` reads only |
 | Weekly Pro Digest | Mon 01:00 | bounded aggregate reads |
 | Weekly DB Backup | Sun 02:30 | pg_dump — weekly to protect egress |
-| Neon Egress Watchdog | Mon 04:00 | budget early-warning |
+| Neon Egress Watchdog | Mon & Thu 04:00 | budget early-warning (70% warning threshold) |
 | Weekly Full-Catalog Refresh | Sun 03:00 | the one full-catalog export of the week |
-| Neon Export | daily 03:20 | no-op while Neon is blocked; one full dump after quota reset, then skip for the rest of the month |
+| Neon Export | daily 03:20 | skips automatically once month export exists |
 
 ---
 

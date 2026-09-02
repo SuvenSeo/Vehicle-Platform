@@ -16,7 +16,7 @@ name: Neon Egress Watchdog
 
 on:
   schedule:
-    - cron: "0 4 * * *"   # Daily 04:00 UTC — watch the monthly transfer budget closely while the quota is blocked
+    - cron: "0 4 * * 1,4"   # Twice weekly (Monday & Thursday 04:00 UTC) early-warning check
   workflow_dispatch:
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
           NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
           NEON_ORG_ID: ${{ secrets.NEON_ORG_ID }}
           NEON_TRANSFER_BUDGET_GB: "5"
-          NEON_WARN_FRACTION: "0.8"
+          NEON_WARN_FRACTION: "0.7"
           HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
         run: python scripts/ops/check_neon_egress.py
 
