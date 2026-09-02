@@ -177,8 +177,15 @@ def main() -> int:
     col_list = ", ".join(cols)
     placeholders = ", ".join(f":{c}" for c in cols)
 
-    listings = 0
-    history = 0
+    from decimal import Decimal
+
+    def clean_row(row_map):
+        d = dict(row_map)
+        for k, v in d.items():
+            if isinstance(v, Decimal):
+                d[k] = float(v)
+        return d
+
     try:
         with pg.connect() as conn:
             total = conn.execute(text("SELECT COUNT(*) FROM car_listings")).fetchone()[0]
@@ -193,7 +200,7 @@ def main() -> int:
                     break
                 dst.execute(
                     text(f"INSERT INTO car_listings ({col_list}) VALUES ({placeholders})"),
-                    [dict(r._mapping) for r in chunk],
+                    [clean_row(r._mapping) for r in chunk],
                 )
                 listings += len(chunk)
                 print(f"  listings copied: {listings}")
@@ -228,7 +235,7 @@ def main() -> int:
                         "(source, source_id, price_lkr, scraped_at) "
                         "VALUES (:source, :source_id, :price_lkr, :scraped_at)"
                     ),
-                    [dict(r._mapping) for r in chunk],
+                    [clean_row(r._mapping) for r in chunk],
                 )
                 history += len(chunk)
                 if history % 100_000 == 0:

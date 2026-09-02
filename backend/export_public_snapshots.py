@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 MIN_REASONABLE_PRICE_LKR = 100_000
 DEFAULT_OUTPUT_DIR = BASE_DIR / "snapshots" / "latest"
 
-# Vercel caps a single deployed file at 100 MB; keep each catalog part well
-# under that (the serialized JSON overhead grows with item count).
-CATALOG_PART_TARGET_BYTES = 90 * 1024 * 1024
+# Vercel caps a single deployed file at 100 MB; keep each catalog part around
+# 40 MB for fast upload and reliable client-side chunk streaming.
+CATALOG_PART_TARGET_BYTES = 40 * 1024 * 1024
 
 
 def jsonable(value: Any) -> Any:

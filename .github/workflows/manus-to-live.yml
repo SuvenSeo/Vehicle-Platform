@@ -106,6 +106,7 @@ jobs:
             --out-last last-merged-new.txt \
             --force-tag "${FORCE_TAG}"
 
+
       - name: Merge new dumps into merged DB
         if: steps.discover.outputs.count != '0'
         run: |

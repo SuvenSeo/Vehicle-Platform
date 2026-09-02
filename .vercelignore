@@ -1,0 +1,14 @@
+/backend/
+/mobile/
+/.freebuff/
+/.opencode/
+/.swarm/
+/dist/
+/data/
+/.venv/
+__pycache__/
+*.pyc
+*.db
+*.db.gz
+*.log
+.pytest_cache/

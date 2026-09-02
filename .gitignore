@@ -67,6 +67,8 @@ coverage
 # Deploy them to Vercel by running the script locally and then `vercel deploy`
 # (or via CI) so the built working tree is uploaded; they never need to live in git.
 public/snapshots/latest/*.json
+backend/snapshots/
+*.db.gz
 
 # Local agent session scratch
 .agents/
