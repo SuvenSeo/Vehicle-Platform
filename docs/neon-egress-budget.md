@@ -153,7 +153,7 @@ Run Actions → **Ikman Deep Backfill** (`.github/workflows/ikman-bulk-backfill.
 | Weekly Pro Digest | Mon 01:00 | bounded aggregate reads |
 | Weekly DB Backup | Sun 02:30 | pg_dump — weekly to protect egress |
 | Neon Egress Watchdog | Mon & Thu 04:00 | budget early-warning (70% warning threshold) |
-| Weekly Full-Catalog Refresh | Sun 03:00 | the one full-catalog export of the week |
+| Full-Catalog Refresh (`weekly-catalog-refresh.yml`) | Every 3 days (03:00) | Maximizes 5GB budget safely (~3.97 GB/mo utilized) |
 | Neon Export | daily 03:20 | skips automatically once month export exists |
 
 ---

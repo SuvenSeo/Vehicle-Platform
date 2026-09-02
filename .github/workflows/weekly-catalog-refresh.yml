@@ -1,22 +1,21 @@
-# Weekly Full-Catalog Snapshot Refresh
+# Full-Catalog Snapshot Refresh (Every 3 Days)
 #
-# Daily scrape runs export STATS-ONLY snapshots (--skip-catalog) to protect
-# Neon egress. This weekly job does the ONE full-catalog read of the month's
-# budget: rebuilds listing-catalog.json (+ models) from the DB and uploads to
-# R2 so the public site's listings stay fresh.
+# Rebuilds listing-catalog.json (+ 40MB part chunks + models) from the DB and
+# uploads to R2/Vercel every 3 days so the public site's listings stay fresh.
+# Egress cost: ~80 MB per run x 10 runs/month = ~800 MB/month.
 #
-# Runs: Sunday 03:00 UTC (after the Saturday night scrape cycle).
-# Manual: Actions → "Weekly Full-Catalog Snapshot Refresh" → Run workflow.
+# Runs: Every 3 days at 03:00 UTC.
+# Manual: Actions → "Full-Catalog Snapshot Refresh (Every 3 Days)" → Run workflow.
 
-name: Weekly Full-Catalog Snapshot Refresh
+name: Full-Catalog Snapshot Refresh (Every 3 Days)
 
 on:
   schedule:
-    - cron: "0 3 * * 0"   # Sunday 03:00 UTC
+    - cron: "0 3 */3 * *"   # Every 3 days at 03:00 UTC
   workflow_dispatch:
 
 concurrency:
-  group: weekly-catalog-refresh
+  group: catalog-refresh-scheduled
   cancel-in-progress: false
 
 jobs:

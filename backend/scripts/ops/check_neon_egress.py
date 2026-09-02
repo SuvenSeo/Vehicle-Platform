@@ -47,7 +47,7 @@ WARN_FRACTION_DEFAULT = 0.70
 # Documented full-table reads that move the whole car_listings table out of Neon
 # each month. Kept as a conservative estimate when the API is unavailable.
 FULL_READS_PER_MONTH = {
-    "listing_catalog_full_exports": 4,   # 1 weekly full export
+    "listing_catalog_full_exports": 10,  # full catalog refresh every 3 days (10x/month)
     "pg_dump_weekly": 4,                 # 1 weekly full compressed backup
     "scrape_export_redeploy": 1,         # occasional manual full refresh
 }
