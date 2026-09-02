@@ -85,12 +85,12 @@ jobs:
           RUN_MARKET_SIGNALS: "false"
           RUN_LISTING_LIFECYCLE: "false"
           RUN_OUTLIER_DETECTION: "false"
-          SCRAPE_MAX_PAGES: "60"
-          SCRAPE_MAX_PAGES_IKMAN: "60"
-          SCRAPE_MAX_PAGES_RIYASEWANA: "60"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS: "9000"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "9000"
-          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "9000"
+          SCRAPE_MAX_PAGES: "30"
+          SCRAPE_MAX_PAGES_IKMAN: "30"
+          SCRAPE_MAX_PAGES_RIYASEWANA: "30"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS: "3600"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "3600"
+          SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "3600"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
