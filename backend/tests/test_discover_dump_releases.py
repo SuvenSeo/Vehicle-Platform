@@ -48,9 +48,11 @@ DUMPS = [
 
 
 def test_extract_dump_timestamp_from_tag_or_bare_marker() -> None:
-    assert ddr.extract_dump_timestamp("manus-scrape-20260818T1547Z") == "20260818T1547Z"
-    assert ddr.extract_dump_timestamp("20260818T1547Z") == "20260818T1547Z"
-    assert ddr.extract_dump_timestamp("  manus-scrape-20260815T1133Z\n") == "20260815T1133Z"
+    # Normalized to YYYYMMDDTHHMMSSZ so 4- and 6-digit markers compare equal-width.
+    assert ddr.extract_dump_timestamp("manus-scrape-20260818T1547Z") == "20260818T154700Z"
+    assert ddr.extract_dump_timestamp("manus-scrape-20260818T154700Z") == "20260818T154700Z"
+    assert ddr.extract_dump_timestamp("20260818T1547Z") == "20260818T154700Z"
+    assert ddr.extract_dump_timestamp("  manus-scrape-20260815T1133Z\n") == "20260815T113300Z"
     assert ddr.extract_dump_timestamp("") == ""
 
 
@@ -67,7 +69,7 @@ def test_select_dumps_newer_than_full_tag_last_merged() -> None:
         "manus-scrape-20260818T1551Z",
         "neon-export-20260901T0400Z",
     ]
-    assert new_last == "20260901T0400Z"
+    assert new_last == "20260901T040000Z"
 
 
 def test_select_dumps_newer_than_bare_timestamp() -> None:
@@ -76,7 +78,7 @@ def test_select_dumps_newer_than_bare_timestamp() -> None:
         last_merged="20260818T1547Z",
     )
     assert tags == ["manus-scrape-20260818T1551Z", "neon-export-20260901T0400Z"]
-    assert new_last == "20260901T0400Z"
+    assert new_last == "20260901T040000Z"
 
 
 def test_select_dumps_skips_missing_asset_and_drafts() -> None:
@@ -95,7 +97,7 @@ def test_force_tag_selects_even_if_older_than_last_merged() -> None:
     )
     assert tags == ["manus-scrape-20260815T1133Z"]
     # Force-merge must not rewind the durable marker.
-    assert new_last == "20260818T1547Z"
+    assert new_last == "20260818T154700Z"
 
 
 def test_force_tag_missing_asset_raises() -> None:
