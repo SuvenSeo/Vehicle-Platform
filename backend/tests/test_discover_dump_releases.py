@@ -54,6 +54,35 @@ def test_extract_dump_timestamp_from_tag_or_bare_marker() -> None:
     assert ddr.extract_dump_timestamp("") == ""
 
 
+def test_extract_dump_timestamp_tolerates_six_digit_seconds() -> None:
+    """A hand-created release used %H%M%SZ instead of the script's %H%MZ.
+
+    manus-scrape-20260823T093908Z shipped this way on 2026-08-23 and got
+    written into last-merged.txt. The old strict 4-digit regex did not match
+    it at all, so extract_dump_timestamp fell back to returning the whole
+    tag string — a value that (being alphabetic) sorts *after* every real
+    "YYYYMMDDTHHMMZ" candidate, so `ts > last_ts` was always false and the
+    live merge silently stopped consuming new dumps for 10 days.
+    """
+    assert ddr.extract_dump_timestamp("manus-scrape-20260823T093908Z") == "20260823T0939Z"
+
+
+def test_select_dumps_recovers_from_a_malformed_last_merged_tag() -> None:
+    """Regression test for the production incident: a poisoned watermark
+    must not block dumps that are genuinely newer than it.
+    """
+    releases = [
+        _rel("manus-scrape-20260823T093908Z", "autolens.db.gz"),
+        _rel("manus-scrape-20260903T0737Z", "autolens.db.gz"),
+    ]
+    tags, new_last = ddr.select_dumps_to_merge(
+        releases=releases,
+        last_merged="manus-scrape-20260823T093908Z",
+    )
+    assert tags == ["manus-scrape-20260903T0737Z"]
+    assert new_last == "20260903T0737Z"
+
+
 def test_select_dumps_newer_than_full_tag_last_merged() -> None:
     """A last-merged.txt that stored the whole tag must still see newer dumps."""
     tags, new_last = ddr.select_dumps_to_merge(
