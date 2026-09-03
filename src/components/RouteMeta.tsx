@@ -50,6 +50,23 @@ function setJsonLd(data: Record<string, unknown>) {
   script.textContent = JSON.stringify(data);
 }
 
+/** Pretty label for /cars/:make[/:model] from the pathname (e.g. "Toyota Axio"). */
+function hubVehicleLabel(pathname: string): string {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length < 2 || segments[0] !== "cars") return "Vehicle";
+  return segments
+    .slice(1)
+    .map((segment) =>
+      decodeURIComponent(segment)
+        .split(/[\s_-]+/)
+        .filter(Boolean)
+        .map((word) => word[0].toUpperCase() + word.slice(1))
+        .join(" "),
+    )
+    .join(" ")
+    .trim() || "Vehicle";
+}
+
 export function RouteMeta() {
   const { pathname } = useLocation();
   const { t } = useAppPreferences();
@@ -194,7 +211,10 @@ export function RouteMeta() {
           }
         : pathname.startsWith("/cars/")
         ? {
-            title: t("seo.hubTitle", "Vehicle Market Hub — {site}", siteVars),
+            title: t("seo.hubTitle", "Vehicle Market Hub — {site}", {
+              ...siteVars,
+              vehicle: hubVehicleLabel(pathname),
+            }),
             description: t(
               "seo.hubDesc",
               "Prices, district breakdown, and live listings for a specific vehicle in Sri Lanka.",

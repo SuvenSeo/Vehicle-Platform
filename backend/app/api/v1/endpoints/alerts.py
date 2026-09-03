@@ -181,7 +181,7 @@ def delete_alert(
     db.commit()
 
 
-@router.post("/match", response_model=AlertMatchResponse)
+@router.api_route("/match", methods=["GET", "POST"], response_model=AlertMatchResponse)
 def match_alerts(
     request: Request,
     db: Session = Depends(get_db),
