@@ -62,6 +62,7 @@ def _archive_fallback_enabled() -> bool:
 # page and can crawl the full catalog depth (hundreds of pages per category).
 _DEFAULT_SCRAPE_MODE = str(os.getenv("RIYASEWANA_SCRAPE_MODE", "auto") or "auto").strip().lower()
 _VALID_SCRAPE_MODES = {"auto", "http", "playwright"}
+_BLOCKED_HTTP_STATUSES = frozenset({403, 429})
 
 # When true, every category gets the full requested page budget instead of the
 # capped secondary share (see page_budget.py).  Used by deep backfills so a
@@ -527,6 +528,13 @@ class RiyasewanaScraper:
                 await context.close()
                 await browser.close()
 
+    @staticmethod
+    def _http_status_is_block(status_code: int) -> bool:
+        try:
+            return int(status_code) in _BLOCKED_HTTP_STATUSES
+        except (TypeError, ValueError):
+            return False
+
     async def _http_fetch_page(self, client: Any, page_url: str, page_num: int) -> BeautifulSoup:
         """Fetch one SERP page with retries + block detection.
 
@@ -537,6 +545,10 @@ class RiyasewanaScraper:
         for attempt in range(1, 4):
             try:
                 response = await client.get(page_url)
+                if self._http_status_is_block(response.status_code):
+                    raise RiyasewanaBlockedError(
+                        f"HTTP {response.status_code} for {page_url}"
+                    )
                 if response.status_code != 200:
                     raise RuntimeError(f"HTTP {response.status_code} for {page_url}")
                 soup = BeautifulSoup(response.text, "lxml")
@@ -597,6 +609,7 @@ class RiyasewanaScraper:
             )
 
         seen_urls: set[str] = set()
+        upserted = 0
         session_kwargs: dict[str, Any] = {
             "impersonate": "chrome",
             "timeout": 30.0,
@@ -654,7 +667,7 @@ class RiyasewanaScraper:
                                 consecutive_page_errors=consecutive_page_errors,
                                 note="keeping partial results upserted so far",
                             )
-                            return
+                            return upserted
                         page_num += 1
                         continue
 
@@ -673,6 +686,7 @@ class RiyasewanaScraper:
                         continue
 
                     new_on_page = self._process_cards(cards, category_path, page_num, seen_urls)
+                    upserted += new_on_page
 
                     # The SERP advertises its last page via the pagination block;
                     # honor it so deep crawls stop at the true end instead of
@@ -695,6 +709,32 @@ class RiyasewanaScraper:
                     page_num += 1
                     await asyncio.sleep(random.uniform(0.4, 1.2))
 
+        return upserted
+
+    def _recover_from_live_block(self, max_pages: int, reason: str) -> dict[str, Any]:
+        """Wayback fallback after Cloudflare/WAF blocks the live site.
+
+        A zero-insert archive result must not look like a successful scrape —
+        hosted runners used to mark SUCCESS after inserting nothing, which hid
+        days of stale riyasewana data.
+        """
+        if not _archive_fallback_enabled():
+            raise RiyasewanaBlockedError(
+                f"riyasewana.com blocked the live scrape ({reason}); archive fallback disabled"
+            )
+        log.warning(
+            "riyasewana_archive_fallback",
+            max_pages=max_pages,
+            reason=reason,
+        )
+        result = self._run_archive_fallback(max_pages=max_pages)
+        inserted = int((result or {}).get("inserted") or 0)
+        if inserted <= 0:
+            raise RiyasewanaBlockedError(
+                f"riyasewana.com blocked the live scrape ({reason}) and archive fallback inserted 0 listings"
+            )
+        return result
+
     async def scrape(self, max_pages: int = 5):
         mode = _DEFAULT_SCRAPE_MODE
         if mode not in _VALID_SCRAPE_MODES:
@@ -709,28 +749,14 @@ class RiyasewanaScraper:
             try:
                 return await self._scrape_live(max_pages=max_pages)
             except RiyasewanaBlockedError:
-                if not _archive_fallback_enabled():
-                    raise
-                log.warning(
-                    "riyasewana_archive_fallback",
-                    max_pages=max_pages,
-                    reason="playwright_blocked",
-                )
-                return self._run_archive_fallback(max_pages=max_pages)
+                return self._recover_from_live_block(max_pages, "playwright_blocked")
 
         # auto / http: try the fast plain-HTTP crawl first.
         try:
             return await self._scrape_via_http(max_pages=max_pages, mode=mode)
         except RiyasewanaBlockedError as exc:
             if mode == "http":
-                if not _archive_fallback_enabled():
-                    raise
-                log.warning(
-                    "riyasewana_archive_fallback",
-                    max_pages=max_pages,
-                    reason="http_blocked",
-                )
-                return self._run_archive_fallback(max_pages=max_pages)
+                return self._recover_from_live_block(max_pages, "http_blocked")
             log.warning(
                 "riyasewana_http_fallback_to_playwright",
                 max_pages=max_pages,
@@ -739,14 +765,7 @@ class RiyasewanaScraper:
             try:
                 return await self._scrape_live(max_pages=max_pages)
             except RiyasewanaBlockedError:
-                if not _archive_fallback_enabled():
-                    raise
-                log.warning(
-                    "riyasewana_archive_fallback",
-                    max_pages=max_pages,
-                    reason="playwright_blocked",
-                )
-                return self._run_archive_fallback(max_pages=max_pages)
+                return self._recover_from_live_block(max_pages, "playwright_blocked")
 
     def _run_archive_fallback(self, max_pages: int = 5) -> dict[str, Any]:
         """Upsert listings parsed from the most recent Wayback snapshot of the
@@ -805,6 +824,19 @@ class RiyasewanaScraper:
                     url=row.get("url"),
                     error=str(e),
                 )
+
+        if inserted == 0:
+            soup = BeautifulSoup(html, "lxml")
+            cards = self._extract_cards(soup)
+            if cards:
+                live_inserted = self._process_cards(cards, "cars", 1, set())
+                inserted += int(live_inserted or 0)
+                log.info(
+                    "riyasewana_archive_live_parser_upserted",
+                    snapshot=hit.raw_url,
+                    inserted=live_inserted,
+                )
+
         log.info(
             "riyasewana_archive_upserted",
             snapshot=hit.raw_url,

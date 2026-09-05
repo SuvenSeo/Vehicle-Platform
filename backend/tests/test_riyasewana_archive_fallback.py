@@ -70,7 +70,7 @@ def test_archive_fallback_routes_when_enabled(monkeypatch, scraper):
         calls["max_pages"] = max_pages
         return {
             "snapshot": "https://web.archive.org/web/0id_/http://riyasewana.com/search/cars",
-            "inserted": 0,
+            "inserted": 2,
         }
 
     monkeypatch.setattr(scraper, "_run_archive_fallback", fake_fallback)
@@ -78,8 +78,22 @@ def test_archive_fallback_routes_when_enabled(monkeypatch, scraper):
     result = asyncio.run(scraper.scrape(max_pages=3))
 
     assert calls["max_pages"] == 3
-    assert result["inserted"] == 0
+    assert result["inserted"] == 2
     assert result["snapshot"].startswith("https://web.archive.org/")
+
+
+def test_archive_fallback_zero_insert_re_raises(monkeypatch, scraper):
+    monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "playwright")
+    monkeypatch.setattr(riyasewana_module, "_archive_fallback_enabled", lambda: True)
+    monkeypatch.setattr(scraper, "_scrape_live", _raise_blocked)
+    monkeypatch.setattr(
+        scraper,
+        "_run_archive_fallback",
+        lambda max_pages=5: {"snapshot": "https://web.archive.org/x", "inserted": 0},
+    )
+
+    with pytest.raises(RiyasewanaBlockedError, match="archive fallback inserted 0"):
+        asyncio.run(scraper.scrape(max_pages=3))
 
 
 def test_archive_fallback_upserts_tagged_rows(db_session, scraper, monkeypatch):
@@ -105,6 +119,26 @@ def test_archive_fallback_upserts_tagged_rows(db_session, scraper, monkeypatch):
     assert corolla.price_lkr == 1_950_000
     assert corolla.url.startswith("https://riyasewana.com/buy/")
     assert corolla.source_id == "/buy/toyota-corolla-110-sale-kegalle-1143257"
+
+
+def test_archive_fallback_uses_live_card_parser_for_modern_html(db_session, scraper, monkeypatch):
+    modern_html = (
+        Path(__file__).parent / "fixtures" / "riyasewana_serp_http_snippet.html"
+    ).read_text(encoding="utf-8")
+    hit = _FakeHit(
+        "https://web.archive.org/web/20260719185246id_/https://riyasewana.com/search/cars"
+    )
+    monkeypatch.setattr(riyasewana_module, "fetch_cdx_hits", lambda *a, **k: [hit])
+    monkeypatch.setattr(riyasewana_module, "fetch_wayback_html", lambda *a, **k: modern_html)
+
+    result = scraper._run_archive_fallback(max_pages=2)
+
+    assert result["inserted"] >= 1
+    rows = db_session.query(CarListing).filter(CarListing.source == "riyasewana").all()
+    assert rows
+    yaris = next((r for r in rows if "yaris" in r.title.lower()), None)
+    assert yaris is not None
+    assert yaris.price_lkr == 10_650_000
 
 
 def test_normalize_riyasewana_href():

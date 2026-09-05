@@ -1,23 +1,14 @@
-# OUTAGE-ONLY pipeline — runs entirely on the laptop self-hosted runners
-# against a local SQLite database at C:/motormila/motormila.db.
-#
-# Why: Neon's free-tier public-network transfer quota is exhausted
-# (5.12 GB / 5.00 GB, Aug 2026) and Neon refuses ALL connections until the
-# monthly reset (Sept 1). This workflow keeps the site publishing fresh
-# scrapes + analysis during the outage, from scratch, on the laptop.
-#
-# The canonical Neon pipeline (daily-scrape.yml) is untouched and re-enables
-# after the reset. When Neon is back: disable this workflow, re-enable
-# daily-scrape.yml, and (optionally) restore the local DB into Neon.
+# OUTAGE-ONLY pipeline — laptop SQLite publish path used while Neon refused
+# connections (Aug 2026 quota). Neon reset on Sept 1; the canonical pipeline
+# is daily-scrape.yml writing to HOT_DATABASE_URL. Keep this file for a future
+# outage (manual dispatch only) so it no longer queues on the offline laptop
+# runner and cancels the real Neon jobs.
 name: Outage Local Pipeline (laptop)
 
 permissions:
   contents: write
 
 on:
-  schedule:
-    # 18:10 Sri Lanka time = 12:40 UTC — same slot as the evening Neon run.
-    - cron: "40 12 * * *"
   workflow_dispatch:
     inputs:
       skip-riyasewana:

@@ -100,6 +100,20 @@ def test_parse_pagination_honors_serp_last_page(scraper):
     assert has_next is False  # riyasewana renders the arrow, not the word "next"
 
 
+def test_http_fetch_page_raises_blocked_on_403(scraper):
+    class _FakeClient:
+        async def get(self, url):
+            return type("R", (), {"status_code": 403, "text": "<html>blocked</html>"})()
+
+    async def _run():
+        with pytest.raises(RiyasewanaBlockedError, match="HTTP 403"):
+            await scraper._http_fetch_page(
+                _FakeClient(), "https://riyasewana.com/search/cars", 1
+            )
+
+    asyncio.run(_run())
+
+
 def test_http_fetch_page_raises_on_hard_block(scraper):
     class _FakeClient:
         def __init__(self):
@@ -202,14 +216,37 @@ def test_scrape_http_mode_routes_to_archive_on_block(scraper, monkeypatch):
         raise RiyasewanaBlockedError("http blocked")
 
     def fake_fallback(max_pages: int = 5):
-        return {"snapshot": "https://web.archive.org/web/0id_/http://riyasewana.com/search/cars", "inserted": 0}
+        return {
+            "snapshot": "https://web.archive.org/web/0id_/http://riyasewana.com/search/cars",
+            "inserted": 4,
+        }
 
     monkeypatch.setattr(scraper, "_scrape_via_http", fake_http)
     monkeypatch.setattr(scraper, "_run_archive_fallback", fake_fallback)
 
     result = asyncio.run(scraper.scrape(max_pages=3))
-    assert result["inserted"] == 0
+    assert result["inserted"] == 4
     assert result["snapshot"].startswith("https://web.archive.org/")
+
+
+def test_scrape_http_mode_raises_when_archive_inserts_nothing(scraper, monkeypatch):
+    monkeypatch.setattr(riyasewana_module, "_DEFAULT_SCRAPE_MODE", "http")
+    monkeypatch.setattr(riyasewana_module, "_archive_fallback_enabled", lambda: True)
+
+    async def fake_http(max_pages: int = 5, *, mode: str = "auto"):
+        raise RiyasewanaBlockedError("http blocked")
+
+    def fake_fallback(max_pages: int = 5):
+        return {
+            "snapshot": "https://web.archive.org/web/0id_/http://riyasewana.com/search/cars",
+            "inserted": 0,
+        }
+
+    monkeypatch.setattr(scraper, "_scrape_via_http", fake_http)
+    monkeypatch.setattr(scraper, "_run_archive_fallback", fake_fallback)
+
+    with pytest.raises(RiyasewanaBlockedError, match="archive fallback inserted 0"):
+        asyncio.run(scraper.scrape(max_pages=3))
 
 
 def test_scrape_playwright_mode_skips_http(scraper, monkeypatch):
