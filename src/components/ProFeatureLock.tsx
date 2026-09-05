@@ -42,14 +42,14 @@ export function ProFeatureLock({
             {label}
           </span>
           <p className="mx-auto mt-3 max-w-xs text-[13px] font-medium leading-relaxed text-muted-foreground">
-            Upgrade to Pro for full lane intelligence, exports, and deeper market tools.
+            Start your 7-day free trial for full lane intelligence, exports, and deeper market tools.
           </p>
           <Link
             to="/pricing"
             className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
           >
             <Crown className="h-3.5 w-3.5" aria-hidden />
-            View plans
+            Start 7-day free trial
           </Link>
         </div>
       </div>

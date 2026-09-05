@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Bell, BellOff, ExternalLink, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useServerMarketAlerts } from "@/hooks/useServerMarketAlerts";
+import { usePush } from "@/hooks/usePush";
+import { trackEvent } from "@/lib/analytics";
 import { loadMarketAlerts } from "@/lib/marketAlerts";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { isValidNotifyPhone } from "@/lib/notifyPhone";
@@ -20,6 +22,68 @@ import { FREE_ALERTS_LIMIT, freePlanCopy, hasFullPlatformAccess } from "@/lib/pl
 
 const itemVariants = revealItem;
 
+const ALL_CHANNELS = ["inapp", "email", "whatsapp", "telegram", "push"] as const;
+type ChannelName = (typeof ALL_CHANNELS)[number];
+
+function parseChannels(raw: string | null | undefined): Set<ChannelName> {
+  const out = new Set<ChannelName>();
+  if (!raw) return out;
+  for (const part of raw.split(",")) {
+    const token = part.trim().toLowerCase();
+    if ((ALL_CHANNELS as readonly string[]).includes(token)) out.add(token as ChannelName);
+  }
+  return out;
+}
+
+function ChannelCenterSection({ alertCount }: { alertCount: number }) {
+  const { t } = useAppPreferences();
+  const push = usePush();
+  void alertCount;
+  return (
+    <section
+      aria-label={t("alerts.channelCenter", "Channel center")}
+      className="rounded-2xl border border-border bg-card p-4 shadow-soft"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {t("alerts.channelCenter", "Channel center")}
+          </p>
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            {t("alerts.channelsHint", "Pick where each alert pings you. In-app always delivers.")}
+          </p>
+        </div>
+        {push.supported ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={push.subscribing}
+            onClick={() => (push.subscribed ? void push.unsubscribe() : void push.subscribe())}
+            className="h-8 text-[11px] font-semibold"
+          >
+            {push.subscribed
+              ? t("alerts.pushOn", "Push on")
+              : t("alerts.pushEnable", "Enable push")}
+          </Button>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">
+            {push.vapidMissing
+              ? t("alerts.pushUnsupported", "Push needs VAPID keys + HTTPS worker; in-app still works.")
+              : t("alerts.pushOff", "Push off — enable in your browser for price-drop pings.")}
+          </span>
+        )}
+      </div>
+      <p className="mt-3 rounded-xl border border-border bg-surface px-3 py-2.5 text-[11px] leading-relaxed text-muted-foreground">
+        {t(
+          "alerts.quietHoursNote",
+          "Quiet hours 21:00–07:00 Asia/Colombo: email, WhatsApp, Telegram & push queue for the 07:00 digest. In-app always delivers.",
+        )}
+      </p>
+    </section>
+  );
+}
+
 function AlertMatchSection({ token }: { token: string }) {
   const { t } = useAppPreferences();
   const { hasProAccess, isAdmin } = useAuth();
@@ -35,6 +99,7 @@ function AlertMatchSection({ token }: { token: string }) {
     try {
       const result = await matchAlerts(token);
       setMatchData(result);
+      trackEvent("saved_search", { user_token: token, alert_token: token, matches: result.results.length });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("alerts.matchFailed", "Failed to fetch matches"));
     } finally {
@@ -171,6 +236,8 @@ interface CreateAlertFormProps {
     notify_email?: string;
     notify_telegram_chat_id?: string;
     notify_channels?: string;
+    delivery_mode?: "instant" | "digest";
+    quiet_hours_enabled?: boolean;
   }) => Promise<unknown>;
 }
 
@@ -186,6 +253,9 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
   const [channelWhatsApp, setChannelWhatsApp] = useState(false);
   const [channelEmail, setChannelEmail] = useState(false);
   const [channelTelegram, setChannelTelegram] = useState(false);
+  const [channelPush, setChannelPush] = useState(false);
+  const [channelInApp, setChannelInApp] = useState(true);
+  const [deliveryMode, setDeliveryMode] = useState<"instant" | "digest">("instant");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -201,7 +271,7 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
       setFormError(t("alerts.needFilter", "Provide at least one filter."));
       return;
     }
-    const hasAnyChannel = channelWhatsApp || channelEmail || channelTelegram;
+    const hasAnyChannel = channelWhatsApp || channelEmail || channelTelegram || channelPush;
     if (!fullAccess && hasAnyChannel) {
       setFormError(t("alerts.notifyProError", "Notification channels unlock with Pro."));
       return;
@@ -215,9 +285,11 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
     try {
       const price = Number(maxPrice.replace(/[^\d]/g, ""));
       const channels: string[] = [];
+      if (channelInApp) channels.push("inapp");
       if (channelWhatsApp) channels.push("whatsapp");
       if (channelEmail) channels.push("email");
       if (channelTelegram) channels.push("telegram");
+      if (channelPush) channels.push("push");
       await onCreate({
         make: make.trim() || undefined,
         model: model.trim() || undefined,
@@ -227,10 +299,13 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
         notify_email: fullAccess && channelEmail ? (notifyEmail.trim() || undefined) : undefined,
         notify_telegram_chat_id: fullAccess && channelTelegram ? (notifyTelegram.trim() || undefined) : undefined,
         notify_channels: fullAccess && channels.length > 0 ? channels.join(",") : undefined,
+        delivery_mode: fullAccess ? deliveryMode : undefined,
+        quiet_hours_enabled: fullAccess ? true : undefined,
       });
       setMake(""); setModel(""); setDistrict(""); setMaxPrice("");
       setNotifyPhone(""); setNotifyEmail(""); setNotifyTelegram("");
       setChannelWhatsApp(false); setChannelEmail(false); setChannelTelegram(false);
+      setChannelPush(false); setChannelInApp(true); setDeliveryMode("instant");
       setOpen(false);
       onCreated();
     } catch (err) {
@@ -238,7 +313,7 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
     } finally {
       setSaving(false);
     }
-  }, [make, model, district, maxPrice, notifyPhone, notifyEmail, notifyTelegram, channelWhatsApp, channelEmail, channelTelegram, onCreate, onCreated, fullAccess, alertCount, t]);
+  }, [make, model, district, maxPrice, notifyPhone, notifyEmail, notifyTelegram, channelWhatsApp, channelEmail, channelTelegram, channelPush, channelInApp, deliveryMode, onCreate, onCreated, fullAccess, alertCount, t]);
 
   if (atFreeLimit) {
     return (
@@ -306,6 +381,15 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
               <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-foreground">
                 <input
                   type="checkbox"
+                  checked={channelInApp}
+                  onChange={(e) => setChannelInApp(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.channelInApp", "In-app")}
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-foreground">
+                <input
+                  type="checkbox"
                   checked={channelWhatsApp}
                   onChange={(e) => setChannelWhatsApp(e.target.checked)}
                   className="h-4 w-4 accent-primary"
@@ -330,7 +414,47 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
                 />
                 {t("alerts.channelTelegram", "Telegram")}
               </label>
+              <label className="flex cursor-pointer items-center gap-2 text-[12px] font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={channelPush}
+                  onChange={(e) => setChannelPush(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.channelPush", "Push")}
+              </label>
             </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                {t("alerts.deliveryMode", "Delivery")}
+              </span>
+              <label className="flex cursor-pointer items-center gap-1.5 text-[12px] font-medium text-foreground">
+                <input
+                  type="radio"
+                  name="alert-delivery-mode"
+                  checked={deliveryMode === "instant"}
+                  onChange={() => setDeliveryMode("instant")}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.instantMode", "Instant")}
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-[12px] font-medium text-foreground">
+                <input
+                  type="radio"
+                  name="alert-delivery-mode"
+                  checked={deliveryMode === "digest"}
+                  onChange={() => setDeliveryMode("digest")}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("alerts.digestMode", "Digest (07:00 daily)")}
+              </label>
+            </div>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              {t(
+                "alerts.quietHoursNote",
+                "Quiet hours 21:00–07:00 Asia/Colombo: email, WhatsApp, Telegram & push queue for the 07:00 digest. In-app always delivers.",
+              )}
+            </p>
             {channelWhatsApp && (
               <div>
                 <label htmlFor="alert-whatsapp" className="mb-1 block text-[11px] font-semibold text-muted-foreground">
@@ -403,9 +527,22 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
   );
 }
 
-function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id: number) => void }) {
+function AlertRow({
+  alert,
+  token,
+  onDelete,
+  onChannelsChange,
+}: {
+  alert: ServerMarketAlert;
+  token: string;
+  onDelete: (id: number) => void;
+  onChannelsChange?: (id: number, data: { channels?: string[]; delivery_mode?: "instant" | "digest" }) => Promise<unknown>;
+}) {
   const { t } = useAppPreferences();
   const [deleting, setDeleting] = useState(false);
+  const [savingChannels, setSavingChannels] = useState(false);
+  const activeChannels = parseChannels(alert.notify_channels);
+  const deliveryMode = alert.delivery_mode === "digest" ? "digest" : "instant";
 
   const handleDelete = useCallback(async () => {
     setDeleting(true);
@@ -416,55 +553,139 @@ function AlertRow({ alert, onDelete }: { alert: ServerMarketAlert; onDelete: (id
     }
   }, [alert.id, onDelete]);
 
+  const toggleChannel = useCallback(
+    async (channel: ChannelName) => {
+      if (!onChannelsChange || savingChannels) return;
+      const next = new Set(activeChannels);
+      if (next.has(channel)) next.delete(channel);
+      else next.add(channel);
+      // In-app is the fail-open baseline: keep at least one channel entry.
+      setSavingChannels(true);
+      try {
+        await onChannelsChange(alert.id, { channels: Array.from(next) });
+      } catch {
+        // fail silently — toggles are non-critical
+      } finally {
+        setSavingChannels(false);
+      }
+    },
+    [alert.id, activeChannels, onChannelsChange, savingChannels],
+  );
+
+  const cycleDelivery = useCallback(async () => {
+    if (!onChannelsChange || savingChannels) return;
+    setSavingChannels(true);
+    try {
+      await onChannelsChange(alert.id, { delivery_mode: deliveryMode === "digest" ? "instant" : "digest" });
+    } catch {
+      // fail silently
+    } finally {
+      setSavingChannels(false);
+    }
+  }, [alert.id, deliveryMode, onChannelsChange, savingChannels]);
+
   const label = [alert.make, alert.model].filter(Boolean).join(" ") || t("alerts.allVehicles", "All vehicles");
 
   return (
     <motion.div
       whileHover={{ y: -1 }}
       transition={springSoft}
-      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors duration-300 hover:border-primary/40 hover:bg-surface hover:shadow-soft"
+      className="rounded-xl border border-border bg-card p-3.5 transition-colors duration-300 hover:border-primary/40 hover:bg-surface hover:shadow-soft"
       data-testid="alert-row"
     >
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold tracking-tight text-foreground">{label}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-muted-foreground">
-          {alert.district && <span>{alert.district}</span>}
-          {alert.max_price && <span className="num">{t("alerts.underPrice", "Under {price}", { price: formatPrice(alert.max_price) })}</span>}
-          {alert.notify_phone && (
-            <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-              WA {alert.notify_phone}
-            </span>
-          )}
-          {alert.notify_email && (
-            <span className="rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
-              ✉ {alert.notify_email}
-            </span>
-          )}
-          {alert.notify_telegram_chat_id && (
-            <span className="rounded-md border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
-              TG {alert.notify_telegram_chat_id}
-            </span>
-          )}
-          {!alert.district && !alert.max_price && !alert.notify_phone && !alert.notify_email && !alert.notify_telegram_chat_id && (
-            <span>{t("alerts.anyPriceAllDistricts", "Any price · All districts")}</span>
-          )}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold tracking-tight text-foreground">{label}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-muted-foreground">
+            {alert.district && <span>{alert.district}</span>}
+            {alert.max_price && <span className="num">{t("alerts.underPrice", "Under {price}", { price: formatPrice(alert.max_price) })}</span>}
+            {alert.notify_phone && (
+              <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                WA {alert.notify_phone}
+              </span>
+            )}
+            {alert.notify_email && (
+              <span className="rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
+                ✉ {alert.notify_email}
+              </span>
+            )}
+            {alert.notify_telegram_chat_id && (
+              <span className="rounded-md border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+                TG {alert.notify_telegram_chat_id}
+              </span>
+            )}
+            {!alert.district && !alert.max_price && !alert.notify_phone && !alert.notify_email && !alert.notify_telegram_chat_id && (
+              <span>{t("alerts.anyPriceAllDistricts", "Any price · All districts")}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link
+            to={`/?make=${encodeURIComponent(alert.make || "")}&model=${encodeURIComponent(alert.model || "")}${alert.district ? `&district=${encodeURIComponent(alert.district)}` : ""}${alert.max_price ? `&price_max=${alert.max_price}` : ""}#market`}
+            onClick={() => trackEvent("listing_view", { user_token: token, alert_token: token, alert_id: alert.id })}
+            className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
+          >
+            {t("common.browse", "Browse")}
+          </Link>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            aria-label={t("alerts.deleteAria", "Delete alert for {label}", { label })}
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-rose-600 disabled:opacity-40 dark:hover:text-rose-400"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <Link
-          to={`/?make=${encodeURIComponent(alert.make || "")}&model=${encodeURIComponent(alert.model || "")}${alert.district ? `&district=${encodeURIComponent(alert.district)}` : ""}${alert.max_price ? `&price_max=${alert.max_price}` : ""}#market`}
-          className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
-        >
-          {t("common.browse", "Browse")}
-        </Link>
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5" aria-label={t("alerts.perAlertChannels", "Channels")}>
+        <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          {t("alerts.perAlertChannels", "Channels")}
+        </span>
+        {ALL_CHANNELS.map((channel) => {
+          const on = activeChannels.has(channel);
+          const channelLabel =
+            channel === "inapp"
+              ? t("alerts.channelInApp", "In-app")
+              : channel === "email"
+                ? t("alerts.channelEmail", "Email")
+                : channel === "whatsapp"
+                  ? t("alerts.channelWhatsApp", "WhatsApp")
+                  : channel === "telegram"
+                    ? t("alerts.channelTelegram", "Telegram")
+                    : t("alerts.channelPush", "Push");
+          return (
+            <button
+              key={channel}
+              type="button"
+              disabled={!onChannelsChange || savingChannels}
+              onClick={() => void toggleChannel(channel)}
+              aria-pressed={on}
+              aria-label={`${channelLabel} ${on ? "on" : "off"}`}
+              className={`h-6 rounded-full border px-2 text-[10px] font-bold transition-colors disabled:opacity-60 ${
+                on
+                  ? "border-primary/40 bg-primary/15 text-primary-bright"
+                  : "border-border bg-surface text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {channelLabel}
+            </button>
+          );
+        })}
         <button
           type="button"
-          onClick={handleDelete}
-          disabled={deleting}
-          aria-label={t("alerts.deleteAria", "Delete alert for {label}", { label })}
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-rose-600 disabled:opacity-40 dark:hover:text-rose-400"
+          disabled={!onChannelsChange || savingChannels}
+          onClick={() => void cycleDelivery()}
+          aria-label={t("alerts.deliveryMode", "Delivery")}
+          title={t(
+            "alerts.quietHoursNote",
+            "Quiet hours 21:00–07:00 Asia/Colombo: email, WhatsApp, Telegram & push queue for the 07:00 digest. In-app always delivers.",
+          )}
+          className="num h-6 rounded-full border border-border bg-surface px-2 text-[10px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          {deliveryMode === "digest"
+            ? t("alerts.digestMode", "Digest (07:00 daily)")
+            : t("alerts.instantMode", "Instant")}
         </button>
       </div>
     </motion.div>
@@ -475,7 +696,12 @@ export default function Alerts() {
   const { t } = useAppPreferences();
   const { hasProAccess, isAdmin } = useAuth();
   const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
-  const { alerts, loading, error, token, refresh, create, remove } = useServerMarketAlerts();
+  const hookResult = useServerMarketAlerts();
+  const { alerts, loading, error, token, refresh, create, remove } = hookResult;
+  const updateChannels = hookResult.updateChannels
+    ?? (async () => {
+      throw new Error("channel update unavailable");
+    });
 
   const localAlerts = loadMarketAlerts();
   const showFallback = !loading && error !== null && alerts.length === 0 && localAlerts.length > 0;
@@ -497,6 +723,9 @@ export default function Alerts() {
       />
 
       <PageBody narrow className="py-8 sm:py-10">
+        <motion.div variants={itemVariants} className="mb-6">
+          <ChannelCenterSection alertCount={alerts.length} />
+        </motion.div>
         <motion.div variants={itemVariants} className="mb-14">
         <CreateAlertForm
           token={token}
@@ -551,7 +780,7 @@ export default function Alerts() {
           <div className="space-y-2">
             {alerts.map((alert) => (
               <motion.div key={alert.id} variants={itemVariants}>
-                <AlertRow alert={alert} onDelete={remove} />
+                <AlertRow alert={alert} token={token} onDelete={remove} onChannelsChange={updateChannels} />
               </motion.div>
             ))}
           </div>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { deleteSavedSearch, listSavedSearches, saveSavedSearch } from "@/utils/savedSearches";
 
 interface FilterSidebarProps {
   filters: FilterState;
@@ -151,6 +152,12 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
   const [mileageInput, setMileageInput] = useState<string>(filters.mileage_max ? String(filters.mileage_max) : "");
   const [priceMinInput, setPriceMinInput] = useState<string>(filters.price_min ? String(filters.price_min) : "");
   const [priceMaxInput, setPriceMaxInput] = useState<string>(filters.price_max ? String(filters.price_max) : "");
+  // Saved-searches entry point (B2-A): localStorage util only, no backend.
+  const [savedTick, setSavedTick] = useState(0);
+  const savedSearches = useMemo(() => {
+    void savedTick;
+    return listSavedSearches();
+  }, [savedTick]);
 
   useEffect(() => {
     getMakes().then(setMakes).catch(() => setMakes([]));
@@ -452,6 +459,51 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           </button>
         </div>
       </div>
+
+      <FilterGroup label={t("filter.savedSearches", "Saved searches")}>
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              const label = [filters.make, filters.model, filters.district].filter(Boolean).join(" · ") || t("filter.currentSearch", "Current search");
+              saveSavedSearch(String(label), filters);
+              setSavedTick((n) => n + 1);
+            }}
+            className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-caption font-medium text-foreground transition-colors hover:border-primary/40"
+          >
+            {t("filter.saveCurrentSearch", "Save current search")}
+          </button>
+          {savedSearches.length === 0 ? (
+            <p className="text-caption text-muted-foreground">{t("filter.noSavedSearches", "No saved searches yet.")}</p>
+          ) : (
+            <ul className="space-y-1">
+              {savedSearches.slice(0, 5).map((saved) => (
+                <li key={saved.id} className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onFiltersChange({ ...saved.filters, page: 1 } as FilterState)}
+                    className="min-w-0 flex-1 truncate rounded-md border border-transparent px-2 py-1 text-left text-caption text-primary-bright hover:border-primary/25 hover:bg-primary/5"
+                    title={saved.name}
+                  >
+                    {saved.name}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteSavedSearch(saved.id);
+                      setSavedTick((n) => n + 1);
+                    }}
+                    aria-label={`Delete ${saved.name}`}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </FilterGroup>
 
       <FilterGroup label={t("filter.vehicle", "Vehicle")}>
         <div className="flex flex-wrap gap-1.5">

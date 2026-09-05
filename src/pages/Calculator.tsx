@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatPrice, calculateLandedCost, calculateTco, getPermits, getMacroContext, type LandedCostResult, type TcoResult, type PermitInfo, type MacroContext } from "@/services/api";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,14 @@ import { FreePlanBanner } from "@/components/FreePlanBanner";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
+import { computeCashToOwn, EV_HOME_CHARGER_LKR } from "@/lib/cashToOwn";
+import {
+  AFFORDABILITY_DEFAULTS,
+  dsrPreCheck,
+  leaseVsLoanRows,
+  maxPriceFromInstalment,
+  monthlyForPrice,
+} from "@/utils/affordability";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import {
@@ -185,6 +193,13 @@ export default function Calculator() {
   // Lease / Cash-to-own state (original logic wrapper)
   const [leasePrice, setLeasePrice] = useState(() => numParam(searchParams, "price", 15000000));
   const [leaseCc, setLeaseCc] = useState(() => numParam(searchParams, "leasecc", 1500));
+  // Financing discovery (B3-E): EV charger allowance, DSR pre-check, instalment budget.
+  const [isEV, setIsEV] = useState(() => boolParam(searchParams, "ev", false));
+  const [salary, setSalary] = useState(() => numParam(searchParams, "sal", 0));
+  const [existingCommit, setExistingCommit] = useState(() => numParam(searchParams, "com", 0));
+  const [budget, setBudget] = useState(() => numParam(searchParams, "inst", AFFORDABILITY_DEFAULTS.budgetRs, { positive: true }));
+  const [finRate, setFinRate] = useState(() => numParam(searchParams, "rate", AFFORDABILITY_DEFAULTS.annualRatePct, { positive: true }));
+  const [finYears, setFinYears] = useState(() => Math.min(10, Math.max(1, numParam(searchParams, "yrs", AFFORDABILITY_DEFAULTS.termYears, { positive: true }))));
 
   // TCO Calculator State (seeded from the shareable URL when present)
   const [tcoDailyKm, setTcoDailyKm] = useState(() => numParam(searchParams, "km", 40));
@@ -324,6 +339,12 @@ export default function Calculator() {
     } else if (activeTab === "lease") {
       params.set("price", String(leasePrice));
       params.set("leasecc", String(leaseCc));
+      if (isEV) params.set("ev", "1");
+      if (salary > 0) params.set("sal", String(salary));
+      if (existingCommit > 0) params.set("com", String(existingCommit));
+      params.set("inst", String(budget));
+      params.set("rate", String(finRate));
+      params.set("yrs", String(finYears));
     } else if (activeTab === "tco") {
       params.set("km", String(tcoDailyKm));
       params.set("tfuel", tcoFuelType);
@@ -339,7 +360,8 @@ export default function Calculator() {
     }
   }, [
     activeTab, cifUsd, exchangeRate, lcFuelType, lcEngineCc, lcMotorKw,
-    applySurcharge, applySscl, leasePrice, leaseCc, tcoDailyKm, tcoFuelType,
+    applySurcharge, applySscl, leasePrice, leaseCc, isEV, salary, existingCommit,
+    budget, finRate, finYears, tcoDailyKm, tcoFuelType,
     tcoKmpl, tcoLease, tcoInsurance, tcoService, tcoTyres, tcoDepreciation,
     setSearchParams,
   ]);

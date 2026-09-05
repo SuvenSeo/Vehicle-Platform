@@ -22,7 +22,7 @@ type InvitePreview = {
 };
 
 export default function SignUp() {
-  const { signup, isAuthenticated, authReady } = useAuth();
+  const { signup, selfSignup, isAuthenticated, authReady } = useAuth();
   const { t } = useAppPreferences();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -34,6 +34,12 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Self-serve trial (B2-A): when no invite token, check the public flag.
+  const [selfServeEnabled, setSelfServeEnabled] = useState(false);
+  const [selfServeTrialDays, setSelfServeTrialDays] = useState(7);
+  const [selfServeChecking, setSelfServeChecking] = useState(!token);
+  const [selfServeEmail, setSelfServeEmail] = useState("");
+  const [selfServeEmailError, setSelfServeEmailError] = useState("");
 
   const schema = z
     .object({
@@ -55,8 +61,35 @@ export default function SignUp() {
   useEffect(() => {
     if (!token) {
       setInviteLoading(false);
-      setInviteError(t("signup.missingToken", "This sign-up link is missing an invite token. Ask your Motormila admin for a new invite."));
-      return;
+      // No token: fall back to self-serve trial when the backend enables it.
+      let cancelled = false;
+      void (async () => {
+        setSelfServeChecking(true);
+        try {
+          const response = await fetch(
+            new URL(`${API_BASE}/auth/self-signup/status`, window.location.origin).toString(),
+            { credentials: resolveFetchCredentials(API_BASE), headers: { Accept: "application/json" } },
+          );
+          if (cancelled) return;
+          if (response.ok) {
+            const data = (await response.json()) as { enabled?: boolean; trialDays?: number };
+            if (data.enabled) {
+              setSelfServeEnabled(true);
+              if (typeof data.trialDays === "number" && data.trialDays >= 1) setSelfServeTrialDays(data.trialDays);
+              setInviteError("");
+              return;
+            }
+          }
+          setInviteError(t("signup.missingToken", "This sign-up link is missing an invite token. Ask your Motormila admin for a new invite."));
+        } catch {
+          if (!cancelled) setInviteError(t("signup.missingToken", "This sign-up link is missing an invite token. Ask your Motormila admin for a new invite."));
+        } finally {
+          if (!cancelled) setSelfServeChecking(false);
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
 
     let cancelled = false;
@@ -100,6 +133,24 @@ export default function SignUp() {
     setLoading(true);
     setServerError("");
     const result = await signup({ token, name: values.name, password: values.password });
+    setLoading(false);
+    if (result.success) {
+      navigate("/", { replace: true });
+      return;
+    }
+    setServerError(result.error || t("signup.failed", "Sign-up failed"));
+  };
+
+  const onSelfServeSubmit = async (values: FormValues) => {
+    const email = selfServeEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      setSelfServeEmailError(t("signup.emailRequired", "Enter a valid email address"));
+      return;
+    }
+    setSelfServeEmailError("");
+    setLoading(true);
+    setServerError("");
+    const result = await selfSignup({ email, name: values.name, password: values.password });
     setLoading(false);
     if (result.success) {
       navigate("/", { replace: true });
@@ -186,19 +237,25 @@ export default function SignUp() {
 
             <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
               <ShieldCheck className="h-3 w-3 text-primary" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("signup.inviteOnly", "Invite only")}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">
+                {selfServeEnabled && !token
+                  ? t("signup.freeTrial", `${selfServeTrialDays}-day free trial`)
+                  : t("signup.inviteOnly", "Invite only")}
+              </span>
             </div>
             <h2 className="font-display text-[1.85rem] font-semibold tracking-tight text-foreground sm:text-[2.1rem]">
               {t("signup.createAccount", "Create your account")}
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-              {t("signup.subtitle", "Motormila is closed to the public. Complete signup with the invite your admin sent you.")}
+              {selfServeEnabled && !token
+                ? t("signup.selfServeSubtitle", `Start your ${selfServeTrialDays}-day Pro trial — no invite needed.`)
+                : t("signup.subtitle", "Motormila is closed to the public. Complete signup with the invite your admin sent you.")}
             </p>
 
-            {inviteLoading && (
+            {(inviteLoading || selfServeChecking) && (
               <div className="mt-8 flex items-center gap-3 text-sm text-muted-foreground" role="status">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                {t("signup.verifying", "Verifying invite…")}
+                {token ? t("signup.verifying", "Verifying invite…") : t("signup.checkingSignup", "Checking signup options…")}
               </div>
             )}
 
@@ -212,6 +269,79 @@ export default function SignUp() {
                   </Link>
                 </p>
               </div>
+            )}
+
+            {selfServeEnabled && !token && !inviteError && !selfServeChecking && (
+              <form onSubmit={handleSubmit(onSelfServeSubmit)} className="mt-6 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="self-email" className="field-label">{t("signup.email", "Email")}</Label>
+                  <Input
+                    id="self-email"
+                    type="email"
+                    autoComplete="email"
+                    value={selfServeEmail}
+                    onChange={(event) => setSelfServeEmail(event.target.value)}
+                    className="h-12 rounded-xl bg-surface"
+                  />
+                  {selfServeEmailError && <p className="text-[11px] font-semibold text-rose-600">{selfServeEmailError}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="self-name" className="field-label">{t("signup.fullName", "Full name")}</Label>
+                  <Input id="self-name" autoComplete="name" {...register("name")} className="h-12 rounded-xl bg-surface" />
+                  {errors.name && <p className="text-[11px] font-semibold text-rose-600">{errors.name.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="self-password" className="field-label">{t("signup.password", "Password")}</Label>
+                  <div className="relative">
+                    <Input
+                      id="self-password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      {...register("password")}
+                      className="h-12 rounded-xl bg-surface pr-11"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      aria-label={showPassword ? t("signup.hidePassword", "Hide password") : t("signup.showPassword", "Show password")}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-[11px] font-semibold text-rose-600">{errors.password.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="self-confirm" className="field-label">{t("signup.confirmPassword", "Confirm password")}</Label>
+                  <Input id="self-confirm" type="password" autoComplete="new-password" {...register("confirm")} className="h-12 rounded-xl bg-surface" />
+                  {errors.confirm && <p className="text-[11px] font-semibold text-rose-600">{errors.confirm.message}</p>}
+                </div>
+                {serverError && (
+                  <p className="rounded-xl border border-rose-500/20 bg-rose-500/5 px-3.5 py-2.5 text-[12px] font-medium text-rose-600">
+                    {serverError}
+                  </p>
+                )}
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  whileTap={{ scale: 0.98 }}
+                  transition={springSoft}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-soft disabled:opacity-50"
+                >
+                  {loading ? t("signup.creating", "Creating account…") : (
+                    <>
+                      <span>{t("signup.startTrial", `Start ${selfServeTrialDays}-day trial`)}</span>
+                      <ArrowRight className="h-4 w-4" aria-hidden />
+                    </>
+                  )}
+                </motion.button>
+                <p className="text-center text-[12px] text-muted-foreground">
+                  {t("signup.alreadyRegistered", "Already registered?")}{" "}
+                  <Link to="/sign-in" className="font-semibold text-foreground underline underline-offset-4">
+                    {t("common.signIn", "Sign in")}
+                  </Link>
+                </p>
+              </form>
             )}
 
             {invite && !inviteError && (

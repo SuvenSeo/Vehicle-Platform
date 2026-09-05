@@ -56,7 +56,7 @@ export function DataFreshnessIndicator({
         <div className="min-w-0">
           <p className="text-[12px] font-semibold text-primary-bright">{freshness.staleNotice}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {freshness.dataAsOfLabel}
+            {freshness.dataAsOfLabel} · Updated {freshness.relativeLabel}
             {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
               <span className="ml-1">· stats refreshed {freshness.statsAt ? formatStatsNote(freshness, now) : "pending"}</span>
             ) : null}
@@ -76,7 +76,7 @@ export function DataFreshnessIndicator({
         className={cn("tech-label text-muted-foreground", className)}
         title={freshness.primaryAt ? freshness.absoluteLabel : undefined}
       >
-        {freshness.dataAsOfLabel}
+        {freshness.dataAsOfLabel} · Updated {freshness.relativeLabel}
         {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
           <span> · stats {formatStatsNote(freshness, now)}</span>
         ) : null}
@@ -108,9 +108,9 @@ export function DataFreshnessIndicator({
         </span>
       )}
       {freshness.isStale ? (
-        <span>Stale · {freshness.compactLabel}</span>
+        <span>Stale · {freshness.compactLabel} · Updated {freshness.relativeLabel}</span>
       ) : (
-        <span>{freshness.dataAsOfLabel}</span>
+        <span>{freshness.dataAsOfLabel} · Updated {freshness.relativeLabel}</span>
       )}
     </span>
   );

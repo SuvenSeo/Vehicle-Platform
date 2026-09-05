@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Motormila</string>
+
+    <!-- Bottom nav (content descriptions = visible labels) -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_watchlist">Watchlist</string>
+    <string name="nav_insights">Insights</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Notification channels -->
+    <string name="channel_price_drops">Price drops</string>
+    <string name="channel_price_drops_desc">Alerts when a watched vehicle drops in price.</string>
+    <string name="channel_market_news">Market news</string>
+    <string name="channel_market_news_desc">Market movements and new arrivals.</string>
+    <string name="channel_sync">Sync</string>
+    <string name="channel_sync_desc">Background watchlist sync status.</string>
+
+    <!-- Quick tile / shortcuts -->
+    <string name="tile_scan_plate">Scan plate</string>
+    <string name="shortcut_scan_plate_short">Scan plate</string>
+    <string name="shortcut_scan_plate_long">Scan a number plate</string>
+    <string name="shortcut_voice_search_short">Voice search</string>
+    <string name="shortcut_voice_search_long">Search with your voice</string>
+    <string name="shortcut_deal_of_day_short">Deal of the day</string>
+    <string name="shortcut_deal_of_day_long">Today\'s best deal</string>
+    <string name="shortcut_watchlist_short">Watchlist</string>
+    <string name="shortcut_watchlist_long">Open your watchlist</string>
+
+    <!-- Biometric -->
+    <string name="biometric_title">Motormila</string>
+    <string name="biometric_login_subtitle">Confirm it\'s you to sign in</string>
+    <string name="biometric_settings_subtitle">Verify to change this setting</string>
+
+    <!-- Generic -->
+    <string name="offline_banner">You\'re offline — showing cached data</string>
+    <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+</resources>

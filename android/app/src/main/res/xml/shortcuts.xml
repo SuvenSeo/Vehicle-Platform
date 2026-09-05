@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Secondary-owned app shortcuts. Manifest owner must reference this file:
+  <meta-data android:name="android.app.shortcuts"
+      android:resource="@xml/shortcuts" />
+  inside the MainActivity (<activity android:name="lk.motormila.app.MainActivity">)
+  declaration. Deep-link scheme motormila:// is handled by MainActivity
+  (foundation/nav owner).
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+  <shortcut
+      android:shortcutId="scan_plate"
+      android:enabled="true"
+      android:icon="@android:drawable/ic_menu_camera"
+      android:shortcutShortLabel="@string/shortcut_scan"
+      android:shortcutLongLabel="@string/shortcut_scan_long">
+    <intent
+        android:action="android.intent.action.VIEW"
+        android:targetPackage="lk.motormila.app"
+        android:targetClass="lk.motormila.app.MainActivity"
+        android:data="motormila://scan" />
+    <categories android:name="android.shortcut.conversation" />
+  </shortcut>
+
+  <shortcut
+      android:shortcutId="voice_search"
+      android:enabled="true"
+      android:icon="@android:drawable/ic_btn_speak_now"
+      android:shortcutShortLabel="@string/shortcut_voice"
+      android:shortcutLongLabel="@string/shortcut_voice_long">
+    <intent
+        android:action="android.intent.action.VIEW"
+        android:targetPackage="lk.motormila.app"
+        android:targetClass="lk.motormila.app.MainActivity"
+        android:data="motormila://search?voice=1" />
+  </shortcut>
+
+  <shortcut
+      android:shortcutId="deal_of_day"
+      android:enabled="true"
+      android:icon="@android:drawable/ic_menu_info_details"
+      android:shortcutShortLabel="@string/shortcut_deal"
+      android:shortcutLongLabel="@string/shortcut_deal_long">
+    <intent
+        android:action="android.intent.action.VIEW"
+        android:targetPackage="lk.motormila.app"
+        android:targetClass="lk.motormila.app.MainActivity"
+        android:data="motormila://pro?deal=day" />
+  </shortcut>
+
+  <shortcut
+      android:shortcutId="watchlist"
+      android:enabled="true"
+      android:icon="@android:drawable/ic_menu_save"
+      android:shortcutShortLabel="@string/shortcut_watchlist"
+      android:shortcutLongLabel="@string/shortcut_watchlist_long">
+    <intent
+        android:action="android.intent.action.VIEW"
+        android:targetPackage="lk.motormila.app"
+        android:targetClass="lk.motormila.app.MainActivity"
+        android:data="motormila://watchlist" />
+  </shortcut>
+</shortcuts>

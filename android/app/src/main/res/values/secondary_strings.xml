@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secondary-owned strings (shortcuts + scan tile). Foundation may merge. -->
+<resources>
+  <string name="shortcut_scan">Scan plate</string>
+  <string name="shortcut_scan_long">Scan a number plate</string>
+  <string name="shortcut_voice">Voice search</string>
+  <string name="shortcut_voice_long">Search by voice</string>
+  <string name="shortcut_deal">Deal of the day</string>
+  <string name="shortcut_deal_long">Today\'s best deal</string>
+  <string name="shortcut_watchlist">Watchlist</string>
+  <string name="tile_scan">Scan plate</string>
+</resources>

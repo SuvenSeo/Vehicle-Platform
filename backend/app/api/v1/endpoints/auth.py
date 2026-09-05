@@ -55,6 +55,61 @@ ALLOWED_ROLES = {"user", "admin"}
 # Dealer includes Pro depth plus yard tools.
 PRO_PLANS = {"pro", "enterprise", "dealer"}
 ACTIVE_PRO_SUBSCRIPTION_STATUSES = {"active", "trialing"}
+# Self-serve trial (TRACK E, additive): SELF_SIGNUP=true lets /auth/self-signup
+# create plan=pro + subscription_status=trialing accounts without an invite.
+SELF_SIGNUP_TRIAL_DAYS_DEFAULT = 7
+SELF_SIGNUP_TRIAL_PLAN = "pro"
+
+
+def self_signup_enabled() -> bool:
+    """Self-serve signup is OFF unless explicitly enabled (no auth weakening by default)."""
+    raw = os.getenv("SELF_SIGNUP", os.getenv("ALLOW_SELF_SIGNUP", "false")).strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def self_signup_trial_days() -> int:
+    for env_var in ("SELF_SIGNUP_TRIAL_DAYS", "TRIAL_DAYS"):
+        raw = os.getenv(env_var, "").strip()
+        try:
+            parsed = int(raw)
+            if 1 <= parsed <= 90:
+                return parsed
+        except ValueError:
+            continue
+    return SELF_SIGNUP_TRIAL_DAYS_DEFAULT
+
+
+def _trial_ends_at(*, days: int | None = None, now: datetime | None = None) -> datetime:
+    base = now or datetime.now(timezone.utc)
+    return base + timedelta(days=days if days is not None else self_signup_trial_days())
+
+
+def _is_trial_expired(*, subscription_status: str, trial_ends_at: datetime | None,
+                      now: datetime | None = None) -> bool:
+    if str(subscription_status or "").lower() != "trialing":
+        return False
+    if trial_ends_at is None:
+        return False  # legacy trialing rows without expiry stay valid
+    ends = trial_ends_at
+    if ends.tzinfo is None:
+        ends = ends.replace(tzinfo=timezone.utc)
+    base = now or datetime.now(timezone.utc)
+    return ends < base
+
+
+def _trial_days_left(*, subscription_status: str, trial_ends_at: datetime | None,
+                     now: datetime | None = None) -> int | None:
+    if str(subscription_status or "").lower() != "trialing" or trial_ends_at is None:
+        return None
+    ends = trial_ends_at
+    if ends.tzinfo is None:
+        ends = ends.replace(tzinfo=timezone.utc)
+    base = now or datetime.now(timezone.utc)
+    delta = ends - base
+    days = int(delta.total_seconds() // 86400)
+    if delta.total_seconds() > 0 and days < 1:
+        return 1 if delta.total_seconds() > 0 else 0
+    return max(0, days)
 
 
 def _session_or_none(db: object) -> Optional[Session]:
@@ -85,6 +140,14 @@ class LoginRequest(BaseModel):
 
 class SignupRequest(BaseModel):
     token: str = Field(..., min_length=16, max_length=128)
+    name: str = Field(..., min_length=1, max_length=120)
+    password: str = Field(..., min_length=8, max_length=200)
+
+
+class SelfSignupRequest(BaseModel):
+    """Self-serve trial signup (no invite token). Gated by SELF_SIGNUP flag."""
+
+    email: str = Field(..., min_length=3, max_length=255)
     name: str = Field(..., min_length=1, max_length=120)
     password: str = Field(..., min_length=8, max_length=200)
 
@@ -263,6 +326,16 @@ def verify_token(token: str, *, now: Optional[float] = None) -> Optional[dict]:
 def _user_response(record: dict) -> dict:
     name = record["name"]
     initials = "".join(part[0] for part in name.split() if part)[:3].upper() or "AU"
+    trial_ends_at = record.get("trial_ends_at") or record.get("trialEndsAt")
+    trial_ends_iso: Optional[str] = None
+    if isinstance(trial_ends_at, datetime):
+        ends = trial_ends_at
+        if ends.tzinfo is None:
+            ends = ends.replace(tzinfo=timezone.utc)
+        trial_ends_iso = ends.isoformat()
+    elif isinstance(trial_ends_at, str) and trial_ends_at:
+        trial_ends_iso = trial_ends_at
+    ends_dt = trial_ends_at if isinstance(trial_ends_at, datetime) else None
     return {
         "email": record["email"],
         "name": name,
@@ -270,6 +343,11 @@ def _user_response(record: dict) -> dict:
         "subscriptionStatus": record["subscription_status"],
         "role": record.get("role") or "user",
         "avatarInitials": initials,
+        "trialEndsAt": trial_ends_iso,
+        "trialDaysLeft": _trial_days_left(
+            subscription_status=str(record.get("subscription_status") or ""),
+            trial_ends_at=ends_dt,
+        ),
     }
 
 
@@ -285,6 +363,7 @@ def _platform_user_to_record(user: PlatformUser) -> dict:
         "token_version": int(getattr(user, "token_version", 0) or 0),
         "source": "db",
         "id": user.id,
+        "trial_ends_at": getattr(user, "trial_ends_at", None),
     }
 
 
@@ -334,6 +413,7 @@ def resolve_live_session(payload: dict, db: Optional[Session] = None) -> dict:
         "name": record.get("name") or email.split("@")[0],
         "id": record.get("id"),
         "source": record.get("source"),
+        "trial_ends_at": record.get("trial_ends_at"),
     }
 
 
@@ -654,8 +734,86 @@ def me(
             "plan": live["plan"],
             "subscription_status": live["subscription_status"],
             "role": live["role"],
+            "trial_ends_at": live.get("trial_ends_at"),
         }
     )
+
+
+@router.get("/self-signup/status", response_model=dict)
+def self_signup_status() -> dict:
+    """Public flag so Pricing/ProPreview can switch CTAs to self-serve trial."""
+    return {
+        "enabled": self_signup_enabled(),
+        "trialDays": self_signup_trial_days(),
+        "plan": SELF_SIGNUP_TRIAL_PLAN,
+    }
+
+
+@router.post("/self-signup", response_model=dict)
+def self_signup(
+    payload: SelfSignupRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """Self-serve trial signup (no invite). Creates plan=pro + trialing for N days.
+
+    Gated by SELF_SIGNUP=true (default off — invite path unchanged). Rate-limited
+    like invite signup. Trial expiry is stored on platform_users.trial_ends_at;
+    expired trials are rejected by the Pro gate.
+    """
+    _signup_rate_limiter(request)
+
+    if not auth_is_configured():
+        raise HTTPException(status_code=503, detail="Authentication is not configured on this deployment.")
+    if not self_signup_enabled():
+        raise HTTPException(status_code=403, detail="Self-serve signup is disabled. Ask your Motormila admin for an invite.")
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database is required for self-serve signup.")
+
+    try:
+        heal_platform_users_schema(db)
+    except Exception:
+        pass
+
+    email = payload.email.strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+
+    existing = db.query(PlatformUser).filter(PlatformUser.email == email).first()
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="An account already exists for this email. Sign in instead.")
+
+    trial_days = self_signup_trial_days()
+    now = datetime.now(timezone.utc)
+    name = payload.name.strip() or email.split("@")[0]
+
+    user = PlatformUser(
+        email=email,
+        password_hash=_hash_password(payload.password),
+        name=name,
+        plan=SELF_SIGNUP_TRIAL_PLAN,
+        subscription_status="trialing",
+        role="user",
+        is_active=True,
+        invited_by_email="self-signup",
+        last_login_at=now,
+    )
+    # trial_ends_at column may predate the running DB — set defensively.
+    try:
+        user.trial_ends_at = now + timedelta(days=trial_days)  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    db.add(user)
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Self-serve signup is unavailable on this deployment.") from exc
+    db.refresh(user)
+
+    record = _platform_user_to_record(user)
+    return _issue_login_response(record, response, db)
 
 
 def pro_access_enforced() -> bool:
@@ -802,3 +960,8 @@ def require_pro_access(
     subscription_status = str(live.get("subscription_status") or "active").lower()
     if subscription_status not in ACTIVE_PRO_SUBSCRIPTION_STATUSES:
         raise HTTPException(status_code=403, detail="Active Pro subscription required.")
+    if _is_trial_expired(
+        subscription_status=subscription_status,
+        trial_ends_at=live.get("trial_ends_at") if isinstance(live.get("trial_ends_at"), datetime) else None,
+    ):
+        raise HTTPException(status_code=403, detail="Free trial has expired. Upgrade to Pro to keep access.")

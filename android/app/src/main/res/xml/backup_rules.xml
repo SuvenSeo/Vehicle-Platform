@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto Backup: exclude device-protected sync state and cached images. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="session.preferences_pb" />
+    <exclude domain="sharedpref" path="settings.preferences_pb" />
+    <exclude domain="sharedpref" path="deal_widget.preferences_pb" />
+    <exclude domain="database" path="motormila.db-journal" />
+    <exclude domain="file" path="coil/" />
+</full-backup-content>

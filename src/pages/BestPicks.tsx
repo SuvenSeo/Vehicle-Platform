@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ExternalLink, SearchX, Star, TrendingDown, TrendingUp } from "lucide-react";
+import { ExternalLink, SearchX, Star, TrendingDown } from "lucide-react";
 import { getListings, getPriceDrops, formatPrice } from "@/services/api";
 import type { CarListing, FilterState, PriceDropItem } from "@/types/car";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
+import { CardSkeleton } from "@/components/Skeleton";
+import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
@@ -237,12 +239,7 @@ export default function BestPicks() {
           </motion.section>
 
         {loading ? (
-          <div className="space-y-3">
-            <div className="h-72 rounded-2xl border border-border bg-surface animate-pulse" />
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-64 rounded-2xl border border-border bg-surface animate-pulse" />)}
-            </div>
-          </div>
+          <CardSkeleton />
         ) : error ? (
           <motion.div variants={revealItem} className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-16 text-center">
             <SearchX className="h-5 w-5 text-muted-foreground" aria-hidden />
@@ -250,10 +247,23 @@ export default function BestPicks() {
             <Link to="/#market" className="rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]">{t("common.openInventory", "Open inventory")}</Link>
           </motion.div>
         ) : ranked.length === 0 ? (
-          <motion.div variants={revealItem} className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border py-16 text-center">
-            <TrendingUp className="h-5 w-5 text-muted-foreground" aria-hidden />
-            <p className="text-[13px] text-muted-foreground font-medium">{t("picks.empty", "No vehicles meet the deal-score gate right now.")}</p>
-            <Link to="/#market" className="rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]">{t("common.browseInventory", "Browse inventory")}</Link>
+          <motion.div variants={revealItem}>
+            <EmptyState
+              headline={t("picks.empty", "No vehicles meet the deal-score gate right now.")}
+              body={t("picks.emptyHint", "Try clearing the sort, or seed local demo inventory to preview this board.")}
+              actionLabel={t("picks.clearFilters", "Clear filters")}
+              onAction={() => setSortMode("deal_score")}
+              hint={
+                <span>
+                  {t("picks.loadDemoHint", "Load demo:")}{" "}
+                  <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-[10px]">python scripts/seed-demo.py --demo</code>{" "}
+                  ·{" "}
+                  <Link to="/#market" className="underline underline-offset-2 hover:text-foreground">
+                    {t("common.browseInventory", "Browse inventory")}
+                  </Link>
+                </span>
+              }
+            />
           </motion.div>
         ) : (
           <>

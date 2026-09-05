@@ -13,7 +13,7 @@ import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
-import { AuthProvider } from "@/lib/authContext";
+import { AuthProvider, useAuth } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin";
@@ -22,6 +22,11 @@ import { QUERY_STALE } from "@/lib/queryPolicy";
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
 const FeedbackWidget = lazyWithRetry(() =>
   import("@/components/FeedbackWidget").then((m) => ({ default: m.FeedbackWidget }))
+);
+import { CompareTray } from "@/components/CompareTray";
+// Trial banner lives in Pricing to avoid a new chunk; lazy keeps it out of first paint.
+const TrialCountdownBanner = lazyWithRetry(() =>
+  import("./pages/Pricing").then((m) => ({ default: m.TrialCountdownBanner }))
 );
 
 // Lazy load heavy page chunks
@@ -82,31 +87,60 @@ const MinimalLoader = () => (
   </div>
 );
 
-function MainLayout({ chatMounted }: { chatMounted: boolean }) {
+function TrialBannerSlot() {
+  const { user } = useAuth();
+  // Defer the Pricing chunk until the banner can actually render: anonymous
+  // and paid users always render null, so skip the dynamic import entirely.
+  if (!user) return null;
+  if (user.subscriptionStatus !== "trialing" && user.plan !== "free") return null;
+  return (
+    <div className="mx-auto w-full max-w-[1560px] px-5 pt-3 sm:px-6">
+      <Suspense fallback={null}>
+        <TrialCountdownBanner />
+      </Suspense>
+    </div>
+  );
+}
+
+function AppShell({ chatMounted }: { chatMounted: boolean }) {
+  return (
+    <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
+      <a href="#main-content" className="skip-to-content">Skip to main content</a>
+      <Navbar />
+      <SettingsFloatingIcon />
+      <Suspense fallback={null}>
+        <FeedbackWidget />
+      </Suspense>
+      {chatMounted && (
+        <Suspense fallback={null}>
+          <AIChatWidget />
+        </Suspense>
+      )}
+      <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
+          <TrialBannerSlot />
+        <RouteErrorBoundary>
+          <Suspense fallback={<MinimalLoader />}>
+            <Outlet />
+          </Suspense>
+        </RouteErrorBoundary>
+      </main>
+      <AppFooter />
+      <CompareTray />
+      <MobileBottomNav />
+    </div>
+  );
+}
+
+// Public browse shell: no session required.
+function PublicLayout({ chatMounted }: { chatMounted: boolean }) {
+  return <AppShell chatMounted={chatMounted} />;
+}
+
+// Gated shell: sign-in required (invite-only signup unchanged).
+function ProtectedLayout({ chatMounted }: { chatMounted: boolean }) {
   return (
     <RequireAuth>
-      <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
-        <a href="#main-content" className="skip-to-content">Skip to main content</a>
-        <Navbar />
-        <SettingsFloatingIcon />
-        <Suspense fallback={null}>
-          <FeedbackWidget />
-        </Suspense>
-        {chatMounted && (
-          <Suspense fallback={null}>
-            <AIChatWidget />
-          </Suspense>
-        )}
-        <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
-          <RouteErrorBoundary>
-            <Suspense fallback={<MinimalLoader />}>
-              <Outlet />
-            </Suspense>
-          </RouteErrorBoundary>
-        </main>
-        <AppFooter />
-        <MobileBottomNav />
-      </div>
+      <AppShell chatMounted={chatMounted} />
     </RequireAuth>
   );
 }
@@ -135,10 +169,8 @@ const App = () => {
               <ScrollRestoration />
               <RouteMeta />
               <Routes>
-                <Route element={<MainLayout chatMounted={chatMounted} />}>
+                <Route element={<PublicLayout chatMounted={chatMounted} />}>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/dealer" element={<DealerDashboard />} />
-                  <Route path="/settings" element={<Settings />} />
                   <Route path="/trends" element={<Trends />} />
                   <Route path="/estimate" element={<Estimate />} />
                   <Route path="/calculator" element={<Calculator />} />
@@ -149,13 +181,22 @@ const App = () => {
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
                   <Route path="/cars/:make" element={<MakeHub />} />
                   <Route path="/locations/:district" element={<DistrictHub />} />
-                  <Route path="/alerts" element={<Alerts />} />
                   <Route path="/price-index" element={<PriceIndex />} />
                   <Route path="/official-pulse" element={<OfficialPulse />} />
                   <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
                   <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
                   <Route path="/docs" element={<Docs />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
+                  <Route path="/compare" element={<Compare />} />
+                  <Route path="/permits" element={<Permits />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+                <Route element={<ProtectedLayout chatMounted={chatMounted} />}>
+                  <Route path="/dealer" element={<DealerDashboard />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/alerts" element={<Alerts />} />
                   <Route
                     path="/admin"
                     element={(
@@ -164,11 +205,6 @@ const App = () => {
                       </RequireAdmin>
                     )}
                   />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                  <Route path="/compare" element={<Compare />} />
-                  <Route path="/permits" element={<Permits />} />
-                  <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route path="/sign-in" element={
                   <Suspense fallback={<MinimalLoader />}>
@@ -192,7 +228,7 @@ const App = () => {
                 } />
                 <Route path="/pro" element={
                   <Suspense fallback={<MinimalLoader />}>
-                    <ProtectedRoute><ProDashboard /></ProtectedRoute>
+                    <RequireAuth><ProtectedRoute><ProDashboard /></ProtectedRoute></RequireAuth>
                   </Suspense>
                 } />
               </Routes>

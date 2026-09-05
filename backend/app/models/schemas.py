@@ -462,6 +462,20 @@ class MarketAlertCreate(BaseModel):
     notify_email: Optional[str] = Field(default=None, max_length=255)
     notify_telegram_chat_id: Optional[str] = Field(default=None, max_length=64)
     notify_channels: Optional[str] = Field(default=None, max_length=64)
+    delivery_mode: Optional[str] = Field(default=None, max_length=16)
+    quiet_hours_enabled: Optional[bool] = Field(default=None)
+
+    @field_validator("delivery_mode")
+    @classmethod
+    def validate_delivery_mode(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip().lower()
+        if not trimmed:
+            return None
+        if trimmed not in ("instant", "digest"):
+            raise ValueError("delivery_mode must be 'instant' or 'digest'")
+        return trimmed
 
     @field_validator("notify_phone")
     @classmethod
@@ -520,10 +534,32 @@ class MarketAlertRead(BaseModel):
     notify_email: Optional[str] = None
     notify_telegram_chat_id: Optional[str] = None
     notify_channels: Optional[str] = None
+    delivery_mode: Optional[str] = None
+    quiet_hours_enabled: Optional[bool] = None
     active: bool
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AlertChannelsUpdate(BaseModel):
+    """Per-alert channel center update (additive; all fields optional)."""
+
+    channels: Optional[List[str]] = Field(default=None, max_length=8)
+    delivery_mode: Optional[str] = Field(default=None, max_length=16)
+    quiet_hours_enabled: Optional[bool] = Field(default=None)
+
+    @field_validator("delivery_mode")
+    @classmethod
+    def validate_delivery_mode(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip().lower()
+        if not trimmed:
+            return None
+        if trimmed not in ("instant", "digest"):
+            raise ValueError("delivery_mode must be 'instant' or 'digest'")
+        return trimmed
 
 
 class AlertMatchListing(BaseModel):

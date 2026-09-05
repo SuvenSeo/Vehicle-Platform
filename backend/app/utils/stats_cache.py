@@ -4,11 +4,16 @@
 ``district_velocity``, ``trends`` (default params), ``insights``, and
 ``price_index`` payloads and stores them in ``market_stats_cache``.
 
-The read helpers (``get_cached_summary``, ``get_cached_district_prices``,
-``get_cached_district_velocity``) return ``None`` when the entry is absent or
-older than ``CACHE_TTL_SECONDS``, which signals the caller to fall back to
-live computation. Pass ``allow_stale=True`` to serve an expired payload when
-live computation fails.
+Stale-while-revalidate policy: each key has its own TTL (see
+``CACHE_TTLS``). The read helpers default to ``allow_stale=True`` so callers
+(snapshot/export jobs, degraded API fallbacks) get the newest payload even
+when it is expired. Pass ``allow_stale=False`` for a fresh-only read that
+returns ``None`` on miss/staleness and signals the caller to recompute live.
+
+``get_cache_meta`` exposes ``stale_age_seconds`` for payloads/headers, and
+``with_degraded_flag`` marks a served-stale dict payload so downstream
+exporters stay decoupled from analysis success (a failed analysis section
+yields ``degraded=True`` data, never a hard failure).
 
 ``store_*_cache`` helpers let endpoints persist a result they just computed
 so the next caller gets a cache hit.
@@ -19,7 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Callable, Optional
 
 import structlog
 from sqlalchemy import case, func, and_, desc
@@ -38,26 +43,54 @@ from db.models import CarListing, MarketStatsCache, PriceAggregate, live_listing
 
 log = structlog.get_logger()
 
-CACHE_TTL_SECONDS = 3600
+CACHE_TTL_SECONDS = 3600  # legacy default; kept for unknown keys
+SUMMARY_TTL_SECONDS = 900  # 15 min — counts move with every sync
+DISTRICT_PRICES_TTL_SECONDS = 3600  # 1 h
+VELOCITY_TTL_SECONDS = 3600  # 1 h
+INSIGHTS_TTL_SECONDS = 3600  # 1 h
+TRENDS_TTL_SECONDS = 6 * 3600  # 6 h — monthly aggregates move slowly
+PRICE_INDEX_TTL_SECONDS = 24 * 3600  # 24 h — mix-adjusted monthly index
 _MIN_PRICE_LKR = 100_000
 _TRENDS_CACHE_PREFIX = "trends:"
 _INSIGHTS_CACHE_KEY = "insights"
 _PRICE_INDEX_CACHE_KEY = "price_index"
+
+CACHE_TTLS: dict[str, int] = {
+    "summary": SUMMARY_TTL_SECONDS,
+    "district_prices": DISTRICT_PRICES_TTL_SECONDS,
+    "district_velocity": VELOCITY_TTL_SECONDS,
+    "insights": INSIGHTS_TTL_SECONDS,
+    "price_index": PRICE_INDEX_TTL_SECONDS,
+}
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
 
-def _is_fresh(entry: MarketStatsCache) -> bool:
-    """Return True when *entry* was refreshed within the TTL window."""
+def ttl_for_key(key: str) -> int:
+    """Return the TTL seconds for *key* (trends keys share one TTL)."""
+    if key.startswith(_TRENDS_CACHE_PREFIX):
+        return TRENDS_TTL_SECONDS
+    return CACHE_TTLS.get(key, CACHE_TTL_SECONDS)
+
+
+def _entry_age_seconds(entry: MarketStatsCache) -> Optional[float]:
     refreshed = entry.refreshed_at
     if refreshed is None:
-        return False
+        return None
     if refreshed.tzinfo is None:
         refreshed = refreshed.replace(tzinfo=timezone.utc)
-    age = (datetime.now(timezone.utc) - refreshed).total_seconds()
-    return age < CACHE_TTL_SECONDS
+    return max(0.0, (datetime.now(timezone.utc) - refreshed).total_seconds())
+
+
+def _is_fresh(entry: MarketStatsCache, ttl_seconds: Optional[int] = None) -> bool:
+    """Return True when *entry* was refreshed within its TTL window."""
+    age = _entry_age_seconds(entry)
+    if age is None:
+        return False
+    ttl = ttl_seconds if ttl_seconds is not None else ttl_for_key(entry.cache_key)
+    return age < ttl
 
 
 def _get_entry(db: Session, key: str) -> Optional[MarketStatsCache]:
@@ -106,7 +139,7 @@ def build_trends_cache_key(
 def get_cached_summary(
     db: Session,
     *,
-    allow_stale: bool = False,
+    allow_stale: bool = True,
 ) -> Optional[StatsSummary]:
     """Return cached ``StatsSummary`` or ``None`` on miss/staleness."""
     entry = _get_entry(db, "summary")
@@ -124,7 +157,7 @@ def get_cached_summary(
 def get_cached_district_prices(
     db: Session,
     *,
-    allow_stale: bool = False,
+    allow_stale: bool = True,
 ) -> Optional[dict]:
     """Return cached district-prices payload or ``None`` on miss/staleness."""
     entry = _get_entry(db, "district_prices")
@@ -141,7 +174,7 @@ def get_cached_district_prices(
 def get_cached_district_velocity(
     db: Session,
     *,
-    allow_stale: bool = False,
+    allow_stale: bool = True,
 ) -> Optional[DistrictVelocityResponse]:
     """Return cached district-velocity payload or ``None`` on miss/staleness."""
     entry = _get_entry(db, "district_velocity")
@@ -160,7 +193,7 @@ def get_cached_trends(
     db: Session,
     cache_key: str,
     *,
-    allow_stale: bool = False,
+    allow_stale: bool = True,
 ) -> Optional[dict]:
     entry = _get_entry(db, cache_key)
     if entry is None:
@@ -176,7 +209,7 @@ def get_cached_trends(
 def get_cached_insights(
     db: Session,
     *,
-    allow_stale: bool = False,
+    allow_stale: bool = True,
 ) -> Optional[dict]:
     entry = _get_entry(db, _INSIGHTS_CACHE_KEY)
     if entry is None:
@@ -192,7 +225,7 @@ def get_cached_insights(
 def get_cached_price_index(
     db: Session,
     *,
-    allow_stale: bool = False,
+    allow_stale: bool = True,
 ) -> Optional[dict]:
     entry = _get_entry(db, _PRICE_INDEX_CACHE_KEY)
     if entry is None:
@@ -203,6 +236,115 @@ def get_cached_price_index(
     if not isinstance(payload, dict):
         return None
     return payload
+
+
+# ---------------------------------------------------------------------------
+# Staleness metadata + degraded envelopes (SWR / export decoupling)
+# ---------------------------------------------------------------------------
+
+
+def get_cache_age_seconds(db: Session, key: str) -> Optional[float]:
+    """Return seconds since *key* was refreshed, or ``None`` when absent."""
+    entry = _get_entry(db, key)
+    if entry is None:
+        return None
+    return _entry_age_seconds(entry)
+
+
+def get_cache_meta(db: Session, key: str) -> dict:
+    """Return freshness metadata for *key* (never raises).
+
+    Shape: ``{cache_key, present, refreshed_at, age_seconds, ttl_seconds,
+    is_stale}``. Snapshot/export jobs and API stale fallbacks use
+    ``stale_age_seconds`` for payloads/headers.
+    """
+    entry = _get_entry(db, key)
+    ttl = ttl_for_key(key)
+    if entry is None:
+        return {
+            "cache_key": key,
+            "present": False,
+            "refreshed_at": None,
+            "stale_age_seconds": None,
+            "ttl_seconds": ttl,
+            "is_stale": True,
+        }
+    age = _entry_age_seconds(entry)
+    refreshed = entry.refreshed_at
+    if refreshed is not None and refreshed.tzinfo is None:
+        refreshed = refreshed.replace(tzinfo=timezone.utc)
+    return {
+        "cache_key": key,
+        "present": True,
+        "refreshed_at": refreshed.isoformat() if refreshed else None,
+        "stale_age_seconds": round(age, 1) if age is not None else None,
+        "ttl_seconds": ttl,
+        "is_stale": (age is None) or (age >= ttl),
+    }
+
+
+def with_degraded_flag(
+    payload: dict,
+    *,
+    stale_age_seconds: Optional[float],
+    reason: str = "stale_cache",
+) -> dict:
+    """Return *payload* marked as served-stale (degraded, never failing).
+
+    Lets exporters stay decoupled from analysis success: a failed analysis
+    section still yields ``degraded=True`` data with ``stale_age_seconds``
+    instead of raising.
+    """
+    if not isinstance(payload, dict):
+        return payload
+    if payload.get("degraded") is True:
+        return payload
+    return {
+        **payload,
+        "degraded": True,
+        "degraded_reason": reason,
+        "stale_age_seconds": round(stale_age_seconds, 1)
+        if stale_age_seconds is not None
+        else None,
+    }
+
+
+def read_export_section(
+    db: Session,
+    key: str,
+    *,
+    miss_factory: Optional[Callable[[], object]] = None,
+) -> dict:
+    """Best-effort read for snapshot/export jobs; never raises.
+
+    Fresh payload → as-is. Stale payload → ``degraded=True`` envelope with
+    ``stale_age_seconds``. Miss → ``miss_factory()`` (or empty degraded
+    envelope) so one failed analysis section never fails the whole export.
+    """
+    try:
+        meta = get_cache_meta(db, key)
+        entry = _get_entry(db, key)
+        if entry is not None and isinstance(entry.payload, dict):
+            if meta["is_stale"]:
+                return with_degraded_flag(
+                    entry.payload,
+                    stale_age_seconds=meta["stale_age_seconds"],
+                )
+            return entry.payload
+        if miss_factory is not None:
+            try:
+                fallback = miss_factory()
+                if isinstance(fallback, dict):
+                    return fallback
+            except Exception as exc:
+                log.warning("stats_cache_export_section_miss_failed", key=key, error=str(exc))
+    except Exception as exc:
+        log.warning("stats_cache_export_section_error", key=key, error=str(exc))
+    return {
+        "degraded": True,
+        "degraded_reason": "cache_miss",
+        "stale_age_seconds": None,
+    }
 
 
 # ---------------------------------------------------------------------------

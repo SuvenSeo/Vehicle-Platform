@@ -1,0 +1,14 @@
+{
+  "name": "Motormila — Vehicle Intelligence for Sri Lanka",
+  "short_name": "Motormila",
+  "description": "Price-drop and back-in-stock alerts for Sri Lankan vehicles.",
+  "start_url": "/alerts",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

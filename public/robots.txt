@@ -14,4 +14,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://motormila.vercel.app/sitemap.xml
-Sitemap: https://motormila.vercel.app/api/sitemap-listings
+Sitemap: https://motormila.vercel.app/api/v1/seo/sitemap-index.xml

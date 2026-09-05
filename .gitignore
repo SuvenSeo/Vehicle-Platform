@@ -75,6 +75,20 @@ backend/snapshots/
 .codex/
 .qoder/
 
+# Native Android app (android/) — build outputs & machine-local files
+android/.gradle/
+android/.kotlin/
+android/app/build/
+android/**/build/
+android/local.properties
+android/*.log
+android/*.err
+android/*.status
+*.apk
+*.aab
+*.ap_
+*.dex
+
 # Database snapshots & checkpoints (contain live data — never commit)
 backend/db_snapshots/
 backend/scrape_checkpoints/

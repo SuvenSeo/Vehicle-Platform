@@ -123,6 +123,59 @@ def _contact_email() -> str:
     return os.getenv("BILLING_CONTACT_EMAIL", _CONTACT_EMAIL_FALLBACK).strip()
 
 
+# ---------------------------------------------------------------------------
+# Manual-pay instructions (TRACK E, additive): bank / KOKO / WhatsApp 2hr flow
+# ---------------------------------------------------------------------------
+
+_MANUAL_PAY_ACTIVATION_DEFAULT = "2 hours"
+
+
+def _manual_pay_activation_window() -> str:
+    return os.getenv("BILLING_ACTIVATION_WINDOW", _MANUAL_PAY_ACTIVATION_DEFAULT).strip() or _MANUAL_PAY_ACTIVATION_DEFAULT
+
+
+def _manual_pay_whatsapp() -> str:
+    return os.getenv("BILLING_WHATSAPP", os.getenv("BILLING_WHATSAPP_NUMBER", "")).strip()
+
+
+def _manual_pay_bank_details() -> str:
+    return os.getenv(
+        "BILLING_BANK_DETAILS",
+        "Bank transfer — account details are shared on request. Message us and we will reply with the Pro/Dealer account number and reference format.",
+    ).strip()
+
+
+def _manual_pay_koko_note() -> str:
+    return os.getenv(
+        "BILLING_KOKO_NOTE",
+        "KOKO / instalments available on request — mention KOKO in your WhatsApp message and we will send a payment link.",
+    ).strip()
+
+
+def manual_pay_instructions(plan: str = "pro") -> dict:
+    """Structured manual-pay steps so the frontend never shows a bare mailto."""
+    contact = _contact_email()
+    whatsapp = _manual_pay_whatsapp()
+    activation = _manual_pay_activation_window()
+    normalized = (plan or "pro").strip().lower()
+    label = normalized if normalized in ("pro", "dealer") else "pro"
+    steps = [
+        f"1. Message us on WhatsApp{f' ({whatsapp})' if whatsapp else ''} or email {contact} with your Motormila account email + '{label}' plan.",
+        f"2. Pay by bank transfer ({_manual_pay_bank_details()}) or KOKO — {_manual_pay_koko_note()}",
+        f"3. Send the payment receipt screenshot. We activate your seat within {activation}.",
+    ]
+    return {
+        "plan": label,
+        "methods": ["bank_transfer", "koko", "whatsapp"],
+        "bankDetails": _manual_pay_bank_details(),
+        "kokoNote": _manual_pay_koko_note(),
+        "whatsappNumber": whatsapp or None,
+        "contactEmail": contact,
+        "activationWindow": activation,
+        "steps": steps,
+    }
+
+
 class CheckoutIntentRequest(BaseModel):
     plan: str = Field(..., min_length=1, max_length=30, description="Requested plan: 'pro' or 'dealer'")
 
@@ -131,6 +184,13 @@ class CheckoutIntentResponse(BaseModel):
     provider: Literal["manual", "payhere", "stripe"]
     checkout_url: Optional[str] = None
     message: str
+    manual_pay: Optional[dict] = Field(default=None, description="Manual-pay steps when provider=manual")
+
+
+@router.get("/manual-pay", response_model=dict)
+def manual_pay(plan: str = "pro") -> dict:
+    """Public manual-pay instructions: bank / KOKO / WhatsApp with activation window."""
+    return manual_pay_instructions(plan)
 
 
 @router.post("/checkout-intent", response_model=CheckoutIntentResponse)
@@ -140,8 +200,9 @@ def checkout_intent(body: CheckoutIntentRequest) -> CheckoutIntentResponse:
     Reads environment variables in priority order:
       BILLING_CHECKOUT_URL > STRIPE_CHECKOUT_URL > PAYHERE_CHECKOUT_URL
 
-    When none are set, returns a "contact sales" message so the frontend can
-    show a mailto link instead of a broken checkout flow.
+    When none are set, returns structured manual-pay instructions (bank / KOKO /
+    WhatsApp, activated within the configured window) so the frontend can render
+    steps instead of a bare mailto link.
     """
     url = _checkout_url()
     if url:
@@ -158,9 +219,17 @@ def checkout_intent(body: CheckoutIntentRequest) -> CheckoutIntentResponse:
             message=f"Redirecting to {provider} checkout for {body.plan} plan.",
         )
 
-    contact = _contact_email()
+    instructions = manual_pay_instructions(body.plan)
+    whatsapp = instructions.get("whatsappNumber")
+    activation = instructions.get("activationWindow")
+    contact = instructions.get("contactEmail")
+    hint = f" WhatsApp {whatsapp} for fastest activation." if whatsapp else ""
     return CheckoutIntentResponse(
         provider="manual",
         checkout_url=None,
-        message=f"Online checkout is not yet configured. To upgrade to the {body.plan} plan, email {contact} and we will set up your seat manually.",
+        message=(
+            f"Pay by bank transfer or KOKO for the {body.plan} plan, then WhatsApp us for activation within {activation}.{hint} "
+            f"Or email {contact} with your account email."
+        ),
+        manual_pay=instructions,
     )

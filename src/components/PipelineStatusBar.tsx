@@ -4,10 +4,50 @@ import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { PipelineJobStatus, PipelineStatusResponse } from "@/types/car";
 import { formatRelativeTime } from "@/lib/formatting";
 
+export interface PipelineSourceSnapshot {
+  source: string;
+  last_success?: string | null;
+  status?: string | null;
+}
+
 interface PipelineStatusBarProps {
   status: PipelineStatusResponse | null;
   latestListingAt?: string | null;
   lastUpdated?: string | null;
+  /** Data-snapshot generation time → renders "Snapshot age …". */
+  snapshotAt?: string | null;
+  /** Direct snapshot age override (ms); wins over snapshotAt. Mock-friendly. */
+  snapshotAgeMs?: number | null;
+  /** Per-source last_success rows; defaults to status jobs when omitted. */
+  sources?: PipelineSourceSnapshot[] | null;
+  /** Age after which a source gets the stale badge. Default 24h. */
+  staleSourceAfterMs?: number;
+  /** Injectable clock for deterministic stories/tests. */
+  now?: Date;
+}
+
+const DEFAULT_STALE_SOURCE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+function resolveSnapshotIso(
+  snapshotAt: string | null | undefined,
+  snapshotAgeMs: number | null | undefined,
+  now: Date,
+): string | null {
+  if (snapshotAgeMs !== null && snapshotAgeMs !== undefined) {
+    return new Date(now.getTime() - Math.max(0, snapshotAgeMs)).toISOString();
+  }
+  return snapshotAt ?? null;
+}
+
+function isSourceStale(
+  lastSuccess: string | null | undefined,
+  now: Date,
+  thresholdMs: number,
+): boolean {
+  if (!lastSuccess) return true;
+  const parsed = new Date(lastSuccess);
+  if (Number.isNaN(parsed.getTime())) return true;
+  return now.getTime() - parsed.getTime() > thresholdMs;
 }
 
 const JOB_LABELS: Record<string, string> = {
@@ -59,8 +99,22 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
   status,
   latestListingAt,
   lastUpdated,
+  snapshotAt,
+  snapshotAgeMs,
+  sources,
+  staleSourceAfterMs = DEFAULT_STALE_SOURCE_AFTER_MS,
+  now,
 }: PipelineStatusBarProps) {
   const jobs = status?.jobs ?? [];
+  const effectiveNow = now ?? new Date();
+  const snapshotIso = resolveSnapshotIso(snapshotAt, snapshotAgeMs, effectiveNow);
+  const sourceRows: PipelineSourceSnapshot[] =
+    sources ??
+    jobs.map((job) => ({
+      source: prettifyJobName(job.name),
+      last_success: job.last_success,
+      status: job.status,
+    }));
   const overall = status?.overall_status ?? "delayed";
   const loading = !status;
   const overallLabel = overall === "ok" ? "Healthy" : overall === "running" ? "Running" : "Delayed";
@@ -98,8 +152,47 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
         <div className="flex flex-wrap items-center gap-3">
           <DataFreshnessIndicator latestListingAt={latestListingAt} lastUpdated={lastUpdated} />
           <p className="tech-label text-muted-foreground">Pipeline refreshed {generatedLabel}</p>
+          {snapshotIso ? (
+            <p
+              className="tech-label text-muted-foreground"
+              title={snapshotIso}
+              aria-label={`Snapshot age ${formatRelativeTime(snapshotIso, effectiveNow)}`}
+            >
+              Snapshot age {formatRelativeTime(snapshotIso, effectiveNow)}
+            </p>
+          ) : null}
         </div>
       </div>
+
+      {loading || sourceRows.length === 0 ? null : (
+        <div className="border-b border-border px-6 py-3">
+          <p className="tech-label text-muted-foreground mb-2">Source freshness</p>
+          <ul className="flex flex-wrap items-center gap-2" aria-label="Per-source freshness">
+            {sourceRows.map((row) => {
+              const stale = isSourceStale(row.last_success, effectiveNow, staleSourceAfterMs);
+              return (
+                <li
+                  key={row.source}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1"
+                  title={row.last_success ? `Last success ${row.last_success}` : "Never synced"}
+                >
+                  <span className="tech-label text-foreground">{row.source}</span>
+                  <span className="tech-label text-muted-foreground">
+                    {row.last_success
+                      ? formatRelativeTime(row.last_success, effectiveNow)
+                      : "never synced"}
+                  </span>
+                  {stale ? (
+                    <span className="rounded border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright">
+                      stale
+                    </span>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="p-5 sm:p-6">
         {loading ? (

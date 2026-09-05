@@ -5,11 +5,14 @@ import { describe, expect, it } from "vitest";
 import Docs from "@/pages/Docs";
 import Pricing from "@/pages/Pricing";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
 
 function wrap(ui: ReactElement) {
   return render(
     <AppPreferencesProvider>
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>
+      </AuthProvider>
     </AppPreferencesProvider>,
   );
 }
@@ -28,6 +31,10 @@ describe("Docs and Pricing pages", () => {
     expect(screen.getByText("LKR 999")).toBeInTheDocument();
     expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     expect(screen.getByText("Dealers")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
+      "href",
+      "/sign-up",
+    );
     expect(screen.getAllByRole("link", { name: /Message us/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Message us/i })[0]).toHaveAttribute(
       "href",

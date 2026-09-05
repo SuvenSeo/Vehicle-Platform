@@ -61,6 +61,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ArbitrageTable } from "@/components/ArbitrageTable";
+import { VelocityBadge } from "@/components/VelocityBadge";
 import { SourceQualityScorecard } from "@/components/SourceQualityScorecard";
 import { Checkbox } from "@/components/ui/checkbox";
 // Surface and AmbientBackground removed — using direct styling
@@ -75,6 +77,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PRO_EXPORTS_ENFORCED, useAuth } from "@/lib/authContext";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { customizeProReport } from "@/lib/proReportCustomize";
+import { exportLanePack, type LanePackFormat } from "@/lib/laneExport";
 import { formatPriceLkrMillions, formatRelativeTime } from "@/lib/formatting";
 import {
   getImportEraSplit,
@@ -477,7 +480,10 @@ function DetailDialog({
                           {listing.district || "Sri Lanka"} · {listing.source}
                         </p>
                       </div>
-                      <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
+                        <VelocityBadge firstSeenAt={listing.first_seen_at ?? null} lastSeenAt={listing.last_seen_at ?? null} />
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -501,7 +507,7 @@ function DetailDialog({
 }
 
 export default function ProDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasProAccess } = useAuth();
   const { t } = useAppPreferences();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
@@ -816,8 +822,32 @@ export default function ProDashboard() {
     return "Full market";
   }, [districts.length, filteredLanes.length, lanes.length, reportDistrict, reportScope, reportSource, reportVehicleKey]);
 
-  const getModeDetail = (id: WorkspaceTab): string => {
-    switch (id) {
+  // Trial gate (B2-D): free visitors see 1 lane sharp, the rest blurred + locked.
+  const displayLanes = hasProAccess ? filteredLanes : filteredLanes.slice(0, 1);
+  const teaserLanes = hasProAccess ? [] : filteredLanes.slice(1, 3);
+  const lockedLaneCount = Math.max(0, filteredLanes.length - displayLanes.length);
+
+  const runLanePack = async (format: LanePackFormat) => {
+    try {
+      await exportLanePack(
+        {
+          lanes: displayLanes,
+          gaps: arbitrageGaps,
+          comps: snapshot?.top_opportunities || [],
+          watermark: !hasProAccess,
+          laneLabel: "vehicle lanes",
+        },
+        format,
+      );
+      toast.success(`${format.toUpperCase()} lane pack started`);
+    } catch (error) {
+      toast.error("Lane pack failed", {
+        description: error instanceof Error ? error.message : "Unable to create this pack.",
+      });
+    }
+  };
+
+  const getModeDetail = (id: WorkspaceTab): string => {    switch (id) {
       case "overview":
         return `${fmtCount(snapshot?.hot_deal_count)} hot deals`;
       case "vehicles":
@@ -975,6 +1005,11 @@ export default function ProDashboard() {
                       <div className="text-right">
                         <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
                         <p className="ui-caption font-bold">Score {listing.deal_score?.toFixed(1) || "N/A"}</p>
+                        <VelocityBadge
+                          firstSeenAt={listing.first_seen_at ?? null}
+                          lastSeenAt={listing.last_seen_at ?? null}
+                          className="mt-1"
+                        />
                       </div>
                     </Link>
                     ))
@@ -1054,6 +1089,32 @@ export default function ProDashboard() {
                 </Select>
               </div>
             </SectionTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">
+                {hasProAccess
+                  ? `${filteredLanes.length.toLocaleString()} lanes in focus`
+                  : `Trial: 1 lane visible${lockedLaneCount > 0 ? ` · ${lockedLaneCount} locked` : ""}`}
+              </span>
+              <span className="flex-1" />
+              <button
+                type="button"
+                onClick={() => runLanePack("csv")}
+                disabled={loading || displayLanes.length === 0}
+                className="action-soft h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Lane pack CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => runLanePack("pdf")}
+                disabled={loading || displayLanes.length === 0}
+                className="action-soft h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Lane pack PDF
+              </button>
+            </div>
             {!loading && filteredLanes.length === 0 ? (
               <div className="console-empty flex flex-col items-center gap-4">
                 <Search className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
@@ -1084,7 +1145,7 @@ export default function ProDashboard() {
                             ))}
                           </tr>
                         ))
-                      : filteredLanes.map((lane) => (
+                      : displayLanes.map((lane) => (
                           <tr key={`${lane.make}-${lane.model}`} className="border-t border-border transition-colors hover:bg-surface">
                             <td className="px-4 py-3">
                               <button type="button" onClick={() => openVehicleDetail(lane)} className="text-left">
@@ -1100,6 +1161,30 @@ export default function ProDashboard() {
                             <td className="px-4 py-3 text-muted-foreground">{lane.top_source || "N/A"}</td>
                           </tr>
                         ))}
+                    {teaserLanes.map((lane) => (
+                      <tr
+                        key={`locked-${lane.make}-${lane.model}`}
+                        aria-hidden="true"
+                        className="select-none border-t border-border blur-sm"
+                      >
+                        <td className="px-4 py-3 font-bold text-foreground">{lane.make} {lane.model}</td>
+                        <td className="px-4 py-3 text-foreground num">{lane.listing_count.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-primary num">{fmtMoney(lane.median_price_lkr)}</td>
+                        <td className="px-4 py-3 text-muted-foreground num">{fmtMoney(lane.min_price_lkr)} - {fmtMoney(lane.max_price_lkr)}</td>
+                        <td className="px-4 py-3 text-foreground num">{lane.avg_deal_score?.toFixed(1) || "N/A"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{lane.top_district || "N/A"} · {lane.district_count}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{lane.top_source || "N/A"}</td>
+                      </tr>
+                    ))}
+                    {lockedLaneCount > 0 && (
+                      <tr className="border-t border-border bg-primary/5">
+                        <td colSpan={7} className="px-4 py-3 text-center text-xs font-bold">
+                          <Link to="/pricing" className="text-primary-bright no-underline hover:underline">
+                            {lockedLaneCount} more lane{lockedLaneCount === 1 ? "" : "s"} locked — start a 7-day free trial to unlock
+                          </Link>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1186,33 +1271,7 @@ export default function ProDashboard() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-auto rounded-xl border border-border" aria-label="Arbitrage gaps table">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead className="sticky top-0 z-10 bg-surface">
-                    <tr>
-                      {["Buy in", "Sell in", "Buy median", "Sell median", "Gap %", "Buy depth", "Sell depth"].map((heading) => (
-                        <th key={heading} className="border-b border-border px-4 py-3 text-left field-label">{heading}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {arbitrageGaps.map((gap) => (
-                      <tr
-                        key={`${gap.buy_district}-${gap.sell_district}`}
-                        className="border-t border-border hover:bg-surface"
-                      >
-                        <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">{gap.buy_district}</td>
-                        <td className="px-4 py-3 font-semibold text-primary">{gap.sell_district}</td>
-                        <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.buy_median_lkr)}</td>
-                        <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.sell_median_lkr)}</td>
-                        <td className="px-4 py-3 font-bold text-primary num">+{gap.gap_pct.toFixed(1)}%</td>
-                        <td className="px-4 py-3 text-muted-foreground num">{gap.buy_listing_count}</td>
-                        <td className="px-4 py-3 text-muted-foreground num">{gap.sell_listing_count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ArbitrageTable gaps={arbitrageGaps} visibleLimit={hasProAccess ? undefined : 3} />
             )}
           </TabsContent>
 

@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Check, HelpCircle, Loader2, Sparkles, Users } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, BookOpen, Check, HelpCircle, Loader2, MessageCircle, Sparkles, Timer, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { BRAND } from "@/lib/brand";
-import { ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS } from "@/lib/pricingContent";
+import { ANNUAL_SAVE_NUDGE, ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS, TRIAL_OFFER } from "@/lib/pricingContent";
 import type { PricingTierId } from "@/lib/pricingContent";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
@@ -11,14 +11,27 @@ import { PageHero } from "@/components/PageHero";
 import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { useAuth } from "@/lib/authContext";
 import { visuals } from "@/lib/visualAssets";
 import { API_BASE } from "@/services/api";
 import { authHeaders } from "@/lib/authToken";
+
+type ManualPayInstructions = {
+  plan: string;
+  methods: string[];
+  bankDetails: string;
+  kokoNote: string;
+  whatsappNumber?: string | null;
+  contactEmail: string;
+  activationWindow: string;
+  steps: string[];
+};
 
 type CheckoutIntentResponse = {
   provider: "manual" | "payhere" | "stripe";
   checkout_url?: string | null;
   message: string;
+  manual_pay?: ManualPayInstructions | null;
 };
 
 async function fetchCheckoutIntent(plan: string): Promise<CheckoutIntentResponse> {
@@ -30,6 +43,158 @@ async function fetchCheckoutIntent(plan: string): Promise<CheckoutIntentResponse
   });
   if (!res.ok) throw new Error("checkout-intent request failed");
   return res.json() as Promise<CheckoutIntentResponse>;
+}
+
+/** Days left until an ISO trial expiry (null when unknown). */
+function trialDaysLeftFromIso(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const ends = new Date(iso).getTime();
+  if (Number.isNaN(ends)) return null;
+  const diff = ends - Date.now();
+  if (diff <= 0) return 0;
+  const days = Math.floor(diff / 86400000);
+  return diff > 0 && days < 1 ? 1 : days;
+}
+
+/**
+ * Trial countdown banner. Shows live days-left when the signed-in user is
+ * trialing (reads /auth/me for trialEndsAt); otherwise shows the trial offer.
+ * Exported so App shell can mount it globally later without touching routes.
+ */
+export function TrialCountdownBanner() {
+  const { user } = useAuth();
+  const [trialEndsAt, setTrialEndsAt] = useState<string | null>(
+    ((user as unknown as { trialEndsAt?: string })?.trialEndsAt ?? null),
+  );
+  const [trialDays, setTrialDays] = useState<number | null>(
+    ((user as unknown as { trialDaysLeft?: number })?.trialDaysLeft ?? null),
+  );
+
+  useEffect(() => {
+    const embeddedEnds = (user as unknown as { trialEndsAt?: string })?.trialEndsAt;
+    const embeddedDays = (user as unknown as { trialDaysLeft?: number })?.trialDaysLeft;
+    if (embeddedEnds) setTrialEndsAt(embeddedEnds);
+    if (typeof embeddedDays === "number") setTrialDays(embeddedDays);
+    if (user?.subscriptionStatus !== "trialing" || embeddedEnds) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(new URL(`${API_BASE}/auth/me`, window.location.origin).toString(), {
+          headers: { Accept: "application/json", ...authHeaders() },
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { trialEndsAt?: string; trialDaysLeft?: number };
+        if (data.trialEndsAt) setTrialEndsAt(data.trialEndsAt);
+        if (typeof data.trialDaysLeft === "number") setTrialDays(data.trialDaysLeft);
+      } catch {
+        // Soft-fail: banner falls back to generic trial-active copy.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  if (user?.subscriptionStatus === "trialing") {    const days = trialDays ?? trialDaysLeftFromIso(trialEndsAt);
+    return (
+      <div
+        role="status"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-5 py-4"
+      >
+        <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+          <Timer aria-hidden className="h-4 w-4 text-primary" />
+          {days === null
+            ? "Your 7-day free trial is active — annual saves 2 months."
+            : days <= 0
+              ? "Your free trial ended — pay manually to keep Pro (2-hour activation)."
+              : `${days} day${days === 1 ? "" : "s"} left in your free trial — annual saves 2 months.`}
+        </p>
+        <Link
+          to="/pricing"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline"
+        >
+          Keep Pro
+          <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  if (user.plan !== "free") return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-5 py-4">
+      <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+        <Sparkles aria-hidden className="h-4 w-4 text-primary" />
+        {TRIAL_OFFER.cta} — no invite needed. Annual saves 2 months.
+      </p>
+      <Link
+        to={TRIAL_OFFER.ctaTo}
+        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline"
+      >
+        {TRIAL_OFFER.cta}
+        <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+      </Link>
+    </div>
+  );
+}
+
+function ManualPayPanel({ plan, instructions, onClose }: { plan: string; instructions: ManualPayInstructions; onClose: () => void }) {
+  const whatsappLink = instructions.whatsappNumber
+    ? `https://wa.me/${instructions.whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Motormila ${plan} upgrade — my account email is `)}`
+    : null;
+  return (
+    <div role="status" className="rounded-2xl border border-primary/25 bg-primary/[0.06] p-6 sm:p-7">
+      <p className="section-eyebrow mb-2 inline-flex items-center gap-2">
+        <MessageCircle aria-hidden className="h-3.5 w-3.5" />
+        Manual pay — {plan}
+      </p>
+      <h3 className="text-[15px] font-bold text-foreground">
+        Bank transfer or KOKO · activated within {instructions.activationWindow}
+      </h3>
+      <ol className="mt-4 space-y-2.5">
+        {instructions.steps.map((step) => (
+          <li key={step} className="flex gap-2.5 rounded-xl border border-border bg-card/60 p-3 text-[12px] leading-relaxed text-foreground/85">
+            <Check aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-4 grid gap-2 text-[12px] text-muted-foreground sm:grid-cols-2">
+        <p className="rounded-xl border border-border bg-surface p-3"><span className="font-bold text-foreground">Bank: </span>{instructions.bankDetails}</p>
+        <p className="rounded-xl border border-border bg-surface p-3"><span className="font-bold text-foreground">KOKO: </span>{instructions.kokoNote}</p>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {whatsappLink && (
+          <a
+            href={whatsappLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline"
+          >
+            <MessageCircle aria-hidden className="h-4 w-4" />
+            WhatsApp us ({instructions.activationWindow} activation)
+          </a>
+        )}
+        <a
+          href={`mailto:${instructions.contactEmail}?subject=Motormila%20${encodeURIComponent(plan)}%20plan%20upgrade`}
+          className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"
+        >
+          Email {instructions.contactEmail}
+        </a>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-muted-foreground"
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
 }
 
 const COMPARE_ROW_DEFS = [
@@ -54,6 +219,7 @@ const CTA_CLASS = (highlight?: boolean) =>
 export default function Pricing() {
   const { t } = useAppPreferences();
   const [checkoutLoading, setCheckoutLoading] = useState<PricingTierId | null>(null);
+  const [manualPay, setManualPay] = useState<{ plan: string; instructions: ManualPayInstructions } | null>(null);
   const cell = (key: string, fb: string) => (key ? t(key, fb) : fb);
 
   const handleCheckout = async (tierId: PricingTierId, fallbackTo: string) => {
@@ -62,9 +228,13 @@ export default function Pricing() {
       const intent = await fetchCheckoutIntent(tierId);
       if (intent.checkout_url) {
         window.location.href = intent.checkout_url;
-      } else {
-        window.location.href = `mailto:${BRAND.contactEmail}?subject=Motormila%20${tierId}%20plan%20upgrade`;
+        return;
       }
+      if (intent.manual_pay) {
+        setManualPay({ plan: tierId, instructions: intent.manual_pay });
+        return;
+      }
+      window.location.href = fallbackTo;
     } catch {
       window.location.href = fallbackTo;
     } finally {
@@ -86,29 +256,29 @@ export default function Pricing() {
         eyebrowIcon={Sparkles}
         watermarkIcon={Users}
         title={<>{t("pricing.title", "Pricing that funds the pipeline")}<span className="text-sheen">.</span></>}
-        description={t("pricing.body", "Free browse stays free. Pro and Dealer fund scrapes, scores, and workspaces.")}
+        description={t("pricing.body", "Free browse stays free. Start a 7-day free Pro trial — then keep Pro with bank, KOKO, or WhatsApp manual pay.")}
         media={visuals.alt2PagePricingBg}
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[
-          { label: "Workspaces", value: "4", hint: "Free through enterprise tiers" },
+          { label: "Trial", value: "7 days", hint: "Free Pro, no invite needed" },
           { label: "Dealer lane", value: "Pro", hint: "Command center + exports" },
-          { label: "Docs", value: "Live", hint: "Platform methodology" },
+          { label: "Annual", value: "-2 mo", hint: "Annual saves 2 months" },
         ]}
         actions={
           <>
             <Link
-              to="/sign-in"
+              to={TRIAL_OFFER.ctaTo}
               className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              {t("common.signIn", "Sign in")}
+              {t("pricing.startTrial", TRIAL_OFFER.cta)}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </Link>
             <Link
-              to="/dealer"
+              to="/pro-preview"
               className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              {t("pricing.dealerWorkspace", "Dealer workspace")}
+              {t("pricing.liveSample", "See live sample")}
             </Link>
             <Link
               to="/docs"
@@ -122,6 +292,8 @@ export default function Pricing() {
       />
 
       <PageBody className="space-y-16 lg:space-y-20">
+        <TrialCountdownBanner />
+
         <motion.section variants={revealItem} aria-labelledby="icp-heading">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
@@ -152,9 +324,13 @@ export default function Pricing() {
 
         <motion.section variants={revealItem} aria-labelledby="tiers-heading">
           <p className="section-eyebrow mb-3">{t("pricing.plansEyebrow", "Plans")}</p>
-          <h2 id="tiers-heading" className="display-2 mb-8 text-foreground">
+          <h2 id="tiers-heading" className="display-2 mb-3 text-foreground">
             {t("pricing.tiersTitle", "Choose the depth you need.")}
           </h2>
+          <p className="mb-8 inline-flex flex-wrap items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-2 text-[12px] font-semibold text-foreground">
+            <Sparkles aria-hidden className="h-3.5 w-3.5 text-primary" />
+            {t("pricing.annualNudge", `Annual saves 2 months — ${ANNUAL_SAVE_NUDGE.pro} · ${ANNUAL_SAVE_NUDGE.dealer}`)}
+          </p>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {PRICING_TIERS.map((tier) => (
               <div
@@ -211,6 +387,11 @@ export default function Pricing() {
               </div>
             ))}
           </div>
+          {manualPay && (
+            <div className="mt-6">
+              <ManualPayPanel plan={manualPay.plan} instructions={manualPay.instructions} onClose={() => setManualPay(null)} />
+            </div>
+          )}
         </motion.section>
 
         <motion.section variants={revealItem} aria-labelledby="compare-heading">
@@ -278,14 +459,14 @@ export default function Pricing() {
         >
           <div>
             <p className="section-eyebrow mb-2">{t("pricing.getStarted", "Get started")}</p>
-            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Sign in, open Dealer, or read the docs.")}</h3>
+            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Start your 7-day free trial, open Dealer, or read the docs.")}</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/sign-in"
+              to={TRIAL_OFFER.ctaTo}
               className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline"
             >
-              {t("common.signIn", "Sign in")}
+              {t("pricing.startTrial", TRIAL_OFFER.cta)}
             </Link>
             <Link
               to="/dealer"

@@ -1,0 +1,536 @@
+{
+  "generated_at": "2026-09-03T16:34:17.716Z",
+  "source": "seed",
+  "site_origin": "https://motormila.vercel.app",
+  "cap": 500,
+  "counts": {
+    "make-model": 25,
+    "make-model-year": 28,
+    "district": 25,
+    "compare": 10,
+    "total": 88
+  },
+  "urls": [
+    {
+      "path": "/cars/toyota/aqua",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Aqua"
+    },
+    {
+      "path": "/cars/toyota/aqua/2014",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Aqua",
+      "year": 2014
+    },
+    {
+      "path": "/cars/toyota/aqua/2017",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Aqua",
+      "year": 2017
+    },
+    {
+      "path": "/cars/toyota/aqua/2019",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Aqua",
+      "year": 2019
+    },
+    {
+      "path": "/cars/toyota/prius",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Prius"
+    },
+    {
+      "path": "/cars/toyota/prius/2016",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Prius",
+      "year": 2016
+    },
+    {
+      "path": "/cars/toyota/prius/2019",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Prius",
+      "year": 2019
+    },
+    {
+      "path": "/cars/toyota/corolla",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Corolla"
+    },
+    {
+      "path": "/cars/toyota/corolla/2018",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Corolla",
+      "year": 2018
+    },
+    {
+      "path": "/cars/toyota/premio",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Premio"
+    },
+    {
+      "path": "/cars/toyota/premio/2017",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Premio",
+      "year": 2017
+    },
+    {
+      "path": "/cars/toyota/vitz",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Vitz"
+    },
+    {
+      "path": "/cars/toyota/vitz/2016",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Vitz",
+      "year": 2016
+    },
+    {
+      "path": "/cars/toyota/hilux",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Hilux"
+    },
+    {
+      "path": "/cars/toyota/hilux/2019",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Hilux",
+      "year": 2019
+    },
+    {
+      "path": "/cars/honda/fit",
+      "kind": "make-model",
+      "make": "Honda",
+      "model": "Fit"
+    },
+    {
+      "path": "/cars/honda/fit/2015",
+      "kind": "make-model-year",
+      "make": "Honda",
+      "model": "Fit",
+      "year": 2015
+    },
+    {
+      "path": "/cars/honda/fit/2018",
+      "kind": "make-model-year",
+      "make": "Honda",
+      "model": "Fit",
+      "year": 2018
+    },
+    {
+      "path": "/cars/honda/vezel",
+      "kind": "make-model",
+      "make": "Honda",
+      "model": "Vezel"
+    },
+    {
+      "path": "/cars/honda/vezel/2017",
+      "kind": "make-model-year",
+      "make": "Honda",
+      "model": "Vezel",
+      "year": 2017
+    },
+    {
+      "path": "/cars/honda/civic",
+      "kind": "make-model",
+      "make": "Honda",
+      "model": "Civic"
+    },
+    {
+      "path": "/cars/honda/civic/2018",
+      "kind": "make-model-year",
+      "make": "Honda",
+      "model": "Civic",
+      "year": 2018
+    },
+    {
+      "path": "/cars/honda/freed",
+      "kind": "make-model",
+      "make": "Honda",
+      "model": "Freed"
+    },
+    {
+      "path": "/cars/honda/freed/2017",
+      "kind": "make-model-year",
+      "make": "Honda",
+      "model": "Freed",
+      "year": 2017
+    },
+    {
+      "path": "/cars/suzuki/swift",
+      "kind": "make-model",
+      "make": "Suzuki",
+      "model": "Swift"
+    },
+    {
+      "path": "/cars/suzuki/swift/2017",
+      "kind": "make-model-year",
+      "make": "Suzuki",
+      "model": "Swift",
+      "year": 2017
+    },
+    {
+      "path": "/cars/suzuki/wagon-r",
+      "kind": "make-model",
+      "make": "Suzuki",
+      "model": "Wagon R"
+    },
+    {
+      "path": "/cars/suzuki/wagon-r/2018",
+      "kind": "make-model-year",
+      "make": "Suzuki",
+      "model": "Wagon R",
+      "year": 2018
+    },
+    {
+      "path": "/cars/suzuki/alto",
+      "kind": "make-model",
+      "make": "Suzuki",
+      "model": "Alto"
+    },
+    {
+      "path": "/cars/suzuki/alto/2019",
+      "kind": "make-model-year",
+      "make": "Suzuki",
+      "model": "Alto",
+      "year": 2019
+    },
+    {
+      "path": "/cars/suzuki/baleno",
+      "kind": "make-model",
+      "make": "Suzuki",
+      "model": "Baleno"
+    },
+    {
+      "path": "/cars/suzuki/baleno/2017",
+      "kind": "make-model-year",
+      "make": "Suzuki",
+      "model": "Baleno",
+      "year": 2017
+    },
+    {
+      "path": "/cars/nissan/leaf",
+      "kind": "make-model",
+      "make": "Nissan",
+      "model": "Leaf"
+    },
+    {
+      "path": "/cars/nissan/leaf/2018",
+      "kind": "make-model-year",
+      "make": "Nissan",
+      "model": "Leaf",
+      "year": 2018
+    },
+    {
+      "path": "/cars/nissan/note",
+      "kind": "make-model",
+      "make": "Nissan",
+      "model": "Note"
+    },
+    {
+      "path": "/cars/nissan/note/2017",
+      "kind": "make-model-year",
+      "make": "Nissan",
+      "model": "Note",
+      "year": 2017
+    },
+    {
+      "path": "/cars/nissan/x-trail",
+      "kind": "make-model",
+      "make": "Nissan",
+      "model": "X-Trail"
+    },
+    {
+      "path": "/cars/nissan/x-trail/2016",
+      "kind": "make-model-year",
+      "make": "Nissan",
+      "model": "X-Trail",
+      "year": 2016
+    },
+    {
+      "path": "/cars/mitsubishi/mirage",
+      "kind": "make-model",
+      "make": "Mitsubishi",
+      "model": "Mirage"
+    },
+    {
+      "path": "/cars/mitsubishi/mirage/2016",
+      "kind": "make-model-year",
+      "make": "Mitsubishi",
+      "model": "Mirage",
+      "year": 2016
+    },
+    {
+      "path": "/cars/mazda/demio",
+      "kind": "make-model",
+      "make": "Mazda",
+      "model": "Demio"
+    },
+    {
+      "path": "/cars/mazda/demio/2016",
+      "kind": "make-model-year",
+      "make": "Mazda",
+      "model": "Demio",
+      "year": 2016
+    },
+    {
+      "path": "/cars/mazda/axela",
+      "kind": "make-model",
+      "make": "Mazda",
+      "model": "Axela"
+    },
+    {
+      "path": "/cars/mazda/axela/2015",
+      "kind": "make-model-year",
+      "make": "Mazda",
+      "model": "Axela",
+      "year": 2015
+    },
+    {
+      "path": "/cars/hyundai/tucson",
+      "kind": "make-model",
+      "make": "Hyundai",
+      "model": "Tucson"
+    },
+    {
+      "path": "/cars/hyundai/tucson/2018",
+      "kind": "make-model-year",
+      "make": "Hyundai",
+      "model": "Tucson",
+      "year": 2018
+    },
+    {
+      "path": "/cars/kia/sportage",
+      "kind": "make-model",
+      "make": "Kia",
+      "model": "Sportage"
+    },
+    {
+      "path": "/cars/kia/sportage/2018",
+      "kind": "make-model-year",
+      "make": "Kia",
+      "model": "Sportage",
+      "year": 2018
+    },
+    {
+      "path": "/cars/daihatsu/mira",
+      "kind": "make-model",
+      "make": "Daihatsu",
+      "model": "Mira"
+    },
+    {
+      "path": "/cars/daihatsu/mira/2017",
+      "kind": "make-model-year",
+      "make": "Daihatsu",
+      "model": "Mira",
+      "year": 2017
+    },
+    {
+      "path": "/cars/toyota/land-cruiser",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Land Cruiser"
+    },
+    {
+      "path": "/cars/toyota/allion",
+      "kind": "make-model",
+      "make": "Toyota",
+      "model": "Allion"
+    },
+    {
+      "path": "/cars/toyota/allion/2016",
+      "kind": "make-model-year",
+      "make": "Toyota",
+      "model": "Allion",
+      "year": 2016
+    },
+    {
+      "path": "/locations/colombo",
+      "kind": "district",
+      "district": "colombo"
+    },
+    {
+      "path": "/locations/gampaha",
+      "kind": "district",
+      "district": "gampaha"
+    },
+    {
+      "path": "/locations/kalutara",
+      "kind": "district",
+      "district": "kalutara"
+    },
+    {
+      "path": "/locations/kandy",
+      "kind": "district",
+      "district": "kandy"
+    },
+    {
+      "path": "/locations/matale",
+      "kind": "district",
+      "district": "matale"
+    },
+    {
+      "path": "/locations/nuwara-eliya",
+      "kind": "district",
+      "district": "nuwara-eliya"
+    },
+    {
+      "path": "/locations/galle",
+      "kind": "district",
+      "district": "galle"
+    },
+    {
+      "path": "/locations/matara",
+      "kind": "district",
+      "district": "matara"
+    },
+    {
+      "path": "/locations/hambantota",
+      "kind": "district",
+      "district": "hambantota"
+    },
+    {
+      "path": "/locations/jaffna",
+      "kind": "district",
+      "district": "jaffna"
+    },
+    {
+      "path": "/locations/kilinochchi",
+      "kind": "district",
+      "district": "kilinochchi"
+    },
+    {
+      "path": "/locations/mannar",
+      "kind": "district",
+      "district": "mannar"
+    },
+    {
+      "path": "/locations/vavuniya",
+      "kind": "district",
+      "district": "vavuniya"
+    },
+    {
+      "path": "/locations/mullaitivu",
+      "kind": "district",
+      "district": "mullaitivu"
+    },
+    {
+      "path": "/locations/batticaloa",
+      "kind": "district",
+      "district": "batticaloa"
+    },
+    {
+      "path": "/locations/ampara",
+      "kind": "district",
+      "district": "ampara"
+    },
+    {
+      "path": "/locations/trincomalee",
+      "kind": "district",
+      "district": "trincomalee"
+    },
+    {
+      "path": "/locations/kurunegala",
+      "kind": "district",
+      "district": "kurunegala"
+    },
+    {
+      "path": "/locations/puttalam",
+      "kind": "district",
+      "district": "puttalam"
+    },
+    {
+      "path": "/locations/anuradhapura",
+      "kind": "district",
+      "district": "anuradhapura"
+    },
+    {
+      "path": "/locations/polonnaruwa",
+      "kind": "district",
+      "district": "polonnaruwa"
+    },
+    {
+      "path": "/locations/badulla",
+      "kind": "district",
+      "district": "badulla"
+    },
+    {
+      "path": "/locations/moneragala",
+      "kind": "district",
+      "district": "moneragala"
+    },
+    {
+      "path": "/locations/ratnapura",
+      "kind": "district",
+      "district": "ratnapura"
+    },
+    {
+      "path": "/locations/kegalle",
+      "kind": "district",
+      "district": "kegalle"
+    },
+    {
+      "path": "/compare/101-vs-202",
+      "kind": "compare",
+      "slug": "101-vs-202"
+    },
+    {
+      "path": "/compare/303-vs-404",
+      "kind": "compare",
+      "slug": "303-vs-404"
+    },
+    {
+      "path": "/compare/505-vs-606",
+      "kind": "compare",
+      "slug": "505-vs-606"
+    },
+    {
+      "path": "/compare/707-vs-808",
+      "kind": "compare",
+      "slug": "707-vs-808"
+    },
+    {
+      "path": "/compare/909-vs-1010",
+      "kind": "compare",
+      "slug": "909-vs-1010"
+    },
+    {
+      "path": "/compare/111-vs-222",
+      "kind": "compare",
+      "slug": "111-vs-222"
+    },
+    {
+      "path": "/compare/333-vs-444",
+      "kind": "compare",
+      "slug": "333-vs-444"
+    },
+    {
+      "path": "/compare/555-vs-666",
+      "kind": "compare",
+      "slug": "555-vs-666"
+    },
+    {
+      "path": "/compare/777-vs-888",
+      "kind": "compare",
+      "slug": "777-vs-888"
+    },
+    {
+      "path": "/compare/999-vs-1001",
+      "kind": "compare",
+      "slug": "999-vs-1001"
+    }
+  ]
+}

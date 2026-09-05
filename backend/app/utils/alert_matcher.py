@@ -18,7 +18,17 @@ import structlog
 from sqlalchemy.orm import Session
 
 from db.models import CarListing, MarketAlert, MarketAlertMatch, live_listing_filter
+from app.utils.channel_center import (
+    check_and_record_delivery,
+    dedupe_key,
+    should_queue,
+)
 from app.utils.notify_email import email_notify_configured, send_alert_email
+from app.utils.notify_push import (
+    PUSH_TOPIC_ALERT_MATCH,
+    push_notify_configured,
+    send_push_alert,
+)
 from app.utils.notify_telegram import send_telegram_alert, telegram_notify_configured
 from app.utils.notify_whatsapp import (
     build_alert_match_message,
@@ -60,6 +70,65 @@ def _resolve_channels(alert: MarketAlert) -> set[str]:
     return channels
 
 
+def _representative_listing_id(db: Session, alert: MarketAlert) -> int:
+    """Top matching listing id for the dedupe key (alert:listing:channel)."""
+    try:
+        q = db.query(CarListing.id).filter(live_listing_filter())
+        if alert.make:
+            q = q.filter(CarListing.make.ilike(alert.make))
+        if alert.model:
+            q = q.filter(CarListing.model.ilike(alert.model))
+        if alert.district:
+            q = q.filter(CarListing.district.ilike(alert.district))
+        if alert.max_price:
+            q = q.filter(CarListing.price_lkr <= alert.max_price)
+        row = q.order_by(CarListing.id.desc()).first()
+        return int(row[0]) if row and row[0] is not None else 0
+    except Exception:
+        return 0
+
+
+def _channel_sendable(
+    db: Session,
+    *,
+    alert: MarketAlert,
+    listing_id: int,
+    channel: str,
+) -> tuple[bool, str]:
+    """Apply digest/quiet-hours queue + dedupe. Returns (send_now, receipt_status).
+
+    - digest or quiet-hours window -> (False, "digest_queued"|"queued_quiet")
+    - duplicate dedupe key -> (False, "duplicate")
+    - else records the receipt and returns (True, "sent").
+    In-app is handled by the caller (always immediate, fail-open).
+    """
+    try:
+        queued, reason = should_queue(channel, alert)
+        if queued:
+            status = "digest_queued" if reason == "digest_0700" else "queued_quiet"
+            check_and_record_delivery(
+                db,
+                key=dedupe_key(alert.id, listing_id, channel),
+                alert_id=int(alert.id),
+                listing_id=listing_id or None,
+                channel=channel,
+                status=status,
+            )
+            return False, status
+        fresh = check_and_record_delivery(
+            db,
+            key=dedupe_key(alert.id, listing_id, channel),
+            alert_id=int(alert.id),
+            listing_id=listing_id or None,
+            channel=channel,
+            status="sent",
+        )
+        return (True, "sent") if fresh else (False, "duplicate")
+    except Exception:
+        # Fail open: any helper error must not block the send attempt.
+        return True, "sent"
+
+
 def run_alert_match_pass(db: Session) -> dict:
     """Check all active MarketAlerts and upsert MarketAlertMatch rows.
 
@@ -91,10 +160,13 @@ def run_alert_match_pass(db: Session) -> dict:
     whatsapp_sent = 0
     email_sent = 0
     telegram_sent = 0
+    push_sent = 0
+    queued = 0
 
     wa_configured = whatsapp_notify_configured()
     tg_configured = telegram_notify_configured()
     em_configured = email_notify_configured()
+    push_configured = push_notify_configured()
 
     for alert in alerts:
         try:
@@ -130,25 +202,67 @@ def run_alert_match_pass(db: Session) -> dict:
                     match_count=delta,
                 )
                 channels = _resolve_channels(alert)
+                listing_id = _representative_listing_id(db, alert)
 
                 if "whatsapp" in channels and wa_configured and getattr(alert, "notify_phone", None):
-                    if send_whatsapp_alert(to_phone=str(alert.notify_phone), body=body):
+                    send_now, receipt = _channel_sendable(db, alert=alert, listing_id=listing_id, channel="whatsapp")
+                    if not send_now:
+                        queued += 1
+                    elif send_whatsapp_alert(to_phone=str(alert.notify_phone), body=body):
                         whatsapp_sent += 1
 
                 if "email" in channels and em_configured and getattr(alert, "notify_email", None):
-                    label_parts = [p for p in [alert.make, alert.model] if p]
-                    label = " ".join(label_parts) if label_parts else "your saved search"
-                    subject = f"Motormila: {delta} new match{'es' if delta != 1 else ''} for {label}"
-                    if send_alert_email(
-                        to_email=str(alert.notify_email),
-                        subject=subject,
-                        text=body,
-                    ):
-                        email_sent += 1
+                    send_now, receipt = _channel_sendable(db, alert=alert, listing_id=listing_id, channel="email")
+                    if not send_now:
+                        queued += 1
+                    else:
+                        label_parts = [p for p in [alert.make, alert.model] if p]
+                        label = " ".join(label_parts) if label_parts else "your saved search"
+                        subject = f"Motormila: {delta} new match{'es' if delta != 1 else ''} for {label}"
+                        if send_alert_email(
+                            to_email=str(alert.notify_email),
+                            subject=subject,
+                            text=body,
+                        ):
+                            email_sent += 1
 
                 if "telegram" in channels and tg_configured and getattr(alert, "notify_telegram_chat_id", None):
-                    if send_telegram_alert(chat_id=str(alert.notify_telegram_chat_id), body=body):
+                    send_now, receipt = _channel_sendable(db, alert=alert, listing_id=listing_id, channel="telegram")
+                    if not send_now:
+                        queued += 1
+                    elif send_telegram_alert(chat_id=str(alert.notify_telegram_chat_id), body=body):
                         telegram_sent += 1
+
+                if "push" in channels and push_configured:
+                    send_now, receipt = _channel_sendable(db, alert=alert, listing_id=listing_id, channel="push")
+                    if not send_now:
+                        queued += 1
+                    else:
+                        try:
+                            from db.models import PushSubscription
+
+                            subs = (
+                                db.query(PushSubscription)
+                                .filter(PushSubscription.user_token == alert.user_token)
+                                .all()
+                            )
+                            label_parts = [p for p in [alert.make, alert.model] if p]
+                            label = " ".join(label_parts) if label_parts else "your saved search"
+                            title = f"Motormila: {delta} new match{'es' if delta != 1 else ''} for {label}"
+                            for sub in subs:
+                                if send_push_alert(
+                                    endpoint=str(sub.endpoint),
+                                    p256dh=getattr(sub, "p256dh", None),
+                                    auth=getattr(sub, "auth", None),
+                                    title=title,
+                                    body=body,
+                                    url="/alerts",
+                                    topic=PUSH_TOPIC_ALERT_MATCH,
+                                ):
+                                    push_sent += 1
+                                    break
+                        except Exception as push_exc:
+                            log.debug("alert_match_push_failed", alert_id=alert.id, error=str(push_exc))
 
                 # Record in-app notification — fail silently so this never
                 # aborts the match pass if the table is missing or not yet migrated.
@@ -186,6 +300,8 @@ def run_alert_match_pass(db: Session) -> dict:
         "whatsapp_sent": whatsapp_sent,
         "email_sent": email_sent,
         "telegram_sent": telegram_sent,
+        "push_sent": push_sent,
+        "queued": queued,
         "errors": errors,
         "elapsed_seconds": elapsed,
     }

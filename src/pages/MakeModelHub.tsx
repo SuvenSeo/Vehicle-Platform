@@ -125,28 +125,8 @@ export default function MakeModelHub() {
       tag.setAttribute("content", content);
     };
 
-    const setCanonical = (href: string) => {
-      let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-      if (!link) {
-        link = document.createElement("link");
-        link.setAttribute("rel", "canonical");
-        document.head.appendChild(link);
-      }
-      link.setAttribute("href", href);
-    };
-
-    const setJsonLd = (data: Record<string, unknown>) => {
-      const id = "autolens-jsonld";
-      let script = document.getElementById(id) as HTMLScriptElement | null;
-      if (!script) {
-        script = document.createElement("script");
-        script.id = id;
-        script.type = "application/ld+json";
-        document.head.appendChild(script);
-      }
-      script.textContent = JSON.stringify(data);
-    };
-
+    // Canonical + JSON-LD owned by global RouteMeta (id autolens-jsonld) —
+    // page-level writes removed to avoid last-write-wins collision.
     const pathname = `/cars/${encodeURIComponent(makeParam)}/${encodeURIComponent(modelParam)}`;
     setMeta("description", description);
     setProperty("og:title", title);
@@ -154,15 +134,6 @@ export default function MakeModelHub() {
     setProperty("og:url", `${ORIGIN}${pathname}`);
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
-    setCanonical(`${ORIGIN}${pathname}`);
-    setJsonLd({
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      name: t("hub.jsonLdName", "{vehicle} listings in Sri Lanka", { vehicle }),
-      description,
-      url: `${ORIGIN}${pathname}`,
-      numberOfItems: insight?.total ?? undefined,
-    });
   }, [title, description, makeParam, modelParam, insight, vehicle, t]);
 
   const isPending = insightQuery.isPending;

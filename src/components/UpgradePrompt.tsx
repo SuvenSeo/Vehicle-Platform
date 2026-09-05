@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Crown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { freePlanCopy } from "@/lib/planLimits";
 import { useAppPreferences } from "@/lib/appPreferences";
 
 type UpgradePromptProps = {
@@ -22,7 +21,7 @@ export function UpgradePrompt({
   ctaLabel,
 }: UpgradePromptProps) {
   const { t } = useAppPreferences();
-  const resolvedCta = ctaLabel ?? t("upgrade.cta", freePlanCopy.genericCta);
+  const resolvedCta = ctaLabel ?? t("upgrade.cta", "Start 7-day free trial");
 
   if (variant === "strip") {
     return (

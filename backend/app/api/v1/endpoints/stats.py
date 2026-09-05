@@ -19,6 +19,7 @@ from app.utils.pricing import build_district_median_map, median_from_values, med
 from app.utils.stats_cache import (
     build_trends_cache_key,
     compute_district_velocity,
+    get_cache_age_seconds,
     get_cached_district_prices,
     get_cached_district_velocity,
     get_cached_insights,
@@ -31,6 +32,7 @@ from app.utils.stats_cache import (
     store_price_index_cache,
     store_summary_cache,
     store_trends_cache,
+    with_degraded_flag,
 )
 from app.utils.time import utc_now
 from app.utils.plan_limits import (
@@ -174,11 +176,12 @@ def build_live_market_snapshot(db: Session) -> dict:
 @router.get("/price-index", response_model=PriceIndexResponse)
 def get_price_index(
     request: Request,
+    response: Response = None,  # type: ignore[assignment]
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """Mix-adjusted monthly used-vehicle price index (overall + top makes)."""
-    cached = get_cached_price_index(db)
+    cached = get_cached_price_index(db, allow_stale=False)
     if cached is not None:
         result = cached
     else:
@@ -187,7 +190,9 @@ def get_price_index(
         except Exception:
             stale = get_cached_price_index(db, allow_stale=True)
             if stale is not None:
-                result = stale
+                age = get_cache_age_seconds(db, "price_index")
+                _mark_stale_response(response, age)
+                result = with_degraded_flag(stale, stale_age_seconds=age)
             else:
                 raise
         else:
@@ -214,10 +219,23 @@ def _set_cache_control(response, value: str = "public, max-age=60") -> None:
         response.headers["Cache-Control"] = value
 
 
+def _mark_stale_response(response, age_seconds) -> None:
+    """Additive SWR markers for stale fallbacks.
+
+    Typed payloads (StatsSummary / DistrictVelocityResponse) cannot carry
+    extra fields through their response_model, so staleness travels via
+    headers; dict payloads additionally get the ``degraded`` envelope.
+    """
+    if response is not None:
+        response.headers["X-Cache-Status"] = "stale"
+        if age_seconds is not None:
+            response.headers["X-Cache-Age"] = str(int(age_seconds))
+
+
 @router.get("/summary", response_model=StatsSummary)
 def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    # Serve from materialized cache when fresh (< 1 hour).
-    cached = get_cached_summary(db)
+    # Serve from materialized cache when fresh (summary TTL: 15 min).
+    cached = get_cached_summary(db, allow_stale=False)
     if cached is not None:
         _set_cache_control(response)
         return cached
@@ -280,6 +298,7 @@ def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):
         stale = get_cached_summary(db, allow_stale=True)
         if stale is not None:
             _set_cache_control(response)
+            _mark_stale_response(response, get_cache_age_seconds(db, "summary"))
             return stale
         raise
 
@@ -351,8 +370,8 @@ async def stream_live_market_snapshot(request: Request):
 
 @router.get("/district-prices")
 def get_district_prices(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    # Serve from materialized cache when fresh (< 1 hour).
-    cached = get_cached_district_prices(db)
+    # Serve from materialized cache when fresh (district-prices TTL: 1 hour).
+    cached = get_cached_district_prices(db, allow_stale=False)
     if cached is not None:
         _set_cache_control(response)
         return cached
@@ -500,8 +519,10 @@ def get_district_prices(response: Response = None, db: Session = Depends(get_db)
     except Exception:
         stale = get_cached_district_prices(db, allow_stale=True)
         if stale is not None:
+            age = get_cache_age_seconds(db, "district_prices")
             _set_cache_control(response)
-            return stale
+            _mark_stale_response(response, age)
+            return with_degraded_flag(stale, stale_age_seconds=age)
         raise
 
     store_district_prices_cache(db, result)
@@ -812,6 +833,7 @@ def get_price_trends(
     condition: Optional[str] = None,
     district: Optional[str] = None,
     months: int = Query(12, ge=3, le=24),
+    response: Response = None,  # type: ignore[assignment]
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
@@ -835,7 +857,7 @@ def get_price_trends(
         district=district,
         months=months_value,
     )
-    cached = get_cached_trends(db, cache_key)
+    cached = get_cached_trends(db, cache_key, allow_stale=False)
     if cached is not None:
         return cached
 
@@ -851,7 +873,9 @@ def get_price_trends(
     except Exception:
         stale = get_cached_trends(db, cache_key, allow_stale=True)
         if stale is not None:
-            return stale
+            age = get_cache_age_seconds(db, cache_key)
+            _mark_stale_response(response, age)
+            return with_degraded_flag(stale, stale_age_seconds=age)
         raise
 
     store_trends_cache(db, cache_key, result)
@@ -1039,8 +1063,11 @@ def _compute_dashboard_insights_payload(db: Session) -> dict:
 
 
 @router.get("/insights", response_model=DashboardInsightsResponse)
-def get_dashboard_insights(db: Session = Depends(get_db)):
-    cached = get_cached_insights(db)
+def get_dashboard_insights(
+    response: Response = None,  # type: ignore[assignment]
+    db: Session = Depends(get_db),
+):
+    cached = get_cached_insights(db, allow_stale=False)
     if cached is not None:
         return cached
 
@@ -1049,7 +1076,9 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_insights(db, allow_stale=True)
         if stale is not None:
-            return stale
+            age = get_cache_age_seconds(db, "insights")
+            _mark_stale_response(response, age)
+            return with_degraded_flag(stale, stale_age_seconds=age)
         raise
 
     store_insights_cache(db, result)
@@ -1654,7 +1683,7 @@ def get_ev_insight(
 
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
 def get_district_velocity(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    cached = get_cached_district_velocity(db)
+    cached = get_cached_district_velocity(db, allow_stale=False)
     if cached is not None:
         _set_cache_control(response)
         return cached
@@ -1665,6 +1694,7 @@ def get_district_velocity(response: Response = None, db: Session = Depends(get_d
         stale = get_cached_district_velocity(db, allow_stale=True)
         if stale is not None:
             _set_cache_control(response)
+            _mark_stale_response(response, get_cache_age_seconds(db, "district_velocity"))
             return stale
         raise
 

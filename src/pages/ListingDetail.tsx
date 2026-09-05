@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
   Share2, Fuel, Gauge, Settings2, MessageCircle,
-  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap
+  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap, Scale
 } from 'lucide-react';
 import { getListing, getListingFmv, getListingGeo, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
 import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
@@ -17,6 +17,8 @@ import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
 import { SafetyResearchCard } from '@/components/SafetyResearchCard';
 import { ListingGeoCard } from '@/components/ListingGeoCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
+import { FmvExplainer } from '@/components/FmvExplainer';
+import { useCompareTray } from '@/components/CompareTray';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
@@ -62,6 +64,7 @@ export default function ListingDetail() {
   const [safetyResearch, setSafetyResearch] = useState<SafetyResearchResponse | null>(null);
   const [listingGeo, setListingGeo] = useState<EnrichmentEnvelope | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toggle: toggleCompare, isPinned: isPinnedForCompare } = useCompareTray();
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -94,6 +97,26 @@ export default function ListingDetail() {
   const handleWhatsAppShare = () => {
     const text = `${buildShareText()}\n${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleComparePin = () => {
+    if (!listing) return;
+    const price = Number(listing.price_lkr || 0);
+    const priced = Number.isFinite(price) && price >= 100_000 && price <= 500_000_000;
+    const median = Number(listing.market_median_lkr);
+    const result = toggleCompare({
+      id: Number(listing.id),
+      make: listing.make,
+      model: listing.model,
+      year: listing.year,
+      price_lkr: priced ? price : null,
+      fmv_lkr: fmvDetail?.fmv_lkr ?? (Number.isFinite(median) && median > 0 ? median : null),
+      mileage_km: Number(listing.mileage_km) || null,
+      district: listing.district,
+      deal_score: typeof listing.deal_score === 'number' ? listing.deal_score : null,
+    });
+    if (result.atCap) toast.error(t("listing.compareFull", "Compare tray is full (max 3) — remove one first"));
+    else if (result.pinned) toast.success(t("listing.compareAdded", "Pinned to compare tray"));
   };
 
   useEffect(() => {
@@ -540,6 +563,24 @@ export default function ListingDetail() {
                       {fmvDetail.confidence !== "none" ? ` · ${fmvDetail.confidence} confidence` : ""}
                     </p>
                   )}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-border/70 pt-2.5">
+                    <FmvExplainer
+                      compsCount={fmvDetail?.sample_size ?? 0}
+                      confidence={fmvDetail?.confidence ?? "none"}
+                      method={fmvDetail?.method}
+                      fmvLkr={fmvSummary.fmv_lkr}
+                      updatedAt={fmvDetail?.updated_at}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleComparePin}
+                      aria-pressed={isPinnedForCompare(Number(listing.id))}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-primary-bright transition-all hover:bg-primary/15 active:scale-[0.97]"
+                    >
+                      <Scale aria-hidden className="h-3 w-3" />
+                      {isPinnedForCompare(Number(listing.id)) ? t("listing.pinned", "Pinned ✓") : t("listing.addToCompare", "Add to compare")}
+                    </button>
+                  </div>
                 </div>
               )}
 

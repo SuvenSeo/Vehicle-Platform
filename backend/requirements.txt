@@ -19,4 +19,5 @@ sentry-sdk==2.65.0
 boto3==1.43.53
 Pillow==12.2.0
 imagehash==4.3.2
+pywebpush==1.14.0
 redis==5.2.1

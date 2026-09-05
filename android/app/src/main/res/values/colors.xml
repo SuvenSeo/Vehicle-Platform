@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimal legacy colors; Compose tokens in ui/theme/Color.kt are canonical. -->
+<resources>
+    <color name="motormila_bg">#06090E</color>
+    <color name="motormila_gold">#E7C46B</color>
+    <color name="launcher_bg">#06090E</color>
+    <color name="launcher_gold">#E7C46B</color>
+</resources>

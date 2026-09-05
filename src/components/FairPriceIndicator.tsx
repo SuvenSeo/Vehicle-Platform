@@ -1,50 +1,64 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DEAL_TIER_META, getDealTier } from "@/components/DealScoreBadge";
+import { formatPriceLkrMillions } from "@/lib/formatting";
 
 interface FairPriceIndicatorProps {
   score: number;
   condition?: string;
   size?: "sm" | "lg";
+  /** Asking price — enables the Rs delta readout when paired with fmvLkr. */
+  priceLkr?: number | null;
+  /** Fair-market reference for the Rs delta readout. */
+  fmvLkr?: number | null;
   className?: string;
 }
 
-function getDealLabel(score: number, condition?: string) {
-  if (score >= 8) return "Good Deal";
-  if (score <= -5) return "Overpriced";
-  if (condition === "brand_new") return "NEW FAIR PRICE";
-  return "USED FAIR PRICE";
-}
-
-function getDealBadgeClasses(label: string, size: "sm" | "lg"): string {
+function getTierBadgeClasses(tier: keyof typeof DEAL_TIER_META, size: "sm" | "lg"): string {
   const isSm = size === "sm";
-
-  if (label === "Good Deal") {
-    return isSm
-      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 p-1 px-2.5 text-label font-mono border"
-      : "text-emerald-400 text-4xl tracking-tight p-0 border-0";
-  }
-  if (label === "Overpriced") {
-    return isSm
-      ? "bg-rose-500/10 border-rose-500/30 text-rose-400 p-1 px-2.5 text-label font-mono border"
-      : "text-rose-400 text-4xl tracking-tight p-0 border-0";
-  }
-  // Fair Price classes — in-band, neutral amber
+  const tone = DEAL_TIER_META[tier].classes;
   return isSm
-    ? "bg-primary/10 border-primary/20 text-primary-bright p-1 px-2.5 text-label font-mono border"
-    : "text-primary text-4xl tracking-tight p-0 border-0";
+    ? cn(tone, "border p-1 px-2.5 text-label font-mono")
+    : cn(tone, "border-0 bg-transparent p-0 text-4xl tracking-tight");
 }
 
-export function FairPriceIndicator({ score, condition, size = "sm", className }: FairPriceIndicatorProps) {
-  const label = getDealLabel(score, condition);
-  const badgeClasses = getDealBadgeClasses(label, size);
+export function FairPriceIndicator({
+  score,
+  condition,
+  size = "sm",
+  priceLkr,
+  fmvLkr,
+  className,
+}: FairPriceIndicatorProps) {
+  const tier = getDealTier(score);
+  const meta = DEAL_TIER_META[tier];
+  const badgeClasses = getTierBadgeClasses(tier, size);
+  const Icon = meta.Icon;
+
+  const rsDelta =
+    priceLkr != null && fmvLkr != null && Number.isFinite(Number(priceLkr)) && Number(fmvLkr) > 0
+      ? (() => {
+          const delta = Number(priceLkr) - Number(fmvLkr);
+          if (Math.abs(delta) < 1000) return "at FMV";
+          const abs = formatPriceLkrMillions(Math.abs(delta));
+          return delta < 0 ? `${abs} below FMV` : `${abs} above FMV`;
+        })()
+      : null;
+
+  const label =
+    tier === "steal" ? "Steal Deal" : tier === "great" ? "Great Deal" : tier === "fair" ? "Fair Price" : "Overpriced";
 
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
           <span className={cn("inline-flex items-center gap-1.5 cursor-help transition-all duration-200 hover:opacity-80 active:scale-[0.98]", size === "sm" ? "font-semibold uppercase rounded" : "uppercase font-bold", badgeClasses, className)}>
+            <Icon className={cn("opacity-70", size === "sm" ? "h-3 w-3" : "h-6 w-6 ml-2")} aria-hidden />
             {label}
+            {rsDelta && size === "sm" && (
+              <span className="font-mono normal-case tracking-normal opacity-80">· {rsDelta}</span>
+            )}
             <Info className={cn("opacity-60", size === "sm" ? "w-3 h-3" : "w-6 h-6 ml-2")} />
           </span>
         </TooltipTrigger>

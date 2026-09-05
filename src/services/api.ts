@@ -1262,6 +1262,13 @@ export const getListingHistoryReport = async (id: string | number): Promise<Hist
   return fetchJSON<HistoryReport>(`/listings/${id}/history-report`);
 };
 
+export interface FmvMethodBreakdown {
+  base_median_lkr: number | null;
+  km_adjustment_lkr: number | null;
+  district_adjustment_lkr: number | null;
+  final_fmv_lkr: number | null;
+}
+
 export interface ListingFmvDetail {
   listing_id: number | null;
   asking_lkr: number | null;
@@ -1275,6 +1282,9 @@ export interface ListingFmvDetail {
   sample_size: number;
   confidence: "high" | "medium" | "low" | "none";
   comps_median_lkr: number | null;
+  km_adjustment_lkr?: number | null;
+  district_adjustment_lkr?: number | null;
+  method_breakdown?: FmvMethodBreakdown | null;
   updated_at: string;
 }
 
@@ -2199,6 +2209,8 @@ export interface AlertCreateInput {
   notify_email?: string;
   notify_telegram_chat_id?: string;
   notify_channels?: string;
+  delivery_mode?: "instant" | "digest";
+  quiet_hours_enabled?: boolean;
 }
 
 export interface ServerMarketAlert {
@@ -2212,6 +2224,8 @@ export interface ServerMarketAlert {
   notify_email?: string | null;
   notify_telegram_chat_id?: string | null;
   notify_channels?: string | null;
+  delivery_mode?: string | null;
+  quiet_hours_enabled?: boolean | null;
   active: boolean;
   created_at: string;
 }
@@ -2299,6 +2313,73 @@ export const markNotificationRead = async (id: number): Promise<UserNotification
 
 export const markAllNotificationsRead = async (): Promise<{ marked_read: number }> => {
   return postJSON<{ marked_read: number }>("/notifications/read-all", {}, authHeaders());
+};
+
+export interface AlertChannelsUpdateInput {
+  channels?: string[];
+  delivery_mode?: "instant" | "digest";
+  quiet_hours_enabled?: boolean;
+}
+
+export const updateAlertChannels = async (
+  token: string,
+  id: number,
+  data: AlertChannelsUpdateInput,
+): Promise<ServerMarketAlert> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const url = new URL(`${API_BASE}/alerts/${id}/channels`, window.location.origin).toString();
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...authHeaders(),
+        ...alertTokenHeader(token),
+      },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await parseApiError(response);
+    return (await response.json()) as ServerMarketAlert;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+export interface NotificationPreferences {
+  channels: string[];
+  quiet_hours: { start: number; end: number; tz: string; note: string };
+  digest_time: string;
+  delivery_modes: string[];
+  push_configured: boolean;
+  vapid_public_key: string | null;
+  topics: string[];
+}
+
+export const getNotificationPreferences = async (): Promise<NotificationPreferences> => {
+  return fetchJSON<NotificationPreferences>("/notifications/preferences", undefined, authHeaders());
+};
+
+export const subscribePushEndpoint = async (sub: {
+  endpoint: string;
+  p256dh?: string;
+  auth?: string;
+}): Promise<{ subscribed: boolean; push_configured: boolean }> => {
+  return postJSON<{ subscribed: boolean; push_configured: boolean }>(
+    "/notifications/push/subscribe",
+    { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+    authHeaders(),
+  );
+};
+
+export const unsubscribePushEndpoint = async (endpoint: string): Promise<{ subscribed: boolean }> => {
+  return postJSON<{ subscribed: boolean }>(
+    "/notifications/push/unsubscribe",
+    { endpoint },
+    authHeaders(),
+  );
 };
 
 // ---------------------------------------------------------------------------

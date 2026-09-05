@@ -83,6 +83,9 @@ def _request_plan(request: Optional[Request] = None, authorization: Optional[str
 
 
 def _is_free_browse_plan(plan: Optional[str], role: Optional[str] = None) -> bool:
+    if plan is None:
+        # Anonymous public-browse callers get free-teaser limits (no Pro signals).
+        return True
     return is_free_browse_plan(plan, role=role)
 
 

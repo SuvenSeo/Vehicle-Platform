@@ -11,6 +11,7 @@ from sqlalchemy import text
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
+from app.services.digest_flush_scheduler import start_digest_flush_scheduler, stop_digest_flush_scheduler
 from db.session import hot_engine, init_db
 
 from .api.v1.api import api_router
@@ -92,8 +93,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("daily_sync_scheduler_start_failed", error=str(e))
 
+    try:
+        start_digest_flush_scheduler()
+    except Exception as e:
+        logger.error("digest_flush_scheduler_start_failed", error=str(e))
+
     yield
 
+    try:
+        stop_digest_flush_scheduler()
+    except Exception as e:
+        logger.error("digest_flush_scheduler_stop_failed", error=str(e))
     try:
         stop_daily_sync_scheduler()
     except Exception as e:
