@@ -7,7 +7,7 @@ import { CarListing } from "@/types/car";
 import { ComparisonModal } from "@/components/ComparisonModal";
 import { DealScoreBadge } from "@/components/DealScoreBadge";
 import { FmvExplainer } from "@/components/FmvExplainer";
-import { buildCompareLink, useCompareTray } from "@/components/CompareTray";
+import { buildCompareLink, useCompareTray } from "@/lib/compareTray";
 import { PageCanvas } from "@/components/PageCanvas";
 
 const MAX_COMPARE_IDS = 3;

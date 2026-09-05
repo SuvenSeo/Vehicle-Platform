@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEAL_TIER_META, getDealTier } from "@/components/DealScoreBadge";
+import { DEAL_TIER_META, getDealTier } from "@/lib/dealTiers";
 import { formatPriceLkrMillions } from "@/lib/formatting";
 
 interface FairPriceIndicatorProps {

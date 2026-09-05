@@ -18,7 +18,7 @@ import { SafetyResearchCard } from '@/components/SafetyResearchCard';
 import { ListingGeoCard } from '@/components/ListingGeoCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { FmvExplainer } from '@/components/FmvExplainer';
-import { useCompareTray } from '@/components/CompareTray';
+import { useCompareTray } from '@/lib/compareTray';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
