@@ -75,6 +75,7 @@ jobs:
           "
 
       - name: Run scraper — ${{ matrix.source }}
+        continue-on-error: ${{ matrix.source == 'riyasewana' }}
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
@@ -91,6 +92,7 @@ jobs:
           SCRAPE_SOURCE_TIMEOUT_SECONDS: "3600"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "3600"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "3600"
+          RIYASEWANA_ARCHIVE_FALLBACK: "0"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
@@ -120,7 +122,7 @@ jobs:
   market-analysis:
     runs-on: ubuntu-latest
     needs: scrape-source
-    if: ${{ !cancelled() }}
+    if: ${{ always() && !cancelled() }}
     # First pass after a migration/dedup rebuild is heavy (deal scores,
     # lifecycle, outlier, thumbnail/phash backfill over the full table).
     timeout-minutes: 180
@@ -183,7 +185,7 @@ jobs:
   snapshot-export:
     runs-on: ubuntu-latest
     needs: [scrape-source, market-analysis]
-    if: ${{ !cancelled() && needs.market-analysis.result == 'success' }}
+    if: ${{ always() && !cancelled() && needs.market-analysis.result == 'success' }}
     timeout-minutes: 30
 
     defaults:

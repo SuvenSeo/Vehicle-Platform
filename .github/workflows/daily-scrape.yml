@@ -19,15 +19,18 @@ concurrency:
 
 jobs:
   scrape-source:
-    # Laptop self-hosted runner: the residential IP dodges Cloudflare rate-limits
-    # (hosted runners get 403-walled after ~9 pages/category; 1,400 errors seen),
-    # and workerCount=4 lets several matrix sources scrape in parallel. Jobs queue
-    # if the laptop is off and run when it returns. Requires Git Bash.
-    runs-on: self-hosted
+    # GitHub-hosted: the laptop self-hosted runner has been offline for weeks,
+    # so scheduled jobs sat queued and were cancelled by the next cron tick.
+    # ikman (public JSON API) and most other sources work from datacenter IPs.
+    # riyasewana + patpat are Cloudflare-walled here — those scrape steps are
+    # allowed to fail so the rest of the fleet still writes to Neon.
+    # Residential recrawl (when the laptop is on): residential-cf-sources.yml
+    runs-on: ubuntu-latest
     # Heavy sources need setup (~10m) + scrape headroom. Lighter sources finish sooner.
     timeout-minutes: ${{ contains(fromJSON('["ikman","riyasewana"]'), matrix.source) && 180 || 60 }}
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix:
         source: [ikman, riyasewana, patpat, autolanka, auto-lanka, autodirect, autostream, carshop, saleme, riyahub, dimo, hitad, cartivate]
 
@@ -40,19 +43,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # setup-python@v5 needs admin rights on Windows self-hosted runners
-      # (it cleans registry entries), so use the system Python instead.
-      - name: Check Python
-        run: |
-          python --version
-          python -m pip --version
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      # install-deps is Linux-only; Playwright is only the fallback path
-      # (riyasewana auto-uses plain-HTTP mode, ikman uses its API).
+      - name: Install Playwright system dependencies
+        run: python -m playwright install-deps chromium
+
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browser
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
         run: python -m playwright install chromium
 
       - name: Validate scraper modules compile
@@ -88,6 +102,7 @@ jobs:
           "
 
       - name: Run scraper — ${{ matrix.source }}
+        continue-on-error: ${{ contains(fromJSON('["riyasewana","patpat"]'), matrix.source) }}
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
@@ -135,6 +150,9 @@ jobs:
           SCRAPE_SOURCE_TIMEOUT_SECONDS_DIMO: "2400"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_HITAD: "2400"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_CARTIVATE: "2400"
+          # Hosted runners cannot pass riyasewana Cloudflare; don't hide that
+          # behind a zero-insert Wayback fallback.
+          RIYASEWANA_ARCHIVE_FALLBACK: "0"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
@@ -164,7 +182,7 @@ jobs:
   market-analysis:
     runs-on: ubuntu-latest
     needs: scrape-source
-    if: ${{ !cancelled() }}
+    if: ${{ always() && !cancelled() }}
     # First pass after a migration/dedup rebuild is heavy (deal scores,
     # lifecycle, outlier, thumbnail/phash backfill over the full table).
     timeout-minutes: 180
@@ -222,7 +240,7 @@ jobs:
   snapshot-export:
     runs-on: ubuntu-latest
     needs: [scrape-source, market-analysis]
-    if: ${{ !cancelled() && needs.market-analysis.result == 'success' }}
+    if: ${{ always() && !cancelled() && needs.market-analysis.result == 'success' }}
     timeout-minutes: 30
 
     defaults:

@@ -383,10 +383,13 @@ def pipeline_status(db: Session = Depends(get_db), is_admin: bool = Depends(has_
         expected_hours = EXPECTED_HOURS.get(source, 12)
         last_status = str(last_run.status or "").upper() if last_run else None
         last_error = _visible_error_message(last_run.error_message if last_run else None, is_admin=is_admin) or ""
+        raw_error = str(last_run.error_message or "").strip() if last_run else ""
 
         if active_run is not None:
             status = "running"
         elif last_status == "DEGRADED":
+            status = "delayed"
+        elif last_status == "FAILED" and raw_error != ORPHAN_RUNNING_ERROR:
             status = "delayed"
         elif success_at and now - success_at <= timedelta(hours=expected_hours * 1.5):
             status = "ok"

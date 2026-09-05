@@ -23,7 +23,7 @@ from app.scrapers.net import (
     stealth_init_script,
 )
 from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
-from app.utils.listing_upsert import upsert_listings_batch
+from app.utils.listing_upsert import upsert_listing, upsert_listings_batch
 from app.utils.time import utc_now
 
 log = structlog.get_logger()
@@ -612,6 +612,7 @@ class IkmanCarScraper:
         return upserted
 
     async def _scrape_via_playwright(self, max_pages: int = 5):
+        upserted = 0
         async with async_playwright() as p:
             launch_kwargs = {"headless": True}
             launch_proxy = playwright_launch_proxy()
@@ -779,6 +780,7 @@ class IkmanCarScraper:
                                         continue
                                     self._upsert_listing(normalized_payload)
                                     self.db.commit()
+                                    upserted += 1
                                 except Exception as e:
                                     log.error("listing_save_error", error=str(e))
                                     self.db.rollback()
@@ -799,6 +801,7 @@ class IkmanCarScraper:
                 except PlaywrightError:
                     log.debug("ikman_unroute_cleanup_skipped")
                 await browser.close()
+        return upserted
 
     async def scrape(self, max_pages: int = 5):
         mode = str(os.getenv("IKMAN_SCRAPE_MODE", "auto") or "auto").strip().lower()
@@ -807,8 +810,7 @@ class IkmanCarScraper:
             mode = "auto"
 
         if mode == "playwright":
-            await self._scrape_via_playwright(max_pages)
-            return
+            return await self._scrape_via_playwright(max_pages)
 
         try:
             try:
@@ -822,7 +824,7 @@ class IkmanCarScraper:
                 max_pages=max_pages,
                 start_page=start_page,
             )
-            return
+            return upserted
         except IkmanApiUnavailable as exc:
             if mode == "api":
                 raise
@@ -831,4 +833,4 @@ class IkmanCarScraper:
                 error=str(exc),
                 max_pages=max_pages,
             )
-            await self._scrape_via_playwright(max_pages)
+            return await self._scrape_via_playwright(max_pages)
