@@ -42,7 +42,7 @@ jobs:
       - name: Scrape sources and upload dump
         run: |
           bash backend/scripts/ops/manus_scrape_dump.sh \
-            ikman autolanka hitad autostream saleme riyahub carshop dimo autodirect cartivate
+            riyasewana ikman autolanka hitad autostream saleme riyahub carshop dimo autodirect cartivate
 
       - name: Upload local dump if delivery failed
         if: failure()

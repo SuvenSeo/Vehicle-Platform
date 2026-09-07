@@ -43,7 +43,6 @@ EXCLUDE_COLS = {
     "deal_score",
     "thumbnail_url_cached",
     "image_phash",
-    "vehicle_category",
     "content_updated_at",
     "last_seen_at",
 }

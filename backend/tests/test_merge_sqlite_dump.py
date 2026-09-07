@@ -221,3 +221,33 @@ def test_dry_run_writes_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert _run_merge(monkeypatch, dump, target, dry_run=True) == 0
     assert _count(target, "car_listings") == 0
     assert _count(target, "vehicle_price_history") == 0
+
+
+def test_merge_preserves_vehicle_category(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The dump merge must preserve vehicle_category on car_listings."""
+    dump_db = tmp_path / "autolens.db"
+    engine = create_engine(f"sqlite:///{dump_db}")
+    Base.metadata.create_all(engine)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO car_listings (source, source_id, title, make, model, year, price_lkr, "
+                "scraped_at, first_seen_at, url, is_active, is_outlier, is_duplicate, vehicle_category) "
+                "VALUES ('ikman', 'ad-van-1', 'Toyota Hiace 2015', 'Toyota', 'Hiace', 2015, 6500000, "
+                "'2026-08-01 10:00:00', '2026-08-01 10:00:00', 'https://ikman.lk/ad-van-1', 1, 0, 0, 'vans')"
+            )
+        )
+    engine.dispose()
+
+    gz = dump_db.with_suffix(".db.gz")
+    with dump_db.open("rb") as fin, gzip.open(gz, "wb") as fout:
+        shutil.copyfileobj(fin, fout)
+
+    target = tmp_path / "merged.db"
+    _fresh_target(target)
+
+    assert _run_merge(monkeypatch, gz, target) == 0
+    with sqlite3.connect(target) as con:
+        cat = con.execute("SELECT vehicle_category FROM car_listings WHERE source_id = 'ad-van-1'").fetchone()[0]
+        assert cat == "vans"
+

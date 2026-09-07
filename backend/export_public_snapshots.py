@@ -107,6 +107,7 @@ def listing_to_dict(row: CarListing) -> dict[str, Any]:
         "engine_cc": int(row.engine_capacity) if row.engine_capacity is not None else None,
         "condition": row.condition,
         "body_type": row.body_type,
+        "vehicle_category": row.vehicle_category,
         "district": row.district,
         "city": row.city,
         "thumbnail_url": row.thumbnail_url,
@@ -213,6 +214,7 @@ def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
                 CarListing.engine_capacity,
                 CarListing.condition,
                 CarListing.body_type,
+                CarListing.vehicle_category,
                 CarListing.district,
                 CarListing.city,
                 CarListing.thumbnail_url,
@@ -225,7 +227,10 @@ def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
             )
         )
         .filter(live_listing_filter())
-        .order_by(desc(CarListing.first_seen_at), desc(CarListing.id))
+        .order_by(
+            desc(func.coalesce(CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at)),
+            desc(CarListing.id),
+        )
     )
     if limit is not None and limit > 0:
         query = query.limit(limit)

@@ -655,19 +655,19 @@ class RiyasewanaScraper:
                         # the Playwright browser; in explicit http mode stop the
                         # crawl and keep the partial results already upserted.
                         if consecutive_page_errors >= 15:
-                            if mode == "auto":
+                            if mode == "auto" and (category_path == "cars" or upserted == 0):
                                 raise RiyasewanaBlockedError(
                                     f"riyasewana.com rate-limited the HTTP crawl "
                                     f"({consecutive_page_errors} consecutive page errors "
                                     f"on {category_path}); falling back to Playwright"
                                 )
                             log.warning(
-                                "riyasewana_http_rate_limited_stop",
+                                "riyasewana_http_rate_limited_skip_category",
                                 category=category_path,
                                 consecutive_page_errors=consecutive_page_errors,
-                                note="keeping partial results upserted so far",
+                                note="skipping remaining pages of this category and continuing",
                             )
-                            return upserted
+                            break
                         page_num += 1
                         continue
 

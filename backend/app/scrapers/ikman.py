@@ -400,6 +400,7 @@ class IkmanCarScraper:
         category_id: int,
         page_num: int,
         next_page_token: str | None,
+        max_retries: int = 3,
     ) -> tuple[list[dict], str | None, dict]:
         params: dict[str, str | int] = {
             "category": int(category_id),
@@ -410,20 +411,42 @@ class IkmanCarScraper:
         if next_page_token:
             params["next_page_token"] = next_page_token
 
-        response = await client.get(f"{self.API_BASE_URL}/v1/serp", params=params, timeout=45)
-        response.raise_for_status()
-        payload = response.json() if response.content else {}
-        if not isinstance(payload, dict):
-            raise IkmanApiUnavailable("ikman serp payload is not an object")
+        last_exc: Exception | None = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = await client.get(f"{self.API_BASE_URL}/v1/serp", params=params, timeout=45)
+                response.raise_for_status()
+                payload = response.json() if response.content else {}
+                if not isinstance(payload, dict):
+                    raise IkmanApiUnavailable("ikman serp payload is not an object")
 
-        serp = payload.get("serp") if isinstance(payload.get("serp"), dict) else {}
-        results = serp.get("results") if isinstance(serp, dict) else None
-        if not isinstance(results, list):
-            results = []
+                serp = payload.get("serp") if isinstance(payload.get("serp"), dict) else {}
+                results = serp.get("results") if isinstance(serp, dict) else None
+                if not isinstance(results, list):
+                    results = []
 
-        pagination = payload.get("pagination") if isinstance(payload.get("pagination"), dict) else {}
-        token = str(pagination.get("next_page_token") or "").strip() or None
-        return [row for row in results if isinstance(row, dict)], token, pagination
+                pagination = payload.get("pagination") if isinstance(payload.get("pagination"), dict) else {}
+                token = str(pagination.get("next_page_token") or "").strip() or None
+                return [row for row in results if isinstance(row, dict)], token, pagination
+            except (httpx.HTTPError, httpx.TimeoutException, json.JSONDecodeError) as exc:
+                last_exc = exc
+                if attempt < max_retries:
+                    backoff = 1.0 * (2 ** (attempt - 1))
+                    log.warning(
+                        "ikman_serp_fetch_retry",
+                        category_id=category_id,
+                        page=page_num,
+                        attempt=attempt,
+                        backoff=backoff,
+                        error=str(exc),
+                    )
+                    await asyncio.sleep(backoff)
+                else:
+                    break
+
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("Failed to fetch ikman serp page after retries")
 
     async def _scrape_category_via_api(
         self,
