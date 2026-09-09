@@ -10,6 +10,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import lk.motormila.app.core.common.AppError
@@ -67,9 +68,11 @@ class MakeHubViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            observeWatchlist().collect { items ->
-                _state.update { it.copy(watchedIds = items.map { row -> row.listingId }.toSet()) }
-            }
+            observeWatchlist()
+                .catch { }
+                .collect { items ->
+                    _state.update { it.copy(watchedIds = items.map { row -> row.listingId }.toSet()) }
+                }
         }
         load()
     }

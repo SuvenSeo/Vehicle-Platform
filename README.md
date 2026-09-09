@@ -91,7 +91,7 @@ Motormila fixes that with one obsessive idea: **watch everything, deduplicate ru
 | **Admin Console** | Invite users, assign Free/Pro plans, manage access |
 
 ### 📱 Mobile
-A companion **native Android app** in `android/` — Kotlin, Jetpack Compose, Hilt, Paging 3, CameraX plate scan, and WorkManager sync. Biometric unlock, share-URL import, and local notifications are included. Play Billing and FCM are stubbed in v1 (server checkout-intent fallback; push routing is local-only until a Firebase backend lands).
+A companion **native Android app** in `android/` — Kotlin, Jetpack Compose, Hilt, Paging 3, CameraX plate scan, and WorkManager sync. Home/profile hubs cover EV, Official Pulse, Best Picks, make/model/district pages, and the import calculator. Biometric unlock, share-URL import, FMV share cards, and local notifications are included. Play Billing and FCM are stubbed in v1 (server checkout-intent fallback; push routing is local-only until a Firebase backend lands).
 
 Debug builds can point at a local FastAPI backend via `MOTORMILA_API_URL` / `-PmotormilaApiUrl` (emulator loopback: `http://10.0.2.2:8000/api/v1`). Release uses the HF Space API.
 

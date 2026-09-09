@@ -106,7 +106,7 @@ internal data class ParsedDeepLink(
 )
 
 /** JVM-safe parser so unit tests do not need `android.net.Uri`. */
-fun parseDeepLink(raw: String): ParsedDeepLink? {
+internal fun parseDeepLink(raw: String): ParsedDeepLink? {
     val schemeSep = raw.indexOf("://")
     if (schemeSep <= 0) return null
     val scheme = raw.substring(0, schemeSep)

@@ -87,6 +87,7 @@ fun DistrictHubScreen(
     onListingClick: (Int) -> Unit,
     onModelClick: (make: String, model: String) -> Unit,
     onSeeAllSearch: (district: String) -> Unit,
+    onDistrictClick: (district: String) -> Unit = {},
     viewModel: DistrictHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -183,6 +184,10 @@ fun DistrictHubScreen(
                         if (!reducedMotion) haptics.tick()
                         onSeeAllSearch(district)
                     },
+                    onDistrictClick = { district ->
+                        if (!reducedMotion) haptics.tick()
+                        onDistrictClick(district)
+                    },
                     onWatchToggle = { listing ->
                         viewModel.onEvent(DistrictHubUiEvent.ToggleWatch(listing))
                     },
@@ -212,6 +217,7 @@ private fun DistrictHubBody(
     onListingClick: (Int) -> Unit,
     onModelClick: (String, String) -> Unit,
     onSeeAllSearch: (String) -> Unit,
+    onDistrictClick: (String) -> Unit,
     onWatchToggle: (Listing) -> Unit,
 ) {
     val displayName = state.displayName
@@ -228,7 +234,7 @@ private fun DistrictHubBody(
             item {
                 NearbyDistrictsRow(
                     nearby = state.nearby,
-                    onDistrictClick = onSeeAllSearch,
+                    onDistrictClick = onDistrictClick,
                 )
             }
         }

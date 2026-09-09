@@ -30,6 +30,8 @@ import lk.motormila.app.ui.MotormilaScaffold
 import lk.motormila.app.ui.alerts.AlertsScreen
 import lk.motormila.app.ui.auth.LoginScreen
 import lk.motormila.app.ui.bestpicks.BestPicksScreen
+import lk.motormila.app.ui.calc.CalculatorScreen
+import lk.motormila.app.ui.district.DistrictHubScreen
 import lk.motormila.app.ui.biometric.rememberBiometricAuth
 import lk.motormila.app.ui.compare.CompareScreen
 import lk.motormila.app.ui.dealer.DealerScreen
@@ -37,6 +39,8 @@ import lk.motormila.app.ui.detail.ListingDetailScreen
 import lk.motormila.app.ui.ev.EvHubScreen
 import lk.motormila.app.ui.home.HomeScreen
 import lk.motormila.app.ui.insights.InsightsScreen
+import lk.motormila.app.ui.make.MakeHubScreen
+import lk.motormila.app.ui.make.MakeModelHubScreen
 import lk.motormila.app.ui.notifications.NotificationsScreen
 import lk.motormila.app.ui.pro.ProScreen
 import lk.motormila.app.ui.profile.ProfileScreen
@@ -194,6 +198,13 @@ fun MotormilaNavGraph(
                             onEvHubClick = { navController.navigate(EvHub) },
                             onBestPicksClick = { navController.navigate(BestPicks) },
                             onPulseClick = { navController.navigate(OfficialPulse) },
+                            onMakeModelClick = { make, model ->
+                                navController.navigate(MakeModelHub(make, model))
+                            },
+                            onDistrictClick = { district ->
+                                navController.navigate(DistrictHub(district))
+                            },
+                            onCalculatorClick = { navController.navigate(Calculator) },
                         )
                     }
                     composable<Search>(
@@ -223,10 +234,15 @@ fun MotormilaNavGraph(
                         InsightsScreen(
                             onOpenPulseDetail = { navController.navigate(Notifications) },
                             onDrillDistrict = { district ->
-                                navController.navigate(Search(district = district))
+                                navController.navigate(DistrictHub(district))
                             },
                             onSearchModels = { query ->
-                                navController.navigate(Search(q = query))
+                                val parts = query.trim().split(Regex("\\s+"), limit = 2)
+                                if (parts.size == 2) {
+                                    navController.navigate(MakeModelHub(parts[0], parts[1]))
+                                } else {
+                                    navController.navigate(Search(q = query))
+                                }
                             },
                         )
                     }
@@ -241,6 +257,7 @@ fun MotormilaNavGraph(
                             onEvHubClick = { navController.navigate(EvHub) },
                             onPulseClick = { navController.navigate(OfficialPulse) },
                             onBestPicksClick = { navController.navigate(BestPicks) },
+                            onCalculatorClick = { navController.navigate(Calculator) },
                         )
                     }
                     composable<ListingDetail>(
@@ -287,7 +304,9 @@ fun MotormilaNavGraph(
                     composable<Pro> {
                         ProScreen(
                             onOpenCheckout = { url -> uriHandler.openUri(url) },
-                            onOpenDistrict = { navController.navigate(Insights) },
+                            onOpenDistrict = { district ->
+                                navController.navigate(DistrictHub(district))
+                            },
                         )
                     }
                     composable<Dealer> {
@@ -355,7 +374,14 @@ fun MotormilaNavGraph(
                     ) {
                         EvHubScreen(
                             onBack = { navController.popBackStack() },
-                            onSearchModels = { query -> navController.navigate(Search(q = query)) },
+                            onSearchModels = { query ->
+                                val parts = query.trim().split(Regex("\\s+"), limit = 2)
+                                if (parts.size == 2) {
+                                    navController.navigate(MakeModelHub(parts[0], parts[1]))
+                                } else {
+                                    navController.navigate(Search(q = query))
+                                }
+                            },
                             onOpenListing = { id -> navController.navigate(ListingDetail(id)) },
                         )
                     }
@@ -379,6 +405,73 @@ fun MotormilaNavGraph(
                             onSeeAllSearch = {
                                 navController.navigate(Search(sort = "deal_score"))
                             },
+                        )
+                    }
+                    composable<MakeHub>(
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://cars/{make}" },
+                            navDeepLink { uriPattern = "motormila://make/{make}" },
+                            navDeepLink { uriPattern = "https://motormila.vercel.app/cars/{make}" },
+                        ),
+                    ) {
+                        MakeHubScreen(
+                            onBack = { navController.popBackStack() },
+                            onModelClick = { make, model ->
+                                navController.navigate(MakeModelHub(make, model))
+                            },
+                            onListingClick = { id -> navController.navigate(ListingDetail(id)) },
+                            onSeeAllSearch = { make ->
+                                navController.navigate(Search(make = make))
+                            },
+                        )
+                    }
+                    composable<MakeModelHub>(
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://cars/{make}/{model}" },
+                            navDeepLink { uriPattern = "https://motormila.vercel.app/cars/{make}/{model}" },
+                        ),
+                    ) {
+                        MakeModelHubScreen(
+                            onBack = { navController.popBackStack() },
+                            onMakeClick = { make -> navController.navigate(MakeHub(make)) },
+                            onListingClick = { id -> navController.navigate(ListingDetail(id)) },
+                            onSeeAllSearch = { make, model ->
+                                navController.navigate(Search(make = make, model = model))
+                            },
+                            onEstimate = { make, model ->
+                                navController.navigate(Valuation(make, model))
+                            },
+                        )
+                    }
+                    composable<DistrictHub>(
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://locations/{district}" },
+                            navDeepLink { uriPattern = "https://motormila.vercel.app/locations/{district}" },
+                        ),
+                    ) {
+                        DistrictHubScreen(
+                            onBack = { navController.popBackStack() },
+                            onListingClick = { id -> navController.navigate(ListingDetail(id)) },
+                            onModelClick = { make, model ->
+                                navController.navigate(MakeModelHub(make, model))
+                            },
+                            onSeeAllSearch = { district ->
+                                navController.navigate(Search(district = district))
+                            },
+                            onDistrictClick = { district ->
+                                navController.navigate(DistrictHub(district))
+                            },
+                        )
+                    }
+                    composable<Calculator>(
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://calculator" },
+                            navDeepLink { uriPattern = "https://motormila.vercel.app/calculator" },
+                        ),
+                    ) {
+                        CalculatorScreen(
+                            onBack = { navController.popBackStack() },
+                            onUpgrade = { navController.navigate(Pro) },
                         )
                     }
                 }

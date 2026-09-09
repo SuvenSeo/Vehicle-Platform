@@ -25,6 +25,9 @@ fun HomeScreen(
     onEvHubClick: () -> Unit = {},   // -> EvHub
     onBestPicksClick: () -> Unit = {}, // -> BestPicks
     onPulseClick: () -> Unit = {},   // -> OfficialPulse
+    onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> }, // -> MakeModelHub
+    onDistrictClick: (district: String) -> Unit = {}, // -> DistrictHub
+    onCalculatorClick: () -> Unit = {}, // -> Calculator
     viewModel: HomeViewModel = hiltViewModel(),
 )
 
@@ -45,7 +48,7 @@ fun SearchScreen(
 @Composable
 fun WatchlistScreen(
     onOpenDetail: (id: Int) -> Unit, // -> ListingDetail(id)
-    onCreateAlert: (id: Int) -> Unit,// -> Alerts (arg ignored, no alertId route yet)
+    onCreateAlert: (id: Int) -> Unit,// -> Alerts(listingId=id) prefill
     onBrowse: () -> Unit,            // -> Search()
     viewModel: WatchlistViewModel = hiltViewModel(),
 )
@@ -147,6 +150,7 @@ fun ProfileScreen(
     onEvHubClick: () -> Unit = {},   // -> EvHub
     onPulseClick: () -> Unit = {},   // -> OfficialPulse
     onBestPicksClick: () -> Unit = {}, // -> BestPicks
+    onCalculatorClick: () -> Unit = {}, // -> Calculator
     viewModel: ProfileViewModel = hiltViewModel(),
 )
 
@@ -197,6 +201,46 @@ fun BestPicksScreen(
     onSeeAllSearch: () -> Unit,         // -> Search(sort="deal_score")
     viewModel: BestPicksViewModel = hiltViewModel(),
 )
+
+// lk.motormila.app.ui.make — MakeHubScreen.kt
+@Composable
+fun MakeHubScreen(
+    onBack: () -> Unit,                              // popBackStack
+    onModelClick: (make: String, model: String) -> Unit, // -> MakeModelHub
+    onListingClick: (Int) -> Unit,                   // -> ListingDetail(id)
+    onSeeAllSearch: (make: String) -> Unit,          // -> Search(make=)
+    viewModel: MakeHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.make — MakeModelHubScreen.kt
+@Composable
+fun MakeModelHubScreen(
+    onBack: () -> Unit,
+    onMakeClick: (make: String) -> Unit,             // -> MakeHub
+    onListingClick: (Int) -> Unit,                   // -> ListingDetail(id)
+    onSeeAllSearch: (make: String, model: String) -> Unit, // -> Search(make, model)
+    onEstimate: (make: String, model: String) -> Unit,     // -> Valuation(make, model)
+    viewModel: MakeModelHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.district — DistrictHubScreen.kt
+@Composable
+fun DistrictHubScreen(
+    onBack: () -> Unit,
+    onListingClick: (Int) -> Unit,                   // -> ListingDetail(id)
+    onModelClick: (make: String, model: String) -> Unit, // -> MakeModelHub
+    onSeeAllSearch: (district: String) -> Unit,      // -> Search(district=)
+    onDistrictClick: (district: String) -> Unit = {}, // -> DistrictHub
+    viewModel: DistrictHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.calc — CalculatorScreen.kt
+@Composable
+fun CalculatorScreen(
+    onBack: () -> Unit,                 // popBackStack
+    onUpgrade: () -> Unit,              // -> Pro
+    viewModel: CalculatorViewModel = hiltViewModel(),
+)
 ```
 
 ## 2. Missing — none (retired)
@@ -220,9 +264,13 @@ New screens: add the destination to `Routes.kt`, wire it in
 @Serializable data class ListingDetail(val id: Int)
 @Serializable data class Compare(val ids: List<Int>)
 @Serializable data class Valuation(val make: String? = null, val model: String? = null)
-@Serializable data object Alerts / Notifications / Pro / Dealer / Settings / PlateScan
+@Serializable data class Alerts(val listingId: Int = 0)
+@Serializable data object Notifications / Pro / Dealer / Settings / PlateScan
 @Serializable data class ShareImport(val url: String? = null)
-@Serializable data object EvHub / OfficialPulse / BestPicks
+@Serializable data object EvHub / OfficialPulse / BestPicks / Calculator
+@Serializable data class MakeHub(val make: String)
+@Serializable data class MakeModelHub(val make: String, val model: String)
+@Serializable data class DistrictHub(val district: String)
 ```
 
 Bottom bar still `navigate(Search())` with empty defaults + `launchSingleTop` /
@@ -258,6 +306,13 @@ Compose, so MainActivity parses VIEW URIs and navigates after splash):
 | `motormila://scan` | `PlateScan` |
 | `motormila://home` (no dealOfDay) | `Home` |
 | `motormila://pro?deal=day` | `BestPicks` (legacy) |
+| `motormila://calculator` | `Calculator` |
+| `motormila://cars/{make}` / `motormila://make/{make}` | `MakeHub` |
+| `motormila://cars/{make}/{model}` | `MakeModelHub` |
+| `motormila://locations/{district}` | `DistrictHub` |
+| `https://motormila.vercel.app/cars/{make}[/{model}]` | `MakeHub` / `MakeModelHub` |
+| `https://motormila.vercel.app/locations/{district}` | `DistrictHub` |
+| `https://motormila.vercel.app/calculator` | `Calculator` |
 
 Splash always runs on a cold start (unless ACTION_SEND → ShareImport). After
 splash the deep-link target is used instead of always Home. `onNewIntent`

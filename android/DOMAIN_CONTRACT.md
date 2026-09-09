@@ -20,9 +20,8 @@ gradle, manifest, theme, `Routes`/`NavGraph`.
     touch-exploration ON ⇒ no stagger/shimmer/sweep/haptic. No platform
     animation-scale API is referenced; if the theme module adds one, wire it
     inside `rememberReducedMotion()` — callers need no change.
-  - Share FMV card is currently a text share (`ACTION_SEND` + deep link
-    `https://motormila.vercel.app/listings/{id}`). Bitmap renderer is a
-    foundation-builder TODO (hook point: `shareListing()` in `DetailScreen.kt`).
+  - Share FMV card: `FmvShare` renders a PNG into `cacheDir/share` and shares via
+    FileProvider (`${applicationId}.fileprovider`). Hook: `shareListing()` in `DetailScreen.kt`.
   - Use cases live in one file per class under `domain/usecase/` (12 files).
 
 ## 1. Rules (binding on all builders)

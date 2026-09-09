@@ -73,8 +73,12 @@
                 <data android:scheme="motormila" android:host="picks" />
                 <data android:scheme="motormila" android:host="ev" />
                 <data android:scheme="motormila" android:host="pulse" />
+                <data android:scheme="motormila" android:host="calculator" />
+                <data android:scheme="motormila" android:host="cars" />
+                <data android:scheme="motormila" android:host="make" />
+                <data android:scheme="motormila" android:host="locations" />
             </intent-filter>
-            <!-- Optional https app link: https://motormila.vercel.app/listing/{id} -->
+            <!-- Optional https app links: listing, cars, locations, calculator. -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -83,6 +87,33 @@
                     android:scheme="https"
                     android:host="motormila.vercel.app"
                     android:pathPrefix="/listing" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/cars" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/locations" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/calculator" />
             </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"
