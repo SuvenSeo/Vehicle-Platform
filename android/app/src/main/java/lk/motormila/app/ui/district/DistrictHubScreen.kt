@@ -1,0 +1,576 @@
+package lk.motormila.app.ui.district
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.R
+import lk.motormila.app.core.format.LkrFormat
+import lk.motormila.app.core.format.formatPct
+import lk.motormila.app.core.motion.rememberReducedMotion
+import lk.motormila.app.domain.model.DistrictInsight
+import lk.motormila.app.domain.model.HubTopModel
+import lk.motormila.app.domain.model.Listing
+import lk.motormila.app.ui.components.BrandLogo
+import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.EmptyState
+import lk.motormila.app.ui.components.ErrorState
+import lk.motormila.app.ui.components.ListingCard
+import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.MotormilaBg
+import lk.motormila.app.ui.theme.MotormilaGood
+import lk.motormila.app.ui.theme.MotormilaOnPrimary
+import lk.motormila.app.ui.theme.MotormilaOnSurface
+import lk.motormila.app.ui.theme.MotormilaOutline
+import lk.motormila.app.ui.theme.MotormilaPrimary
+import lk.motormila.app.ui.theme.MotormilaPrimaryBright
+import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
+import lk.motormila.app.ui.theme.rememberHaptics
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DistrictHubScreen(
+    onBack: () -> Unit,
+    onListingClick: (Int) -> Unit,
+    onModelClick: (make: String, model: String) -> Unit,
+    onSeeAllSearch: (district: String) -> Unit,
+    viewModel: DistrictHubViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val snacks = remember { SnackbarHostState() }
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
+    val backCd = stringResource(R.string.district_hub_back)
+    val refreshCd = stringResource(R.string.district_hub_cd_refresh)
+
+    LaunchedEffect(state.error) {
+        val message = state.error
+        if (message != null && state.hasContent) {
+            snacks.showSnackbar(message)
+            viewModel.onEvent(DistrictHubUiEvent.DismissError)
+        }
+    }
+
+    Scaffold(
+        containerColor = MotormilaBg,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BrandLogo(
+                            size = BrandLogoSize.COMPACT,
+                            showWordmark = false,
+                            showTagline = false,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = state.displayName.ifBlank { stringResource(R.string.district_hub_title) },
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            if (!reducedMotion) haptics.tick()
+                            onBack()
+                        },
+                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MotormilaBg,
+                    titleContentColor = MotormilaOnSurface,
+                    navigationIconContentColor = MotormilaOnSurface,
+                ),
+            )
+        },
+        snackbarHost = { SnackbarHost(snacks) },
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { viewModel.onEvent(DistrictHubUiEvent.Refresh) },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .semantics { contentDescription = refreshCd },
+        ) {
+            when {
+                state.isLoading -> DistrictHubSkeleton()
+                state.error != null && !state.hasContent ->
+                    ErrorState(
+                        message = state.error ?: stringResource(R.string.district_hub_error_title),
+                        onRetry = { viewModel.onEvent(DistrictHubUiEvent.Refresh) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                !state.hasContent ->
+                    EmptyState(
+                        title = stringResource(R.string.district_hub_empty_title),
+                        body = stringResource(R.string.district_hub_empty_body),
+                        ctaLabel = stringResource(R.string.district_hub_retry),
+                        onCta = { viewModel.onEvent(DistrictHubUiEvent.Refresh) },
+                        icon = Icons.Filled.Place,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                else -> DistrictHubBody(
+                    state = state,
+                    onListingClick = { id ->
+                        if (!reducedMotion) haptics.tick()
+                        onListingClick(id)
+                    },
+                    onModelClick = { make, model ->
+                        if (!reducedMotion) haptics.tick()
+                        onModelClick(make, model)
+                    },
+                    onSeeAllSearch = { district ->
+                        if (!reducedMotion) haptics.tick()
+                        onSeeAllSearch(district)
+                    },
+                    onWatchToggle = { listing ->
+                        viewModel.onEvent(DistrictHubUiEvent.ToggleWatch(listing))
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DistrictHubSkeleton() {
+    val loadingCd = stringResource(R.string.district_hub_loading)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .semantics { contentDescription = loadingCd },
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        repeat(5) { LoadingSkeletonCard() }
+    }
+}
+
+@Composable
+private fun DistrictHubBody(
+    state: DistrictHubUiState,
+    onListingClick: (Int) -> Unit,
+    onModelClick: (String, String) -> Unit,
+    onSeeAllSearch: (String) -> Unit,
+    onWatchToggle: (Listing) -> Unit,
+) {
+    val displayName = state.displayName
+    val searchDistrict = state.searchDistrict
+    val topModels = state.insight?.topModels.orEmpty()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item { OfflineBanner(visible = state.offline) }
+        item { DistrictHero(displayName = displayName) }
+        item { DistrictStatsGrid(insight = state.insight) }
+        if (state.nearby.isNotEmpty()) {
+            item {
+                NearbyDistrictsRow(
+                    nearby = state.nearby,
+                    onDistrictClick = onSeeAllSearch,
+                )
+            }
+        }
+        if (topModels.isNotEmpty()) {
+            item {
+                TopModelsSection(
+                    district = displayName,
+                    models = topModels,
+                    onModelClick = onModelClick,
+                )
+            }
+        }
+        if (state.listings.isNotEmpty()) {
+            item { RecentListingsHeader() }
+            items(state.listings, key = { it.id }) { listing ->
+                ListingCard(
+                    listing = listing,
+                    isWatched = state.watchedIds.contains(listing.id),
+                    onClick = { onListingClick(listing.id) },
+                    onWatchToggle = { onWatchToggle(listing) },
+                )
+            }
+        }
+        item {
+            val browseLabel = stringResource(R.string.district_hub_browse, displayName)
+            Button(
+                onClick = { onSeeAllSearch(searchDistrict) },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MotormilaPrimary,
+                    contentColor = MotormilaOnPrimary,
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .semantics { contentDescription = browseLabel },
+            ) {
+                Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(browseLabel, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+        }
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun DistrictHero(displayName: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = MotormilaSurfaceHigh,
+            border = BorderStroke(1.dp, MotormilaOutline),
+        ) {
+            Row(
+                Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    Icons.Filled.Place,
+                    contentDescription = null,
+                    tint = MotormilaPrimaryBright,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = "• ${stringResource(R.string.district_hub_eyebrow).uppercase()}",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MotormilaPrimaryBright,
+                    ),
+                )
+            }
+        }
+        Text(
+            text = displayName,
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp,
+                color = MotormilaOnSurface,
+            ),
+        )
+        Text(
+            text = stringResource(R.string.district_hub_description, displayName),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MotormilaSecondaryText,
+                lineHeight = 20.sp,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun DistrictStatsGrid(insight: DistrictInsight?) {
+    val na = stringResource(R.string.district_hub_na)
+    val countText = insight?.listingCount?.let { LkrFormat.count(it) } ?: na
+    val avgText = insight?.avgPriceLkr?.takeIf { it > 0 }?.let { LkrFormat.price(it) } ?: na
+    val medianText = insight?.medianPriceLkr?.takeIf { it > 0 }?.let { LkrFormat.price(it) } ?: na
+    val countCd = stringResource(R.string.district_hub_cd_stat_count, countText)
+    val avgCd = stringResource(R.string.district_hub_cd_stat_avg, avgText)
+    val medianCd = stringResource(R.string.district_hub_cd_stat_median, medianText)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        DistrictMetricCard(
+            label = stringResource(R.string.district_hub_live_listings),
+            value = countText,
+            valueColor = MotormilaPrimaryBright,
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = countCd },
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DistrictMetricCard(
+                label = stringResource(R.string.district_hub_avg_price),
+                value = avgText,
+                modifier = Modifier.weight(1f).semantics { contentDescription = avgCd },
+            )
+            DistrictMetricCard(
+                label = stringResource(R.string.district_hub_median_price),
+                value = medianText,
+                modifier = Modifier.weight(1f).semantics { contentDescription = medianCd },
+            )
+        }
+        val change = insight?.changePct30d
+        if (change != null) {
+            val changeText = formatPct(change)
+            Text(
+                text = stringResource(R.string.district_hub_change_30d, changeText),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (change < 0) MotormilaGood else MotormilaPrimaryBright,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DistrictMetricCard(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = MotormilaOnSurface,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+        border = BorderStroke(1.dp, MotormilaOutline),
+        modifier = modifier,
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    fontSize = 10.sp,
+                    color = MotormilaSecondaryText,
+                ),
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    color = valueColor,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun NearbyDistrictsRow(
+    nearby: List<NearbyDistrict>,
+    onDistrictClick: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = stringResource(R.string.district_hub_nearby_eyebrow).uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        Text(
+            text = stringResource(R.string.district_hub_nearby),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        )
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(vertical = 4.dp),
+        ) {
+            items(nearby, key = { it.district }) { item ->
+                NearbyDistrictChip(item = item, onClick = { onDistrictClick(item.district) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun NearbyDistrictChip(
+    item: NearbyDistrict,
+    onClick: () -> Unit,
+) {
+    val price = item.avgPriceLkr?.takeIf { it > 0 }?.let { LkrFormat.price(it) }
+        ?: stringResource(R.string.district_hub_na)
+    val chipCd = stringResource(R.string.district_hub_cd_nearby, item.district)
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+        border = BorderStroke(1.dp, MotormilaOutline),
+        modifier = Modifier
+            .width(168.dp)
+            .semantics { contentDescription = chipCd },
+    ) {
+        Column(
+            Modifier
+                .padding(14.dp)
+                .heightIn(min = 48.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                item.district,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                stringResource(R.string.district_hub_listings_count, item.count),
+                style = MaterialTheme.typography.labelSmall,
+                color = MotormilaSecondaryText,
+            )
+            Text(
+                price,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                ),
+            )
+            val new7d = item.new7dCount
+            if (new7d != null && new7d > 0) {
+                Text(
+                    stringResource(R.string.district_hub_new_7d, new7d),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MotormilaPrimaryBright,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TopModelsSection(
+    district: String,
+    models: List<HubTopModel>,
+    onModelClick: (String, String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = stringResource(R.string.district_hub_models).uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        Text(
+            text = stringResource(R.string.district_hub_popular, district),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        )
+        models.forEach { entry ->
+            TopModelCard(entry = entry, onClick = { onModelClick(entry.make, entry.model) })
+        }
+    }
+}
+
+@Composable
+private fun TopModelCard(
+    entry: HubTopModel,
+    onClick: () -> Unit,
+) {
+    val price = entry.avgPriceLkr.takeIf { it > 0 }?.let { LkrFormat.price(it) }
+        ?: stringResource(R.string.district_hub_price_na)
+    val modelCd = stringResource(
+        R.string.district_hub_cd_model,
+        entry.make,
+        entry.model,
+        entry.listingCount,
+    )
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+        border = BorderStroke(1.dp, MotormilaOutline),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = modelCd },
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .heightIn(min = 48.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "${entry.make} ${entry.model}",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            )
+            Text(
+                text = stringResource(R.string.district_hub_listings_count, entry.listingCount),
+                style = MaterialTheme.typography.labelSmall,
+                color = MotormilaSecondaryText,
+            )
+            Text(
+                text = price,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecentListingsHeader() {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+        Text(
+            text = stringResource(R.string.district_hub_live_inventory).uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        Text(
+            text = stringResource(R.string.district_hub_recent),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        )
+    }
+}

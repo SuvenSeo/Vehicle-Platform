@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="district_hub_title">மாவட்ட மையம்</string>
+    <string name="district_hub_back">பின்செல்</string>
+    <string name="district_hub_retry">மீண்டும் முயலவும்</string>
+    <string name="district_hub_loading">மாவட்ட மையத்தை ஏற்றுகிறது</string>
+    <string name="district_hub_na">N/A</string>
+    <string name="district_hub_price_na">விலை N/A</string>
+    <string name="district_hub_eyebrow">மாவட்ட மையம்</string>
+    <string name="district_hub_description">%1$sஇல் நேரடி சரக்கு, சராசரி விலைகள் மற்றும் முதன்மை மாடல்கள்.</string>
+    <string name="district_hub_live_listings">நேரடி பட்டியல்கள்</string>
+    <string name="district_hub_avg_price">சராசரி விலை</string>
+    <string name="district_hub_median_price">மத்திய விலை</string>
+    <string name="district_hub_models">மாடல்கள்</string>
+    <string name="district_hub_popular">%1$sஇல் பிரபலம்</string>
+    <string name="district_hub_listings_count">%1$d பட்டியல்கள்</string>
+    <string name="district_hub_live_inventory">நேரடி சரக்கு</string>
+    <string name="district_hub_recent">சமீபத்திய பட்டியல்கள்</string>
+    <string name="district_hub_browse">%1$s பட்டியல்களை உலாவு</string>
+    <string name="district_hub_nearby_eyebrow">இந்த மாவட்டத்தைச் சுற்றி</string>
+    <string name="district_hub_nearby">அருகிலுள்ள மாவட்டங்கள்</string>
+    <string name="district_hub_change_30d">30 நாள் மாற்றம் %1$s</string>
+    <string name="district_hub_new_7d">இந்த வாரம் புதியவை %1$d</string>
+    <string name="district_hub_error_title">இந்த மாவட்டத்தை ஏற்ற முடியவில்லை</string>
+    <string name="district_hub_empty_title">இந்த மாவட்டத்தில் பட்டியல்கள் இல்லை</string>
+    <string name="district_hub_empty_body">அடுத்த சந்தை ஒத்திசைவுக்குப் பிறகு சரக்கு மற்றும் விலைகள் தோன்றும்.</string>
+    <string name="district_hub_cd_refresh">மாவட்ட மையத்தை புதுப்பி</string>
+    <string name="district_hub_cd_model">%1$s %2$s, %3$d பட்டியல்கள்</string>
+    <string name="district_hub_cd_nearby">அருகிலுள்ள மாவட்டம் %1$s</string>
+    <string name="district_hub_cd_stat_count">நேரடி பட்டியல்கள், %1$s</string>
+    <string name="district_hub_cd_stat_avg">சராசரி விலை, %1$s</string>
+    <string name="district_hub_cd_stat_median">மத்திய விலை, %1$s</string>
+</resources>
