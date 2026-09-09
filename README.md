@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="Neon PostgreSQL" />
   <img src="https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright" />
-  <img src="https://img.shields.io/badge/Expo-React%20Native-000020?style=flat-square&logo=expo&logoColor=white" alt="Expo" />
+  <img src="https://img.shields.io/badge/Android-Jetpack%20Compose-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android Jetpack Compose" />
   <img src="https://img.shields.io/badge/Deployed-Vercel%20%2B%20HF%20Spaces-000000?style=flat-square&logo=vercel&logoColor=white" alt="Vercel + HF Spaces" />
   <img src="https://img.shields.io/badge/WCAG-2.2%20AA-3D9970?style=flat-square" alt="WCAG 2.2 AA" />
 </p>
@@ -91,7 +91,11 @@ Motormila fixes that with one obsessive idea: **watch everything, deduplicate ru
 | **Admin Console** | Invite users, assign Free/Pro plans, manage access |
 
 ### 📱 Mobile
-A companion **Expo / React Native app** (`mobile/`) with biometric unlock, camera capture, location-aware search, and push notifications.
+A companion **native Android app** in `android/` — Kotlin, Jetpack Compose, Hilt, Paging 3, CameraX plate scan, and WorkManager sync. Biometric unlock, share-URL import, and local notifications are included. Play Billing and FCM are stubbed in v1 (server checkout-intent fallback; push routing is local-only until a Firebase backend lands).
+
+Debug builds can point at a local FastAPI backend via `MOTORMILA_API_URL` / `-PmotormilaApiUrl` (emulator loopback: `http://10.0.2.2:8000/api/v1`). Release uses the HF Space API.
+
+Windows / JDK 17 setup: [`android/README-WINDOWS-BUILD.md`](android/README-WINDOWS-BUILD.md).
 
 ---
 
@@ -144,8 +148,8 @@ flowchart LR
 | **Database** | PostgreSQL (Neon, single-DB) · SQLite fallback for local dev | Neon |
 | **Snapshots** | JSON snapshots + manifest → Cloudflare R2 → Vercel deploy | R2 |
 | **Scrapers** | Python + Playwright (API-first, browser fallback), per-source isolation | GitHub Actions |
-| **Mobile** | Expo · React Native · expo-router · secure-store · biometrics | `mobile/` |
-| **Quality** | Vitest · Testing Library · vitest-axe · ESLint · GitHub Actions CI | CI |
+| **Mobile** | Kotlin · Jetpack Compose · Hilt · Paging 3 · CameraX · WorkManager | `android/` |
+| **Quality** | Vitest · Testing Library · vitest-axe · ESLint · JUnit (Android) · GitHub Actions CI | CI |
 
 ```
 .
@@ -154,7 +158,7 @@ flowchart LR
 │   ├── app/scrapers/   # 13+ per-source scraper modules
 │   ├── app/services/   # market signals, aggregator, stats cache
 │   └── db/             # SQLAlchemy models + session config
-├── mobile/         # Expo / React Native companion app
+├── android/        # Native Android app (Jetpack Compose)
 ├── api/            # (edge helpers)
 ├── scripts/        # ops tooling (snapshot deploy, auth bootstrap)
 ├── .github/workflows/  # scrape fleet, CI, backups, monitors
@@ -166,7 +170,7 @@ flowchart LR
 ## ⚡ Quickstart
 
 ### Prerequisites
-- Node 20+ · Python 3.12 · (optional) Expo Go for mobile
+- Node 20+ · Python 3.12 · (optional) JDK 17 + Android SDK for the native app
 
 ### 1 · Frontend
 
@@ -192,19 +196,29 @@ PRO_ACCESS_ENFORCED=false APP_ACCESS_ENFORCED=false \
 > RUN_SCRAPERS=true SCRAPE_ENABLED_SOURCES=ikman python run_sync.py
 > ```
 
-### 3 · Mobile
+### 3 · Mobile (native Android)
 
 ```bash
-cd mobile
-npm install
-npm run start          # Expo dev server
+cd android
+chmod +x gradlew
+./gradlew :app:assembleDebug          # APK: app/build/outputs/apk/debug/
+./gradlew :app:testDebugUnitTest      # JVM unit tests (no emulator)
 ```
+
+Point a debug build at the local backend (emulator loopback):
+
+```bash
+./gradlew :app:assembleDebug -PmotormilaApiUrl=http://10.0.2.2:8000/api/v1
+```
+
+See [`android/README-WINDOWS-BUILD.md`](android/README-WINDOWS-BUILD.md) for JDK 17 / SDK setup.
 
 ### Verify
 
 ```bash
 npm run typecheck && npm run lint && npm run test && npm run build   # frontend
 cd backend && .venv/bin/python -m pytest tests                       # backend
+cd android && ./gradlew :app:testDebugUnitTest                       # Android JVM tests
 ```
 
 ---
@@ -238,7 +252,7 @@ python scripts/bootstrap_platform_auth.py --email you@example.com --password '�
 
 - **WCAG 2.2 AA** — axe-core reports **zero violations** on key pages; enforced by tests (`vitest-axe`)
 - **60+ component/unit tests** across dashboard, alerts, pricing gates, search, and accessibility
-- **CI** runs frontend typecheck + lint + test + build and backend `pytest` on every push/PR
+- **CI** runs frontend typecheck + lint + test + build and backend `pytest` on every push/PR; Android JVM unit tests (`./gradlew :app:testDebugUnitTest`) run when `android/` or `.github/workflows/android.yml` change
 - **Error boundaries** everywhere — no silent blank screens
 - **Sentry** error tracking + Vercel Analytics on the live site
 
@@ -249,7 +263,7 @@ python scripts/bootstrap_platform_auth.py --email you@example.com --password '�
 - [x] 13+ sources live, ~180k listings, VIN + fuzzy dedup
 - [x] Valuation (FMV), deal scores, price alerts, district velocity
 - [x] Pro workspace: vehicle lanes, district profiles, arbitrage gaps
-- [x] Mobile companion app (Expo)
+- [x] Mobile companion app (native Android)
 - [ ] 50+ sources (see `SCRAPER_ARCHITECTURE.md`)
 - [ ] LLM extraction for unstructured listing descriptions
 - [ ] Adaptive per-source scheduling based on market turnover
@@ -264,7 +278,7 @@ python scripts/bootstrap_platform_auth.py --email you@example.com --password '�
 | [`SCRAPER_ARCHITECTURE.md`](SCRAPER_ARCHITECTURE.md) | Scaling to 50+ sources, proxies, resilience |
 | [`docs/neon-egress-budget.md`](docs/neon-egress-budget.md) | Egress budget & snapshot strategy |
 | [`docs/MASTER PLAN FOR FUTURE OF MOTORMILA.txt`](docs/MASTER%20PLAN%20FOR%20FUTURE%20OF%20MOTORMILA.txt) | The long game |
-| `docs/mobile-*.md` | Mobile app architecture & quickstart |
+| [`android/README-WINDOWS-BUILD.md`](android/README-WINDOWS-BUILD.md) | Android JDK 17 setup, debug `BASE_URL`, unit tests |
 
 ---
 

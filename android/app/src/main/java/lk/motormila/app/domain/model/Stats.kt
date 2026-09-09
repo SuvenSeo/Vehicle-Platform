@@ -132,6 +132,10 @@ data class MarketSignal(
     val valueNumeric: Double?,
     val unit: String?,
     val observedAt: String,
+    val sourceUrl: String? = null,
+    val category: String? = null,
+    val periodYear: Int? = null,
+    val periodMonth: Int? = null,
 )
 
 /** EV charging station near a geo point. Mirrors backend `ChargingStationDto`. */
@@ -170,4 +174,12 @@ data class PulseSignal(
     val tag: String,
     val body: String,
     val timeLabel: String,
+)
+
+/** Import permit row. Mirrors backend `PermitDto` (GET /calculators/permits). */
+data class Permit(
+    val id: Int?,
+    val name: String,
+    val type: String,
+    val marketPriceLkr: Double,
 )

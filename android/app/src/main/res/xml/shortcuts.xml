@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Swarm E owned app shortcuts. Manifest owner must reference this file:
+  App shortcuts. Manifest owner references this file:
   <meta-data android:name="android.app.shortcuts"
       android:resource="@xml/shortcuts" />
-  inside MainActivity. Deep-link scheme motormila:// is handled by MainActivity
-  (explicit shortcut intents) + NavHost deepLinks for scan/listing.
-  Per NAV_CONTRACT: search?voice=true, home?dealOfDay=true, watchlist extras are
-  shortcuts-only for v1 — MainActivity ignores the extras gracefully and lands
-  on Home (no crash); scan + listing/{id} deep-link into NavHost.
+  inside MainActivity. Labels use strings.xml names (not the legacy
+  shortcut_scan / shortcut_voice / shortcut_deal ids). Deep links are handled
+  end-to-end: MainActivity ACTION_VIEW → splash → type-safe destination, plus
+  NavHost deepLinks on the matching composable.
 -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
   <shortcut
       android:shortcutId="scan_plate"
       android:enabled="true"
       android:icon="@android:drawable/ic_menu_camera"
-      android:shortcutShortLabel="@string/shortcut_scan"
-      android:shortcutLongLabel="@string/shortcut_scan_long">
+      android:shortcutShortLabel="@string/shortcut_scan_plate_short"
+      android:shortcutLongLabel="@string/shortcut_scan_plate_long">
     <intent
         android:action="android.intent.action.VIEW"
         android:targetPackage="lk.motormila.app"
@@ -28,8 +27,8 @@
       android:shortcutId="voice_search"
       android:enabled="true"
       android:icon="@android:drawable/ic_btn_speak_now"
-      android:shortcutShortLabel="@string/shortcut_voice"
-      android:shortcutLongLabel="@string/shortcut_voice_long">
+      android:shortcutShortLabel="@string/shortcut_voice_search_short"
+      android:shortcutLongLabel="@string/shortcut_voice_search_long">
     <intent
         android:action="android.intent.action.VIEW"
         android:targetPackage="lk.motormila.app"
@@ -41,8 +40,8 @@
       android:shortcutId="deal_of_day"
       android:enabled="true"
       android:icon="@android:drawable/ic_menu_info_details"
-      android:shortcutShortLabel="@string/shortcut_deal"
-      android:shortcutLongLabel="@string/shortcut_deal_long">
+      android:shortcutShortLabel="@string/shortcut_deal_of_day_short"
+      android:shortcutLongLabel="@string/shortcut_deal_of_day_long">
     <intent
         android:action="android.intent.action.VIEW"
         android:targetPackage="lk.motormila.app"
@@ -54,7 +53,7 @@
       android:shortcutId="watchlist"
       android:enabled="true"
       android:icon="@android:drawable/ic_menu_save"
-      android:shortcutShortLabel="@string/shortcut_watchlist"
+      android:shortcutShortLabel="@string/shortcut_watchlist_short"
       android:shortcutLongLabel="@string/shortcut_watchlist_long">
     <intent
         android:action="android.intent.action.VIEW"

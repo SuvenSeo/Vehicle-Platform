@@ -128,8 +128,17 @@ fun FuelMixBucketDto.toDomain(total: Int = 0): FuelMixBucket {
 }
 
 fun MarketSignalDto.toDomain(): MarketSignal = MarketSignal(
-    id = id, source = source, signalType = signalType, metric = metric,
-    valueNumeric = valueNumeric, unit = unit, observedAt = observedAt,
+    id = id,
+    source = source,
+    signalType = signalType,
+    metric = metric,
+    valueNumeric = valueNumeric,
+    unit = unit,
+    observedAt = observedAt,
+    sourceUrl = sourceUrl.takeIf { it.isNotBlank() },
+    category = category,
+    periodYear = periodYear,
+    periodMonth = periodMonth,
 )
 
 /** EV insight endpoint returns top models + trend; surfaced as TrendSeries. */

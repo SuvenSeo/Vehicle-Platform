@@ -11,11 +11,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import lk.motormila.app.core.common.AppError
+import lk.motormila.app.core.locale.LocaleHelper
 import lk.motormila.app.core.network.ErrorMapper
 import lk.motormila.app.data.local.datastore.SettingsStore
 import lk.motormila.app.data.remote.MotormilaApiService
@@ -64,9 +66,9 @@ class SettingsViewModel @Inject constructor(
         .map { it.theme }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "system")
 
-    /** Language stub: local-only until the localisation pass adds a store key. */
-    private val _language = MutableStateFlow("en")
-    val language: StateFlow<String> = _language.asStateFlow()
+    val language: StateFlow<String> = settingsStore.observe()
+        .map { LocaleHelper.normalize(it.language) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LocaleHelper.DEFAULT)
 
     val defaultDistrict: StateFlow<String> = settingsStore.observe()
         .map { it.district ?: "Colombo" }
@@ -86,10 +88,22 @@ class SettingsViewModel @Inject constructor(
         .map { it.dealerClaimToken }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    init {
+        viewModelScope.launch {
+            LocaleHelper.applyFromStore(
+                LocaleHelper.normalize(settingsStore.observe().first().language),
+            )
+        }
+    }
+
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             is SettingsUiEvent.ThemeChanged -> launch { settingsStore.setTheme(event.theme) }
-            is SettingsUiEvent.LanguageChanged -> _language.value = event.code
+            is SettingsUiEvent.LanguageChanged -> launch {
+                val code = LocaleHelper.normalize(event.code)
+                settingsStore.setLanguage(code)
+                LocaleHelper.apply(code)
+            }
             is SettingsUiEvent.DistrictChanged -> launch { settingsStore.setDistrict(event.district) }
             is SettingsUiEvent.SortChanged -> launch { settingsStore.setSort(event.sort) }
             is SettingsUiEvent.BiometricChanged -> launch { settingsStore.setBiometricEnabled(event.enabled) }

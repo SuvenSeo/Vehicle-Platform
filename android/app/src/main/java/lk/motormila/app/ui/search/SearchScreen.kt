@@ -110,6 +110,16 @@ fun SearchScreen(
         }
     }
 
+    LaunchedEffect(state.pendingVoice) {
+        if (!state.pendingVoice) return@LaunchedEffect
+        viewModel.consumeVoice()
+        if (!voiceAvailable) return@LaunchedEffect
+        runCatching { voiceLauncher.launch(voiceHelper.recogniserIntent()) }
+            .onFailure {
+                snackbar.showSnackbar("Voice search isn't available on this device.")
+            }
+    }
+
     LaunchedEffect(state.alertSaved) {
         if (state.alertSaved) {
             snackbar.showSnackbar("Alert saved — we'll notify you of matches")

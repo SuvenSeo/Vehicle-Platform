@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Motormila</string>
+
+    <!-- Bottom nav (content descriptions = visible labels) -->
+    <string name="nav_home">முகப்பு</string>
+    <string name="nav_search">தேடல்</string>
+    <string name="nav_watchlist">கண்காணிப்பு பட்டியல்</string>
+    <string name="nav_insights">பார்வைகள்</string>
+    <string name="nav_profile">சுயவிவரம்</string>
+
+    <!-- Notification channels -->
+    <string name="channel_price_drops">விலை குறைப்புகள்</string>
+    <string name="channel_price_drops_desc">கண்காணிக்கும் வாகனத்தின் விலை குறையும்போது விழிப்பூட்டல்கள்.</string>
+    <string name="channel_market_news">சந்தை செய்திகள்</string>
+    <string name="channel_market_news_desc">சந்தை நகர்வுகள் மற்றும் புதிய வரவுகள்.</string>
+    <string name="channel_sync">ஒத்திசைவு</string>
+    <string name="channel_sync_desc">பின்னணி கண்காணிப்பு பட்டியல் ஒத்திசைவு நிலை.</string>
+
+    <!-- Quick tile / shortcuts -->
+    <string name="tile_scan_plate">எண் தகட்டை ஸ்கேன் செய்</string>
+    <string name="shortcut_scan_plate_short">எண் ஸ்கேன்</string>
+    <string name="shortcut_scan_plate_long">வாகன எண் தகட்டை ஸ்கேன் செய்யவும்</string>
+    <string name="shortcut_voice_search_short">குரல் தேடல்</string>
+    <string name="shortcut_voice_search_long">உங்கள் குரலால் தேடுங்கள்</string>
+    <string name="shortcut_deal_of_day_short">இன்றைய ஒப்பந்தம்</string>
+    <string name="shortcut_deal_of_day_long">இன்றைய சிறந்த ஒப்பந்தம்</string>
+    <string name="shortcut_watchlist_short">கண்காணிப்பு பட்டியல்</string>
+    <string name="shortcut_watchlist_long">உங்கள் கண்காணிப்பு பட்டியலைத் திறக்கவும்</string>
+
+    <!-- Biometric -->
+    <string name="biometric_title">Motormila</string>
+    <string name="biometric_login_subtitle">உள்நுழைய நீங்கள் தான் என உறுதிப்படுத்தவும்</string>
+    <string name="biometric_settings_subtitle">இந்த அமைப்பை மாற்ற உறுதிப்படுத்தவும்</string>
+
+    <!-- Generic -->
+    <string name="offline_banner">நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமித்த தரவைக் காட்டுகிறோம்</string>
+    <string name="retry">மீண்டும் முயலவும்</string>
+    <string name="close">மூடு</string>
+    <string name="ok">சரி</string>
+    <string name="cancel">ரத்து</string>
+
+    <!-- Plate scan -->
+    <string name="scan_title">எண் தகட்டை ஸ்கேன் செய்</string>
+    <string name="scan_preview_desc">எண் தகடு ஸ்கேனுக்கான கேமரா முன்னோட்டம்</string>
+    <string name="scan_overlay_desc">கண்டறியப்பட்ட உரைப் பகுதிகள்</string>
+    <string name="scan_no_camera">இந்த சாதனத்தில் கேமரா இல்லை — கீழே எண்ணை தட்டச்சு செய்யவும்.</string>
+    <string name="scan_rationale">கேமரா அணுகல் எண் தகடுகளை ஸ்கேன் செய்ய உதவும். கீழேயும் தட்டச்சு செய்யலாம்.</string>
+    <string name="scan_need_permission">கேமரா அனுமதி தேவை — அல்லது கீழே எண்ணை தட்டச்சு செய்யவும்.</string>
+    <string name="scan_grant_camera">கேமரா அணுகலை அனுமதிக்கவும்</string>
+    <string name="scan_tap_plate">தேட ஒரு எண் தகட்டைத் தட்டவும்</string>
+    <string name="scan_plate_label">எண் தகடு (எ.கா. CAB-1234)</string>
+    <string name="scan_lookup">எண்ணைத் தேடு</string>
+    <string name="scan_type_first">முதலில் வாகன எண்ணை தட்டச்சு செய்யவும்.</string>
+    <string name="scan_matching">பொருந்தும் பட்டியல்கள் %1$d</string>
+    <string name="scan_no_match">இந்த எண்ணில் நேரடி பட்டியல்கள் இல்லை</string>
+    <string name="scan_search">தேடு</string>
+    <string name="scan_open_fmv">FMV திற</string>
+    <string name="scan_result_desc">%1$s-க்கான எண் தகடு முடிவு</string>
+
+    <!-- Share import -->
+    <string name="share_title">பகிர்ந்த இணைப்பைத் திறக்கிறது</string>
+    <string name="share_unsupported_title">இணைப்பு ஆதரிக்கப்படவில்லை</string>
+    <string name="share_unsupported_body">ikman, Riyasewana மற்றும் PatPat இணைப்புகளைத் திறக்கிறோம். கிடைத்தது: %1$s</string>
+    <string name="share_browse">அதற்கு பதிலாக உலாவு</string>
+    <string name="share_taking_you">அந்த வாகனத்திற்கு அழைத்துச் செல்கிறோம்…</string>
+    <string name="share_resolving">பகிர்ந்த இணைப்பைத் தீர்க்கிறது</string>
+    <string name="share_open_search">தேடலைத் திற</string>
+    <string name="share_open_compare">ஒப்பீட்டைத் திற</string>
+    <string name="share_open_valuation">மதிப்பீட்டைத் திற</string>
+
+    <!-- Deal widget -->
+    <string name="widget_deal_title">இன்றைய ஒப்பந்தம்</string>
+    <string name="widget_deal_desc">Motormila இன்றைய ஒப்பந்த விட்ஜெட்</string>
+    <string name="widget_index_missing">குறியீடு —</string>
+    <string name="widget_open_deal">ஒப்பந்தத்தைத் திற</string>
+
+    <!-- Language picker (i18n_strings.xml overlays) -->
+    <string name="settings_language">மொழி</string>
+    <string name="language_en_cd">ஆங்கிலம்</string>
+    <string name="language_si_cd">சிங்களம்</string>
+    <string name="language_ta_cd">தமிழ்</string>
+</resources>

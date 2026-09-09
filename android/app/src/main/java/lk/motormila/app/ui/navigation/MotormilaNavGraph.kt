@@ -1,5 +1,6 @@
 package lk.motormila.app.ui.navigation
 
+import android.net.Uri
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
@@ -26,18 +27,20 @@ import lk.motormila.app.R
 import lk.motormila.app.core.network.AuthEvent
 import lk.motormila.app.data.local.datastore.SessionStore
 import lk.motormila.app.ui.MotormilaScaffold
-import lk.motormila.app.ui.biometric.rememberBiometricAuth
-
 import lk.motormila.app.ui.alerts.AlertsScreen
 import lk.motormila.app.ui.auth.LoginScreen
+import lk.motormila.app.ui.bestpicks.BestPicksScreen
+import lk.motormila.app.ui.biometric.rememberBiometricAuth
 import lk.motormila.app.ui.compare.CompareScreen
 import lk.motormila.app.ui.dealer.DealerScreen
 import lk.motormila.app.ui.detail.ListingDetailScreen
+import lk.motormila.app.ui.ev.EvHubScreen
 import lk.motormila.app.ui.home.HomeScreen
 import lk.motormila.app.ui.insights.InsightsScreen
 import lk.motormila.app.ui.notifications.NotificationsScreen
 import lk.motormila.app.ui.pro.ProScreen
 import lk.motormila.app.ui.profile.ProfileScreen
+import lk.motormila.app.ui.pulse.OfficialPulseScreen
 import lk.motormila.app.ui.scan.PlateScanScreen
 import lk.motormila.app.ui.search.SearchScreen
 import lk.motormila.app.ui.settings.SettingsScreen
@@ -47,12 +50,16 @@ import lk.motormila.app.ui.watchlist.WatchlistScreen
 
 /**
  * Root nav graph with persistent bottom navigation bar and auth event handling.
- * [sharedUrl] comes from MainActivity (ACTION_SEND / deep link).
+ * [sharedUrl] comes from MainActivity (ACTION_SEND).
+ * [startDeepLink] is the ACTION_VIEW URI; splash runs first, then this target.
+ * [navigationEventId] increments on each new intent so the same URI can be re-opened.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MotormilaNavGraph(
     sharedUrl: String? = null,
+    startDeepLink: Uri? = null,
+    navigationEventId: Int = 0,
     navController: NavHostController = rememberNavController(),
     viewModel: NavGraphViewModel = hiltViewModel(),
 ) {
@@ -95,6 +102,22 @@ fun MotormilaNavGraph(
         }
     }
 
+    LaunchedEffect(navigationEventId) {
+        if (navigationEventId <= 1) return@LaunchedEffect
+        val onSplash = navController.currentDestination?.hasRoute<Splash>() == true
+        if (onSplash) return@LaunchedEffect
+        if (sharedUrl != null) {
+            navController.navigate(ShareImport(sharedUrl)) {
+                launchSingleTop = true
+            }
+            return@LaunchedEffect
+        }
+        val target = startDeepLink?.let { resolveMotormilaDeepLink(it) } ?: return@LaunchedEffect
+        navController.navigate(target) {
+            launchSingleTop = true
+        }
+    }
+
     SharedTransitionLayout {
         MotormilaScaffold(
             selected = selectedTab,
@@ -102,7 +125,7 @@ fun MotormilaNavGraph(
             onNavigate = { routeKey ->
                 val target: Any = when (routeKey) {
                     "home" -> Home
-                    "search" -> Search
+                    "search" -> Search()
                     "watchlist" -> Watchlist
                     "insights" -> Insights
                     "profile" -> Profile
@@ -132,9 +155,15 @@ fun MotormilaNavGraph(
                         SplashGate(
                             sessionStore = viewModel.sessionStore,
                             onDone = { isLoggedIn ->
-                                val target: Any = if (isLoggedIn) Home else Login
+                                val deepLinkTarget = startDeepLink?.let { resolveMotormilaDeepLink(it) }
+                                val target: Any = when {
+                                    deepLinkTarget != null -> deepLinkTarget
+                                    isLoggedIn -> Home
+                                    else -> Login
+                                }
                                 navController.navigate(target) {
                                     popUpTo(Splash) { inclusive = true }
+                                    launchSingleTop = true
                                 }
                             },
                         )
@@ -152,30 +181,53 @@ fun MotormilaNavGraph(
                     composable<Home> {
                         HomeScreen(
                             onListingClick = { id -> navController.navigate(ListingDetail(id)) },
-                            onSearchClick = { navController.navigate(Search) },
+                            onSearchClick = { navController.navigate(Search()) },
                             onAlertsClick = { navController.navigate(Alerts) },
-                            onSeeAll = { navController.navigate(Search) },
+                            onSeeAll = { key ->
+                                when (key) {
+                                    "drops", "deals" -> navController.navigate(BestPicks)
+                                    "districts" -> navController.navigate(Insights)
+                                    else -> navController.navigate(Search())
+                                }
+                            },
                             onLoginClick = { navController.navigate(Login) },
+                            onEvHubClick = { navController.navigate(EvHub) },
+                            onBestPicksClick = { navController.navigate(BestPicks) },
+                            onPulseClick = { navController.navigate(OfficialPulse) },
                         )
                     }
-                    composable<Search> {
+                    composable<Search>(
+                        deepLinks = listOf(
+                            navDeepLink<Search>(basePath = "motormila://search"),
+                            navDeepLink { uriPattern = "motormila://search?q={q}&district={district}&voice={voice}" },
+                            navDeepLink { uriPattern = "motormila://search" },
+                        ),
+                    ) {
                         SearchScreen(
                             onListingClick = { id -> navController.navigate(ListingDetail(id)) },
                             onCompare = { ids -> navController.navigate(Compare(ids)) },
                         )
                     }
-                    composable<Watchlist> {
+                    composable<Watchlist>(
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://watchlist" },
+                        ),
+                    ) {
                         WatchlistScreen(
                             onOpenDetail = { id -> navController.navigate(ListingDetail(id)) },
                             onCreateAlert = { navController.navigate(Alerts) },
-                            onBrowse = { navController.navigate(Search) },
+                            onBrowse = { navController.navigate(Search()) },
                         )
                     }
                     composable<Insights> {
                         InsightsScreen(
                             onOpenPulseDetail = { navController.navigate(Notifications) },
-                            onDrillDistrict = { navController.navigate(Search) },
-                            onSearchModels = { navController.navigate(Search) },
+                            onDrillDistrict = { district ->
+                                navController.navigate(Search(district = district))
+                            },
+                            onSearchModels = { query ->
+                                navController.navigate(Search(q = query))
+                            },
                         )
                     }
                     composable<Profile> {
@@ -186,17 +238,23 @@ fun MotormilaNavGraph(
                             onDealerClick = { navController.navigate(Dealer) },
                             onAlertsClick = { navController.navigate(Alerts) },
                             onNotificationsClick = { navController.navigate(Notifications) },
+                            onEvHubClick = { navController.navigate(EvHub) },
+                            onPulseClick = { navController.navigate(OfficialPulse) },
+                            onBestPicksClick = { navController.navigate(BestPicks) },
                         )
                     }
                     composable<ListingDetail>(
-                        deepLinks = listOf(navDeepLink { uriPattern = "motormila://listing/{id}" }),
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://listing/{id}" },
+                            navDeepLink { uriPattern = "https://motormila.vercel.app/listing/{id}" },
+                        ),
                     ) { entry ->
                         val route = entry.toRoute<ListingDetail>()
                         ListingDetailScreen(
                             listingId = route.id,
                             onBack = { navController.popBackStack() },
                             onCompare = { ids -> navController.navigate(Compare(ids)) },
-                            onEstimate = { navController.navigate(Valuation) },
+                            onEstimate = { navController.navigate(Valuation()) },
                         )
                     }
                     composable<Compare> { entry ->
@@ -204,8 +262,8 @@ fun MotormilaNavGraph(
                         CompareScreen(
                             ids = route.ids,
                             onOpenDetail = { id -> navController.navigate(ListingDetail(id)) },
-                            onAddListing = { navController.navigate(Search) },
-                            onBrowse = { navController.navigate(Search) },
+                            onAddListing = { navController.navigate(Search()) },
+                            onBrowse = { navController.navigate(Search()) },
                         )
                     }
                     composable<Valuation> {
@@ -252,7 +310,9 @@ fun MotormilaNavGraph(
                         deepLinks = listOf(navDeepLink { uriPattern = "motormila://scan" }),
                     ) {
                         PlateScanScreen(
-                            onSearchPlate = { navController.navigate(Search) },
+                            onSearchPlate = { plate ->
+                                navController.navigate(Search(q = plate, plate = plate))
+                            },
                             onOpenFmv = { id -> navController.navigate(ListingDetail(id)) },
                         )
                     }
@@ -260,8 +320,16 @@ fun MotormilaNavGraph(
                         val route = entry.toRoute<ShareImport>()
                         ShareImportScreen(
                             sharedUrl = route.url,
-                            onSearch = { _ ->
-                                navController.navigate(Search) {
+                            onSearch = { query ->
+                                navController.navigate(
+                                    Search(
+                                        q = query.keyword,
+                                        make = query.make,
+                                        model = query.model,
+                                        district = query.district,
+                                        sort = query.sort,
+                                    ),
+                                ) {
                                     popUpTo(route) { inclusive = true }
                                 }
                             },
@@ -270,8 +338,8 @@ fun MotormilaNavGraph(
                                     popUpTo(route) { inclusive = true }
                                 }
                             },
-                            onValuation = { _, _ ->
-                                navController.navigate(Valuation) {
+                            onValuation = { make, model ->
+                                navController.navigate(Valuation(make, model)) {
                                     popUpTo(route) { inclusive = true }
                                 }
                             },
@@ -279,6 +347,37 @@ fun MotormilaNavGraph(
                                 navController.navigate(Home) {
                                     popUpTo(route) { inclusive = true }
                                 }
+                            },
+                        )
+                    }
+                    composable<EvHub>(
+                        deepLinks = listOf(navDeepLink { uriPattern = "motormila://ev" }),
+                    ) {
+                        EvHubScreen(
+                            onBack = { navController.popBackStack() },
+                            onSearchModels = { query -> navController.navigate(Search(q = query)) },
+                            onOpenListing = { id -> navController.navigate(ListingDetail(id)) },
+                        )
+                    }
+                    composable<OfficialPulse>(
+                        deepLinks = listOf(navDeepLink { uriPattern = "motormila://pulse" }),
+                    ) {
+                        OfficialPulseScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenUrl = { url -> uriHandler.openUri(url) },
+                        )
+                    }
+                    composable<BestPicks>(
+                        deepLinks = listOf(
+                            navDeepLink { uriPattern = "motormila://home?dealOfDay=true" },
+                            navDeepLink { uriPattern = "motormila://picks" },
+                        ),
+                    ) {
+                        BestPicksScreen(
+                            onBack = { navController.popBackStack() },
+                            onListingClick = { id -> navController.navigate(ListingDetail(id)) },
+                            onSeeAllSearch = {
+                                navController.navigate(Search(sort = "deal_score"))
                             },
                         )
                     }
@@ -290,7 +389,7 @@ fun MotormilaNavGraph(
 
 /**
  * Foundation-owned splash gate: verifies active session before navigating.
- * When a session exists, proceeds to [Home]; otherwise routes to [Login].
+ * When a session exists, proceeds to [Home] (or a deep-link target); otherwise Login.
  */
 @Composable
 private fun SplashGate(

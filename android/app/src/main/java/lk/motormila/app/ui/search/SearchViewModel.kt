@@ -1,7 +1,9 @@
 package lk.motormila.app.ui.search
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +26,8 @@ import lk.motormila.app.domain.repository.ListingSorts
 import lk.motormila.app.domain.usecase.GetListingsPagingUseCase
 import lk.motormila.app.domain.usecase.ObserveSessionUseCase
 import lk.motormila.app.domain.usecase.ToggleWatchlistUseCase
+import lk.motormila.app.ui.navigation.Search
+import lk.motormila.app.ui.navigation.searchArgsToQuery
 import javax.inject.Inject
 
 /** Web parity (Compare.tsx / compareSlug.ts): tray holds at most 3 ids. */
@@ -42,6 +46,8 @@ data class SearchUiState(
     val error: String? = null,
     /** Free tier has no deal_score — backend forces `newest` (BestPicks.tsx parity). */
     val isPro: Boolean = false,
+    /** One-shot: SearchScreen launches the system recogniser then [SearchViewModel.consumeVoice]. */
+    val pendingVoice: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -52,6 +58,7 @@ class SearchViewModel @Inject constructor(
     private val observeSession: ObserveSessionUseCase,
     private val listings: ListingRepository,
     private val alerts: AlertsRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SearchUiState())
@@ -66,9 +73,20 @@ class SearchViewModel @Inject constructor(
         .cachedIn(viewModelScope)
 
     init {
+        runCatching { savedStateHandle.toRoute<Search>() }.getOrNull()?.let { applyRouteArgs(it) }
         viewModelScope.launch {
             observeSession().collect { session ->
-                _state.value = _state.value.copy(isPro = session?.isPro == true)
+                val isPro = session?.isPro == true
+                val current = _state.value
+                val nextFilters = if (!isPro && current.filters.sort != ListingSorts.NEWEST) {
+                    current.filters.copy(sort = ListingSorts.NEWEST)
+                } else {
+                    current.filters
+                }
+                _state.value = current.copy(isPro = isPro, filters = nextFilters)
+                if (nextFilters != current.filters) {
+                    pagingKey.value = nextFilters
+                }
             }
         }
         viewModelScope.launch {
@@ -110,6 +128,21 @@ class SearchViewModel @Inject constructor(
             _state.value = _state.value.copy(recentSearches = recents)
         }
         applyFilters(_state.value.filters.copy(keyword = trimmed.ifBlank { null }))
+    }
+
+    fun applyIncomingQuery(query: ListingQuery) {
+        val text = query.keyword?.trim().orEmpty()
+        if (text.isNotBlank()) {
+            onQueryChange(text)
+            val recents = (listOf(text) + _state.value.recentSearches).distinct().take(8)
+            _state.value = _state.value.copy(recentSearches = recents)
+        }
+        applyFilters(query.copy(keyword = text.ifBlank { null }))
+    }
+
+    fun consumeVoice() {
+        savedStateHandle[VOICE_CONSUMED_KEY] = true
+        _state.value = _state.value.copy(pendingVoice = false)
     }
 
     fun applyFilters(query: ListingQuery) {
@@ -194,5 +227,28 @@ class SearchViewModel @Inject constructor(
 
     fun clearError() {
         _state.value = _state.value.copy(error = null)
+    }
+
+    private fun applyRouteArgs(route: Search) {
+        val incoming = searchArgsToQuery(route)
+        val keyword = incoming.keyword
+        val hasArgs = keyword != null ||
+            incoming.district != null ||
+            incoming.make != null ||
+            incoming.model != null ||
+            !route.sort.isNullOrBlank()
+        if (hasArgs) {
+            applyIncomingQuery(incoming)
+            if (keyword != null) {
+                onSearch(keyword)
+            }
+        }
+        if (route.voice && savedStateHandle.get<Boolean>(VOICE_CONSUMED_KEY) != true) {
+            _state.value = _state.value.copy(pendingVoice = true)
+        }
+    }
+
+    companion object {
+        private const val VOICE_CONSUMED_KEY = "pending_voice_consumed"
     }
 }

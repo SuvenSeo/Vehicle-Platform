@@ -15,6 +15,7 @@ class VoiceQueryParserTest {
         assertEquals(Integer.valueOf(2017), q.yearMax)
         assertEquals("Colombo", q.district)
         assertNotNull(q.priceMax)
+        assertEquals(8_000_000.0, q.priceMax!!, 0.001)
     }
 
     @Test

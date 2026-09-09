@@ -40,4 +40,14 @@ class FormatShimsTest {
         assertEquals("-1.0%", formatPct(-1.0))
         assertEquals("—", formatPct(null))
     }
+
+    @Test
+    fun lkrFormat_zeroNegativeAndKm() {
+        assertEquals("Price on request", LkrFormat.price(0.0))
+        assertEquals("Price on request", LkrFormat.price(-1.0))
+        assertEquals("—", LkrFormat.km(null))
+        assertEquals("—", LkrFormat.km(0.0))
+        assertEquals("", LkrFormat.deltaPct(null))
+        assertEquals("+2.5%", LkrFormat.deltaPct(2.5))
+    }
 }

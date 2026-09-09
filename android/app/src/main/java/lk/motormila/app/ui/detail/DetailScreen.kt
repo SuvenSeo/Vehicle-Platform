@@ -89,6 +89,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.domain.model.DealBand
+import lk.motormila.app.domain.model.Fmv
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.domain.model.SellerProfile
 import lk.motormila.app.ui.components.DealBadge
@@ -101,6 +102,7 @@ import lk.motormila.app.ui.components.LoadingSkeletonChart
 import lk.motormila.app.ui.components.LockedValue
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.PriceChart
+import lk.motormila.app.ui.share.FmvShare
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaGoodContainer
 import lk.motormila.app.ui.theme.MotormilaGoodText
@@ -175,7 +177,7 @@ fun ListingDetailScreen(
                     }
                     IconButton(
                         onClick = {
-                            state.listing?.let { shareListing(context, it) }
+                            state.listing?.let { shareListing(context, it, state.fmv) }
                         },
                         modifier = Modifier.size(48.dp),
                     ) {
@@ -241,8 +243,8 @@ fun ListingDetailScreen(
                                     val url = listing.externalUrl ?: listing.detailUrl
                                     if (url != null) openUrl(context, url)
                                 },
-                                onShareWhatsApp = { shareWhatsApp(context, listing) },
-                                onShare = { shareListing(context, listing) },
+                                onShareWhatsApp = { shareWhatsApp(context, listing, state.fmv) },
+                                onShare = { shareListing(context, listing, state.fmv) },
                                 modifier = Modifier.padding(horizontal = 16.dp),
                             )
                         }
@@ -374,7 +376,7 @@ fun ListingDetailScreen(
                                     )
                                 }
                                 OutlinedButton(
-                                    onClick = { shareWhatsApp(context, listing) },
+                                    onClick = { shareWhatsApp(context, listing, state.fmv) },
                                     border = BorderStroke(1.2.dp, MotormilaGood),
                                     colors = ButtonDefaults.outlinedButtonColors(
                                         containerColor = MotormilaGoodContainer,
@@ -1795,36 +1797,12 @@ private fun openUrl(context: Context, url: String) {
     }
 }
 
-private fun shareListing(context: Context, listing: Listing) {
-    // TODO(foundation): swap this text share for a rendered FMV bitmap card.
-    // Bitmap renderer hook point — see DOMAIN_CONTRACT §0: keep this function
-    // as the single share entry (ACTION_SEND + deep link below) and render the
-    // card bitmap here before attaching it via EXTRA_STREAM.
-    // Web parity: singular /listing/{id} (App.tsx `/listing/:id`,
-    // ListingDetail.tsx share url).
-    val text = "${listing.displayName} — ${listing.formattedPrice()} " +
-        "(Motormila: https://motormila.vercel.app/listing/${listing.id})"
-    try {
-        context.startActivity(
-            Intent.createChooser(
-                Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, text)
-                },
-                "Share listing",
-            ),
-        )
-    } catch (_: Exception) {
-    }
+private fun shareListing(context: Context, listing: Listing, fmv: Fmv?) {
+    // Single share entry: FMV bitmap card + EXTRA_TEXT listing URL.
+    // Web parity: singular /listing/{id} (App.tsx `/listing/:id`).
+    FmvShare.share(context, listing, fmv)
 }
 
-private fun shareWhatsApp(context: Context, listing: Listing) {
-    val text = "${listing.displayName} — ${listing.formattedPrice()} " +
-        "(Motormila: https://motormila.vercel.app/listing/${listing.id})"
-    try {
-        val sendIntent = Intent(Intent.ACTION_VIEW, "https://wa.me/?text=${android.net.Uri.encode(text)}".toUri())
-        context.startActivity(sendIntent)
-    } catch (_: Exception) {
-        shareListing(context, listing)
-    }
+private fun shareWhatsApp(context: Context, listing: Listing, fmv: Fmv?) {
+    FmvShare.shareWhatsApp(context, listing, fmv)
 }

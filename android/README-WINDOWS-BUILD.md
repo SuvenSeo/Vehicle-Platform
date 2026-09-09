@@ -41,6 +41,23 @@ Release (v1: minify off, no R8 risk):
 
 ## Debug backend
 
-Debug `BASE_URL` = `http://10.0.2.2:8000/api/v1` (emulator loopback to host).
+Override debug `BASE_URL` with `MOTORMILA_API_URL` or `-PmotormilaApiUrl`.
+Local emulator loopback: `http://10.0.2.2:8000/api/v1`.
 `network_security_config.xml` permits cleartext **only** for `10.0.2.2`.
 Release `BASE_URL` = `https://seo292-vehicle-platform-backend.hf.space/api/v1`.
+
+Play Billing and FCM are stubbed in v1 (server checkout-intent fallback; local
+notification routing until a Firebase backend lands).
+
+## Linux / CI
+
+JVM unit tests (no emulator image):
+
+```bash
+cd android
+chmod +x gradlew
+./gradlew :app:testDebugUnitTest
+```
+
+GitHub Actions runs the same command in `.github/workflows/android.yml`
+(`android-unit` job) on Ubuntu with JDK 17.

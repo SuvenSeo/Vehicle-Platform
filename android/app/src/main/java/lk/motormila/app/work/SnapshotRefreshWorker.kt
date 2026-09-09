@@ -6,7 +6,9 @@ import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -22,7 +24,7 @@ import lk.motormila.app.data.remote.mapper.toEntity
 /**
  * Periodic snapshot refresher: warms district prices + price drops into Room
  * so the home screen renders instantly offline.
- * 6 h interval, network-required, exponential backoff.
+ * 6 h interval + immediate one-shot, network-required, exponential backoff.
  */
 @HiltWorker
 class SnapshotRefreshWorker @AssistedInject constructor(
@@ -34,19 +36,31 @@ class SnapshotRefreshWorker @AssistedInject constructor(
 
     companion object {
         const val UNIQUE_NAME = "snapshot_refresh"
+        const val UNIQUE_ONCE = "snapshot_refresh_once"
 
         fun enqueue(context: Context) {
-            val req = PeriodicWorkRequestBuilder<SnapshotRefreshWorker>(6, TimeUnit.HOURS)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+            val wm = WorkManager.getInstance(context)
+            val periodic = PeriodicWorkRequestBuilder<SnapshotRefreshWorker>(6, TimeUnit.HOURS)
+                .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
                 .addTag(UNIQUE_NAME)
                 .build()
-            WorkManager.getInstance(context)
-                .enqueueUniquePeriodicWork(UNIQUE_NAME, ExistingPeriodicWorkPolicy.KEEP, req)
+            wm.enqueueUniquePeriodicWork(UNIQUE_NAME, ExistingPeriodicWorkPolicy.KEEP, periodic)
+            val once = OneTimeWorkRequestBuilder<SnapshotRefreshWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+                .addTag(UNIQUE_NAME)
+                .build()
+            wm.enqueueUniqueWork(UNIQUE_ONCE, ExistingWorkPolicy.KEEP, once)
         }
 
         fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_NAME)
+            val wm = WorkManager.getInstance(context)
+            wm.cancelUniqueWork(UNIQUE_NAME)
+            wm.cancelUniqueWork(UNIQUE_ONCE)
         }
     }
 

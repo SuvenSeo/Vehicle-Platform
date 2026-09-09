@@ -24,11 +24,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.ElectricCar
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,7 +52,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -64,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import lk.motormila.app.R
 import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
@@ -126,6 +132,9 @@ fun HomeScreen(
     onAlertsClick: () -> Unit,
     onSeeAll: (String) -> Unit,
     onLoginClick: () -> Unit = {},
+    onEvHubClick: () -> Unit = {},
+    onBestPicksClick: () -> Unit = {},
+    onPulseClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -190,6 +199,15 @@ fun HomeScreen(
             item {
                 FeatureBannersRow(
                     onVehicleTypesClick = onSearchClick,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
+            item {
+                HubShortcutsRow(
+                    onEvHubClick = onEvHubClick,
+                    onPulseClick = onPulseClick,
+                    onBestPicksClick = onBestPicksClick,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -831,6 +849,99 @@ private fun FeatureBannersRow(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HubShortcutsRow(
+    onEvHubClick: () -> Unit,
+    onPulseClick: () -> Unit,
+    onBestPicksClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.hub_home_row).uppercase(),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp,
+            color = MotormilaPrimaryBright,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_ev_title),
+                hint = stringResource(R.string.hub_home_ev_hint),
+                icon = Icons.Filled.ElectricCar,
+                contentDescription = stringResource(R.string.hub_open_ev),
+                onClick = onEvHubClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_pulse_title),
+                hint = stringResource(R.string.hub_home_pulse_hint),
+                icon = Icons.Filled.CellTower,
+                contentDescription = stringResource(R.string.hub_open_pulse),
+                onClick = onPulseClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_picks_title),
+                hint = stringResource(R.string.hub_home_picks_hint),
+                icon = Icons.Filled.Star,
+                contentDescription = stringResource(R.string.hub_open_picks),
+                onClick = onBestPicksClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HubShortcutCard(
+    title: String,
+    hint: String,
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
+        modifier = modifier
+            .heightIn(min = 96.dp)
+            .semantics { this.contentDescription = contentDescription },
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MotormilaPrimaryBright,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MotormilaOnSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = hint,
+                fontSize = 10.sp,
+                color = MotormilaSecondaryText,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

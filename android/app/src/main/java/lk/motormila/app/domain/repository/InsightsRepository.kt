@@ -6,6 +6,7 @@ import lk.motormila.app.domain.model.DistrictVelocity
 import lk.motormila.app.domain.model.EvStats
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.domain.model.MarketSignal
+import lk.motormila.app.domain.model.Permit
 import lk.motormila.app.domain.model.PriceIndex
 import lk.motormila.app.domain.model.TrendSeries
 import lk.motormila.app.domain.model.VehicleNews
@@ -39,4 +40,6 @@ interface InsightsRepository {
     suspend fun news(limit: Int = 10): List<VehicleNews>
 
     suspend fun evStats(): EvStats
+
+    suspend fun permits(): List<Permit>
 }

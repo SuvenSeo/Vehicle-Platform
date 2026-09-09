@@ -48,4 +48,22 @@ class ShareUrlParserTest {
         val t = parseSharedUrl("https://ikman.lk/en/ad/toyota-axio")
         assertTrue(t is ShareTarget.Valuation || t is ShareTarget.Search)
     }
+
+    @Test
+    fun wwwHost_isStillSupported() {
+        val t = parseSharedUrl("https://www.ikman.lk/en/ad/toyota-axio-2017-for-sale-colombo-1234567")
+        assertTrue(t is ShareTarget.Search || t is ShareTarget.Compare)
+    }
+
+    @Test
+    fun motormilaLkListing_goesToCompare() {
+        val t = parseSharedUrl("https://motormila.lk/listings/88")
+        assertTrue(t is ShareTarget.Compare)
+        assertEquals(listOf(88), (t as ShareTarget.Compare).ids)
+    }
+
+    @Test
+    fun invalidDeepLink_isUnsupported() {
+        assertTrue(parseSharedUrl("motormila://listing/not-a-number") is ShareTarget.Unsupported)
+    }
 }

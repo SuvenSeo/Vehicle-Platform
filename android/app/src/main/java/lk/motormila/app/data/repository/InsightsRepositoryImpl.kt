@@ -13,6 +13,7 @@ import lk.motormila.app.domain.model.DistrictVelocity
 import lk.motormila.app.domain.model.EvStats
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.domain.model.MarketSignal
+import lk.motormila.app.domain.model.Permit
 import lk.motormila.app.domain.model.PriceIndex
 import lk.motormila.app.domain.model.TrendSeries
 import lk.motormila.app.domain.model.VehicleNews
@@ -108,5 +109,16 @@ class InsightsRepositoryImpl @Inject constructor(
             savingsPerYearLkr = (300.0 / 12 - 6) * 50 * 365,
             topModels = ev.topModels.map { "${it.make} ${it.model}".trim() },
         )
+    }
+
+    override suspend fun permits(): List<Permit> = withContext(io) {
+        api.permits().map { dto ->
+            Permit(
+                id = dto.id,
+                name = dto.permitName,
+                type = dto.permitType,
+                marketPriceLkr = dto.marketPriceLkr,
+            )
+        }
     }
 }

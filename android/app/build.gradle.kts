@@ -113,6 +113,7 @@ dependencies {
     implementation(libs.material.icons.extended)
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
+    implementation(libs.appcompat)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
 

@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.R
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SectionTitle
@@ -58,6 +60,9 @@ fun ProfileScreen(
     onDealerClick: () -> Unit,
     onAlertsClick: () -> Unit,
     onNotificationsClick: () -> Unit,
+    onEvHubClick: () -> Unit = {},
+    onPulseClick: () -> Unit = {},
+    onBestPicksClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -240,6 +245,21 @@ fun ProfileScreen(
                                     )
                                 }
                             }
+                        }
+                        item {
+                            SectionTitle(stringResource(R.string.hub_profile_section))
+                            TileRow(
+                                label = stringResource(R.string.hub_ev_title),
+                                onClick = { navTap(onEvHubClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_pulse_title),
+                                onClick = { navTap(onPulseClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_picks_title),
+                                onClick = { navTap(onBestPicksClick) },
+                            )
                         }
                         item {
                             SectionTitle("Manage")
