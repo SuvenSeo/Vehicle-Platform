@@ -1,0 +1,125 @@
+# Publishes an installable Motormila APK as a GitHub Release.
+# Trigger: git tag android-v* (e.g. android-v1.0.0) or workflow_dispatch.
+#
+# The APK is sideload-signed (SDK debug key unless ANDROID_KEYSTORE_* secrets
+# are set). Not for Play Store. Enable "install unknown apps" on the device.
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "android-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-apk:
+    name: Build and publish APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Ensure sideload keystore
+        working-directory: .
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          KEYSTORE="$HOME/.android/debug.keystore"
+          if [[ ! -f "$KEYSTORE" ]]; then
+            keytool -genkeypair -noprompt \
+              -keystore "$KEYSTORE" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Assemble release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Stage APK
+        id: apk
+        working-directory: .
+        run: |
+          set -euo pipefail
+          SRC="android/app/build/outputs/apk/release/app-release.apk"
+          if [[ ! -f "$SRC" ]]; then
+            echo "ERROR: $SRC missing"
+            ls -la android/app/build/outputs/apk/release || true
+            exit 1
+          fi
+          VERSION="$(echo "${GITHUB_REF_NAME}" | sed 's/^android-v//')"
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            VERSION="1.0.0-${GITHUB_SHA:0:7}"
+          fi
+          NAME="motormila-${VERSION}.apk"
+          mkdir -p dist
+          cp "$SRC" "dist/${NAME}"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "path=dist/${NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          ls -lh "dist/${NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: motormila-apk
+          path: dist/${{ steps.apk.outputs.name }}
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        working-directory: .
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            TAG="android-v${{ steps.apk.outputs.version }}"
+          fi
+          NOTES_FILE="$(mktemp)"
+          {
+            echo "Sideload preview of the Motormila Android app (package \`lk.motormila.app\`)."
+            echo
+            echo "- Install: download the APK, enable **Install unknown apps**, open the file."
+            echo "- API: production Hugging Face backend."
+            echo "- Signed with the Android debug key (not a Play Store upload key). Reinstall later from Play will not match this signature."
+            echo "- Guest browse works without signing in; Pro / alerts / dealer still need an invite."
+            echo
+            echo "Built from \`${GITHUB_SHA}\`."
+          } > "$NOTES_FILE"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${{ steps.apk.outputs.path }}" --clobber
+            gh release edit "$TAG" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$TAG" "${{ steps.apk.outputs.path }}" \
+              --title "Motormila Android ${{ steps.apk.outputs.version }}" \
+              --notes-file "$NOTES_FILE" \
+              --prerelease \
+              --latest=false
+          fi
+          echo "Published $TAG"

@@ -40,3 +40,30 @@ jobs:
 
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Ensure sideload keystore
+        working-directory: .
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          KEYSTORE="$HOME/.android/debug.keystore"
+          if [[ ! -f "$KEYSTORE" ]]; then
+            keytool -genkeypair -noprompt \
+              -keystore "$KEYSTORE" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Assemble release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: motormila-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

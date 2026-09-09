@@ -33,11 +33,16 @@ $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.11.9-hotspot"
 # APK: app\build\outputs\apk\debug\app-debug.apk
 ```
 
-Release (v1: minify off, no R8 risk):
+Release (v1: minify off, no R8 risk). Sideload-signed with the SDK debug
+keystore unless `ANDROID_KEYSTORE_*` env vars are set:
 
 ```powershell
 .\gradlew.bat :app:assembleRelease
+# APK: app\build\outputs\apk\release\app-release.apk
 ```
+
+GitHub Releases: tag `android-v1.0.0` (or later) and push. Workflow
+`.github/workflows/android-release.yml` publishes `motormila-<version>.apk`.
 
 ## Debug backend
 
