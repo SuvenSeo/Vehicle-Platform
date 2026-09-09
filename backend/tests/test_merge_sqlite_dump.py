@@ -251,3 +251,30 @@ def test_merge_preserves_vehicle_category(tmp_path: Path, monkeypatch: pytest.Mo
         cat = con.execute("SELECT vehicle_category FROM car_listings WHERE source_id = 'ad-van-1'").fetchone()[0]
         assert cat == "vans"
 
+
+def test_merge_does_not_overwrite_existing_first_seen_at(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "merged.db"
+    _fresh_target(target)
+    engine = create_engine(f"sqlite:///{target}")
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO car_listings (source, source_id, title, make, model, year, price_lkr, "
+                "scraped_at, first_seen_at, url, is_active, is_outlier, is_duplicate) VALUES "
+                "('ikman', 'ad-1', 'Toyota Aqua 2018', 'Toyota', 'Aqua', 2018, 9200000, "
+                "'2026-01-01 10:00:00', '2026-01-01 10:00:00', 'https://ikman.lk/ad-1', 1, 0, 0)"
+            )
+        )
+    engine.dispose()
+
+    dump = _make_dump(tmp_path / "autolens.db", with_history_src=False)
+    assert _run_merge(monkeypatch, dump, target) == 0
+
+    with sqlite3.connect(target) as con:
+        first_seen = con.execute(
+            "SELECT first_seen_at FROM car_listings WHERE source_id = 'ad-1'"
+        ).fetchone()[0]
+    assert str(first_seen).startswith("2026-01-01")
+

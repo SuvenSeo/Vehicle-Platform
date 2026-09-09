@@ -630,6 +630,21 @@ async function readSnapshot<T>(fileName: string): Promise<T | null> {
   }
 }
 
+function overlayIncomingListings(catalog: CarListing[], incoming: CarListing[]): CarListing[] {
+  if (!incoming.length) return catalog;
+  const incomingIds = new Set(incoming.map((row) => Number(row.id)));
+  return [...incoming, ...catalog.filter((row) => !incomingIds.has(Number(row.id)))];
+}
+
+async function getIncomingSnapshotListings(): Promise<CarListing[]> {
+  const snapshot = await readSnapshot<JsonRecord>("live-market.json");
+  if (!snapshot) return [];
+  const rows = Array.isArray(snapshot.latest_listings) ? snapshot.latest_listings : [];
+  return rows
+    .map((item) => normalizeListing(asJsonRecord(item)))
+    .filter((row) => Number(row.id) > 0);
+}
+
 function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
   if (!SNAPSHOT_BASE) return Promise.resolve(null);
   if (!snapshotCatalogPromise) {
@@ -659,11 +674,13 @@ function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
           return null;
         }
         if (items.length === 0) return null;
-        return items.map(normalizeListing);
+        const catalog = items.map(normalizeListing);
+        return overlayIncomingListings(catalog, await getIncomingSnapshotListings());
       }
 
       if (!Array.isArray(snapshot.items)) return null;
-      return snapshot.items.map(normalizeListing);
+      const catalog = snapshot.items.map(normalizeListing);
+      return overlayIncomingListings(catalog, await getIncomingSnapshotListings());
     });
   }
   return snapshotCatalogPromise;
@@ -719,6 +736,11 @@ function normalizeLiveMarketData(data: JsonRecord): LiveMarketSnapshot {
           listings_new: Number(row?.listings_new || 0),
           error_message: row?.error_message ? String(row.error_message) : null,
         }))
+      : [],
+    latest_listings: Array.isArray(data?.latest_listings)
+      ? data.latest_listings
+          .map((row: unknown) => normalizeListing(asJsonRecord(row)))
+          .filter((row) => Number(row.id) > 0)
       : [],
   };
 }
@@ -834,7 +856,7 @@ function isPricedListing(listing: CarListing): boolean {
 }
 
 function listingTimestamp(listing: CarListing): number {
-  const parsed = Date.parse(String(listing.scraped_at || listing.first_seen_at || ""));
+  const parsed = Date.parse(String(listing.first_seen_at || listing.scraped_at || listing.last_seen_at || ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
@@ -1190,7 +1212,11 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
   };
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return filterSnapshotListings(catalog, effectiveFilters);
-  if (SNAPSHOT_ONLY) return { listings: [], total: 0 };
+  if (SNAPSHOT_ONLY) {
+    const incoming = await getIncomingSnapshotListings();
+    if (incoming.length) return filterSnapshotListings(incoming, effectiveFilters);
+    return { listings: [], total: 0 };
+  }
 
   const data = await fetchJSON<JsonRecord>("/listings", {
     ...effectiveFilters,
@@ -1226,7 +1252,12 @@ export const getListing = async (id: string | number) => {
     const match = catalog.find((listing) => String(listing.id) === String(id));
     if (match) return match;
   }
-  if (SNAPSHOT_ONLY) refuseLiveApiFallback(`listing ${id}`);
+  if (SNAPSHOT_ONLY) {
+    const incoming = await getIncomingSnapshotListings();
+    const match = incoming.find((listing) => String(listing.id) === String(id));
+    if (match) return match;
+    refuseLiveApiFallback(`listing ${id}`);
+  }
 
   const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
@@ -1883,7 +1914,11 @@ export const getListingsForExport = async (
   const size = Math.max(1, Math.min(100, Math.floor(maxRows)));
   const catalog = await getSnapshotListingCatalog();
   if (catalog) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
-  if (SNAPSHOT_ONLY) return { listings: [], total: 0 };
+  if (SNAPSHOT_ONLY) {
+    const incoming = await getIncomingSnapshotListings();
+    if (incoming.length) return filterSnapshotListings(incoming, { ...filters, page: 1 }, size);
+    return { listings: [], total: 0 };
+  }
 
   const data = await fetchJSON<JsonRecord>("/listings", {
     ...filters,

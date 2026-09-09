@@ -29,14 +29,18 @@ def _listing(
     make: str = "Toyota",
     model: str = "Vitz",
     district: str = "Colombo",
+    scraped_at: datetime | None = None,
+    first_seen_at: datetime | None = None,
 ) -> CarListing:
     now = datetime(2026, 4, 19, 10, 0, tzinfo=timezone.utc)
+    seen = first_seen_at or now
+    scraped = scraped_at or now
     return CarListing(
         source="ikman",
         source_id=source_id,
-        scraped_at=now,
-        first_seen_at=now,
-        last_seen_at=now,
+        scraped_at=scraped,
+        first_seen_at=seen,
+        last_seen_at=scraped,
         make=make,
         model=model,
         year=2018,
@@ -270,6 +274,41 @@ def test_live_market_snapshot_excludes_unavailable_prices_from_average(monkeypat
     assert payload["avg_price_lkr"] == 8_000_000
     assert payload["latest_run"]["source"] == "riyahub"
     assert payload["active_scrape_sources"] == ["riyahub"]
+
+
+def test_live_market_snapshot_latest_listings_order_by_first_seen(monkeypatch):
+    fixed_now = datetime(2026, 4, 19, 14, 0, tzinfo=timezone.utc)
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_now if tz is not None else fixed_now.replace(tzinfo=None)
+
+    monkeypatch.setattr(stats, "datetime", FixedDateTime)
+
+    db = _session()
+    old_dealer = _listing(
+        "rescraped-dealer",
+        7_000_000,
+        5.0,
+        first_seen_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+        scraped_at=datetime(2026, 4, 19, 13, 50, tzinfo=timezone.utc),
+    )
+    new_ad = _listing(
+        "fresh-ikman",
+        8_000_000,
+        5.0,
+        first_seen_at=datetime(2026, 4, 19, 12, 0, tzinfo=timezone.utc),
+        scraped_at=datetime(2026, 4, 19, 12, 1, tzinfo=timezone.utc),
+    )
+    db.add_all([old_dealer, new_ad])
+    db.commit()
+
+    payload = stats.build_live_market_snapshot(db)
+    ids = [row["id"] for row in payload["latest_listings"]]
+    assert ids[0] == new_ad.id
+    assert ids[1] == old_dealer.id
+    assert payload["latest_listings"][0]["source_id"] == "fresh-ikman"
 
 
 def test_live_market_snapshot_active_sources_include_recent_success_runs(monkeypatch):

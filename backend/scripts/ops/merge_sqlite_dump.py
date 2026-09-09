@@ -45,6 +45,10 @@ EXCLUDE_COLS = {
     "image_phash",
     "content_updated_at",
     "last_seen_at",
+    # Dump first_seen_at is usually the scrape clock. upsert_listing also
+    # refuses to overwrite it; keep it out of the payload so inserts use the
+    # DB default and existing rows keep their original discovery time.
+    "first_seen_at",
 }
 
 CONTENT_COLS = [

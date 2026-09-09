@@ -5,7 +5,9 @@
 #
 # Stats-only exports (daily scrapes, --skip-catalog) do not carry the listing
 # catalog, so the current catalog is fetched from the live site first and the
-# fresh stats are overlaid on top. Full exports (weekly catalog refresh,
+# fresh stats are overlaid on top. Those stats include live-market.json
+# `latest_listings` (newest ads by first_seen_at) so the homepage grid can
+# move between full-catalog refreshes. Full exports (weekly catalog refresh,
 # ikman backfill) are deployed as-is.
 #
 # Usage:
