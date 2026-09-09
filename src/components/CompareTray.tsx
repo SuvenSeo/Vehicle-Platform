@@ -14,6 +14,7 @@ import {
 
 import {
   type PinnedListing,
+  MAX_PINNED,
   buildCompareLink,
   useCompareTray,
 } from "@/lib/compareTray";
