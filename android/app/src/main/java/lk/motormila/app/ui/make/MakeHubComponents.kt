@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -211,7 +211,7 @@ internal fun MakeHubTrendSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Filled.TrendingUp, contentDescription = null, tint = MotormilaPrimary)
+                Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = MotormilaPrimary)
                 Column {
                     Text(
                         text = stringResource(R.string.make_hub_trend_eyebrow).uppercase(),
