@@ -18,9 +18,9 @@
 #      dumps file always ends with a newline so a single pending dump is not
 #      skipped by `wc -l` / `while read`),
 #   3. runs market analysis + dedup,
-#   4. exports public snapshots and deploys them to Vercel,
-#   5. re-publishes the merged DB + marker — only after a successful deploy,
-#      so a failed run is retried from the same point next time.
+#   4. publishes the merged DB + marker. Production snapshots stay on the Neon
+#      daily/midday/weekly jobs. Set publish-full-catalog=true on
+#      workflow_dispatch during a Neon outage to export SQLite and deploy.
 name: Manus to Live (hosted merge and deploy)
 
 on:
@@ -37,6 +37,11 @@ on:
         description: "Force-merge this exact dump release tag (e.g. manus-scrape-20260814T1601Z)"
         required: false
         type: string
+      publish-full-catalog:
+        description: "Neon outage only: export the SQLite catalog and deploy it to Vercel. Leave off so scheduled merges do not overwrite the live site."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -146,12 +151,8 @@ jobs:
           RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
 
-      - name: Export public snapshots (full, includes catalog)
-        if: steps.discover.outputs.count != '0'
-        run: python export_public_snapshots.py --output snapshots/latest
-
-      - name: Stage snapshots and deploy to Vercel production
-        if: steps.discover.outputs.count != '0'
+      - name: Export and deploy SQLite snapshots (Neon outage only)
+        if: steps.discover.outputs.count != '0' && github.event.inputs.publish-full-catalog == 'true'
         working-directory: ${{ github.workspace }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -160,12 +161,14 @@ jobs:
           SNAPSHOT_SOURCE_DIR: public/snapshots/latest
         run: |
           set -euo pipefail
+          echo "Full catalog export from SQLite (Neon outage override)"
+          python backend/export_public_snapshots.py --output backend/snapshots/latest
           mkdir -p public/snapshots/latest
           cp -r backend/snapshots/latest/. public/snapshots/latest/
           bash scripts/deploy-snapshots-to-prod.sh
 
-      # Only publish the marker after the deploy succeeded — otherwise the
-      # next run re-merges everything (idempotent) and retries the deploy.
+      # Always advance the merge marker after a successful merge so a skipped
+      # Vercel deploy (Neon is healthy) does not re-merge the same dumps.
       - name: Publish merged DB back to release
         if: steps.discover.outputs.count != '0'
         working-directory: ${{ github.workspace }}

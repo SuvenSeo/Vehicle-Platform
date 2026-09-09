@@ -16,6 +16,11 @@ from db.models import CarListing, VehiclePriceHistory
 
 log = structlog.get_logger()
 
+# Re-scrapes and dump merges send a fresh scraped_at (and sometimes a dump
+# first_seen_at). Discovery time must stay the original sighting or the
+# public "newest" grid keeps surfacing the same dealer stock.
+_UPDATE_IMMUTABLE_KEYS = frozenset({"id", "first_seen_at", "source", "source_id"})
+
 
 def _as_decimal(value) -> Decimal | None:
     if value is None:
@@ -127,6 +132,8 @@ def upsert_listing(db: Session, source: str, payload: dict) -> bool:
         old_price = _as_decimal(existing.price_lkr)
         was_active = bool(existing.is_active)
         for key, value in payload.items():
+            if key in _UPDATE_IMMUTABLE_KEYS:
+                continue
             setattr(existing, key, value)
         existing.last_seen_at = utc_now()
         existing.is_active = True  # re-sighted at source: live again

@@ -130,6 +130,62 @@ describe("snapshot-only mode", () => {
     expect(fetchMock.mock.calls.every((call) => String(call[0]).includes("cdn.example"))).toBe(true);
   });
 
+  it("sorts snapshot newest by first_seen_at, not re-scrape time", async () => {
+    vi.stubEnv("VITE_SNAPSHOT_BASE_URL", "https://cdn.example/latest");
+    vi.stubEnv("VITE_SNAPSHOT_ONLY", "true");
+
+    const dealer = {
+      id: 10,
+      title: "Dealer Taisor",
+      make: "Toyota",
+      model: "Taisor",
+      year: 2026,
+      price_lkr: 12_000_000,
+      mileage_km: 12,
+      district: "Colombo",
+      source: "cartivate",
+      url: "https://example.com/10",
+      first_seen_at: "2026-01-02T00:00:00.000Z",
+      scraped_at: "2026-09-09T14:45:00.000Z",
+    };
+    const fresh = {
+      id: 20,
+      title: "Ikman Vitz",
+      make: "Toyota",
+      model: "Vitz",
+      year: 2014,
+      price_lkr: 4_200_000,
+      mileage_km: 89000,
+      district: "Gampaha",
+      source: "ikman",
+      url: "https://example.com/20",
+      first_seen_at: "2026-09-09T12:00:00.000Z",
+      scraped_at: "2026-09-09T12:00:00.000Z",
+    };
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/listing-catalog.json")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [dealer, fresh] }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api = await import("@/services/api");
+    const result = await api.getListings({
+      page: 1,
+      sort: "newest",
+      vehicle_category: "cars",
+    });
+
+    expect(result.listings.map((row) => row.id)).toEqual([20, 10]);
+  });
+
   it("fails closed when a multi-part catalog chunk is missing", async () => {
     vi.stubEnv("VITE_SNAPSHOT_BASE_URL", "https://cdn.example/latest");
     vi.stubEnv("VITE_SNAPSHOT_ONLY", "true");
@@ -180,5 +236,85 @@ describe("snapshot-only mode", () => {
     });
 
     expect(result).toEqual({ listings: [], total: 0 });
+  });
+
+  it("prepends live-market latest_listings onto the frozen catalog for newest sort", async () => {
+    vi.stubEnv("VITE_SNAPSHOT_BASE_URL", "https://cdn.example/latest");
+    vi.stubEnv("VITE_SNAPSHOT_ONLY", "true");
+
+    const staleTop = {
+      id: 433500,
+      title: "Toyota Taisor V",
+      make: "Toyota",
+      model: "Taisor",
+      year: 2026,
+      price_lkr: 12_000_000,
+      mileage_km: 12,
+      district: "Colombo",
+      source: "cartivate",
+      url: "https://example.com/cartivate/1",
+      first_seen_at: "2026-01-02T00:00:00.000Z",
+      scraped_at: "2026-09-09T14:45:00.000Z",
+    };
+    const incoming = {
+      id: 558905,
+      title: "Toyota Vitz KSP90",
+      make: "Toyota",
+      model: "Vitz",
+      year: 2014,
+      price_lkr: 4_200_000,
+      mileage_km: 89000,
+      district: "Gampaha",
+      source: "riyasewana",
+      url: "https://example.com/riyasewana/1",
+      first_seen_at: "2026-09-09T17:08:00.000Z",
+      scraped_at: "2026-09-09T17:08:00.000Z",
+    };
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/listing-catalog.json")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            parts: ["listing-catalog-part-000.json"],
+            listing_count: 1,
+            generated_at: "2026-09-09T14:47:00.000Z",
+          }),
+        };
+      }
+      if (url.endsWith("/listing-catalog-part-000.json")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [staleTop] }),
+        };
+      }
+      if (url.endsWith("/live-market.json")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            generated_at: "2026-09-09T17:10:00.000Z",
+            total_listings: 192895,
+            latest_listings: [incoming],
+          }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api = await import("@/services/api");
+    const result = await api.getListings({
+      page: 1,
+      sort: "newest",
+      vehicle_category: "cars",
+    });
+
+    expect(result.listings.map((row) => row.id)).toEqual([558905, 433500]);
+    expect(result.listings[0].source).toBe("riyasewana");
+    expect(result.total).toBe(2);
   });
 });

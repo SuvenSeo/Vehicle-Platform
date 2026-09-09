@@ -27,6 +27,10 @@ from app.api.v1.endpoints import listings as listings_endpoint  # noqa: E402
 from app.api.v1.endpoints import pipeline as pipeline_endpoint  # noqa: E402
 from app.api.v1.endpoints import stats as stats_endpoint  # noqa: E402
 from app.utils.districts import count_canonical_districts  # noqa: E402
+from app.utils.listing_snapshot import (  # noqa: E402
+    LISTING_SNAPSHOT_LOAD_ONLY,
+    listing_to_dict,
+)
 from db.models import CarListing, live_listing_filter  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
 
@@ -84,40 +88,6 @@ def number_or_none(value: Any) -> float | None:
     if math.isfinite(number):
         return number
     return None
-
-
-def listing_to_dict(row: CarListing) -> dict[str, Any]:
-    return {
-        "id": int(row.id),
-        "source": row.source,
-        "source_id": row.source_id,
-        "url": row.url,
-        "detail_url": row.url,
-        "external_url": row.url,
-        "title": row.title or "",
-        "make": row.make or "",
-        "model": row.model or "",
-        "year": int(row.year) if row.year is not None else None,
-        "price_lkr": number_or_none(row.price_lkr),
-        "mileage": int(row.mileage) if row.mileage is not None else None,
-        "mileage_km": int(row.mileage) if row.mileage is not None else None,
-        "fuel_type": row.fuel_type,
-        "transmission": row.transmission,
-        "engine_capacity": int(row.engine_capacity) if row.engine_capacity is not None else None,
-        "engine_cc": int(row.engine_capacity) if row.engine_capacity is not None else None,
-        "condition": row.condition,
-        "body_type": row.body_type,
-        "vehicle_category": row.vehicle_category,
-        "district": row.district,
-        "city": row.city,
-        "thumbnail_url": row.thumbnail_url,
-        "scraped_at": to_utc_iso(row.scraped_at),
-        "first_seen_at": to_utc_iso(row.first_seen_at),
-        "last_seen_at": to_utc_iso(row.last_seen_at),
-        "deal_score": number_or_none(row.deal_score),
-        "market_median_lkr": number_or_none(row.market_median_lkr),
-        "is_outlier": bool(row.is_outlier),
-    }
 
 
 def build_stats_summary(db) -> dict[str, Any]:
@@ -197,38 +167,10 @@ def build_pipeline_status(db) -> dict[str, Any]:
 def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
     query = (
         db.query(CarListing)
-        .options(
-            load_only(
-                CarListing.id,
-                CarListing.source,
-                CarListing.source_id,
-                CarListing.url,
-                CarListing.title,
-                CarListing.make,
-                CarListing.model,
-                CarListing.year,
-                CarListing.price_lkr,
-                CarListing.mileage,
-                CarListing.fuel_type,
-                CarListing.transmission,
-                CarListing.engine_capacity,
-                CarListing.condition,
-                CarListing.body_type,
-                CarListing.vehicle_category,
-                CarListing.district,
-                CarListing.city,
-                CarListing.thumbnail_url,
-                CarListing.scraped_at,
-                CarListing.first_seen_at,
-                CarListing.last_seen_at,
-                CarListing.deal_score,
-                CarListing.market_median_lkr,
-                CarListing.is_outlier,
-            )
-        )
+        .options(load_only(*LISTING_SNAPSHOT_LOAD_ONLY))
         .filter(live_listing_filter())
         .order_by(
-            desc(func.coalesce(CarListing.scraped_at, CarListing.last_seen_at, CarListing.first_seen_at)),
+            desc(CarListing.first_seen_at),
             desc(CarListing.id),
         )
     )
@@ -379,6 +321,8 @@ def parse_args() -> argparse.Namespace:
         "--skip-catalog",
         action="store_true",
         help="Stats-only export: skip the full listing-catalog read (saves Neon egress). "
+        "live-market.json still includes latest_listings (newest ads by first_seen_at) "
+        "so the homepage can update between weekly catalog refreshes. "
         "Use for daily refreshes; run a full export weekly or manually.",
     )
     return parser.parse_args()

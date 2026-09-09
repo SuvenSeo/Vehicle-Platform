@@ -358,6 +358,8 @@ export interface LiveMarketSnapshot {
   active_scrape_sources: string[];
   latest_run: LiveMarketRun | null;
   source_status: LiveMarketRun[];
+  /** Newest ads by first_seen_at; rebuilt on daily/midday stats-only exports. */
+  latest_listings: CarListing[];
 }
 
 export interface PipelineTriggerResponse {

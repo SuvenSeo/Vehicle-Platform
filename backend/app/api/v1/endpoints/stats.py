@@ -51,6 +51,7 @@ from app.models.schemas import PriceIndexResponse
 from app.utils.price_index import build_price_index
 from app.services.rate_limit import RateLimiter
 from app.services.model_price_history import build_model_price_history
+from app.utils.listing_snapshot import query_latest_listings
 
 _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 
@@ -171,6 +172,9 @@ def build_live_market_snapshot(db: Session) -> dict:
             }
             for source, run in sorted(latest_by_source.items())
         ],
+        # Cheap homepage feed: rebuilt on every stats-only export so the
+        # public grid can show newly discovered ads without a full catalog.
+        "latest_listings": query_latest_listings(db),
     }
 
 @router.get("/price-index", response_model=PriceIndexResponse)
