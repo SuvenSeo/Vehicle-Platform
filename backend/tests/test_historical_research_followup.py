@@ -220,6 +220,8 @@ def test_upsert_clamps_oversized_mileage(db_session):
 
 def test_nhtsa_fetch_models_for_make_live():
     models = fetch_models_for_make("toyota")
+    if not models:
+        pytest.skip("NHTSA vPIC unavailable (timeout/5xx); mocked coverage is in test_nhtsa_endpoint.py")
     assert len(models) > 10
     names = {m["model"].lower() for m in models}
     assert "corolla" in names or "prius" in names
