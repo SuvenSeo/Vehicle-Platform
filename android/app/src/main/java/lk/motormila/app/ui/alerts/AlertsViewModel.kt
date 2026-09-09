@@ -1,9 +1,13 @@
 package lk.motormila.app.ui.alerts
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlin.math.abs
+import kotlin.math.round
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +23,27 @@ import lk.motormila.app.domain.model.AlertInput
 import lk.motormila.app.domain.model.AlertMatch
 import lk.motormila.app.domain.repository.AlertsRepository
 import lk.motormila.app.domain.repository.AuthRepository
+import lk.motormila.app.domain.repository.ListingRepository
+import lk.motormila.app.ui.navigation.Alerts
+
+/**
+ * Format rupees as alert-form shorthand: "8.5m" at/above 1M, else a whole-rupee integer.
+ * Inverse of [parseLkrShorthand] for the common million case.
+ */
+fun formatLkrShorthand(value: Double): String {
+    if (value >= 1_000_000) {
+        val millions = value / 1_000_000.0
+        val rounded = round(millions * 100.0) / 100.0
+        val whole = rounded.toLong()
+        val text = if (abs(rounded - whole) < 1e-9) {
+            whole.toString()
+        } else {
+            rounded.toString().trimEnd('0').trimEnd('.')
+        }
+        return "${text}m"
+    }
+    return value.toLong().toString()
+}
 
 data class AlertForm(
     val make: String = "",
@@ -52,6 +77,13 @@ data class AlertsUiState(
     val unreadCount: Int = 0,
     val offline: Boolean = false,
     val error: String? = null,
+    /**
+     * Watchlist → Alerts listing-id prefill is in flight or finished.
+     * Keeps the create form visible when listing detail fails (error goes to snackbar).
+     */
+    val prefillFromListing: Boolean = false,
+    /** One-shot: form was just filled from a listing; screen shows a snackbar then consumes. */
+    val justPrefill: Boolean = false,
 )
 
 sealed interface AlertsUiEvent {
@@ -65,13 +97,16 @@ sealed interface AlertsUiEvent {
     data object RefreshMatches : AlertsUiEvent
     data class Delete(val id: Int) : AlertsUiEvent
     data object ConsumeCreated : AlertsUiEvent
+    data object ConsumePrefill : AlertsUiEvent
     data object DismissError : AlertsUiEvent
 }
 
 @HiltViewModel
 class AlertsViewModel @Inject constructor(
     private val repository: AlertsRepository,
+    private val listings: ListingRepository,
     authRepository: AuthRepository,
+    private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AlertsUiState())
@@ -119,6 +154,7 @@ class AlertsViewModel @Inject constructor(
                 .catch { emit(0) }
                 .collect { n -> _state.update { it.copy(unreadCount = n) } }
         }
+        prefillFromListingIfNeeded()
     }
 
     fun onEvent(event: AlertsUiEvent) {
@@ -133,7 +169,45 @@ class AlertsViewModel @Inject constructor(
             AlertsUiEvent.RefreshMatches -> loadMatches(_state.value.alerts, force = true)
             is AlertsUiEvent.Delete -> delete(event.id)
             AlertsUiEvent.ConsumeCreated -> _state.update { it.copy(justCreatedId = null) }
+            AlertsUiEvent.ConsumePrefill -> _state.update { it.copy(justPrefill = false) }
             AlertsUiEvent.DismissError -> _state.update { it.copy(error = null, offline = false) }
+        }
+    }
+
+    /**
+     * Watchlist "create alert" navigates with [Alerts.listingId] > 0. WatchItem has no
+     * make/model, so we load listing detail and copy make/model/district/max price into the form.
+     */
+    private fun prefillFromListingIfNeeded() {
+        if (savedStateHandle.get<Boolean>(PREFILL_CONSUMED_KEY) == true) return
+        val listingId = runCatching { savedStateHandle.toRoute<Alerts>() }.getOrNull()?.listingId ?: return
+        if (listingId <= 0) return
+        _state.update { it.copy(prefillFromListing = true) }
+        viewModelScope.launch {
+            runCatching { listings.getDetail(listingId) }
+                .onSuccess { listing ->
+                    savedStateHandle[PREFILL_CONSUMED_KEY] = true
+                    _state.update { current ->
+                        current.copy(
+                            form = current.form.copy(
+                                make = listing.make,
+                                model = listing.model,
+                                district = listing.district ?: "Colombo",
+                                maxPrice = listing.priceLkr?.let(::formatLkrShorthand).orEmpty(),
+                            ),
+                            justPrefill = true,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(
+                            offline = mapped is AppError.Network,
+                            error = mapped.message,
+                        )
+                    }
+                }
         }
     }
 
@@ -222,9 +296,7 @@ class AlertsViewModel @Inject constructor(
                     make = alert.make.orEmpty(),
                     model = alert.model.orEmpty(),
                     district = alert.district ?: "Colombo",
-                    maxPrice = alert.maxPriceLkr?.let { v ->
-                        if (v >= 1_000_000) "${(v / 1_000_000.0)}m" else v.toLong().toString()
-                    }.orEmpty(),
+                    maxPrice = alert.maxPriceLkr?.let(::formatLkrShorthand).orEmpty(),
                     push = alert.notifyChannels?.contains("push") != false,
                     email = alert.notifyChannels?.contains("email") == true,
                 ),
@@ -288,5 +360,9 @@ class AlertsViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    companion object {
+        private const val PREFILL_CONSUMED_KEY = "alerts_prefill_consumed"
     }
 }
