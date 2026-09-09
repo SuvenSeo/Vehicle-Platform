@@ -163,9 +163,16 @@ class DistrictHubViewModel @Inject constructor(
     }
 
     private fun readRouteDistrict(savedStateHandle: SavedStateHandle): String {
-        val fromRoute = runCatching { savedStateHandle.toRoute<DistrictHub>().district }.getOrNull()
         val fromKey = savedStateHandle.get<String>("district")
-        val raw = listOfNotNull(fromRoute, fromKey).firstOrNull { it.isNotBlank() }.orEmpty()
-        return decodeDistrictSlug(raw).trim()
+        val fromRoute = runCatching { savedStateHandle.toRoute<DistrictHub>().district }.getOrNull()
+        val raw = listOf(fromKey, fromRoute)
+            .mapNotNull { candidate ->
+                candidate?.trim()?.takeIf { value ->
+                    value.isNotEmpty() && !value.equals("null", ignoreCase = true)
+                }
+            }
+            .firstOrNull()
+            .orEmpty()
+        return decodeDistrictSlug(raw)
     }
 }
