@@ -63,6 +63,7 @@ fun ProfileScreen(
     onEvHubClick: () -> Unit = {},
     onPulseClick: () -> Unit = {},
     onBestPicksClick: () -> Unit = {},
+    onCalculatorClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -260,6 +261,11 @@ fun ProfileScreen(
                                 label = stringResource(R.string.hub_picks_title),
                                 onClick = { navTap(onBestPicksClick) },
                             )
+                            TileRow(
+                                label = stringResource(R.string.hub_calc_title),
+                                onClick = { navTap(onCalculatorClick) },
+                                openDescription = stringResource(R.string.hub_open_calc),
+                            )
                         }
                         item {
                             SectionTitle("Manage")
@@ -278,11 +284,15 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun TileRow(label: String, onClick: () -> Unit) {
+private fun TileRow(
+    label: String,
+    onClick: () -> Unit,
+    openDescription: String? = null,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-            .semantics { contentDescription = "Open $label" },
+            .semantics { contentDescription = openDescription ?: "Open $label" },
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 48.dp),

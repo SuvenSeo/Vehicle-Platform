@@ -14,10 +14,13 @@
     <string name="hub_open_ev">EV Hub විවෘත කරන්න</string>
     <string name="hub_open_pulse">නිල ස්පන්දනය විවෘත කරන්න</string>
     <string name="hub_open_picks">හොඳම තෝරාගැනීම් විවෘත කරන්න</string>
+    <string name="hub_open_calc">ගණක යන්ත්‍රය විවෘත කරන්න</string>
+    <string name="hub_calc_title">ගණක යන්ත්‍රය</string>
     <string name="hub_home_row">විශේෂ මධ්‍යස්ථාන</string>
     <string name="hub_home_ev_hint">බැටරිය, චාර්ජ්, TCO</string>
     <string name="hub_home_pulse_hint">බලපත්‍ර, පුවත්, සංඥා</string>
     <string name="hub_home_picks_hint">Deal-score කෙටි ලැයිස්තුව</string>
+    <string name="hub_home_calc_hint">ආනයන බදු, බදු, TCO</string>
 
     <!-- EV Hub -->
     <string name="hub_ev_title">EV Hub</string>

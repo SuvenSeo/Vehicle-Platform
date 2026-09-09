@@ -14,10 +14,13 @@
     <string name="hub_open_ev">Open EV Hub</string>
     <string name="hub_open_pulse">Open Official Pulse</string>
     <string name="hub_open_picks">Open Best picks</string>
+    <string name="hub_open_calc">Open Calculator</string>
+    <string name="hub_calc_title">Calculator</string>
     <string name="hub_home_row">Feature hubs</string>
     <string name="hub_home_ev_hint">Battery, charging, TCO</string>
     <string name="hub_home_pulse_hint">Permits, news, signals</string>
     <string name="hub_home_picks_hint">Deal-score shortlist</string>
+    <string name="hub_home_calc_hint">Duty, tax, TCO</string>
 
     <!-- EV Hub -->
     <string name="hub_ev_title">EV Hub</string>

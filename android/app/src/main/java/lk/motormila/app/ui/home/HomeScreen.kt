@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -135,6 +136,9 @@ fun HomeScreen(
     onEvHubClick: () -> Unit = {},
     onBestPicksClick: () -> Unit = {},
     onPulseClick: () -> Unit = {},
+    onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> },
+    onDistrictClick: (district: String) -> Unit = {},
+    onCalculatorClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -208,6 +212,7 @@ fun HomeScreen(
                     onEvHubClick = onEvHubClick,
                     onPulseClick = onPulseClick,
                     onBestPicksClick = onBestPicksClick,
+                    onCalculatorClick = onCalculatorClick,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -261,7 +266,7 @@ fun HomeScreen(
                 TrendingModelsRail(
                     models = trendingList,
                     onSeeAllTrends = { onSeeAll("trends") },
-                    onModelClick = { onSearchClick() },
+                    onModelClick = { onMakeModelClick(it.make, it.model) },
                 )
             }
 
@@ -366,7 +371,7 @@ fun HomeScreen(
                                 district = d.district,
                                 count = d.count,
                                 median = LkrFormat.price(d.medianPriceLkr),
-                                onClick = { onSearchClick() },
+                                onClick = { onDistrictClick(d.district) },
                             )
                         }
                     }
@@ -858,6 +863,7 @@ private fun HubShortcutsRow(
     onEvHubClick: () -> Unit,
     onPulseClick: () -> Unit,
     onBestPicksClick: () -> Unit,
+    onCalculatorClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -885,12 +891,22 @@ private fun HubShortcutsRow(
                 onClick = onPulseClick,
                 modifier = Modifier.weight(1f),
             )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             HubShortcutCard(
                 title = stringResource(R.string.hub_picks_title),
                 hint = stringResource(R.string.hub_home_picks_hint),
                 icon = Icons.Filled.Star,
                 contentDescription = stringResource(R.string.hub_open_picks),
                 onClick = onBestPicksClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_calc_title),
+                hint = stringResource(R.string.hub_home_calc_hint),
+                icon = Icons.Filled.Calculate,
+                contentDescription = stringResource(R.string.hub_open_calc),
+                onClick = onCalculatorClick,
                 modifier = Modifier.weight(1f),
             )
         }

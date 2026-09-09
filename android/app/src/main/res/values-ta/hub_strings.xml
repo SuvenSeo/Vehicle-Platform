@@ -14,10 +14,13 @@
     <string name="hub_open_ev">EV மையத்தைத் திற</string>
     <string name="hub_open_pulse">Official Pulse-ஐத் திற</string>
     <string name="hub_open_picks">சிறந்த தேர்வுகளைத் திற</string>
+    <string name="hub_open_calc">கணிப்பானைத் திற</string>
+    <string name="hub_calc_title">கணிப்பான்</string>
     <string name="hub_home_row">சிறப்பு மையங்கள்</string>
     <string name="hub_home_ev_hint">பேட்டரி, சார்ஜிங், TCO</string>
     <string name="hub_home_pulse_hint">அனுமதிகள், செய்திகள், சமிக்ஞைகள்</string>
     <string name="hub_home_picks_hint">ஒப்பந்த-மதிப்பெண் குறுகிய பட்டியல்</string>
+    <string name="hub_home_calc_hint">இறக்குமதி வரி, வரி, TCO</string>
 
     <!-- EV Hub -->
     <string name="hub_ev_title">EV மையம்</string>
