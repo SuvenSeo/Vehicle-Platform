@@ -23,6 +23,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,8 +37,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatPct
+import lk.motormila.app.core.motion.rememberReducedMotion
+import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +52,19 @@ fun DealerScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
 
     LaunchedEffect(state.error) {
         state.error?.let {
+            if (!reducedMotion) haptics.reject()
             snacks.showSnackbar(it)
             viewModel.onEvent(DealerUiEvent.DismissError)
+        }
+    }
+    LaunchedEffect(state.benchmark, state.claimStatus) {
+        if ((state.benchmark != null || state.claimStatus != null) && !reducedMotion) {
+            haptics.confirm()
         }
     }
 
@@ -59,16 +72,66 @@ fun DealerScreen(
         topBar = { TopAppBar(title = { Text("Dealer tools") }) },
         snackbarHost = { SnackbarHost(snacks) },
     ) { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = { viewModel.onEvent(DealerUiEvent.RefreshClaim) },
+            modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            if (state.claimToken == null) {
-                item { ClaimForm(state, viewModel) }
+            when {
+                else -> LazyColumn(
+                    Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    item { OfflineBanner(visible = state.offline) }
+                    if (state.claimToken == null) {
+                        item { ClaimForm(state, viewModel) }
+                        if (state.error != null) {
+                            // Inline retry (the snackbar also fires via LaunchedEffect above).
+                            item {
+                                ErrorRetry(
+                                    state.error ?: "Error",
+                                    onRetry = { viewModel.onEvent(DealerUiEvent.Claim) },
+                                )
+                            }
+                        }
+                    } else {
+                        item { ProfileCard(state, viewModel, onContactSupport) }
+                        item { ClaimStatusCard(state) }
+                        item { BenchmarkCard(state, viewModel) }
+                        item { PlaybookCard() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClaimStatusCard(state: DealerUiState) {
+    val status = state.claimStatus
+    Card(
+        Modifier.fillMaxWidth()
+            .semantics { contentDescription = "Dealer claim status ${status?.status ?: "unverified"}" },
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            SectionTitle("Claim status")
+            if (state.verifyingClaim && status == null) {
+                Text("Verifying claim with the server…", style = MaterialTheme.typography.bodyMedium)
+            } else if (status != null) {
+                BenchmarkRow("Status", status.status.ifBlank { "pending" })
+                if (status.message.isNotBlank()) {
+                    Text(
+                        status.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             } else {
-                item { ProfileCard(state, viewModel, onContactSupport) }
-                item { BenchmarkCard(state, viewModel) }
-                item { PlaybookCard() }
+                Text(
+                    "Claim saved on this device — pull to refresh to verify with the server.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -134,6 +197,7 @@ private fun ProfileCard(state: DealerUiState, viewModel: DealerViewModel, onCont
 
 @Composable
 private fun BenchmarkCard(state: DealerUiState, viewModel: DealerViewModel) {
+    val urlCount = state.benchmarkUrls.lines().count { it.isNotBlank() }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             SectionTitle("Benchmark — paste listing URLs")
@@ -141,8 +205,12 @@ private fun BenchmarkCard(state: DealerUiState, viewModel: DealerViewModel) {
                 value = state.benchmarkUrls,
                 onValueChange = { viewModel.onEvent(DealerUiEvent.BenchmarkUrlsChanged(it)) },
                 label = { Text("One URL per line (ikman / riyasewana / patpat)") },
+                supportingText = {
+                    Text(if (urlCount > 0) "$urlCount URL${if (urlCount == 1) "" else "s"} queued" else "No URLs yet")
+                },
                 minLines = 3,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .semantics { contentDescription = "Benchmark listing URLs, one per line" },
             )
             Spacer(Modifier.height(8.dp))
             PrimaryAction("Run benchmark", onClick = { viewModel.onEvent(DealerUiEvent.RunBenchmark) }, loading = state.benchmarking)
@@ -161,7 +229,11 @@ private fun BenchmarkCard(state: DealerUiState, viewModel: DealerViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } ?: Text(
-                    "URL-level breakdown arrives with yard-tools v2 — paste URLs above to queue them.",
+                    if (urlCount > 0) {
+                        "Aggregated across $urlCount pasted URL${if (urlCount == 1) "" else "s"} — per-URL rows arrive with yard-tools v2."
+                    } else {
+                        "URL-level breakdown arrives with yard-tools v2 — paste URLs above to queue them."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

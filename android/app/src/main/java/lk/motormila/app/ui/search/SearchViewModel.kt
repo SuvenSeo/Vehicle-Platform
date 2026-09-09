@@ -20,9 +20,14 @@ import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.domain.repository.AlertsRepository
 import lk.motormila.app.domain.repository.ListingQuery
 import lk.motormila.app.domain.repository.ListingRepository
+import lk.motormila.app.domain.repository.ListingSorts
 import lk.motormila.app.domain.usecase.GetListingsPagingUseCase
+import lk.motormila.app.domain.usecase.ObserveSessionUseCase
 import lk.motormila.app.domain.usecase.ToggleWatchlistUseCase
 import javax.inject.Inject
+
+/** Web parity (Compare.tsx / compareSlug.ts): tray holds at most 3 ids. */
+const val MAX_COMPARE_IDS = 3
 
 data class SearchUiState(
     val query: String = "",
@@ -35,6 +40,8 @@ data class SearchUiState(
     val districts: List<String> = emptyList(),
     val alertSaved: Boolean = false,
     val error: String? = null,
+    /** Free tier has no deal_score — backend forces `newest` (BestPicks.tsx parity). */
+    val isPro: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -42,6 +49,7 @@ data class SearchUiState(
 class SearchViewModel @Inject constructor(
     private val getListingsPaging: GetListingsPagingUseCase,
     private val toggleWatchlist: ToggleWatchlistUseCase,
+    private val observeSession: ObserveSessionUseCase,
     private val listings: ListingRepository,
     private val alerts: AlertsRepository,
 ) : ViewModel() {
@@ -58,6 +66,11 @@ class SearchViewModel @Inject constructor(
         .cachedIn(viewModelScope)
 
     init {
+        viewModelScope.launch {
+            observeSession().collect { session ->
+                _state.value = _state.value.copy(isPro = session?.isPro == true)
+            }
+        }
         viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(
@@ -104,7 +117,17 @@ class SearchViewModel @Inject constructor(
         pagingKey.value = query
     }
 
-    fun onSortChange(sort: String) = applyFilters(_state.value.filters.copy(sort = sort))
+    fun onSortChange(sort: String) {
+        // Free tier has no deal_score/median — backend forces `newest`.
+        if (!_state.value.isPro && sort != ListingSorts.NEWEST) {
+            applyFilters(_state.value.filters.copy(sort = ListingSorts.NEWEST))
+            _state.value = _state.value.copy(
+                error = "Free plan sorts by newest — upgrade to Pro for deal-score sort",
+            )
+            return
+        }
+        applyFilters(_state.value.filters.copy(sort = sort))
+    }
 
     fun openFilters() {
         _state.value = _state.value.copy(showFilterSheet = true)
@@ -121,7 +144,13 @@ class SearchViewModel @Inject constructor(
     fun toggleCompare(id: Int) {
         val current = _state.value.compareIds.toMutableList()
         if (current.contains(id)) current.remove(id)
-        else if (current.size < 4) current.add(id)
+        else if (current.size < MAX_COMPARE_IDS) current.add(id)
+        else {
+            _state.value = _state.value.copy(
+                error = "Compare tray is full (max $MAX_COMPARE_IDS) — remove one first",
+            )
+            return
+        }
         _state.value = _state.value.copy(compareIds = current)
     }
 

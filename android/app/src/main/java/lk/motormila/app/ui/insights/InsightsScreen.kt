@@ -82,12 +82,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatLkrCompact
 import lk.motormila.app.core.format.formatPct
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.DistrictStat
+import lk.motormila.app.domain.model.DistrictVelocity
+import lk.motormila.app.domain.model.Listing
+import lk.motormila.app.domain.model.PriceDrop
 import lk.motormila.app.domain.model.PriceIndexPoint
 import lk.motormila.app.domain.model.TrendPoint
+import lk.motormila.app.ui.components.LivePulse
+import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaGoodText
 import lk.motormila.app.ui.theme.MotormilaOnPrimary
@@ -99,6 +105,7 @@ import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.MotormilaSurface
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaWarn
+import lk.motormila.app.ui.theme.rememberHaptics
 
 private val tabs = listOf("Trends", "EV Intelligence", "Index", "Districts", "Pulse")
 
@@ -111,7 +118,10 @@ fun InsightsScreen(
     viewModel: InsightsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val live by viewModel.live.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
     var tab by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(state.error) {
@@ -130,7 +140,10 @@ fun InsightsScreen(
                 tabs.forEachIndexed { i, title ->
                     Tab(
                         selected = tab == i,
-                        onClick = { tab = i },
+                        onClick = {
+                            if (!reducedMotion) haptics.tick()
+                            tab = i
+                        },
                         text = { Text(title) },
                         modifier = Modifier.heightIn(min = 48.dp),
                     )
@@ -151,7 +164,7 @@ fun InsightsScreen(
                         1 -> EvTab(state, viewModel)
                         2 -> IndexTab(state)
                         3 -> DistrictsTab(state, onDrillDistrict)
-                        else -> PulseTab(state, onOpenPulseDetail)
+                        else -> PulseTab(state, live, onOpenPulseDetail)
                     }
                 }
             }
@@ -218,6 +231,38 @@ private fun TrendsTab(
                         lineHeight = 20.sp,
                     ),
                 )
+            }
+        }
+
+        // Offline badge + market summary strip (StatsRepository.summary).
+        item {
+            OfflineBanner(visible = state.offline)
+        }
+
+        state.summary?.let { summary ->
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+                    border = BorderStroke(1.dp, MotormilaOutline),
+                    modifier = Modifier.fillMaxWidth()
+                        .semantics { contentDescription = "Market summary, ${summary.totalListings} listings" },
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = "MARKET SNAPSHOT",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                color = MotormilaSecondaryText,
+                            ),
+                        )
+                        SummaryKpiFlow(summary)
+                    }
+                }
             }
         }
 
@@ -512,6 +557,154 @@ private fun BandChart(points: List<TrendPoint>, modifier: Modifier = Modifier) {
     }
 }
 
+// ---------- Shared market-data sections (summary / velocity / fuel / drops / live) ----------
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        AssistChip(onClick = {}, label = { Text("${summary.totalListings} live") })
+        AssistChip(onClick = {}, label = { Text("Avg ${formatLkrCompact(summary.avgPriceLkr)}") })
+        AssistChip(onClick = {}, label = { Text("${summary.goodDealsCount} good deals") })
+        AssistChip(onClick = {}, label = { Text("${summary.listingsThisWeek} new / 7d") })
+        summary.priceChangeMom?.let {
+            AssistChip(onClick = {}, label = { Text("MoM ${formatPct(it)}") })
+        }
+    }
+}
+
+/** Static velocity bars (no animation — reduced-motion safe by construction). */
+@Composable
+private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
+    val frac = if (maxScore > 0) (v.velocityScore / maxScore).toFloat().coerceIn(0f, 1f) else 0f
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+        border = BorderStroke(1.dp, MotormilaOutline),
+        modifier = Modifier.fillMaxWidth()
+            .semantics {
+                contentDescription =
+                    "${v.district} velocity ${"%.1f".format(v.velocityScore)}, ${v.new7dCount} new in 7 days"
+            },
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(v.district, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    "+${v.new7dCount} / 7d",
+                    style = MaterialTheme.typography.labelMedium.copy(color = MotormilaPrimaryBright),
+                )
+            }
+            Box(
+                Modifier.fillMaxWidth().height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MotormilaSurface),
+            ) {
+                Box(
+                    Modifier.fillMaxWidth(frac).height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MotormilaPrimary),
+                )
+            }
+            Text(
+                "Velocity ${"%.1f".format(v.velocityScore)} · ${v.listingCount} listings",
+                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FuelMixRow(mix: List<lk.motormila.app.domain.model.FuelMixBucket>) {
+    if (mix.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "FUEL MIX",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            mix.forEach { bucket ->
+                AssistChip(
+                    onClick = {},
+                    label = { Text("${bucket.fuelType}: ${formatPct(bucket.pct, 0)}") },
+                    modifier = Modifier.heightIn(min = 44.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PriceDropCard(drop: PriceDrop) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+        border = BorderStroke(1.dp, MotormilaOutline),
+        modifier = Modifier.fillMaxWidth()
+            .semantics {
+                contentDescription =
+                    "Price drop ${drop.listing.displayName}, down ${formatPct(drop.dropPct, 0)}"
+            },
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                drop.listing.displayName,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            )
+            Text(
+                "${formatLkr(drop.previousPriceLkr)} → ${formatLkr(drop.newPriceLkr)} · −${formatPct(drop.dropPct, 0).trimStart('+')}",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = FontFamily.Monospace,
+                    color = MotormilaGood,
+                ),
+            )
+            Text(
+                "${drop.listing.district ?: "Sri Lanka"} · ${drop.droppedAt.take(10)}",
+                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiveTicker(live: List<Listing>) {
+    if (live.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LivePulse()
+            Text(
+                text = "LIVE NOW · ${live.size} fresh listings",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MotormilaSecondaryText,
+                ),
+            )
+        }
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            live.take(8).forEach { listing ->
+                AssistChip(
+                    onClick = {},
+                    label = { Text("${listing.displayName} · ${formatLkrCompact(listing.priceLkr)}") },
+                    modifier = Modifier.heightIn(min = 44.dp),
+                )
+            }
+        }
+    }
+}
+
 // ---------- 2. EV Intelligence Module ----------
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -713,6 +906,11 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                     }
                 }
             }
+        }
+
+        // Fuel mix from /stats/fuel-mix (shared with the EV share metric above).
+        item {
+            FuelMixRow(state.fuelMix)
         }
 
         // EV Decision Modules (Battery Health, Duty, Charging Fit)
@@ -1048,6 +1246,7 @@ private fun AreaChart(points: List<PriceIndexPoint>, modifier: Modifier = Modifi
 @Composable
 private fun DistrictsTab(state: InsightsUiState, onDrillDistrict: (String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { OfflineBanner(visible = state.offline) }
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -1070,6 +1269,13 @@ private fun DistrictsTab(state: InsightsUiState, onDrillDistrict: (String) -> Un
         item { SectionTitle("Velocity (median days to sell)") }
         items(state.districts, key = { it.district }) { d: DistrictStat ->
             DistrictRow(d, onDrill = { onDrillDistrict(d.district) })
+        }
+        if (state.velocities.isNotEmpty()) {
+            item { SectionTitle("District velocity — new supply in 7 days") }
+            val maxScore = state.velocities.maxOfOrNull { it.velocityScore } ?: 0.0
+            items(state.velocities.take(8), key = { "vel-${it.district}" }) { v ->
+                VelocityRow(v, maxScore)
+            }
         }
     }
 }
@@ -1117,8 +1323,16 @@ private fun DistrictRow(d: DistrictStat, onDrill: () -> Unit) {
 // ---------- 5. Pulse Tab ----------
 
 @Composable
-private fun PulseTab(state: InsightsUiState, onOpenPulseDetail: (String) -> Unit) {
+private fun PulseTab(state: InsightsUiState, live: List<Listing>, onOpenPulseDetail: (String) -> Unit) {
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { OfflineBanner(visible = state.offline) }
+        item { LiveTicker(live) }
+        if (state.priceDrops.isNotEmpty()) {
+            item { SectionTitle("Biggest price drops · 7 days") }
+            items(state.priceDrops.take(5), key = { "drop-${it.listing.id}" }) { drop ->
+                PriceDropCard(drop)
+            }
+        }
         item { SectionTitle("Market Signals Feed") }
         items(state.pulse, key = { it.id }) { s ->
             Card(

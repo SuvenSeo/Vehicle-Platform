@@ -40,8 +40,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -59,20 +62,32 @@ fun SettingsScreen(
     val sort by viewModel.defaultSort.collectAsStateWithLifecycle()
     val biometric by viewModel.biometricEnabled.collectAsStateWithLifecycle()
     val baseUrl by viewModel.baseUrl.collectAsStateWithLifecycle()
+    val claimToken by viewModel.claimToken.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
+
+    fun tapTick() {
+        if (!reducedMotion) haptics.tick()
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
+            if (!reducedMotion) haptics.reject()
             snacks.showSnackbar(it)
             viewModel.onEvent(SettingsUiEvent.DismissError)
         }
     }
     LaunchedEffect(state.feedbackSent) {
-        if (state.feedbackSent) snacks.showSnackbar("Thanks — feedback sent.")
+        if (state.feedbackSent) {
+            if (!reducedMotion) haptics.confirm()
+            snacks.showSnackbar("Thanks — feedback sent.")
+        }
     }
     LaunchedEffect(state.loggedOut) {
         if (state.loggedOut) {
+            if (!reducedMotion) haptics.confirm()
             viewModel.onEvent(SettingsUiEvent.ConsumeLoggedOut)
             onLoggedOut()
         }
@@ -86,13 +101,14 @@ fun SettingsScreen(
             Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item { OfflineBanner(visible = state.offline) }
             item {
                 SectionTitle("Appearance")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("light", "dark", "system").forEach { t ->
                         FilterChip(
                             selected = theme == t,
-                            onClick = { viewModel.onEvent(SettingsUiEvent.ThemeChanged(t)) },
+                            onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.ThemeChanged(t)) },
                             label = { Text(t.replaceFirstChar { c -> c.uppercase() }) },
                             modifier = Modifier.heightIn(min = 48.dp),
                         )
@@ -107,7 +123,7 @@ fun SettingsScreen(
                     listOf("en" to "English", "si" to "සිංහල", "ta" to "தமிழ்").forEach { (code, label) ->
                         FilterChip(
                             selected = language == code,
-                            onClick = { viewModel.onEvent(SettingsUiEvent.LanguageChanged(code)) },
+                            onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.LanguageChanged(code)) },
                             label = { Text(label) },
                             modifier = Modifier.heightIn(min = 48.dp),
                         )
@@ -151,10 +167,14 @@ fun SettingsScreen(
                                 if (enabled) {
                                     // Verify device credential before persisting the toggle.
                                     onBiometricVerify(
-                                        { viewModel.onEvent(SettingsUiEvent.BiometricChanged(true)) },
+                                        {
+                                            tapTick()
+                                            viewModel.onEvent(SettingsUiEvent.BiometricChanged(true))
+                                        },
                                         { msg -> scope.launch { snacks.showSnackbar(msg) } },
                                     )
                                 } else {
+                                    tapTick()
                                     viewModel.onEvent(SettingsUiEvent.BiometricChanged(false))
                                 }
                             },
@@ -174,10 +194,26 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 )
                 TextButton(
-                    onClick = { viewModel.onEvent(SettingsUiEvent.ClearCache) },
+                    onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.ClearCache) },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {
                     Text(if (state.clearingCache) "Clearing…" else "Clear image + stats cache")
+                }
+            }
+            item {
+                SectionTitle("Dealer claim (debug)")
+                Card(Modifier.fillMaxWidth()) {
+                    Text(
+                        if (claimToken != null) {
+                            "claim_token ${claimToken?.take(8)}…${claimToken?.takeLast(4)} — managed by Dealer tools"
+                        } else {
+                            "No dealer claim on this device — claim from Dealer tools."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                            .semantics { contentDescription = "Dealer claim token debug value" },
+                    )
                 }
             }
             item {

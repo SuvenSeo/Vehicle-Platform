@@ -19,14 +19,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import lk.motormila.app.R
 import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.domain.repository.ListingQuery
 
 /**
- * Entry for `motormila://share-import/{url-encoded}`. Resolves the shared
- * marketplace URL and forwards exactly once to search / compare / FMV.
+ * Entry for shared marketplace URLs (ACTION_SEND trampoline → MainActivity →
+ * ShareImport route). Resolves the URL via [parseSharedUrl] and forwards
+ * exactly once to search / compare / valuation; unsupported hosts stay on an
+ * error state with a Browse fallback. All copy via `R.string.share_*`.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +42,8 @@ fun ShareImportScreen(
     onBrowse: () -> Unit,
 ) {
     val target = remember(sharedUrl) { parseSharedUrl(sharedUrl) }
+    // Hoisted: stringResource is @Composable and cannot run inside Modifier.semantics {}.
+    val resolvingDesc = stringResource(R.string.share_resolving)
 
     LaunchedEffect(target) {
         when (target) {
@@ -48,7 +54,7 @@ fun ShareImportScreen(
         }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Opening shared link") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.share_title)) }) }) { padding ->
         Column(
             Modifier.fillMaxSize().padding(padding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -56,16 +62,16 @@ fun ShareImportScreen(
         ) {
             when (target) {
                 is ShareTarget.Unsupported -> EmptyState(
-                    title = "Link not supported",
-                    body = "We open ikman, Riyasewana and PatPat links. Got: ${(sharedUrl ?: "").take(80)}",
-                    actionLabel = "Browse instead",
+                    title = stringResource(R.string.share_unsupported_title),
+                    body = stringResource(R.string.share_unsupported_body, (sharedUrl ?: "").take(80)),
+                    actionLabel = stringResource(R.string.share_browse),
                     onAction = onBrowse,
                 )
                 else -> Card(
-                    Modifier.semantics { contentDescription = "Resolving shared link" },
+                    Modifier.semantics { contentDescription = resolvingDesc },
                 ) {
                     Column(Modifier.padding(24.dp)) {
-                        Text("Taking you to that vehicle…", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.share_taking_you), style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
                         Text(
                             (sharedUrl ?: "").take(120),
@@ -75,9 +81,9 @@ fun ShareImportScreen(
                         Spacer(Modifier.height(16.dp))
                         // Manual fallback if auto-nav was swallowed.
                         when (target) {
-                            is ShareTarget.Search -> PrimaryAction("Open search", onClick = { onSearch(target.query) })
-                            is ShareTarget.Compare -> PrimaryAction("Open compare", onClick = { onCompare(target.ids) })
-                            is ShareTarget.Valuation -> PrimaryAction("Open valuation", onClick = {
+                            is ShareTarget.Search -> PrimaryAction(stringResource(R.string.share_open_search), onClick = { onSearch(target.query) })
+                            is ShareTarget.Compare -> PrimaryAction(stringResource(R.string.share_open_compare), onClick = { onCompare(target.ids) })
+                            is ShareTarget.Valuation -> PrimaryAction(stringResource(R.string.share_open_valuation), onClick = {
                                 onValuation(target.make, target.model)
                             })
                             else -> Unit

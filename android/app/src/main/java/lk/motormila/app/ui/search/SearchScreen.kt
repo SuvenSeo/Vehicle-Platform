@@ -1,5 +1,9 @@
 package lk.motormila.app.ui.search
 
+import android.app.Activity
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +27,7 @@ import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -36,9 +42,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import kotlinx.coroutines.launch
 import lk.motormila.app.domain.repository.ListingSorts
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
@@ -57,6 +66,8 @@ import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.SearchBar
 import lk.motormila.app.ui.components.rememberReducedMotion
+import lk.motormila.app.ui.scan.VoiceSearchHelper
+import lk.motormila.app.ui.scan.parseVoiceQuery
 
 /**
  * Search: query + suggestions + filters + sort + Paging3 LazyColumn
@@ -74,7 +85,30 @@ fun SearchScreen(
     val items = viewModel.paging.collectAsLazyPagingItems()
     val reducedMotion = rememberReducedMotion()
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val isRefreshing = items.loadState.refresh is LoadState.Loading
+
+    // Voice affordance: system recogniser (no RECORD_AUDIO permission needed),
+    // parsed with the shared parseVoiceQuery heuristic (si/ta/en via locale).
+    val context = LocalContext.current
+    val voiceHelper = remember(context) { VoiceSearchHelper(context) }
+    val voiceAvailable = remember { voiceHelper.isAvailable() }
+    val voiceLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val heard = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull().orEmpty()
+            if (heard.isBlank()) {
+                scope.launch { snackbar.showSnackbar("Didn't catch that — try again.") }
+            } else {
+                viewModel.onQueryChange(heard)
+                val parsed = parseVoiceQuery(heard)
+                viewModel.applyFilters(parsed.copy(sort = state.filters.sort))
+            }
+        }
+    }
 
     LaunchedEffect(state.alertSaved) {
         if (state.alertSaved) {
@@ -102,11 +136,44 @@ fun SearchScreen(
                 recentSearches = state.recentSearches,
                 onSuggestionClick = { onListingClick(it.id) },
                 onRecentClick = { viewModel.onSearch(it) },
-                onVoiceClick = null,
+                onVoiceClick = if (voiceAvailable) {
+                    {
+                        runCatching { voiceLauncher.launch(voiceHelper.recogniserIntent()) }
+                            .onFailure {
+                                scope.launch { snackbar.showSnackbar("Voice search isn't available on this device.") }
+                            }
+                    }
+                } else {
+                    null
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
             )
+            // Free tier has no deal_score — backend forces `newest` (web parity).
+            if (!state.isPro) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .semantics { contentDescription = "Free plan sorts by newest" },
+                ) {
+                    Icon(
+                        Icons.Filled.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Free plan · newest first — Pro unlocks deal-score sort",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+            }
             SortFilterRow(
                 sort = state.filters.sort,
                 onSort = viewModel::onSortChange,
@@ -171,7 +238,7 @@ fun SearchScreen(
                                     CompareToggleRow(
                                         selected = state.compareIds.contains(listing.id),
                                         enabled = state.compareIds.contains(listing.id) ||
-                                            state.compareIds.size < 4,
+                                            state.compareIds.size < MAX_COMPARE_IDS,
                                         onToggle = { viewModel.toggleCompare(listing.id) },
                                     )
                                 }
@@ -239,6 +306,7 @@ private fun SortFilterRow(
             FilterChip(
                 selected = sort == s,
                 onClick = { onSort(s) },
+                modifier = Modifier.heightIn(min = 48.dp),
                 colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
                     selectedContainerColor = lk.motormila.app.ui.theme.MotormilaPrimary,
                     selectedLabelColor = androidx.compose.ui.graphics.Color.White,
@@ -313,6 +381,7 @@ private fun CompareToggleRow(selected: Boolean, enabled: Boolean, onToggle: () -
             selected = selected,
             enabled = enabled,
             onClick = onToggle,
+            modifier = Modifier.heightIn(min = 48.dp),
             label = { Text(if (selected) "Added to compare" else "Compare") },
             leadingIcon = {
                 Icon(
@@ -334,19 +403,24 @@ private fun CompareTray(count: Int, onCompare: () -> Unit, onClear: () -> Unit, 
         modifier = modifier.padding(16.dp),
     ) {
         Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("$count/4 selected", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text("$count/$MAX_COMPARE_IDS selected", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
             Text(
                 "Clear",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
+                    .heightIn(min = 48.dp)
                     .clickable(onClick = onClear)
-                    .padding(8.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             )
             Spacer(Modifier.width(8.dp))
-            Button(onClick = onCompare, enabled = count >= 2) { Text("Compare") }
+            Button(
+                onClick = onCompare,
+                enabled = count >= 2,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Compare") }
         }
     }
 }

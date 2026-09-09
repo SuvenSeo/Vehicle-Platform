@@ -49,6 +49,18 @@
                     android:scheme="motormila"
                     android:host="listing" />
             </intent-filter>
+            <!-- Deep link: motormila://scan (Swarm E additive: ScanTileService sends
+                 implicit ACTION_VIEW motormila://scan; without this filter the tile
+                 intent throws ActivityNotFound. Agent A: kept additive, no existing
+                 filters touched.) -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="motormila"
+                    android:host="scan" />
+            </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
@@ -80,6 +92,19 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
+        <!-- Deal-of-the-day widget (Swarm E additive; Agent A: no existing entries touched). -->
+        <receiver
+            android:name="lk.motormila.app.ui.widget.DealWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_deal_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/deal_widget_info" />
+        </receiver>
 
         <!-- Hilt-injected WorkManager (MotormilaApp implements Configuration.Provider):
              disable the default initializer so our HiltWorkerFactory is used. -->

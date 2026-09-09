@@ -20,7 +20,12 @@ data class CompareUiState(
     val isLoading: Boolean = true,
     val items: List<Listing> = emptyList(),
     val error: String? = null,
-)
+) {
+    companion object {
+        /** Web parity (Compare.tsx / compareSlug.ts): at most 3 ids. */
+        const val MAX_IDS = 3
+    }
+}
 
 sealed interface CompareUiEvent {
     data object Refresh : CompareUiEvent
@@ -42,13 +47,26 @@ class CompareViewModel @Inject constructor(
                 ?: savedStateHandle.get<String>("ids")
                     ?.split(",")
                     ?.mapNotNull { it.toIntOrNull() }
-                .orEmpty().distinct().take(4),
+                .orEmpty().distinct().take(CompareUiState.MAX_IDS),
         ),
     )
     val state: StateFlow<CompareUiState> = _state.asStateFlow()
 
     init {
         load()
+    }
+
+    /**
+     * Reconcile with the nav arg: the graph may deliver a new [Compare.ids]
+     * list (e.g. after picking another vehicle in Search) while this VM is
+     * still alive. Reloads only when the set actually changed.
+     */
+    fun syncIds(ids: List<Int>) {
+        val capped = ids.distinct().take(CompareUiState.MAX_IDS)
+        if (capped.toSet() != _state.value.ids.toSet()) {
+            _state.update { it.copy(ids = capped) }
+            load()
+        }
     }
 
     fun onEvent(event: CompareUiEvent) {
@@ -61,9 +79,9 @@ class CompareViewModel @Inject constructor(
         }
     }
 
-    /** Screen calls this when the add-picker returns a new id (kept to max 4). */
+    /** Screen calls this when the add-picker returns a new id (kept to max 3). */
     fun add(id: Int) {
-        val ids = (_state.value.ids + id).distinct().take(4)
+        val ids = (_state.value.ids + id).distinct().take(CompareUiState.MAX_IDS)
         _state.update { it.copy(ids = ids) }
         load()
     }

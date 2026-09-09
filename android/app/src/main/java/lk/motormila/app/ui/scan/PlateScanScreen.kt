@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -60,12 +61,19 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.util.concurrent.Executors
+import lk.motormila.app.R
 import lk.motormila.app.core.format.formatLkr
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
+import lk.motormila.app.ui.theme.rememberHaptics
 
 /**
  * Plate scanner: CameraX preview + ML Kit OCR overlay + plate candidate chips.
  * Tap a chip (or type manually) → plate lookup → search/FMV callbacks.
+ *
+ * Parsing is canonical [PlateParser] (also used by PlateOcrAnalyzer + ViewModel).
+ * Haptics via `rememberHaptics()` (skipped when [rememberReducedMotion] is true);
+ * overlay boxes hidden under reduced motion. All copy via `R.string.scan_*`.
  *
  * Never crashes when the camera is absent: checks FEATURE_CAMERA_ANY and wraps
  * bind in runCatching, falling back to the manual-entry card.
@@ -88,6 +96,11 @@ fun PlateScanScreen(
     val lifecycle = LocalLifecycleOwner.current
     val snacks = remember { SnackbarHostState() }
     var overlayBoxes by remember { mutableStateOf<List<FloatRect>>(emptyList()) }
+    // Reduced-motion: no haptics when exploration/animation is off (DOMAIN_CONTRACT).
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
+    val previewDesc = stringResource(R.string.scan_preview_desc)
+    val overlayDesc = stringResource(R.string.scan_overlay_desc)
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -114,8 +127,15 @@ fun PlateScanScreen(
         }
     }
 
+    // Haptic on first capture of a new plate candidate (skipped under reduced motion).
+    LaunchedEffect(state.ocrCandidates.firstOrNull()) {
+        if (!reducedMotion && state.ocrCandidates.isNotEmpty()) {
+            runCatching { haptics.tick() }
+        }
+    }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Scan plate") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.scan_title)) }) },
         snackbarHost = { SnackbarHost(snacks) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
@@ -126,27 +146,30 @@ fun PlateScanScreen(
                         viewModel.onEvent(PlateScanUiEvent.OcrText(text))
                     },
                     modifier = Modifier.fillMaxWidth().height(280.dp)
-                        .semantics { contentDescription = "Camera preview for plate scanning" },
+                        .semantics { contentDescription = previewDesc },
                 )
                 Spacer(Modifier.height(8.dp))
                 OcrOverlay(
-                    boxes = overlayBoxes,
-                    modifier = Modifier.fillMaxWidth().height(24.dp),
+                    boxes = if (reducedMotion) emptyList() else overlayBoxes,
+                    modifier = Modifier.fillMaxWidth().height(24.dp)
+                        .semantics { contentDescription = overlayDesc },
                 )
             } else {
+                val noCamera = stringResource(R.string.scan_no_camera)
+                val rationale = stringResource(R.string.scan_rationale)
+                val needPerm = stringResource(R.string.scan_need_permission)
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
                         Text(
                             when {
-                                !state.cameraAvailable -> "No camera on this device — type the plate below."
-                                state.permissionRationaleVisible ->
-                                    "Camera access lets you scan plates. You can also type the plate below."
-                                else -> "Camera permission needed — or type the plate below."
+                                !state.cameraAvailable -> noCamera
+                                state.permissionRationaleVisible -> rationale
+                                else -> needPerm
                             },
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         if (!state.cameraAvailable.not() && !state.permissionGranted) {
-                            PrimaryAction("Grant camera access", onClick = {
+                            PrimaryAction(stringResource(R.string.scan_grant_camera), onClick = {
                                 permissionLauncher.launch(Manifest.permission.CAMERA)
                             })
                         }
@@ -156,12 +179,15 @@ fun PlateScanScreen(
             }
 
             if (state.ocrCandidates.isNotEmpty()) {
-                Text("Tap a plate to search", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.scan_tap_plate), style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.ocrCandidates.forEach { plate ->
                         FilterChip(
                             selected = state.selectedPlate == plate,
-                            onClick = { viewModel.onEvent(PlateScanUiEvent.CandidateSelected(plate)) },
+                            onClick = {
+                                if (!reducedMotion) runCatching { haptics.confirm() }
+                                viewModel.onEvent(PlateScanUiEvent.CandidateSelected(plate))
+                            },
                             label = { Text(plate) },
                             modifier = Modifier.heightIn(min = 48.dp),
                         )
@@ -175,28 +201,33 @@ fun PlateScanScreen(
                 OutlinedTextField(
                     value = state.manualEntry,
                     onValueChange = { viewModel.onEvent(PlateScanUiEvent.ManualChanged(it)) },
-                    label = { Text("Plate (e.g. CAB-1234)") },
+                    label = { Text(stringResource(R.string.scan_plate_label)) },
                     singleLine = true,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                 )
             }
             Spacer(Modifier.height(8.dp))
             PrimaryAction(
-                "Look up plate",
-                onClick = { viewModel.onEvent(PlateScanUiEvent.LookupManual) },
+                stringResource(R.string.scan_lookup),
+                onClick = {
+                    if (!reducedMotion) runCatching { haptics.keypress() }
+                    viewModel.onEvent(PlateScanUiEvent.LookupManual)
+                },
                 loading = state.lookingUp,
             )
 
             state.result?.let { r ->
                 Spacer(Modifier.height(12.dp))
+                val resultDesc = stringResource(R.string.scan_result_desc, state.selectedPlate.orEmpty())
                 Card(
                     Modifier.fillMaxWidth()
-                        .semantics { contentDescription = "Plate result for ${state.selectedPlate}" },
+                        .semantics { contentDescription = resultDesc },
                 ) {
                     Column(Modifier.padding(16.dp)) {
                         Text(state.selectedPlate.orEmpty(), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            if (r.listingsFound > 0) "${r.listingsFound} matching listings" else "No live listings on this plate",
+                            if (r.listingsFound > 0) stringResource(R.string.scan_matching, r.listingsFound)
+                            else stringResource(R.string.scan_no_match),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         r.fmvLkr?.let { Text("FMV ${formatLkr(it)}", style = MaterialTheme.typography.titleSmall) }
@@ -204,13 +235,13 @@ fun PlateScanScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AssistChip(
                                 onClick = { onSearchPlate(state.selectedPlate.orEmpty()) },
-                                label = { Text("Search") },
+                                label = { Text(stringResource(R.string.scan_search)) },
                                 modifier = Modifier.heightIn(min = 48.dp),
                             )
                             r.listingId?.let { id ->
                                 AssistChip(
                                     onClick = { onOpenFmv(id) },
-                                    label = { Text("Open FMV") },
+                                    label = { Text(stringResource(R.string.scan_open_fmv)) },
                                     modifier = Modifier.heightIn(min = 48.dp),
                                 )
                             }
@@ -304,7 +335,7 @@ private fun CameraPreview(
 /** Thin OCR overlay strip rendering recognised block boxes. */
 @Composable
 private fun OcrOverlay(boxes: List<FloatRect>, modifier: Modifier = Modifier) {
-    Canvas(modifier.semantics { contentDescription = "Detected text regions" }) {
+    Canvas(modifier) {
         boxes.forEach { b ->
             drawRect(
                 color = Color(0xFF2E7D32),

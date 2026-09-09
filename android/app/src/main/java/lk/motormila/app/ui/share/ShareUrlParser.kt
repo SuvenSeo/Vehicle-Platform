@@ -1,6 +1,5 @@
 package lk.motormila.app.ui.share
 
-import android.net.Uri
 import lk.motormila.app.domain.repository.ListingQuery
 
 sealed interface ShareTarget {
@@ -10,24 +9,43 @@ sealed interface ShareTarget {
     data class Unsupported(val url: String) : ShareTarget
 }
 
-private val SupportedHosts = listOf("ikman.lk", "riyasewana.com", "patpat.lk")
+private val SupportedHosts = listOf(
+    "ikman.lk", "riyasewana.com", "patpat.lk",
+    // Own FMV share cards: text share + https://motormila.vercel.app/listings/{id}
+    // (DOMAIN_CONTRACT) and in-app motormila://listing/{id} deep links.
+    "motormila.vercel.app", "motormila.lk",
+)
 private val IdInUrl = Regex("""(\d{5,})""")
+private val MotormilaListingId = Regex("""/listings/(\d+)""")
 private val SlugMakeModel = Regex("""/(?:en/)?ad/([a-z0-9]+)-([a-z0-9]+)""")
 
 /**
  * Parse a shared marketplace URL into an in-app target.
- * Pure + unit-testable. Unsupported hosts → [ShareTarget.Unsupported] (error state).
+ * Pure JVM (java.net.URI — no android.*) + unit-testable.
+ * Unsupported hosts → [ShareTarget.Unsupported] (error state).
  */
 fun parseSharedUrl(sharedUrl: String?): ShareTarget {
     if (sharedUrl.isNullOrBlank()) return ShareTarget.Unsupported("")
-    val uri = runCatching { Uri.parse(sharedUrl.trim()) }.getOrNull()
+    val trimmed = sharedUrl.trim()
+    // In-app deep link motormila://listing/{id} (widget/FCM/tile taps).
+    if (trimmed.startsWith("motormila://listing/")) {
+        val id = trimmed.removePrefix("motormila://listing/").substringBefore("?").substringBefore("/").toIntOrNull()
+        if (id != null) return ShareTarget.Compare(listOf(id))
+        return ShareTarget.Unsupported(sharedUrl)
+    }
+    val uri = runCatching { java.net.URI(trimmed) }.getOrNull()
         ?: return ShareTarget.Unsupported(sharedUrl)
     val host = (uri.host ?: "").lowercase().removePrefix("www.")
     if (SupportedHosts.none { host == it || host.endsWith(".$it") }) {
         return ShareTarget.Unsupported(sharedUrl)
     }
+    val path = uri.path.orEmpty()
+    // Own web FMV link https://motormila.vercel.app/listings/{id} → straight to compare/FMV.
+    MotormilaListingId.find(path)?.groupValues?.get(1)?.toIntOrNull()?.let { id ->
+        return ShareTarget.Compare(listOf(id))
+    }
     val id = IdInUrl.find(sharedUrl)?.groupValues?.get(1)?.toIntOrNull()
-    val slug = SlugMakeModel.find(uri.path.orEmpty())
+    val slug = SlugMakeModel.find(path)
     val make = slug?.groupValues?.get(1)?.replaceFirstChar { it.uppercase() }
     val model = slug?.groupValues?.get(2)?.replaceFirstChar { it.uppercase() }
     return when {

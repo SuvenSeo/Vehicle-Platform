@@ -19,9 +19,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.CheckoutIntentRequestDto
+import kotlin.coroutines.resume
 
 /**
  * Play Billing wrapper. Server checkout is manual-first (backend
@@ -30,6 +32,15 @@ import lk.motormila.app.data.remote.dto.CheckoutIntentRequestDto
  * - [checkoutIntent]: server fallback (always available, manual provider).
  * - [launchProUpgrade]: native Play flow when the Play product is configured;
  *   returns false when Play is unavailable so UI falls back to checkoutIntent.
+ *
+ * Sandbox notes (Agent D / QA):
+ * - License testers: Play Console → Setup → License testing; use
+ *   `android.test.purchased` or a real draft-track subscription product.
+ * - Test card "Test card, always approves" for purchase → acknowledge flow.
+ * - Purchases MUST be acknowledged within 3 days or Google auto-refunds —
+ *   [purchasesListener] acknowledges every UNACKNOWLEDGED purchase token.
+ * - Verify server-side via backend POST /billing/checkout-intent + purchaseToken
+ *   check before granting Pro (see ProRepository).
  */
 @Singleton
 class PlayBillingDataSource @Inject constructor(
@@ -80,11 +91,44 @@ class PlayBillingDataSource @Inject constructor(
             launch.responseCode == BillingClient.BillingResponseCode.OK
         }
 
+    override suspend fun hasActiveProPurchase(activity: Activity): Boolean =
+        withContext(Dispatchers.IO) {
+            val billingClient = getClient(activity) ?: return@withContext false
+            runCatching {
+                val params = com.android.billingclient.api.QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.SUBS)
+                    .build()
+                var found = false
+                suspendCancellableCoroutine { cont ->
+                    billingClient.queryPurchasesAsync(params) { _, purchases ->
+                        found = purchases.any {
+                            it.purchaseState ==
+                                com.android.billingclient.api.Purchase.PurchaseState.PURCHASED
+                        }
+                        if (cont.isActive) cont.resume(found)
+                    }
+                }
+            }.getOrDefault(false)
+        }
+
     private val purchasesListener = PurchasesUpdatedListener { result, purchases ->
         scope.launch {
             _state.value = when (result.responseCode) {
-                BillingClient.BillingResponseCode.OK ->
+                BillingClient.BillingResponseCode.OK -> {
+                    // Acknowledge every purchase so Google doesn't auto-refund.
+                    purchases?.forEach { purchase ->
+                        if (!purchase.isAcknowledged) {
+                            runCatching {
+                                client?.acknowledgePurchase(
+                                    com.android.billingclient.api.AcknowledgePurchaseParams.newBuilder()
+                                        .setPurchaseToken(purchase.purchaseToken)
+                                        .build(),
+                                ) { _ -> }
+                            }
+                        }
+                    }
                     BillingState.Purchased(purchases?.mapNotNull { it.orderId } ?: emptyList())
+                }
                 BillingClient.BillingResponseCode.USER_CANCELED -> BillingState.Idle
                 else -> BillingState.Error(result.debugMessage)
             }
@@ -119,6 +163,8 @@ interface BillingDataSource {
     val state: StateFlow<BillingState>
     suspend fun checkoutIntent(plan: String): CheckoutInfo
     suspend fun launchProUpgrade(activity: Activity, productId: String): Boolean
+    /** Best-effort restore: true when Play reports an active subscription purchase. */
+    suspend fun hasActiveProPurchase(activity: Activity): Boolean = false
 }
 
 sealed interface BillingState {

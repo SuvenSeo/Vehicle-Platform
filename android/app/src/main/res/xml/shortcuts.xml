@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Secondary-owned app shortcuts. Manifest owner must reference this file:
+  Swarm E owned app shortcuts. Manifest owner must reference this file:
   <meta-data android:name="android.app.shortcuts"
       android:resource="@xml/shortcuts" />
-  inside the MainActivity (<activity android:name="lk.motormila.app.MainActivity">)
-  declaration. Deep-link scheme motormila:// is handled by MainActivity
-  (foundation/nav owner).
+  inside MainActivity. Deep-link scheme motormila:// is handled by MainActivity
+  (explicit shortcut intents) + NavHost deepLinks for scan/listing.
+  Per NAV_CONTRACT: search?voice=true, home?dealOfDay=true, watchlist extras are
+  shortcuts-only for v1 — MainActivity ignores the extras gracefully and lands
+  on Home (no crash); scan + listing/{id} deep-link into NavHost.
 -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
   <shortcut
@@ -32,7 +34,7 @@
         android:action="android.intent.action.VIEW"
         android:targetPackage="lk.motormila.app"
         android:targetClass="lk.motormila.app.MainActivity"
-        android:data="motormila://search?voice=1" />
+        android:data="motormila://search?voice=true" />
   </shortcut>
 
   <shortcut
@@ -45,7 +47,7 @@
         android:action="android.intent.action.VIEW"
         android:targetPackage="lk.motormila.app"
         android:targetClass="lk.motormila.app.MainActivity"
-        android:data="motormila://pro?deal=day" />
+        android:data="motormila://home?dealOfDay=true" />
   </shortcut>
 
   <shortcut

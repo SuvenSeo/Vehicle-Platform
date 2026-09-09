@@ -1,5 +1,6 @@
 package lk.motormila.app.ui.pro
 
+import android.app.Activity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -25,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,13 +40,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.billing.BillingState
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatPct
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
@@ -51,6 +57,8 @@ import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.ArbitrageGap
 import lk.motormila.app.domain.model.ProDistrict
 import lk.motormila.app.domain.model.VehicleLane
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -60,17 +68,38 @@ fun ProScreen(
     viewModel: ProViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val billingState by viewModel.billingState.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
+    val context = LocalContext.current
+    val activity = context as? Activity
     var paywallOpen by remember { mutableStateOf(false) }
 
-    LaunchedEffect(state.error) {
-        state.error?.let {
+    fun tapConfirm() {
+        if (!reducedMotion) haptics.tick()
+    }
+
+    LaunchedEffect(state.error, state.billingError, state.checkoutMessage) {
+        (state.error ?: state.billingError ?: state.checkoutMessage)?.let {
+            if (state.billingError != null && !reducedMotion) haptics.reject()
             snacks.showSnackbar(it)
             viewModel.onEvent(ProUiEvent.DismissError)
         }
     }
     LaunchedEffect(state.checkoutUrl) {
-        state.checkoutUrl?.let { onOpenCheckout(it) }
+        state.checkoutUrl?.let {
+            if (!reducedMotion) haptics.confirm()
+            onOpenCheckout(it)
+            viewModel.onEvent(ProUiEvent.ConsumeCheckout)
+        }
+    }
+    LaunchedEffect(billingState) {
+        if (billingState is BillingState.Purchased) {
+            if (!reducedMotion) haptics.confirm()
+            snacks.showSnackbar("Purchase recorded — your Pro plan unlocks on next sync.")
+            viewModel.onEvent(ProUiEvent.Refresh)
+        }
     }
     // Non-Pro users land on the paywall sheet (dismissible to peek blurred previews).
     LaunchedEffect(state.isPro, state.isLoading) {
@@ -94,8 +123,20 @@ fun ProScreen(
                 else -> ProContent(
                     state = state,
                     blurred = !state.isPro,
-                    onOpenDistrict = onOpenDistrict,
+                    onOpenDistrict = { tapConfirm(); onOpenDistrict(it) },
                     onUpgrade = { paywallOpen = true },
+                    onSelectLane = { make, model ->
+                        tapConfirm()
+                        viewModel.onEvent(ProUiEvent.SelectLane(make, model))
+                    },
+                    onToggleDistrict = { district ->
+                        tapConfirm()
+                        viewModel.onEvent(ProUiEvent.ToggleDistrictDetail(district))
+                    },
+                    onThreshold = { pct ->
+                        tapConfirm()
+                        viewModel.onEvent(ProUiEvent.ThresholdChanged(pct))
+                    },
                 )
             }
         }
@@ -122,7 +163,22 @@ fun ProScreen(
                     // Blur-locked preview strip inside the sheet itself.
                     BlurredPreview()
                     Spacer(Modifier.height(16.dp))
-                    PrimaryAction("Continue to checkout", onClick = { viewModel.onEvent(ProUiEvent.CheckoutIntent) })
+                    if (billingState is BillingState.Purchased) {
+                        Text(
+                            "Purchase recorded — your Pro plan unlocks on next sync.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    PrimaryAction(
+                        "Continue to checkout",
+                        onClick = {
+                            tapConfirm()
+                            if (activity != null) viewModel.onCheckout(activity)
+                            else viewModel.onEvent(ProUiEvent.CheckoutIntent)
+                        },
+                        loading = state.billingLoading,
+                    )
                     Spacer(Modifier.height(24.dp))
                 }
             }
@@ -137,14 +193,19 @@ private fun ProContent(
     blurred: Boolean,
     onOpenDistrict: (String) -> Unit,
     onUpgrade: () -> Unit,
+    onSelectLane: (make: String, model: String) -> Unit,
+    onToggleDistrict: (district: String) -> Unit,
+    onThreshold: (pct: Double) -> Unit,
 ) {
     // When blurred, show deterministic placeholder snapshot so the paywall has
     // something to lock; real values arrive post-upgrade via Refresh.
     val snap = state.snapshot
+    val significant = state.significantGaps()
     LazyColumn(
         Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { OfflineBanner(visible = state.offline) }
         item {
             SectionTitle("Snapshot KPIs · ${state.planName}")
             FlowRow(
@@ -163,35 +224,64 @@ private fun ProContent(
                 }
             }
         }
-        item { SectionTitle("Lanes") }
+        item { SectionTitle("Lanes — tap a lane for detail") }
         val lanes: List<VehicleLane> = state.lanes
         if (lanes.isEmpty() && !blurred) {
             item { Text("No lane data yet.", style = MaterialTheme.typography.bodyMedium) }
         } else {
             items((lanes.ifEmpty { previewLanes() })) { lane ->
                 val laneName = "${lane.make} ${lane.model}".trim().ifBlank { "Lane" }
+                val key = "${lane.make}|${lane.model}"
+                val expanded = state.selectedLaneKey == key && !blurred
                 Card(
-                    Modifier.fillMaxWidth()
-                        .then(if (blurred) Modifier.blur(10.dp) else Modifier),
+                    onClick = { if (!blurred) onSelectLane(lane.make, lane.model) },
+                    modifier = Modifier.fillMaxWidth()
+                        .then(if (blurred) Modifier.blur(10.dp) else Modifier)
+                        .semantics { contentDescription = "Vehicle lane $laneName" },
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(laneName, style = MaterialTheme.typography.titleSmall)
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(laneName, style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "${lane.listingCount} listings · median ${formatLkr(lane.medianPriceLkr)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
                             Text(
-                                "${lane.listingCount} listings · median ${formatLkr(lane.medianPriceLkr)}",
-                                style = MaterialTheme.typography.bodySmall,
+                                lane.avgDealScore?.let { "★ %.1f".format(it) }
+                                    ?: (lane.topDistrict ?: ""),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        Text(
-                            lane.avgDealScore?.let { "★ %.1f".format(it) }
-                                ?: (lane.topDistrict ?: ""),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        if (expanded) {
+                            when {
+                                state.loadingDetail -> Text(
+                                    "Loading lane detail…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                state.laneDetail != null -> {
+                                    val d = state.laneDetail!!
+                                    Spacer(Modifier.height(8.dp))
+                                    LaneDetailRow("Range", "${formatLkr(d.minPriceLkr)} – ${formatLkr(d.maxPriceLkr)}")
+                                    LaneDetailRow("Districts / sources", "${d.districtCount} / ${d.sourceCount}")
+                                    LaneDetailRow(
+                                        "Top district / source",
+                                        "${d.topDistrict ?: "—"} / ${d.topSource ?: "—"}",
+                                    )
+                                }
+                                state.detailError != null -> Text(
+                                    state.detailError ?: "Couldn't load lane detail.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -202,41 +292,119 @@ private fun ProContent(
             item { Text("No district data yet.", style = MaterialTheme.typography.bodyMedium) }
         } else {
             items(districts.ifEmpty { if (blurred) previewDistricts() else emptyList() }) { d ->
+                val expanded = state.districtDetailKey == d.district && !blurred
                 Card(
                     onClick = { onOpenDistrict(d.district) },
-                    modifier = Modifier.fillMaxWidth().then(if (blurred) Modifier.blur(10.dp) else Modifier),
+                    modifier = Modifier.fillMaxWidth().then(if (blurred) Modifier.blur(10.dp) else Modifier)
+                        .semantics { contentDescription = "District ${d.district}, deep-dive in Insights" },
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(d.district, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            "${d.listingCount} · median ${formatLkr(d.medianPriceLkr)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(d.district, style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "${d.listingCount} · median ${formatLkr(d.medianPriceLkr)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        if (!blurred) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                TextButton(
+                                    onClick = { onToggleDistrict(d.district) },
+                                    modifier = Modifier.heightIn(min = 48.dp),
+                                ) {
+                                    Text(if (expanded) "Hide detail" else "Inspect")
+                                }
+                            }
+                            if (expanded) {
+                                when {
+                                    state.loadingDetail -> Text(
+                                        "Loading district detail…",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                    state.districtDetail != null -> {
+                                        val dd = state.districtDetail!!
+                                        LaneDetailRow("Average", formatLkr(dd.avgPriceLkr))
+                                        LaneDetailRow("Sources", dd.sourceCount.toString())
+                                        LaneDetailRow(
+                                            "Top make / model",
+                                            "${dd.topMake ?: "—"} / ${dd.topModel ?: "—"}",
+                                        )
+                                    }
+                                    state.detailError != null -> Text(
+                                        state.detailError ?: "Couldn't load district detail.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-        item { SectionTitle("Arbitrage pairs") }
+        item {
+            SectionTitle(
+                "Arbitrage pairs · ${significant.size} significant ≥ ${"%.0f".format(state.arbitrageThresholdPct)}%",
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(3.0, 5.0, 8.0).forEach { pct ->
+                    FilterChip(
+                        selected = state.arbitrageThresholdPct == pct,
+                        onClick = { onThreshold(pct) },
+                        label = { Text("≥ ${"%.0f".format(pct)}%") },
+                        modifier = Modifier.heightIn(min = 48.dp)
+                            .semantics { contentDescription = "Arbitrage threshold ${"%.0f".format(pct)} percent" },
+                    )
+                }
+            }
+        }
         val arb: List<ArbitrageGap> = state.arbitrage
         if (arb.isEmpty() && !blurred) {
             item { Text("No arbitrage gaps for your scope yet.", style = MaterialTheme.typography.bodyMedium) }
         } else {
             items(arb.ifEmpty { if (blurred) previewArb() else emptyList() }) { a ->
-                Card(Modifier.fillMaxWidth().then(if (blurred) Modifier.blur(10.dp) else Modifier)) {
+                val hot = a.gapPct >= state.arbitrageThresholdPct
+                Card(
+                    Modifier.fillMaxWidth().then(if (blurred) Modifier.blur(10.dp) else Modifier)
+                        .semantics {
+                            contentDescription =
+                                "Arbitrage buy ${a.buyDistrict} sell ${a.sellDistrict}, gap ${formatPct(a.gapPct)}"
+                        },
+                ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text(
-                            "Buy ${a.buyDistrict} → sell ${a.sellDistrict}",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Buy ${a.buyDistrict} → sell ${a.sellDistrict}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (hot && !blurred) {
+                                AssistChip(onClick = {}, label = { Text("GAP ${formatPct(a.gapPct)}") })
+                            }
+                        }
                         Text(
                             "Spread ${formatLkr(a.sellMedianLkr - a.buyMedianLkr)} · ${formatPct(a.gapPct)}",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
                         )
+                        if (!blurred) {
+                            Text(
+                                "${a.buyListingCount} buys · ${a.sellListingCount} sells",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -270,6 +438,22 @@ private fun ProContent(
                 PrimaryAction("Unlock Pro", onClick = onUpgrade)
             }
         }
+    }
+}
+
+@Composable
+private fun LaneDetailRow(label: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Text(value, style = MaterialTheme.typography.bodySmall)
     }
 }
 

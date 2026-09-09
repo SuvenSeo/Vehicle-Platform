@@ -9,6 +9,7 @@ import lk.motormila.app.data.local.datastore.SettingsStore
 import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.BenchmarkUrlsRequestDto
 import lk.motormila.app.data.remote.dto.DealerClaimRequestDto
+import lk.motormila.app.data.remote.dto.DealerVerifyRequestDto
 import lk.motormila.app.data.remote.dto.UrlBenchmarkResultDto
 import lk.motormila.app.di.IoDispatcher
 import lk.motormila.app.domain.model.DealerBenchmark
@@ -73,6 +74,12 @@ class DealerRepositoryImpl @Inject constructor(
     override suspend fun myClaimStatus(): DealerClaim? = withContext(io) {
         val token = settings.observe().first().dealerClaimToken ?: return@withContext null
         val res = runCatching { api.dealerMe(token) }.getOrNull() ?: return@withContext null
+        DealerClaim(claimId = res.claimId ?: "", status = res.status, message = res.message)
+    }
+
+    /** POST /dealer/verify — confirm a claim with an out-of-band code. Impl helper. */
+    suspend fun verifyDealer(claimToken: String, code: String? = null): DealerClaim = withContext(io) {
+        val res = api.verifyDealer(DealerVerifyRequestDto(claimToken, code))
         DealerClaim(claimId = res.claimId ?: "", status = res.status, message = res.message)
     }
 }

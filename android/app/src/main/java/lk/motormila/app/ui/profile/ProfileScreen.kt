@@ -42,9 +42,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -59,6 +62,13 @@ fun ProfileScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
+
+    fun navTap(onClick: () -> Unit) {
+        if (!reducedMotion) haptics.tick()
+        onClick()
+    }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -99,8 +109,9 @@ fun ProfileScreen(
                         Modifier.fillMaxSize().padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        item { OfflineBanner(visible = state.offline) }
                         item {
-                            // Session card + plan badge
+                            // Session card + plan badge + role/admin affordance
                             Card(
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
@@ -108,34 +119,58 @@ fun ProfileScreen(
                                     containerColor = MaterialTheme.colorScheme.surface,
                                 ),
                                 modifier = Modifier.fillMaxWidth()
-                                    .semantics { contentDescription = "Session for ${p.displayName}, plan ${p.planName}" },
+                                    .semantics { contentDescription = "${p.sessionState} session for ${p.displayName}, plan ${p.planName}, role ${p.role}" },
                             ) {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(p.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                        Text(p.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    AssistChip(
-                                        onClick = onProClick,
-                                        colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
-                                            containerColor = androidx.compose.ui.graphics.Color(0x2E0A7AFF),
-                                            labelColor = lk.motormila.app.ui.theme.MotormilaPrimaryBright,
-                                        ),
-                                        border = androidx.compose.material3.AssistChipDefaults.assistChipBorder(
-                                            enabled = true,
-                                            borderColor = androidx.compose.ui.graphics.Color(0x550A7AFF),
-                                        ),
-                                        label = {
+                                Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                                    Row(
+                                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(Modifier.weight(1f)) {
+                                            Text(p.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                            Text(p.email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             Text(
-                                                p.planName.uppercase(),
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 11.sp,
+                                                "${p.sessionState} · ${p.role.replaceFirstChar { c -> c.uppercase() }}" +
+                                                    (p.expiresAt?.let { " · expires ${it.take(10)}" } ?: ""),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
-                                        },
-                                    )
+                                        }
+                                        AssistChip(
+                                            onClick = { navTap(onProClick) },
+                                            colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
+                                                containerColor = androidx.compose.ui.graphics.Color(0x2E0A7AFF),
+                                                labelColor = lk.motormila.app.ui.theme.MotormilaPrimaryBright,
+                                            ),
+                                            border = androidx.compose.material3.AssistChipDefaults.assistChipBorder(
+                                                enabled = true,
+                                                borderColor = androidx.compose.ui.graphics.Color(0x550A7AFF),
+                                            ),
+                                            label = {
+                                                Text(
+                                                    p.planName.uppercase(),
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontSize = 11.sp,
+                                                )
+                                            },
+                                        )
+                                    }
+                                    if (p.isAdmin) {
+                                        Spacer(Modifier.height(8.dp))
+                                        AssistChip(
+                                            onClick = { navTap(onSettingsClick) },
+                                            label = { Text("ADMIN — manage invites in /admin") },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.EmojiEvents,
+                                                    contentDescription = null,
+                                                    tint = lk.motormila.app.ui.theme.MotormilaPrimaryBright,
+                                                )
+                                            },
+                                            modifier = Modifier.heightIn(min = 48.dp)
+                                                .semantics { contentDescription = "Admin controls" },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -208,12 +243,12 @@ fun ProfileScreen(
                         }
                         item {
                             SectionTitle("Manage")
-                            TileRow("Settings", onSettingsClick)
-                            TileRow(if (p.planName.equals("Pro", true)) "Pro dashboard" else "Go Pro", onProClick)
-                            TileRow("Dealer tools", onDealerClick)
-                            TileRow("Price alerts", onAlertsClick)
-                            TileRow("Notifications", onNotificationsClick)
-                            if (!p.loggedIn) TileRow("Log in / sign up", onLoginClick)
+                            TileRow("Settings", onClick = { navTap(onSettingsClick) })
+                            TileRow(if (p.planName.equals("Pro", true)) "Pro dashboard" else "Go Pro", onClick = { navTap(onProClick) })
+                            TileRow("Dealer tools", onClick = { navTap(onDealerClick) })
+                            TileRow("Price alerts", onClick = { navTap(onAlertsClick) })
+                            TileRow("Notifications", onClick = { navTap(onNotificationsClick) })
+                            if (!p.loggedIn) TileRow("Log in / sign up", onClick = { navTap(onLoginClick) })
                         }
                     }
                 }

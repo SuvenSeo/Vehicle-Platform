@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -144,7 +145,10 @@ fun HomeScreen(
             item {
                 Column(Modifier.padding(top = 10.dp)) {
                     if (state.isOffline || state.showCachedBadge) {
-                        OfflineBanner(visible = true)
+                        OfflineBanner(
+                            visible = true,
+                            onDismiss = viewModel::dismissCachedBadge,
+                        )
                     }
                     TopBrandBar(onAlertsClick = onAlertsClick)
                 }
@@ -497,6 +501,7 @@ private fun CinematicHeroHeader(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = 48.dp)
                 .clip(RoundedCornerShape(999.dp))
                 .background(Color(0xFF131318))
                 .border(1.dp, MotormilaOutline, RoundedCornerShape(999.dp))
@@ -976,8 +981,9 @@ private fun TrendingModelsRail(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .heightIn(min = 48.dp)
                     .clickable(onClick = onSeeAllTrends)
-                    .padding(4.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
                 Text(
                     text = "ALL TRENDS ↗",
@@ -1097,8 +1103,9 @@ private fun SectionRow(title: String, onSeeAll: (() -> Unit)?) {
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
+                    .heightIn(min = 48.dp)
                     .clickable(onClick = onSeeAll)
-                    .padding(8.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
     }
@@ -1200,7 +1207,10 @@ private fun FuelMixRow(buckets: List<lk.motormila.app.domain.model.FuelMixBucket
 
 @Composable
 private fun DistrictChip(district: String, count: Int, median: String, onClick: () -> Unit) {
-    Card(onClick = onClick) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.heightIn(min = 48.dp),
+    ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             Text(district, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             Text("$count · $median", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)

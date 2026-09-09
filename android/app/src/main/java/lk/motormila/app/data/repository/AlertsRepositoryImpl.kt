@@ -72,9 +72,12 @@ class AlertsRepositoryImpl @Inject constructor(
 
     override suspend fun match(id: Int, limit: Int): AlertMatch = withContext(io) {
         val res = api.matchAlerts()
-        res.results.firstOrNull { it.alertId == id }?.toDomain()?.copy(
-            listings = res.results.first { it.alertId == id }.listings.take(limit).map { it.toDomain() },
-        ) ?: AlertMatch(alertId = id, make = null, model = null, district = null, maxPriceLkr = null, matchingCount = 0)
+        val hit = res.results.firstOrNull { it.alertId == id }
+            ?: return@withContext AlertMatch(
+                alertId = id, make = null, model = null, district = null,
+                maxPriceLkr = null, matchingCount = 0,
+            )
+        hit.toDomain().copy(listings = hit.listings.take(limit).map { it.toDomain() })
     }
 
     override fun observeNotifications(): Flow<List<AppNotification>> = observeNotifications(limit = 50)
@@ -92,6 +95,11 @@ class AlertsRepositoryImpl @Inject constructor(
 
     override suspend fun markNotificationRead(id: Int): Unit = withContext(io) {
         api.markNotificationRead(id)
+    }
+
+    /** POST /notifications/read-all — returns count marked; impl helper (no interface change). */
+    suspend fun markAllNotificationsRead(): Int = withContext(io) {
+        api.markAllNotificationsRead().markedRead
     }
 
     override suspend fun unreadCount(): Flow<Int> = kotlinx.coroutines.flow.flow {

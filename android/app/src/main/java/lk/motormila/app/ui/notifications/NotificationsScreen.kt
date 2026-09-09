@@ -33,10 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.AppNotification
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,9 +49,12 @@ fun NotificationsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
+    val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
 
     LaunchedEffect(state.error) {
         state.error?.let {
+            if (!reducedMotion) haptics.reject()
             snacks.showSnackbar(it)
             viewModel.onEvent(NotificationsUiEvent.DismissError)
         }
@@ -98,10 +104,12 @@ fun NotificationsScreen(
                     Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    item { OfflineBanner(visible = state.offline) }
                     items(state.items, key = { it.id }) { n ->
                         NotificationRow(
                             n = n,
                             onOpen = {
+                                if (!reducedMotion) haptics.tick()
                                 viewModel.onEvent(NotificationsUiEvent.MarkRead(n.id.toString()))
                                 onOpenNotification(n.id.toString())
                             },
@@ -115,6 +123,10 @@ fun NotificationsScreen(
 
 @Composable
 private fun NotificationRow(n: AppNotification, onOpen: () -> Unit) {
+    // kind is mapper-derived (DATA_CONTRACT §1): "listing" iff the backend
+    // link contained /listings/{id}, else "alert". Listing rows deep-link to
+    // detail via the graph's Int parsing; alert rows open the inbox only.
+    val kindLabel = if (n.kind == "listing") "Listing" else "Alert"
     Card(
         onClick = onOpen,
         modifier = Modifier.fillMaxWidth()
@@ -125,11 +137,22 @@ private fun NotificationRow(n: AppNotification, onOpen: () -> Unit) {
         ),
     ) {
         Column(Modifier.padding(16.dp).heightIn(min = 48.dp)) {
-            Text(
-                n.title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = if (n.isRead) FontWeight.Normal else FontWeight.SemiBold,
-            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    n.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (n.isRead) FontWeight.Normal else FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Badge(
+                    modifier = Modifier.padding(start = 8.dp)
+                        .semantics { contentDescription = "$kindLabel notification" },
+                ) { Text(kindLabel) }
+            }
             Text(n.body, style = MaterialTheme.typography.bodySmall)
             Text(
                 n.createdAt,

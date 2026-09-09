@@ -39,4 +39,39 @@
     <string name="close">Close</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+
+    <!-- Plate scan (Swarm E owned; all PlateScanScreen copy lives here) -->
+    <string name="scan_title">Scan plate</string>
+    <string name="scan_preview_desc">Camera preview for plate scanning</string>
+    <string name="scan_overlay_desc">Detected text regions</string>
+    <string name="scan_no_camera">No camera on this device — type the plate below.</string>
+    <string name="scan_rationale">Camera access lets you scan plates. You can also type the plate below.</string>
+    <string name="scan_need_permission">Camera permission needed — or type the plate below.</string>
+    <string name="scan_grant_camera">Grant camera access</string>
+    <string name="scan_tap_plate">Tap a plate to search</string>
+    <string name="scan_plate_label">Plate (e.g. CAB-1234)</string>
+    <string name="scan_lookup">Look up plate</string>
+    <string name="scan_type_first">Type the plate number first.</string>
+    <string name="scan_matching">%1$d matching listings</string>
+    <string name="scan_no_match">No live listings on this plate</string>
+    <string name="scan_search">Search</string>
+    <string name="scan_open_fmv">Open FMV</string>
+    <string name="scan_result_desc">Plate result for %1$s</string>
+
+    <!-- Share import (Swarm E owned) -->
+    <string name="share_title">Opening shared link</string>
+    <string name="share_unsupported_title">Link not supported</string>
+    <string name="share_unsupported_body">We open ikman, Riyasewana and PatPat links. Got: %1$s</string>
+    <string name="share_browse">Browse instead</string>
+    <string name="share_taking_you">Taking you to that vehicle…</string>
+    <string name="share_resolving">Resolving shared link</string>
+    <string name="share_open_search">Open search</string>
+    <string name="share_open_compare">Open compare</string>
+    <string name="share_open_valuation">Open valuation</string>
+
+    <!-- Deal widget (Swarm E owned) -->
+    <string name="widget_deal_title">Deal of the day</string>
+    <string name="widget_deal_desc">Motormila deal of the day widget</string>
+    <string name="widget_index_missing">Index —</string>
+    <string name="widget_open_deal">Open deal</string>
 </resources>

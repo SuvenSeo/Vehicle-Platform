@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.domain.model.Valuation
 import lk.motormila.app.domain.model.ValuationInput
 import lk.motormila.app.domain.repository.ListingRepository
@@ -88,18 +87,18 @@ sealed interface ValuationUiEvent {
 @HiltViewModel
 class ValuationViewModel @Inject constructor(
     private val listings: ListingRepository,
-    private val api: MotormilaApiService,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ValuationUiState())
     val state: StateFlow<ValuationUiState> = _state.asStateFlow()
 
     init {
-        // Auto FX macro (USD→LKR); falls back to 300 when offline.
-        viewModelScope.launch {
-            runCatching { api.macro().usdLkr }
-                .onSuccess { fx -> _state.update { it.copy(fxRate = fx) } }
-        }
+        // UI talks to repository interfaces only (no Retrofit in ui/).
+        // Live FX lives inside ValuationRepositoryImpl (macro fetch, fallback 300);
+        // the local landed-cost model below uses the same offline default so the
+        // Landed tab stays usable without network. The data builder may expose a
+        // dedicated fxRate() on ValuationRepository if live FX display is needed.
+        _state.update { it.copy(fxRate = DEFAULT_FX_LKR_PER_USD) }
     }
 
     fun onEvent(event: ValuationUiEvent) {
@@ -152,7 +151,7 @@ class ValuationViewModel @Inject constructor(
      */
     private fun calcLanded() {
         val i = _state.value.landedInput
-        val fx = _state.value.fxRate ?: 300.0
+        val fx = _state.value.fxRate ?: DEFAULT_FX_LKR_PER_USD
         val cifUsd = i.cifUsd.toDoubleOrNull() ?: 0.0
         val cc = i.engineCc.toIntOrNull() ?: 0
         val kw = i.electricKw.toDoubleOrNull() ?: 0.0
@@ -240,5 +239,10 @@ class ValuationViewModel @Inject constructor(
             v *= (1 - rate)
             "Year ${idx + 1}" to v
         }
+    }
+
+    companion object {
+        /** Offline FX default shared with ValuationRepositoryImpl's macro fallback. */
+        const val DEFAULT_FX_LKR_PER_USD = 300.0
     }
 }

@@ -70,6 +70,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,18 +84,23 @@ fun LoginScreen(
     val biometricEnabled by viewModel.biometricEnabled.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
     val reducedMotion = rememberReducedMotion()
+    val haptics = rememberHaptics()
     val shake = remember { Animatable(0f) }
     var passwordVisible by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(state.loggedIn) {
         if (state.loggedIn) {
+            if (!reducedMotion) haptics.confirm()
             viewModel.onEvent(AuthUiEvent.ConsumeLoggedIn)
             onLoggedIn()
         }
     }
     LaunchedEffect(state.error, state.shakeToken) {
-        state.error?.let { snacks.showSnackbar(it) }
+        state.error?.let {
+            if (!reducedMotion) haptics.reject()
+            snacks.showSnackbar(it)
+        }
         if (state.shakeToken > 0 && !reducedMotion) {
             // Error shake: 4 quick oscillations, skipped under reduced motion.
             shake.snapTo(0f)
@@ -116,6 +123,23 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            OfflineBanner(visible = state.offline)
+            if (state.sessionEmail != null) {
+                Text(
+                    text = if (state.sessionExpired) {
+                        "Session for ${state.sessionEmail} expired — sign in again."
+                    } else {
+                        "Last signed in as ${state.sessionEmail}."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.sessionExpired) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
             BrandLogo(
                 size = BrandLogoSize.DEFAULT,
                 showWordmark = true,
@@ -202,6 +226,15 @@ fun LoginScreen(
                 onClick = { viewModel.onEvent(AuthUiEvent.Submit) },
                 loading = state.loading,
             )
+            if (state.error != null && !state.loading) {
+                Spacer(Modifier.height(8.dp))
+                TextButton(
+                    onClick = { viewModel.onEvent(AuthUiEvent.Retry) },
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(if (state.offline) "Retry when back online" else "Retry")
+                }
+            }
             Spacer(Modifier.height(12.dp))
             Card(
                 onClick = {
@@ -235,7 +268,7 @@ fun LoginScreen(
                 Card(
                     onClick = {
                         onBiometricAuth(
-                            { viewModel.onEvent(AuthUiEvent.Submit) },
+                            { viewModel.onEvent(AuthUiEvent.BiometricSuccess) },
                             { msg -> scope.launch { snacks.showSnackbar(msg) } },
                         )
                     },

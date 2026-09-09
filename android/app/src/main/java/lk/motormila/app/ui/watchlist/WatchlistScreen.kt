@@ -3,6 +3,7 @@ package lk.motormila.app.ui.watchlist
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,9 +18,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAlert
+import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,13 +45,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatLkrDelta
 import lk.motormila.app.core.format.formatPct
@@ -78,7 +85,36 @@ fun WatchlistScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Watchlist") }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        if (state.items.isEmpty()) "Watchlist"
+                        else "Watchlist (${state.items.size})",
+                    )
+                },
+                actions = {
+                    IconButton(
+                        onClick = { viewModel.onEvent(WatchlistUiEvent.RefreshPrices) },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .semantics { contentDescription = "Refresh watched prices" },
+                    ) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh prices")
+                    }
+                    if (state.items.isNotEmpty()) {
+                        IconButton(
+                            onClick = { viewModel.onEvent(WatchlistUiEvent.ClearAll) },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .semantics { contentDescription = "Clear entire watchlist" },
+                        ) {
+                            Icon(Icons.Filled.ClearAll, contentDescription = "Clear watchlist")
+                        }
+                    }
+                },
+            )
+        },
         snackbarHost = { SnackbarHost(snacks) },
     ) { padding ->
         PullToRefreshBox(
@@ -139,34 +175,58 @@ private fun WatchRow(
     )
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onAlert()
+            when (value) {
+                // Swipe right: create a price alert, snap back (never deletes).
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onAlert()
+                    false
+                }
+                // Swipe left: remove from watchlist.
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onRemove()
+                    true
+                }
+                SwipeToDismissBoxValue.Settled -> false
             }
-            false // snap back; swipe creates an alert, it never deletes
         },
     )
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
         backgroundContent = {
-            // 72dp swipe-to-alert rail
+            val direction = dismissState.dismissDirection
+            val isAlertSide = direction == SwipeToDismissBoxValue.StartToEnd
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(end = 16.dp)
-                    .semantics { contentDescription = "Swipe to create price alert" },
-                contentAlignment = Alignment.CenterEnd,
+                    .background(
+                        if (isAlertSide) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.errorContainer,
+                    )
+                    .padding(horizontal = 16.dp)
+                    .semantics {
+                        contentDescription = if (isAlertSide) {
+                            "Swipe to create price alert"
+                        } else {
+                            "Swipe to remove from watchlist"
+                        }
+                    },
+                contentAlignment = if (isAlertSide) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.width(72.dp),
                 ) {
                     Icon(
-                        Icons.Filled.AddAlert,
-                        contentDescription = "Create alert",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        if (isAlertSide) Icons.Filled.AddAlert else Icons.Filled.Delete,
+                        contentDescription = if (isAlertSide) "Create alert" else "Remove",
+                        tint = if (isAlertSide) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        },
                     )
                 }
             }
@@ -198,6 +258,27 @@ private fun WatchRow(
                             "${formatLkr(item.priceLkr)} · ${item.district}",
                             style = MaterialTheme.typography.bodyMedium,
                         )
+                        // Price-drop badge vs the add-price baseline (WatchItem.dropPct).
+                        if (item.hasPriceDrop) {
+                            Spacer(Modifier.heightIn(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "▼ ${LkrFormat.deltaPct(item.dropPct())}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF6EE7B7),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(Color(0x2E10B981))
+                                        .border(0.5.dp, Color(0x5510B981), RoundedCornerShape(999.dp))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                        .semantics {
+                                            contentDescription = "Price dropped ${LkrFormat.deltaPct(item.dropPct())}"
+                                        },
+                                )
+                            }
+                            Spacer(Modifier.heightIn(2.dp))
+                        }
                         val drop = (item.previousPriceLkr ?: item.priceLkr ?: 0.0) - (item.priceLkr ?: 0.0)
                         if (drop > 0) {
                             Text(

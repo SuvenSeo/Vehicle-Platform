@@ -69,18 +69,27 @@ class PriceAlertSyncWorker @AssistedInject constructor(
                 title = "New match: ${listOfNotNull(row.make, row.model).joinToString(" ").ifBlank { "your alert" }}",
                 body = "${row.matchingCount} matching listing(s)" +
                     (first?.let { " from Rs. ${"%,.0f".format(it.priceLkr ?: 0.0)}" } ?: ""),
-                contentIntent = contentIntentOf(row.alertId),
+                // Deep link to the first match so tap lands on ListingDetail
+                // (motormila://listing/{id} has a manifest filter + NavHost route).
+                contentIntent = contentIntentOf(row.alertId, first?.id),
             )
             posted++
         }
         return Result.success()
     }
 
-    private fun contentIntentOf(alertId: Int): PendingIntent? = runCatching {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            `package` = applicationContext.packageName
-            putExtra("alertId", alertId)
-            putExtra("route", "alerts/$alertId")
+    private fun contentIntentOf(alertId: Int, listingId: Int?): PendingIntent? = runCatching {
+        val intent = if (listingId != null) {
+            Intent(
+                Intent.ACTION_VIEW,
+                android.net.Uri.parse("motormila://listing/$listingId"),
+            ).apply { `package` = applicationContext.packageName }
+        } else {
+            Intent(Intent.ACTION_VIEW).apply {
+                `package` = applicationContext.packageName
+                putExtra("alertId", alertId)
+                putExtra("route", "alerts/$alertId")
+            }
         }
         PendingIntent.getActivity(
             applicationContext, alertId, intent,

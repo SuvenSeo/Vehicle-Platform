@@ -1,14 +1,10 @@
 package lk.motormila.app.ui.dealer
 
-import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,14 +12,13 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import lk.motormila.app.core.common.AppError
+import lk.motormila.app.core.network.ErrorMapper
+import lk.motormila.app.data.local.datastore.SettingsStore
+import lk.motormila.app.data.repository.DealerRepositoryImpl
 import lk.motormila.app.domain.model.DealerBenchmark
+import lk.motormila.app.domain.model.DealerClaim
 import lk.motormila.app.domain.repository.DealerRepository
-
-private val Context.dealerStore by preferencesDataStore("dealer_claim")
-private val ClaimTokenKey = stringPreferencesKey("claim_token")
-private val ClaimNameKey = stringPreferencesKey("claim_display_name")
-private val ClaimPhoneKey = stringPreferencesKey("claim_phone")
-private val ClaimEmailKey = stringPreferencesKey("claim_email")
 
 data class DealerClaimForm(
     val displayName: String = "",
@@ -36,18 +31,24 @@ data class DealerClaimForm(
 data class DealerUiState(
     val form: DealerClaimForm = DealerClaimForm(),
     val claiming: Boolean = false,
-    /** Persisted claim token (DataStore). Null = not claimed yet. */
+    /** Central claim token (SettingsStore.dealerClaimToken). Null = not claimed yet. */
     val claimToken: String? = null,
     val claimedName: String = "",
+    /** Server-verified claim row (GET /dealer/me); null until verified. */
+    val claimStatus: DealerClaim? = null,
+    val verifyingClaim: Boolean = false,
+    val refreshing: Boolean = false,
     val benchmarkUrls: String = "",
     val benchmarking: Boolean = false,
     val benchmark: DealerBenchmark? = null,
+    val offline: Boolean = false,
     val error: String? = null,
 )
 
 sealed interface DealerUiEvent {
     data class FormChanged(val form: DealerClaimForm) : DealerUiEvent
     data object Claim : DealerUiEvent
+    data object RefreshClaim : DealerUiEvent
     data class BenchmarkUrlsChanged(val urls: String) : DealerUiEvent
     data object RunBenchmark : DealerUiEvent
     data object SignOut : DealerUiEvent
@@ -55,32 +56,33 @@ sealed interface DealerUiEvent {
 }
 
 /**
- * Dealer claim flow. claim_token is persisted in a dedicated DataStore file
- * (`dealer_claim`) owned by this screen; the data builder may migrate it into
- * the central store later without changing this screen's API.
+ * Dealer claim flow. The claim_token lives in the central [SettingsStore]
+ * (written by [DealerRepositoryImpl.claim], read here + surfaced in
+ * Settings for debug) so process death never orphans a claim.
  */
 @HiltViewModel
 class DealerViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    private val settingsStore: SettingsStore,
     private val repository: DealerRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DealerUiState())
     val state: StateFlow<DealerUiState> = _state.asStateFlow()
 
+    private var lastVerifiedToken: String? = null
+
     init {
         viewModelScope.launch {
-            val prefs = context.dealerStore.data.first()
-            _state.update {
-                it.copy(
-                    claimToken = prefs[ClaimTokenKey],
-                    claimedName = prefs[ClaimNameKey].orEmpty(),
-                    form = it.form.copy(
-                        displayName = prefs[ClaimNameKey].orEmpty(),
-                        phone = prefs[ClaimPhoneKey].orEmpty(),
-                        email = prefs[ClaimEmailKey].orEmpty(),
-                    ),
-                )
+            settingsStore.observe().collect { settings ->
+                val token = settings.dealerClaimToken
+                _state.update { it.copy(claimToken = token) }
+                if (token != null && token != lastVerifiedToken) {
+                    lastVerifiedToken = token
+                    verifyClaim(token)
+                } else if (token == null) {
+                    lastVerifiedToken = null
+                    _state.update { it.copy(claimStatus = null) }
+                }
             }
         }
     }
@@ -89,10 +91,11 @@ class DealerViewModel @Inject constructor(
         when (event) {
             is DealerUiEvent.FormChanged -> _state.update { it.copy(form = event.form) }
             DealerUiEvent.Claim -> claim()
+            DealerUiEvent.RefreshClaim -> refreshClaim()
             is DealerUiEvent.BenchmarkUrlsChanged -> _state.update { it.copy(benchmarkUrls = event.urls) }
             DealerUiEvent.RunBenchmark -> runBenchmark()
             DealerUiEvent.SignOut -> signOut()
-            DealerUiEvent.DismissError -> _state.update { it.copy(error = null) }
+            DealerUiEvent.DismissError -> _state.update { it.copy(error = null, offline = false) }
         }
     }
 
@@ -103,7 +106,7 @@ class DealerViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(claiming = true, error = null) }
+            _state.update { it.copy(claiming = true, error = null, offline = false) }
             // DealerRepository.claim carries dealerName/contactEmail/contactPhone only;
             // the pattern/URL fields stay form-local (yard-tools v2 wires claimed_url).
             runCatching {
@@ -113,47 +116,99 @@ class DealerViewModel @Inject constructor(
                     contactPhone = f.phone.trim().ifBlank { null },
                 )
             }.onSuccess { res ->
-                val token = res.claimId.ifBlank { res.status }
-                context.dealerStore.edit { prefs ->
-                    prefs[ClaimTokenKey] = token
-                    prefs[ClaimNameKey] = f.displayName.trim()
-                    prefs[ClaimPhoneKey] = f.phone.trim()
-                    prefs[ClaimEmailKey] = f.email.trim()
+                // Token persisted centrally by the impl; re-read it for the UI.
+                val token = settingsStore.observe().first().dealerClaimToken
+                _state.update {
+                    it.copy(
+                        claiming = false,
+                        claimToken = token,
+                        claimedName = f.displayName.trim(),
+                        claimStatus = res,
+                    )
                 }
-                _state.update { it.copy(claiming = false, claimToken = token, claimedName = f.displayName.trim()) }
+                token?.let { lastVerifiedToken = it }
+                refreshClaim()
             }.onFailure { e ->
-                _state.update { it.copy(claiming = false, error = e.message ?: "Claim failed.") }
+                val mapped = ErrorMapper.map(e)
+                _state.update {
+                    it.copy(claiming = false, offline = mapped is AppError.Network, error = mapped.message)
+                }
             }
         }
     }
 
+    private fun refreshClaim() {
+        val token = _state.value.claimToken
+        if (token == null) {
+            _state.update { it.copy(refreshing = false) }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(refreshing = true, verifyingClaim = true, error = null) }
+            verifyClaim(token)
+            _state.update { it.copy(refreshing = false, verifyingClaim = false) }
+        }
+    }
+
+    private suspend fun verifyClaim(token: String) {
+        // myClaimStatus is cached-token based (null when absent) — no crash when signed out.
+        runCatching { repository.myClaimStatus() }
+            .onSuccess { status ->
+                lastVerifiedToken = token
+                _state.update { it.copy(claimStatus = status, offline = false) }
+            }
+            .onFailure { e ->
+                val mapped = ErrorMapper.map(e)
+                _state.update {
+                    it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                }
+            }
+    }
+
+    fun parsedUrls(): List<String> =
+        _state.value.benchmarkUrls.lines().map { it.trim() }.filter { it.isNotBlank() }
+
     private fun runBenchmark() {
-        val name = _state.value.form.displayName.trim().ifBlank { _state.value.claimedName.trim() }
-        if (_state.value.benchmarkUrls.lines().none { it.isNotBlank() } && name.isBlank()) {
+        val urls = parsedUrls()
+        val name = _state.value.form.displayName.trim()
+            .ifBlank { _state.value.claimedName.trim() }
+        if (urls.isEmpty() && name.isBlank()) {
             _state.update { it.copy(error = "Claim first, then paste listing URLs to benchmark.") }
             return
         }
-        if (name.isBlank()) {
+        if (urls.isEmpty() && name.isBlank()) {
             _state.update { it.copy(error = "Enter your dealership display name first.") }
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(benchmarking = true, error = null) }
-            // Interface benchmark is dealerName-scoped; per-URL breakdown (benchmarkUrls)
-            // is a DealerRepositoryImpl extra the yard-tools v2 screen will call directly.
-            runCatching { repository.benchmark(name) }
-                .onSuccess { b -> _state.update { it.copy(benchmarking = false, benchmark = b) } }
-                .onFailure { e -> _state.update { it.copy(benchmarking = false, error = e.message ?: "Benchmark failed.") } }
+            _state.update { it.copy(benchmarking = true, error = null, offline = false) }
+            // URL-level aggregation lives on the impl (DATA_CONTRACT §4);
+            // fall back to the name-scoped interface method without URLs.
+            runCatching {
+                val impl = repository as? DealerRepositoryImpl
+                if (urls.isNotEmpty() && impl != null) {
+                    impl.benchmarkUrls(name.ifBlank { "Your yard" }, urls)
+                } else {
+                    repository.benchmark(name.ifBlank { "Your yard" })
+                }
+            }.onSuccess { b -> _state.update { it.copy(benchmarking = false, benchmark = b) } }
+                .onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(benchmarking = false, offline = mapped is AppError.Network, error = mapped.message)
+                    }
+                }
         }
     }
 
     private fun signOut() {
         viewModelScope.launch {
-            context.dealerStore.edit { it.clear() }
-            _state.update { it.copy(claimToken = null, claimedName = "", benchmark = null) }
+            runCatching { settingsStore.setDealerClaimToken(null) }
+            lastVerifiedToken = null
+            _state.update { it.copy(claimToken = null, claimedName = "", claimStatus = null, benchmark = null) }
         }
     }
 
     /** Reactive token for interceptors owned by the data layer. */
-    val claimTokenFlow = context.dealerStore.data.map { it[ClaimTokenKey] }
+    val claimTokenFlow: Flow<String?> = settingsStore.observe().map { it.dealerClaimToken }
 }

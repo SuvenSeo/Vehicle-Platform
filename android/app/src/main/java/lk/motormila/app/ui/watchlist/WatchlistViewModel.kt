@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import lk.motormila.app.domain.model.WatchItem
 import lk.motormila.app.domain.repository.WatchlistRepository
+import lk.motormila.app.domain.usecase.ObserveWatchlistUseCase
 
 data class WatchlistUiState(
     val isLoading: Boolean = true,
@@ -24,12 +25,15 @@ data class WatchlistUiState(
 
 sealed interface WatchlistUiEvent {
     data object Refresh : WatchlistUiEvent
+    data object RefreshPrices : WatchlistUiEvent
     data class Remove(val id: Int) : WatchlistUiEvent
+    data object ClearAll : WatchlistUiEvent
     data object DismissError : WatchlistUiEvent
 }
 
 @HiltViewModel
 class WatchlistViewModel @Inject constructor(
+    private val observeWatchlist: ObserveWatchlistUseCase,
     private val repository: WatchlistRepository,
 ) : ViewModel() {
 
@@ -43,7 +47,9 @@ class WatchlistViewModel @Inject constructor(
     fun onEvent(event: WatchlistUiEvent) {
         when (event) {
             WatchlistUiEvent.Refresh -> observe(refresh = true)
+            WatchlistUiEvent.RefreshPrices -> refreshPrices()
             is WatchlistUiEvent.Remove -> remove(event.id)
+            WatchlistUiEvent.ClearAll -> clearAll()
             WatchlistUiEvent.DismissError -> _state.update { it.copy(error = null) }
         }
     }
@@ -51,7 +57,7 @@ class WatchlistViewModel @Inject constructor(
     private fun observe(refresh: Boolean = false) {
         viewModelScope.launch {
             if (refresh) _state.update { it.copy(isRefreshing = true, error = null) }
-            repository.observeWatchlist()
+            observeWatchlist()
                 .catch { e ->
                     _state.update {
                         it.copy(
@@ -68,11 +74,7 @@ class WatchlistViewModel @Inject constructor(
                             isRefreshing = false,
                             items = items,
                             droppedIds = items
-                                .filter { w ->
-                                    val prev = w.previousPriceLkr
-                                    val cur = w.priceLkr
-                                    prev != null && cur != null && cur < prev
-                                }
+                                .filter { w -> w.hasPriceDrop }
                                 .map { w -> w.id }
                                 .toSet(),
                         )
@@ -86,6 +88,27 @@ class WatchlistViewModel @Inject constructor(
             runCatching { repository.removeFromWatchlist(id) }
                 .onFailure { e ->
                     _state.update { it.copy(error = e.message ?: "Couldn't remove that listing.") }
+                }
+        }
+    }
+
+    /** Best-effort network refresh of last-known prices (Room-backed). */
+    fun refreshPrices() {
+        viewModelScope.launch {
+            _state.update { it.copy(isRefreshing = true, error = null) }
+            runCatching { repository.refreshPrices() }
+                .onFailure { e ->
+                    _state.update { it.copy(error = e.message ?: "Couldn't refresh prices.") }
+                }
+            _state.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    private fun clearAll() {
+        viewModelScope.launch {
+            runCatching { repository.clear() }
+                .onFailure { e ->
+                    _state.update { it.copy(error = e.message ?: "Couldn't clear your watchlist.") }
                 }
         }
     }

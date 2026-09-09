@@ -36,6 +36,15 @@ class MainActivity : ComponentActivity() {
 
     private fun extractSharedUrl(intent: Intent?): String? {
         if (intent == null) return null
+        // Trampoline path (ShareImportActivity) always sets SHARED_URL_KEY —
+        // check it FIRST: the forwarded intent keeps ACTION_SEND but drops type.
+        intent.getStringExtra(SHARED_URL_KEY)?.takeIf { it.isNotBlank() }?.let { return it }
+        // Graceful v1 handling for shortcut VIEW deep links (NAV_CONTRACT):
+        // motormila://search?voice=true, motormila://home?dealOfDay=true,
+        // motormila://watchlist carry no in-NavHost args yet — fall through to
+        // normal launch (Home) without crashing. motormila://scan + listing/{id}
+        // are handled by NavHost deepLinks.
+        if (intent.action == Intent.ACTION_VIEW) return null
         if (intent.action != Intent.ACTION_SEND) {
             return intent.getStringExtra(SHARED_URL_KEY)
         }

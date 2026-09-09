@@ -39,6 +39,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import lk.motormila.app.R
 import lk.motormila.app.ui.home.badgeFor
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaOutline
@@ -63,12 +65,13 @@ data class BottomNavItem(
     val badgeKey: String? = null,
 )
 
+@Composable
 fun motormilaNavItems(): List<BottomNavItem> = listOf(
-    BottomNavItem("home", "Home", Icons.Filled.Home),
-    BottomNavItem("search", "Search", Icons.Filled.Search),
-    BottomNavItem("watchlist", "Saved", Icons.Filled.Favorite, badgeKey = "watchlist"),
-    BottomNavItem("insights", "Insights", Icons.Filled.AutoAwesome),
-    BottomNavItem("profile", "Profile", Icons.Filled.Person, badgeKey = "inbox"),
+    BottomNavItem("home", stringResource(R.string.nav_home), Icons.Filled.Home),
+    BottomNavItem("search", stringResource(R.string.nav_search), Icons.Filled.Search),
+    BottomNavItem("watchlist", stringResource(R.string.nav_watchlist), Icons.Filled.Favorite, badgeKey = "watchlist"),
+    BottomNavItem("insights", stringResource(R.string.nav_insights), Icons.Filled.AutoAwesome),
+    BottomNavItem("profile", stringResource(R.string.nav_profile), Icons.Filled.Person, badgeKey = "inbox"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

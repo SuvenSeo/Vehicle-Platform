@@ -29,6 +29,10 @@ class MotormilaApp : Application(), SingletonImageLoader.Factory, Configuration.
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        // Swarm E: periodic background work (KEEP — unique names, network-required).
+        runCatching { lk.motormila.app.work.PriceAlertSyncWorker.enqueue(this) }
+        runCatching { lk.motormila.app.work.SnapshotRefreshWorker.enqueue(this) }
+        runCatching { lk.motormila.app.ui.widget.enqueueDealWidgetRefresh(this) }
     }
 
     override fun newImageLoader(context: coil3.PlatformContext): ImageLoader =

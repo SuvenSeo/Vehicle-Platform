@@ -2,8 +2,8 @@
 
 `MotormilaNavGraph` (foundation-owned) calls every screen below. Section 1 lists
 the **REAL signatures the screen builders landed** (graph verified against them).
-Section 2 lists the **still-missing screens** with the assumed signatures the
-graph compiles against — implement exactly these.
+All screens are landed — Section 2 is retired (kept as an empty placeholder so
+old links don't break).
 
 Destinations live in `ui.navigation.Routes.kt` (`@Serializable`, type-safe).
 Keep ViewModels behind a `viewModel = hiltViewModel()` default so the graph
@@ -19,6 +19,7 @@ fun HomeScreen(
     onSearchClick: () -> Unit,       // -> Search
     onAlertsClick: () -> Unit,       // -> Alerts
     onSeeAll: (String) -> Unit,      // -> Search (arg ignored, feed has no query route yet)
+    onLoginClick: () -> Unit = {},   // -> Login (default keeps old call sites compiling)
     viewModel: HomeViewModel = hiltViewModel(),
 )
 
@@ -124,57 +125,92 @@ fun SettingsScreen(
     onBiometricVerify: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 )
-```
 
-## 2. Missing — implement exactly these (graph already imports them)
-
-```kotlin
-// lk.motormila.app.ui.profile
+// lk.motormila.app.ui.profile — ProfileScreen.kt (LANDED, was §2)
 @Composable
 fun ProfileScreen(
-    onLoginClick: () -> Unit,
-    onSettingsClick: () -> Unit,
-    onProClick: () -> Unit,
-    onDealerClick: () -> Unit,
-    onAlertsClick: () -> Unit,
-    onNotificationsClick: () -> Unit,
+    onLoginClick: () -> Unit,        // -> Login
+    onSettingsClick: () -> Unit,     // -> Settings
+    onProClick: () -> Unit,          // -> Pro
+    onDealerClick: () -> Unit,       // -> Dealer
+    onAlertsClick: () -> Unit,       // -> Alerts
+    onNotificationsClick: () -> Unit,// -> Notifications
     viewModel: ProfileViewModel = hiltViewModel(),
 )
 
-// lk.motormila.app.ui.scan
+// lk.motormila.app.ui.scan — PlateScanScreen.kt (LANDED, was §2 assumed
+// onBack/onListingClick — REAL signature is onSearchPlate/onOpenFmv)
 @Composable
 fun PlateScanScreen(
-    onBack: () -> Unit,
-    onListingClick: (Int) -> Unit,
+    onSearchPlate: (plate: String) -> Unit, // -> Search (plate arg ignored, no query route yet)
+    onOpenFmv: (listingId: Int) -> Unit,    // -> ListingDetail(id)
     viewModel: PlateScanViewModel = hiltViewModel(),
 )
-// ALSO: lk.motormila.app.ui.scan.ScanTileService : TileService
-// (manifest-registered; opens motormila://scan).
+// ALSO LANDED: lk.motormila.app.ui.scan.ScanTileService : TileService
+// (manifest-registered; fires motormila://scan).
 
-// lk.motormila.app.ui.shareimport
+// lk.motormila.app.ui.share — ShareImportScreen.kt (LANDED, was §2 assumed
+// sharedUrl/onDone/onBack/viewModel — REAL signature forwards parsed targets)
 @Composable
 fun ShareImportScreen(
     sharedUrl: String?,
-    onDone: () -> Unit,
-    onBack: () -> Unit,
-    viewModel: ShareImportViewModel = hiltViewModel(),
+    onSearch: (ListingQuery) -> Unit,       // -> Search (query ignored, no query route yet)
+    onCompare: (ids: List<Int>) -> Unit,    // -> Compare(ids)
+    onValuation: (make: String, model: String) -> Unit, // -> Valuation
+    onBrowse: () -> Unit,                   // -> Home
 )
+// NOTE: ShareImportScreen takes NO viewModel — parsing is synchronous via
+// parseSharedUrl() + LaunchedEffect forward-once. Do not add one.
 ```
+
+## 2. Missing — none (retired)
+
+All 16 destinations are landed and the graph compiles against the real
+signatures in §1. The old assumed signatures for `ProfileScreen`
+(`§2` draft matched reality — now moved to §1), `PlateScanScreen`
+(`onBack`/`onListingClick` — superseded by `onSearchPlate`/`onOpenFmv`),
+and `ShareImportScreen` (`onDone`/`onBack`/`viewModel` — superseded by
+`onSearch`/`onCompare`/`onValuation`/`onBrowse`, no ViewModel) are void.
+New screens: add the destination to `Routes.kt`, wire it in
+`MotormilaNavGraph.kt`, and record the exact signature in §1.
 
 ## Foundation-owned extras (not screens)
 
 - `ui/biometric/BiometricAuth.kt` — `rememberBiometricAuth(title, subtitle)`
   framework-BiometricPrompt verifier (API 29+; graceful error below).
-- `ShareImportActivity` (package root) — ACTION_SEND trampoline → MainActivity.
-- `SplashGate` — private to `MotormilaNavGraph.kt`; v1 routes to Home.
+- `ShareImportActivity` (package root) — ACTION_SEND trampoline → MainActivity
+  (`SHARED_URL_KEY` extra); `MainActivity.extractSharedUrl()` also handles a
+  direct ACTION_SEND + first-URL fallback.
+- `SplashGate` — private to `MotormilaNavGraph.kt`; checks
+  `SessionStore.snapshot()` token non-blank → Home, else Login.
+- `AuthEventBus.Unauthorized` collector — navigates to Login with
+  `popUpTo(Home) { inclusive = true }`, `launchSingleTop = true`.
+- Bottom bar shows ONLY on Home/Search/Watchlist/Insights/Profile
+  (`hasRoute` checks in graph; `BOTTOM_BAR_ROUTES` in Routes.kt mirrors them).
+- `MotormilaScaffold` bottom labels come from resources (`nav_home` …);
+  nav icons + FABs carry content descriptions; FABs are 48dp/56dp.
 
 ## Deep links
 
 - `motormila://listing/{id}` → ListingDetail (manifest + NavHost wired).
-- `motormila://scan` → PlateScan (manifest + NavHost wired).
-- `motormila://search?voice=true`, `motormila://home?dealOfDay=true`,
-  `motormila://watchlist` → manifest shortcuts only; in-NavHost args not yet
-  wired (voice/dealOfDay extras ignored for v1).
+- `motormila://scan` → PlateScan (manifest + NavHost wired; QS tile fires it).
+- Manifest does NOT declare `motormila://search`, `motormila://watchlist`,
+  or `motormila://pro` — those shortcut intents target MainActivity
+  explicitly (`targetClass`), so no intent-filter is needed for them.
+
+## Shortcuts (`res/xml/shortcuts.xml`, referenced from MainActivity manifest)
+
+| Id | Intent data | Status |
+|---|---|---|
+| `scan_plate` | `motormila://scan` | Wired end-to-end (manifest filter + NavHost). |
+| `voice_search` | `motormila://search?voice=1` | Shortcut only — NavHost has no query/voice args yet; lands on MainActivity, graph starts at Splash→Home. |
+| `deal_of_day` | `motormila://pro?deal=day` | Shortcut only — same as above (no NavHost args). |
+| `watchlist` | `motormila://watchlist` | Shortcut only — same as above (no NavHost args). |
+
+NOTE: shortcuts say `motormila://pro?deal=day`, not the older doc draft
+`motormila://home?dealOfDay=true` — the xml is source of truth.
+Wiring shortcut deep links into NavHost args (voice/dealOfDay) is a
+future search-agent + foundation task; extras are ignored for v1.
 
 ## Rules for screen builders
 

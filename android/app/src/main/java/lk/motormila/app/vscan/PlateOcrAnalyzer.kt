@@ -47,33 +47,12 @@ object PlateOcrAnalyzer {
         awaitClose { runCatching { imageProxy.close() } }
     }
 
-    // Matches: "WP AB 1234", "WP-AB-1234", "CAB 5678", "ABC-1234", "12-3456",
-    // "BAA 1234", "65 4321", "WPABC1234" (spaceless), with optional separators.
-    private val PLATE_PATTERNS = listOf(
-        Regex("\\b([A-Z]{2,3})[\\s-]*([A-Z]{1,3})[\\s-]*([0-9]{3,4})\\b"),
-        Regex("\\b([A-Z]{1,3})[\\s-]*([0-9]{4})\\b"),
-        Regex("\\b([0-9]{1,2})[\\s-]*([0-9]{4})\\b"),
-    )
-
     /**
      * Pure function: extracts normalized Sri Lankan plate candidates from OCR
-     * text. Normalization: upper-case, collapse whitespace to single spaces,
-     * prefer matches containing both letters and digits, dedup, longest first.
+     * text. Delegates to canonical [lk.motormila.app.ui.scan.PlateParser] so
+     * camera OCR and manual entry parse identically. Kept here for call-site
+     * compat (CameraX path); new code should import PlateParser directly.
      */
-    fun extractPlateCandidates(text: String): List<String> {
-        if (text.isBlank()) return emptyList()
-        val upper = text.uppercase()
-        val found = linkedSetOf<String>()
-        for (pattern in PLATE_PATTERNS) {
-            for (m in pattern.findAll(upper)) {
-                val normalized = m.value.trim().replace(Regex("[\\s-]+"), " ")
-                val letters = normalized.count { it.isLetter() }
-                val digits = normalized.count { it.isDigit() }
-                if (letters in 1..6 && digits in 3..6 && normalized.length in 5..14) {
-                    found.add(normalized)
-                }
-            }
-        }
-        return found.sortedByDescending { it.length }
-    }
+    fun extractPlateCandidates(text: String): List<String> =
+        lk.motormila.app.ui.scan.PlateParser.extract(text)
 }

@@ -5,17 +5,28 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import lk.motormila.app.core.common.AppError
+import lk.motormila.app.core.network.ErrorMapper
 import lk.motormila.app.domain.model.DistrictStat
+import lk.motormila.app.domain.model.DistrictVelocity
 import lk.motormila.app.domain.model.EvStats
+import lk.motormila.app.domain.model.FuelMixBucket
+import lk.motormila.app.domain.model.Listing
+import lk.motormila.app.domain.model.PriceDrop
 import lk.motormila.app.domain.model.PriceIndexPoint
 import lk.motormila.app.domain.model.PulseSignal
+import lk.motormila.app.domain.model.StatsSummary
 import lk.motormila.app.domain.model.TrendPoint
 import lk.motormila.app.domain.model.VehicleNews
 import lk.motormila.app.domain.repository.InsightsRepository
+import lk.motormila.app.domain.repository.StatsRepository
 
 data class TrendSelectors(
     val make: String = "",
@@ -27,11 +38,16 @@ data class TrendSelectors(
 data class InsightsUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
+    val offline: Boolean = false,
     val selectors: TrendSelectors = TrendSelectors(),
+    val summary: StatsSummary? = null,
     val trends: List<TrendPoint> = emptyList(),
     val trendCoverageNote: String? = null,
     val index: List<PriceIndexPoint> = emptyList(),
     val districts: List<DistrictStat> = emptyList(),
+    val velocities: List<DistrictVelocity> = emptyList(),
+    val fuelMix: List<FuelMixBucket> = emptyList(),
+    val priceDrops: List<PriceDrop> = emptyList(),
     val ev: EvStats? = null,
     val chargerRadiusKm: Int = 25,
     val chargers: List<String> = emptyList(),
@@ -50,10 +66,16 @@ sealed interface InsightsUiEvent {
 @HiltViewModel
 class InsightsViewModel @Inject constructor(
     private val repository: InsightsRepository,
+    private val stats: StatsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(InsightsUiState())
     val state: StateFlow<InsightsUiState> = _state.asStateFlow()
+
+    /** Lightweight live ticker (empty when offline). */
+    val live: StateFlow<List<Listing>> = stats.liveListings(limit = 8)
+        .catch { emit(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         load()
@@ -70,7 +92,7 @@ class InsightsViewModel @Inject constructor(
                 _state.update { it.copy(chargerRadiusKm = event.km) }
                 loadChargers()
             }
-            InsightsUiEvent.DismissError -> _state.update { it.copy(error = null) }
+            InsightsUiEvent.            DismissError -> _state.update { it.copy(error = null, offline = false) }
         }
     }
 
@@ -94,7 +116,7 @@ class InsightsViewModel @Inject constructor(
 
     private fun load(refresh: Boolean = false) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = !refresh, isRefreshing = refresh, error = null) }
+            _state.update { it.copy(isLoading = !refresh, isRefreshing = refresh, error = null, offline = false) }
             runCatching {
                 val s = _state.value.selectors
                 val trends = repository.trends(
@@ -106,6 +128,10 @@ class InsightsViewModel @Inject constructor(
                 val index = repository.index()
                 val districts = repository.districts()
                 // Auxiliary sections fail independently — one outage must not blank the rest.
+                val velocities = runCatching { repository.velocities() }.getOrDefault(emptyList())
+                val fuelMix = runCatching { repository.fuelMix() }.getOrDefault(emptyList())
+                val summary = runCatching { stats.summary() }.getOrNull()
+                val priceDrops = runCatching { stats.priceDrops() }.getOrDefault(emptyList())
                 val ev = runCatching { repository.evStats() }.getOrNull()
                 val km = _state.value.chargerRadiusKm
                 val chargers = runCatching { repository.chargers(radiusKm = km.toDouble()) }
@@ -127,10 +153,15 @@ class InsightsViewModel @Inject constructor(
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
+                        offline = false,
+                        summary = summary,
                         trends = trends.points,
                         trendCoverageNote = trends.coverageNote,
                         index = index.points,
                         districts = districts,
+                        velocities = velocities,
+                        fuelMix = fuelMix,
+                        priceDrops = priceDrops,
                         ev = ev,
                         chargers = chargers,
                         pulse = pulse,
@@ -138,11 +169,13 @@ class InsightsViewModel @Inject constructor(
                     )
                 }
             }.onFailure { e ->
+                val mapped = ErrorMapper.map(e)
                 _state.update {
                     it.copy(
                         isLoading = false,
                         isRefreshing = false,
-                        error = e.message ?: "Couldn't load insights.",
+                        offline = mapped is AppError.Network,
+                        error = mapped.message,
                     )
                 }
             }
@@ -162,7 +195,10 @@ class InsightsViewModel @Inject constructor(
             }.onSuccess { result ->
                 _state.update { it.copy(trends = result.points, trendCoverageNote = result.coverageNote) }
             }.onFailure { e ->
-                _state.update { it.copy(error = e.message ?: "Couldn't load trends.") }
+                val mapped = ErrorMapper.map(e)
+                _state.update {
+                    it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                }
             }
         }
     }
@@ -173,7 +209,10 @@ class InsightsViewModel @Inject constructor(
                 .onSuccess { list ->
                     _state.update { it.copy(chargers = list.map { formatCharger(it.name, it.distanceKm) }) }
                 }
-                .onFailure { e -> _state.update { it.copy(error = e.message ?: "Couldn't load chargers.") } }
+                .onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update { it.copy(offline = mapped is AppError.Network, error = mapped.message) }
+                }
         }
     }
 }

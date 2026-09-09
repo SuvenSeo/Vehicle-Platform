@@ -17,19 +17,17 @@ import lk.motormila.app.domain.repository.ListingRepository
 /** Sri Lankan plates: `CAB-1234`, `WP CA-1234`, `12-3456`, `ABC 1234` … */
 private val PlatePattern = Regex("""\b([A-Z]{1,3}\s?-?\s?\d{1,4}|\d{1,3}\s?-?\s?\d{4})\b""")
 
-/** Normalise OCR spacing: `WP CA 1234` → `WP CA-1234`. Pure + unit-testable. */
-fun normalisePlate(raw: String): String =
-    raw.uppercase().trim().replace(Regex("""\s+"""), " ")
-        .replace(Regex(""" ([0-9]{4})$"""), "-$1")
+/**
+ * Normalise OCR spacing: `WP CA 1234` → `WP CA-1234`. Pure + unit-testable.
+ * Delegates to [PlateParser.normalise] (canonical LK parser).
+ */
+fun normalisePlate(raw: String): String = PlateParser.normalise(raw)
 
-/** Extract plate-like candidates from a block of OCR text. Pure + unit-testable. */
-fun extractPlateCandidates(ocrText: String): List<String> =
-    PlatePattern.findAll(ocrText.uppercase())
-        .map { normalisePlate(it.value) }
-        .filter { it.any { c -> c.isDigit() } && it.any { c -> c.isLetter() } }
-        .distinct()
-        .take(5)
-        .toList()
+/**
+ * Extract plate-like candidates from a block of OCR text. Pure + unit-testable.
+ * Delegates to [PlateParser.extract] (canonical LK parser).
+ */
+fun extractPlateCandidates(ocrText: String): List<String> = PlateParser.extract(ocrText)
 
 data class PlateScanUiState(
     val permissionGranted: Boolean = false,

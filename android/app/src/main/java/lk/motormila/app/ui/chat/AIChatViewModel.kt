@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import lk.motormila.app.core.common.AppError
+import lk.motormila.app.core.network.ErrorMapper
 import lk.motormila.app.domain.model.ChatMessage
 import lk.motormila.app.domain.repository.ChatRepository
 
@@ -16,12 +18,17 @@ data class AIChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val input: String = "",
     val isLoading: Boolean = false,
+    /** Last send failure (fallback reply is still appended — this drives retry). */
+    val lastError: String? = null,
+    val failedPrompt: String? = null,
+    val offline: Boolean = false,
     val error: String? = null,
 )
 
 sealed interface AIChatUiEvent {
     data class InputChanged(val text: String) : AIChatUiEvent
     data class SendMessage(val text: String) : AIChatUiEvent
+    data object Retry : AIChatUiEvent
     data object ClearChat : AIChatUiEvent
     data object DismissError : AIChatUiEvent
 }
@@ -38,8 +45,11 @@ class AIChatViewModel @Inject constructor(
         when (event) {
             is AIChatUiEvent.InputChanged -> _state.update { it.copy(input = event.text) }
             is AIChatUiEvent.SendMessage -> sendMessage(event.text)
-            AIChatUiEvent.ClearChat -> _state.update { it.copy(messages = emptyList(), error = null) }
-            AIChatUiEvent.DismissError -> _state.update { it.copy(error = null) }
+            AIChatUiEvent.Retry -> retry()
+            AIChatUiEvent.ClearChat ->
+                _state.update { it.copy(messages = emptyList(), error = null, lastError = null, failedPrompt = null, offline = false) }
+            AIChatUiEvent.DismissError ->
+                _state.update { it.copy(error = null, lastError = null, failedPrompt = null, offline = false) }
         }
     }
 
@@ -66,17 +76,56 @@ class AIChatViewModel @Inject constructor(
                     it.copy(
                         messages = it.messages + reply,
                         isLoading = false,
+                        lastError = null,
+                        failedPrompt = null,
+                        offline = false,
                     )
                 }
-            }.onFailure {
+            }.onFailure { e ->
+                // Graceful degradation: offline-friendly fallback reply stays in
+                // the feed; the error row underneath offers a live retry.
+                val mapped = ErrorMapper.map(e)
                 val fallbackReply = generateFallbackReply(trimmed)
                 _state.update {
                     it.copy(
                         messages = it.messages + fallbackReply,
                         isLoading = false,
+                        lastError = mapped.message,
+                        failedPrompt = trimmed,
+                        offline = mapped is AppError.Network,
                     )
                 }
             }
+        }
+    }
+
+    /** Re-ask the failed prompt without appending a duplicate user bubble. */
+    private fun retry() {
+        val prompt = _state.value.failedPrompt ?: return
+        if (_state.value.isLoading) return
+        _state.update { it.copy(isLoading = true, lastError = null, offline = false) }
+        viewModelScope.launch {
+            val history = _state.value.messages
+            runCatching { chatRepository.ask(prompt, history) }
+                .onSuccess { reply ->
+                    _state.update {
+                        it.copy(
+                            messages = it.messages + reply,
+                            isLoading = false,
+                            failedPrompt = null,
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            lastError = mapped.message,
+                            offline = mapped is AppError.Network,
+                        )
+                    }
+                }
         }
     }
 

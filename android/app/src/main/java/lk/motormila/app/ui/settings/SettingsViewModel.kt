@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import lk.motormila.app.core.common.AppError
+import lk.motormila.app.core.network.ErrorMapper
 import lk.motormila.app.data.local.datastore.SettingsStore
 import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.FeedbackRequestDto
@@ -27,6 +29,7 @@ data class SettingsUiState(
     val clearingCache: Boolean = false,
     val loggingOut: Boolean = false,
     val loggedOut: Boolean = false,
+    val offline: Boolean = false,
     val error: String? = null,
 )
 
@@ -78,6 +81,11 @@ class SettingsViewModel @Inject constructor(
         .map { it.baseUrlOverride ?: "" }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
 
+    /** Central dealer claim token (debug surface; Dealer screen owns the flow). */
+    val claimToken: StateFlow<String?> = settingsStore.observe()
+        .map { it.dealerClaimToken }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun onEvent(event: SettingsUiEvent) {
         when (event) {
             is SettingsUiEvent.ThemeChanged -> launch { settingsStore.setTheme(event.theme) }
@@ -94,14 +102,19 @@ class SettingsViewModel @Inject constructor(
             SettingsUiEvent.ClearCache -> clearCache()
             SettingsUiEvent.Logout -> logout()
             SettingsUiEvent.ConsumeLoggedOut -> _state.update { it.copy(loggedOut = false) }
-            SettingsUiEvent.DismissError -> _state.update { it.copy(error = null) }
+            SettingsUiEvent.DismissError -> _state.update { it.copy(error = null, offline = false) }
         }
     }
 
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch {
             runCatching { block() }
-                .onFailure { e -> _state.update { it.copy(error = e.message) } }
+                .onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                    }
+                }
         }
     }
 
@@ -112,11 +125,18 @@ class SettingsViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _state.update { it.copy(sendingFeedback = true, error = null) }
+            _state.update { it.copy(sendingFeedback = true, error = null, offline = false) }
             runCatching { api.feedback(FeedbackRequestDto(message = text)) }
                 .onSuccess { _state.update { it.copy(sendingFeedback = false, feedbackDraft = "", feedbackSent = true) } }
                 .onFailure { e ->
-                    _state.update { it.copy(sendingFeedback = false, error = e.message ?: "Couldn't send feedback.") }
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(
+                            sendingFeedback = false,
+                            offline = mapped is AppError.Network,
+                            error = mapped.message,
+                        )
+                    }
                 }
         }
     }
@@ -132,7 +152,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun logout() {
         viewModelScope.launch {
-            _state.update { it.copy(loggingOut = true) }
+            _state.update { it.copy(loggingOut = true, offline = false) }
             runCatching {
                 // Cancel background sync/alert workers so a signed-out device goes quiet.
                 WorkManager.getInstance(context).cancelAllWork()
@@ -140,7 +160,14 @@ class SettingsViewModel @Inject constructor(
             }.onSuccess {
                 _state.update { it.copy(loggingOut = false, loggedOut = true) }
             }.onFailure { e ->
-                _state.update { it.copy(loggingOut = false, error = e.message ?: "Couldn't log out.") }
+                val mapped = ErrorMapper.map(e)
+                _state.update {
+                    it.copy(
+                        loggingOut = false,
+                        offline = mapped is AppError.Network,
+                        error = mapped.message,
+                    )
+                }
             }
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -97,6 +98,7 @@ import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.FmvGauge
 import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.LoadingSkeletonChart
+import lk.motormila.app.ui.components.LockedValue
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.PriceChart
 import lk.motormila.app.ui.theme.MotormilaGood
@@ -331,7 +333,9 @@ fun ListingDetailScreen(
                                             title = s.displayName,
                                             imageUrl = s.heroImageUrl,
                                             price = s.formattedPrice(),
-                                            onClick = { /* NavGraph pushes new detail; compare via tray below */ },
+                                            // No onOpenDetail in this route's contract — swap the
+                                            // detail content in place via the VM (same backstack entry).
+                                            onClick = { viewModel.load(s.id) },
                                         )
                                     }
                                 }
@@ -496,7 +500,18 @@ private fun PriceDealSection(listing: Listing, isPro: Boolean, onDealShown: () -
         if (isPro) {
             DealBadge(band = listing.dealBand(), score = listing.dealScore)
         } else {
+            // Free tier: backend nulls deal_score — LOCKED badge + blurred value
+            // gatekept behind UserSession.isPro (DOMAIN_CONTRACT §5).
             DealBadge(band = DealBand.LOCKED, score = null)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Deal score",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(8.dp))
+                LockedValue(placeholder = "8.4")
+            }
         }
         // Intelligence Pills: MILEAGE LOOKS TYPICAL, 89 SELL SPEED, 71 AD HEALTH
         IntelligencePills(listing = listing)
@@ -643,7 +658,9 @@ private fun HeroActionsRow(
             ),
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
-            modifier = Modifier.weight(1.1f),
+            modifier = Modifier
+                .weight(1.1f)
+                .heightIn(min = 48.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -675,7 +692,9 @@ private fun HeroActionsRow(
             ),
             shape = RoundedCornerShape(12.dp),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier
+                .weight(1.2f)
+                .heightIn(min = 48.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -699,13 +718,15 @@ private fun HeroActionsRow(
             }
         }
 
-        // Quick Share Icon Button
+        // Quick Share Icon Button (48dp target).
         Surface(
             onClick = onShare,
             shape = RoundedCornerShape(12.dp),
             color = MotormilaSurfaceHigh,
             border = BorderStroke(1.dp, MotormilaOutline),
-            modifier = Modifier.size(42.dp),
+            modifier = Modifier
+                .size(48.dp)
+                .semantics { contentDescription = "Share listing" },
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
@@ -1004,7 +1025,7 @@ private fun LeasePaymentCalculator(
                             color = MotormilaSurfaceHigh,
                             border = BorderStroke(1.dp, MotormilaOutline),
                             onClick = { interestRate = (interestRate - 0.5).coerceAtLeast(8.0) },
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text("−", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MotormilaOnSurface)
@@ -1022,7 +1043,7 @@ private fun LeasePaymentCalculator(
                             color = MotormilaSurfaceHigh,
                             border = BorderStroke(1.dp, MotormilaOutline),
                             onClick = { interestRate = (interestRate + 0.5).coerceAtMost(30.0) },
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(48.dp),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MotormilaOnSurface)
@@ -1052,7 +1073,9 @@ private fun LeasePaymentCalculator(
                                 color = if (selected) MotormilaPrimary else MotormilaSurfaceHigh,
                                 border = BorderStroke(1.dp, if (selected) MotormilaPrimary else MotormilaOutline),
                                 onClick = { tenureYears = yr },
-                                modifier = Modifier.weight(if (yr == 5) 1.5f else 1f),
+                                modifier = Modifier
+                                    .weight(if (yr == 5) 1.5f else 1f)
+                                    .heightIn(min = 48.dp),
                             ) {
                                 Box(
                                     modifier = Modifier.padding(vertical = 8.dp),
@@ -1312,7 +1335,9 @@ private fun ImportDutyEstimator(
                         color = if (selected) MotormilaPrimary else MotormilaSurfaceHigh,
                         border = BorderStroke(1.dp, if (selected) MotormilaPrimary else MotormilaOutline),
                         onClick = { selectedFuel = fuel },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp),
                     ) {
                         Box(
                             modifier = Modifier.padding(vertical = 8.dp),
@@ -1718,10 +1743,30 @@ private fun DeepLinksRow(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = onEstimate, modifier = Modifier.weight(1f)) { Text("Estimate", fontSize = 12.sp) }
-        OutlinedButton(onClick = onTax, modifier = Modifier.weight(1f)) { Text("Tax", fontSize = 12.sp) }
-        OutlinedButton(onClick = onLease, modifier = Modifier.weight(1f)) { Text("Lease", fontSize = 12.sp) }
-        OutlinedButton(onClick = onMap, modifier = Modifier.weight(1f)) { Text("Map", fontSize = 12.sp) }
+        OutlinedButton(
+            onClick = onEstimate,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+        ) { Text("Estimate", fontSize = 12.sp) }
+        OutlinedButton(
+            onClick = onTax,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+        ) { Text("Tax", fontSize = 12.sp) }
+        OutlinedButton(
+            onClick = onLease,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+        ) { Text("Lease", fontSize = 12.sp) }
+        OutlinedButton(
+            onClick = onMap,
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp),
+        ) { Text("Map", fontSize = 12.sp) }
     }
 }
 
@@ -1751,6 +1796,12 @@ private fun openUrl(context: Context, url: String) {
 }
 
 private fun shareListing(context: Context, listing: Listing) {
+    // TODO(foundation): swap this text share for a rendered FMV bitmap card.
+    // Bitmap renderer hook point — see DOMAIN_CONTRACT §0: keep this function
+    // as the single share entry (ACTION_SEND + deep link below) and render the
+    // card bitmap here before attaching it via EXTRA_STREAM.
+    // Web parity: singular /listing/{id} (App.tsx `/listing/:id`,
+    // ListingDetail.tsx share url).
     val text = "${listing.displayName} — ${listing.formattedPrice()} " +
         "(Motormila: https://motormila.vercel.app/listing/${listing.id})"
     try {

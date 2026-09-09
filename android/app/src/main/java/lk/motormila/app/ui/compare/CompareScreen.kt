@@ -82,7 +82,7 @@ private val BestCellHighlight = Color(0x2E0A7AFF)
 private val BestCellBorder = Color(0x550A7AFF)
 
 /**
- * Compare up to 4 listings side by side.
+ * Compare up to 3 listings side by side (web parity: MAX_COMPARE_IDS = 3).
  * - Eyebrow pill: • ⚖️ COMPARE
  * - Headline: "Vehicle Comparison"
  * - Subtitle: "Side-by-side specs, pricing, and deal scores for up to 4 vehicles."
@@ -102,6 +102,9 @@ fun CompareScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
 
+    // The Search add-picker navigates back with a new ids list; reconcile the VM.
+    LaunchedEffect(ids) { viewModel.syncIds(ids) }
+
     LaunchedEffect(state.error) {
         state.error?.let {
             snacks.showSnackbar(it)
@@ -114,7 +117,7 @@ fun CompareScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (state.items.isEmpty()) "Vehicle Comparison" else "Vehicle Comparison (${state.items.size}/4)",
+                        text = if (state.items.isEmpty()) "Vehicle Comparison" else "Vehicle Comparison (${state.items.size}/${CompareUiState.MAX_IDS})",
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                     )
@@ -128,10 +131,12 @@ fun CompareScreen(
                     }
                 },
                 actions = {
-                    if (state.items.size < 4) {
+                    if (state.items.size < CompareUiState.MAX_IDS) {
                         IconButton(
                             onClick = onAddListing,
-                            modifier = Modifier.semantics { contentDescription = "Add listing to compare" },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .semantics { contentDescription = "Add listing to compare" },
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Add,
@@ -240,9 +245,9 @@ private fun CompareHeaderSection(modifier: Modifier = Modifier) {
 
         Spacer(Modifier.height(4.dp))
 
-        // Subtitle: Side-by-side specs, pricing, and deal scores for up to 4 vehicles.
+        // Subtitle: Side-by-side specs, pricing, and deal scores for up to 3 vehicles.
         Text(
-            text = "Side-by-side specs, pricing, and deal scores for up to 4 vehicles.",
+            text = "Side-by-side specs, pricing, and deal scores for up to ${CompareUiState.MAX_IDS} vehicles.",
             fontSize = 13.5.sp,
             color = MotormilaSecondaryText,
             lineHeight = 18.sp,
@@ -399,8 +404,8 @@ private fun CompareMatrixTable(
                 )
             }
 
-            // Slot to add another vehicle if < 4
-            if (items.size < 4) {
+            // Slot to add another vehicle if < max
+            if (items.size < CompareUiState.MAX_IDS) {
                 AddVehicleColumnSlot(
                     onAdd = onAddListing,
                     currentCount = items.size,
@@ -466,22 +471,27 @@ private fun VehicleMatrixColumn(
                         }
                     }
 
-                    // Remove button top right
+                    // Remove button top right (48dp target, 28dp visual).
                     IconButton(
                         onClick = onRemove,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xCC09090B)),
+                            .size(48.dp),
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Close,
-                            contentDescription = "Remove ${listing.displayName}",
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xCC09090B)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Remove ${listing.displayName}",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
                     }
                 }
 
@@ -654,7 +664,7 @@ private fun AddVehicleColumnSlot(
                     color = Color.White,
                 )
                 Text(
-                    text = "Slot ${currentCount + 1}/4",
+                    text = "Slot ${currentCount + 1}/${CompareUiState.MAX_IDS}",
                     fontSize = 10.5.sp,
                     color = MotormilaSecondaryText,
                 )

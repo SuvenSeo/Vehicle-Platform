@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import lk.motormila.app.core.common.AppError
+import lk.motormila.app.core.network.ErrorMapper
 import lk.motormila.app.domain.model.AppNotification
 import lk.motormila.app.domain.repository.AlertsRepository
 
@@ -18,6 +20,7 @@ data class NotificationsUiState(
     val isRefreshing: Boolean = false,
     val items: List<AppNotification> = emptyList(),
     val unreadCount: Int = 0,
+    val offline: Boolean = false,
     val error: String? = null,
 )
 
@@ -41,13 +44,22 @@ class NotificationsViewModel @Inject constructor(
         viewModelScope.launch {
             repository.observeNotifications()
                 .catch { e ->
-                    _state.update { it.copy(isLoading = false, isRefreshing = false, error = e.message) }
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            isRefreshing = false,
+                            offline = mapped is AppError.Network,
+                            error = mapped.message,
+                        )
+                    }
                 }
                 .collect { items ->
                     _state.update {
                         it.copy(
                             isLoading = false,
                             isRefreshing = false,
+                            offline = false,
                             items = items,
                             unreadCount = items.count { n -> !n.isRead },
                         )
@@ -61,31 +73,48 @@ class NotificationsViewModel @Inject constructor(
             NotificationsUiEvent.Refresh -> refresh()
             is NotificationsUiEvent.MarkRead -> viewModelScope.launch {
                 // Screen/NavGraph carry ids as String; domain ids are Int.
+                // Non-numeric ids are ignored (graph drops them too).
                 val id = event.id.toIntOrNull()
                 if (id == null) {
                     _state.update { it.copy(error = "Couldn't open that notification.") }
                     return@launch
                 }
                 runCatching { repository.markNotificationRead(id) }
-                    .onFailure { e -> _state.update { it.copy(error = e.message) } }
+                    .onFailure { e ->
+                        val mapped = ErrorMapper.map(e)
+                        _state.update {
+                            it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                        }
+                    }
             }
             NotificationsUiEvent.MarkAllRead -> viewModelScope.launch {
-                // No mark-all endpoint on the repository; mark unread rows one by one.
+                // No mark-all on the repository interface (backend POST
+                // /notifications/read-all exists — Agent B follow-up); mark rows one by one.
                 runCatching {
                     repository.notifications().filter { !it.isRead }
                         .forEach { repository.markNotificationRead(it.id) }
-                }.onFailure { e -> _state.update { it.copy(error = e.message) } }
+                }.onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                    }
+                }
             }
-            NotificationsUiEvent.DismissError -> _state.update { it.copy(error = null) }
+            NotificationsUiEvent.DismissError -> _state.update { it.copy(error = null, offline = false) }
         }
     }
 
     private fun refresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isRefreshing = true, error = null) }
+            _state.update { it.copy(isRefreshing = true, error = null, offline = false) }
             // observeNotifications() re-emits from network; warm it here so pull-to-refresh settles.
             runCatching { repository.notifications() }
-                .onFailure { e -> _state.update { it.copy(error = e.message) } }
+                .onFailure { e ->
+                    val mapped = ErrorMapper.map(e)
+                    _state.update {
+                        it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                    }
+                }
             _state.update { it.copy(isRefreshing = false) }
         }
     }

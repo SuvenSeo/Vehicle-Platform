@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -49,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -82,6 +84,7 @@ import kotlinx.coroutines.launch
 import lk.motormila.app.domain.model.ChatMessage
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.DealBadge
+import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
@@ -154,6 +157,21 @@ fun AIChatBottomSheet(
                     viewModel.onEvent(AIChatUiEvent.SendMessage(prompt))
                 },
             )
+
+            OfflineBanner(visible = state.offline)
+
+            // Send-failure row with live retry (the offline fallback reply stays in the feed).
+            AnimatedVisibility(
+                visible = state.lastError != null,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                ChatErrorRow(
+                    message = state.lastError ?: "",
+                    onRetry = { viewModel.onEvent(AIChatUiEvent.Retry) },
+                    onDismiss = { viewModel.onEvent(AIChatUiEvent.DismissError) },
+                )
+            }
 
             // Message Feed
             Box(
@@ -280,6 +298,48 @@ private fun AIChatHeader(
     }
 }
 
+/** Send-failure row: fallback reply stays in the feed; this offers a live retry. */
+@Composable
+private fun ChatErrorRow(
+    message: String,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MotormilaSurfaceHigh)
+            .border(width = 0.5.dp, color = MotormilaOutline)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .semantics { contentDescription = "Chat send failed: $message" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = message,
+            fontSize = 12.sp,
+            color = MotormilaSecondaryText,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(
+            onClick = onRetry,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) { Text("Retry") }
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Dismiss chat error",
+                tint = MotormilaSecondaryText,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
 /** Horizontal scrolling row of Contextual Quick Prompt Chips. */
 @Composable
 private fun QuickPromptChipsRow(
@@ -317,7 +377,9 @@ private fun QuickPromptChipsRow(
                         indication = null,
                         onClick = { onPromptSelected(prompt) },
                     )
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                    .semantics { contentDescription = "Ask: $prompt" },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -466,7 +528,9 @@ private fun WelcomeGlassCard(
                         .background(MotormilaBg)
                         .border(0.5.dp, MotormilaOutline, RoundedCornerShape(10.dp))
                         .clickable { onPromptSelected(prompt) }
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 12.dp, vertical = 9.dp)
+                        .semantics { contentDescription = "Ask: $prompt" },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -708,6 +772,7 @@ private fun EmbeddedVehicleCard(
                 indication = null,
                 onClick = onClick,
             )
+            .semantics { contentDescription = "Open ${listing.displayName}" }
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -894,7 +959,7 @@ private fun AIChatInputBar(
                 enabled = canSend,
                 interactionSource = sendInteraction,
                 modifier = Modifier
-                    .size(46.dp)
+                    .size(48.dp)
                     .scale(sendScale)
                     .clip(CircleShape)
                     .background(if (canSend) MotormilaPrimary else MotormilaSurfaceHigh)

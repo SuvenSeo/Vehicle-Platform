@@ -1411,6 +1411,39 @@ private fun Step03ValuationGuidance(
                 }
             }
 
+            // Methodology (how the median/range above is derived).
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
+                border = BorderStroke(1.dp, MotormilaOutline),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = "METHODOLOGY",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = MotormilaSecondaryText,
+                        ),
+                    )
+                    Text(
+                        text = "Median of live ${r.comparableCount} same-make/model comparables in Sri Lanka, " +
+                            "adjusted for mileage band, condition grade (${f.condition}), and district (${f.district}). " +
+                            "Range spans the interquartile ask band; confidence reflects sample depth. " +
+                            "Indicative only — inspect service history and accident record before committing.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MotormilaSecondaryText,
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                        ),
+                    )
+                }
+            }
+
             // Reset & Appraise another
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1521,7 +1554,7 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
         item {
             SectionTitle("Landed cost — CIF USD + auto FX macro")
             Text(
-                "FX ${state.fxRate?.let { "%.1f LKR/USD (auto)".format(it) } ?: "loading…"}",
+                "FX ${state.fxRate?.let { "%.1f LKR/USD (offline default)".format(it) } ?: "loading…"}",
                 style = MaterialTheme.typography.labelMedium.copy(color = MotormilaSecondaryText),
             )
             val i = state.landedInput

@@ -14,6 +14,33 @@ import lk.motormila.app.data.local.db.MotormilaDatabase
 import lk.motormila.app.data.local.db.entity.DistrictStatEntity
 import lk.motormila.app.data.local.db.entity.StatsCacheEntity
 import lk.motormila.app.data.remote.MotormilaApiService
+import lk.motormila.app.data.remote.dto.ChargingStationsDto
+import lk.motormila.app.data.remote.dto.DistrictInsightDto
+import lk.motormila.app.data.remote.dto.GeoDto
+import lk.motormila.app.data.remote.dto.HybridBandsDto
+import lk.motormila.app.data.remote.dto.ImportEligibilityRequestDto
+import lk.motormila.app.data.remote.dto.ImportEligibilityResponseDto
+import lk.motormila.app.data.remote.dto.ImportEraSliceDto
+import lk.motormila.app.data.remote.dto.ImportPriceDto
+import lk.motormila.app.data.remote.dto.InsuranceRequestDto
+import lk.motormila.app.data.remote.dto.InsuranceResponseDto
+import lk.motormila.app.data.remote.dto.LiveMarketDto
+import lk.motormila.app.data.remote.dto.MacroDto
+import lk.motormila.app.data.remote.dto.MakeInsightDto
+import lk.motormila.app.data.remote.dto.MakeModelInsightDto
+import lk.motormila.app.data.remote.dto.MarketSignalDto
+import lk.motormila.app.data.remote.dto.MarketSummaryDto
+import lk.motormila.app.data.remote.dto.OwnershipBundleRequestDto
+import lk.motormila.app.data.remote.dto.OwnershipBundleResponseDto
+import lk.motormila.app.data.remote.dto.PermitDto
+import lk.motormila.app.data.remote.dto.RevenueLicenceRequestDto
+import lk.motormila.app.data.remote.dto.RevenueLicenceResponseDto
+import lk.motormila.app.data.remote.dto.SafetyResearchDto
+import lk.motormila.app.data.remote.dto.SourceQualityDto
+import lk.motormila.app.data.remote.dto.TransferFeesRequestDto
+import lk.motormila.app.data.remote.dto.TransferFeesResponseDto
+import lk.motormila.app.data.remote.dto.VehicleNewsItemDto
+import lk.motormila.app.data.remote.dto.VehicleSafetyDto
 import lk.motormila.app.data.remote.mapper.toDomain
 import lk.motormila.app.data.remote.mapper.toTrendSeries
 import lk.motormila.app.di.IoDispatcher
@@ -91,8 +118,23 @@ class StatsRepositoryImpl @Inject constructor(
                 DistrictStatEntity(it.district, it.count, it.avgPriceLkr, it.medianPriceLkr, now)
             },
         )
-        // Enrich with top-model insight per district (best-effort, cached).
-        dtos.map { it.toDomain() }
+        // Union with district-insight top-models (best-effort, capped to the top
+        // 6 districts by count to avoid a request storm; failures keep base rows).
+        val top = dtos.sortedByDescending { it.count }.take(6)
+        val insights = top.associate { dto ->
+            dto.district to runCatching { api.districtInsight(dto.district) }.getOrNull()
+        }
+        dtos.map { dto ->
+            val base = dto.toDomain()
+            val insight = insights[dto.district]
+            val topModel = insight?.topModels?.maxByOrNull { it.listingCount }
+            if (insight == null || topModel == null) base
+            else base.copy(
+                topMake = topModel.make,
+                topModel = topModel.model,
+                topModelCount = topModel.listingCount,
+            )
+        }
     }
 
     fun observeCachedDistricts(): Flow<List<DistrictStat>> =
@@ -138,6 +180,129 @@ class StatsRepositoryImpl @Inject constructor(
     /** EV model leaderboard helper (no domain interface; UI reads impl directly). */
     suspend fun evModels(topN: Int = 5): List<TrendingModel> = withContext(io) {
         api.evInsight(topN = topN).topModels.map { it.toDomain() }
+    }
+
+    // ------------------------------------------------- extra suspend helpers
+    // DATA_CONTRACT §2: thin passthroughs over the remaining stats / market /
+    // calculator endpoints. No domain-interface change: UI agents inject
+    // StatsRepositoryImpl directly (same pattern as [evModels]).
+    // Error policy: exceptions propagate untouched so callers map them with
+    // ErrorMapper -> AppError (401/403/404/422/429/503 covered). Helpers never
+    // synthesize fake payloads or 500s; list helpers return raw DTO lists.
+
+    /** GET /stats/hybrid-bands — hybrid price bands. */
+    suspend fun hybridBands(): HybridBandsDto = withContext(io) {
+        api.hybridBands()
+    }
+
+    /** GET /stats/source-quality — per-source listing quality rows. */
+    suspend fun sourceQuality(): SourceQualityDto = withContext(io) {
+        api.sourceQuality()
+    }
+
+    /** GET /stats/import-era-split — import-era distribution slices. */
+    suspend fun importEraSplit(topN: Int = 10): List<ImportEraSliceDto> = withContext(io) {
+        api.importEraSplit(topN)
+    }
+
+    /** GET /stats/district-insight — single-district snapshot incl. top models. */
+    suspend fun districtInsight(district: String): DistrictInsightDto = withContext(io) {
+        api.districtInsight(district)
+    }
+
+    /** GET /stats/make-model-insight — lane-level insight for make+model. */
+    suspend fun makeModelInsight(make: String, model: String): MakeModelInsightDto = withContext(io) {
+        api.makeModelInsight(make, model)
+    }
+
+    /** GET /stats/make-insight — make-level insight. */
+    suspend fun makeInsight(make: String): MakeInsightDto = withContext(io) {
+        api.makeInsight(make)
+    }
+
+    /** GET /stats/model-price-history — raw model trend (see [trends] fallback). */
+    suspend fun modelPriceHistory(make: String, model: String): TrendSeries = withContext(io) {
+        api.modelPriceHistory(make, model).toDomain()
+    }
+
+    /** GET /stats/live — one-shot live-market snapshot (see [liveListings] poll). */
+    suspend fun liveMarket(): LiveMarketDto = withContext(io) {
+        api.liveMarket()
+    }
+
+    /** GET /market/summary — signal coverage summary. */
+    suspend fun marketSummary(): MarketSummaryDto = withContext(io) {
+        api.marketSummary()
+    }
+
+    /** GET /market/signals/{id} — single market signal detail. */
+    suspend fun marketSignal(id: Int): MarketSignalDto = withContext(io) {
+        api.marketSignal(id)
+    }
+
+    /** GET /market/import-prices — observed import price rows. */
+    suspend fun importPrices(source: String? = null, limit: Int = 50): List<ImportPriceDto> = withContext(io) {
+        api.importPrices(source, limit)
+    }
+
+    /** GET /listings/{id}/safety-research — recall/complaint research (DTO passthrough). */
+    suspend fun listingSafety(id: Int): SafetyResearchDto = withContext(io) {
+        api.getListingSafety(id)
+    }
+
+    /** GET /listings/{id}/geo — listing geocode (DTO passthrough; see GeoDto.lat/lng). */
+    suspend fun listingGeo(id: Int): GeoDto = withContext(io) {
+        api.getListingGeo(id)
+    }
+
+    /** GET /vehicles/safety-research — make/model/year safety research. */
+    suspend fun vehicleSafety(make: String, model: String, year: Int? = null): VehicleSafetyDto = withContext(io) {
+        api.vehicleSafety(make, model, year)
+    }
+
+    /** GET /ev/charging-stations — raw DTO (see InsightsRepository.chargers for domain). */
+    suspend fun evCharging(lat: Double, lng: Double, radiusKm: Double = 25.0): ChargingStationsDto = withContext(io) {
+        api.chargingStations(lat, lng, radiusKm)
+    }
+
+    /** GET /calculators/macro — live FX reference (used by Valuation landed-cost). */
+    suspend fun macro(): MacroDto = withContext(io) {
+        api.macro()
+    }
+
+    /** GET /calculators/permits — permit price list. */
+    suspend fun permits(): List<PermitDto> = withContext(io) {
+        api.permits()
+    }
+
+    /** GET /calculators/vehicle-news — vehicle news items. */
+    suspend fun vehicleNews(limit: Int = 8): List<VehicleNewsItemDto> = withContext(io) {
+        api.vehicleNews(limit)
+    }
+
+    /** POST /calculators/revenue-licence — licence fee estimate. */
+    suspend fun revenueLicence(body: RevenueLicenceRequestDto): RevenueLicenceResponseDto = withContext(io) {
+        api.revenueLicence(body)
+    }
+
+    /** POST /calculators/third-party-insurance — insurance premium estimate. */
+    suspend fun thirdPartyInsurance(body: InsuranceRequestDto): InsuranceResponseDto = withContext(io) {
+        api.thirdPartyInsurance(body)
+    }
+
+    /** POST /calculators/transfer-fees — ownership transfer fee estimate. */
+    suspend fun transferFees(body: TransferFeesRequestDto): TransferFeesResponseDto = withContext(io) {
+        api.transferFees(body)
+    }
+
+    /** POST /calculators/import-eligibility — import age-rule check. */
+    suspend fun importEligibility(body: ImportEligibilityRequestDto): ImportEligibilityResponseDto = withContext(io) {
+        api.importEligibility(body)
+    }
+
+    /** POST /calculators/ownership-bundle — first-year ownership cost bundle. */
+    suspend fun ownershipBundle(body: OwnershipBundleRequestDto): OwnershipBundleResponseDto = withContext(io) {
+        api.ownershipBundle(body)
     }
 
     private suspend fun cachedSummary(): StatsSummary? {
