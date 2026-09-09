@@ -104,20 +104,6 @@ data class LiveFeedItem(
     val listingId: Int? = null,
 )
 
-private val DEFAULT_TRENDING_MODELS = listOf(
-    TrendingModelItem("Bajaj", "RE", "2,040 listed", "avg Rs. 1.09M"),
-    TrendingModelItem("Suzuki", "Wagon", "1,960 listed", "avg Rs. 7.62M"),
-    TrendingModelItem("Honda", "Vezel", "1,884 listed", "avg Rs. 17.53M"),
-    TrendingModelItem("Toyota", "Raize", "1,606 listed", "avg Rs. 13.79M"),
-)
-
-private val DEFAULT_LIVE_FEED = listOf(
-    LiveFeedItem("Toyota Aqua", "Colombo", "+97 deal"),
-    LiveFeedItem("Honda Vezel", "Divulapitiya", "+93 deal"),
-    LiveFeedItem("Suzuki Wagon R", "Minuwangoda", "+91 deal"),
-    LiveFeedItem("Toyota Raize", "Colombo", "+89 deal"),
-)
-
 /**
  * Home: Cinematic Hero Header, Context Eyebrow Capsule Badges, Feature Banners,
  * Live Incoming Feed Ticker, Trending Models Rail, and Market Inventory.
@@ -217,39 +203,59 @@ fun HomeScreen(
                 )
             }
 
-            // 5. Live Incoming Feed Ticker
+            // 5. Live Incoming Feed Ticker — real listings only (no placeholder cars)
             item {
-                val feedItems = remember(state.insights.hotDeals) {
-                    if (state.insights.hotDeals.isNotEmpty()) {
-                        state.insights.hotDeals.take(4).map { deal ->
-                            LiveFeedItem(
-                                title = "${deal.make} ${deal.model}",
-                                district = deal.district ?: "Colombo",
-                                dealScoreText = "+${deal.dealScore.toInt()} deal",
-                                listingId = deal.id,
-                            )
-                        }
-                    } else {
-                        DEFAULT_LIVE_FEED
+                val feedItems = remember(state.insights.hotDeals, live, state.priceDrops) {
+                    when {
+                        state.insights.hotDeals.isNotEmpty() ->
+                            state.insights.hotDeals.take(4).map { deal ->
+                                LiveFeedItem(
+                                    title = "${deal.make} ${deal.model}",
+                                    district = deal.district ?: "Sri Lanka",
+                                    dealScoreText = "+${deal.dealScore.toInt()} deal",
+                                    listingId = deal.id,
+                                )
+                            }
+                        live.isNotEmpty() ->
+                            live.take(4).map { listing ->
+                                LiveFeedItem(
+                                    title = "${listing.make} ${listing.model}",
+                                    district = listing.district ?: "Sri Lanka",
+                                    dealScoreText = listing.formattedPrice(),
+                                    listingId = listing.id,
+                                )
+                            }
+                        state.priceDrops.isNotEmpty() ->
+                            state.priceDrops.take(4).map { drop ->
+                                LiveFeedItem(
+                                    title = drop.listing.displayName,
+                                    district = drop.listing.district ?: "Sri Lanka",
+                                    dealScoreText = LkrFormat.price(drop.newPriceLkr),
+                                    listingId = drop.listing.id,
+                                )
+                            }
+                        else -> emptyList()
                     }
                 }
-                LiveIncomingFeedTicker(
-                    items = feedItems,
-                    onItemClick = { item ->
-                        if (item.listingId != null) {
-                            onListingClick(item.listingId)
-                        } else {
-                            onSearchClick()
-                        }
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                if (feedItems.isNotEmpty()) {
+                    LiveIncomingFeedTicker(
+                        items = feedItems,
+                        onItemClick = { item ->
+                            if (item.listingId != null) {
+                                onListingClick(item.listingId)
+                            } else {
+                                onSearchClick()
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
             }
 
             // 6. Trending Models Rail
-            item {
-                val trendingList = remember(state.insights.trendingModels) {
-                    if (state.insights.trendingModels.isNotEmpty()) {
+            if (state.insights.trendingModels.isNotEmpty()) {
+                item {
+                    val trendingList = remember(state.insights.trendingModels) {
                         state.insights.trendingModels.take(4).map {
                             TrendingModelItem(
                                 make = it.make,
@@ -259,15 +265,13 @@ fun HomeScreen(
                                 imageUrl = it.thumbnailUrl,
                             )
                         }
-                    } else {
-                        DEFAULT_TRENDING_MODELS
                     }
+                    TrendingModelsRail(
+                        models = trendingList,
+                        onSeeAllTrends = { onSeeAll("trends") },
+                        onModelClick = { onMakeModelClick(it.make, it.model) },
+                    )
                 }
-                TrendingModelsRail(
-                    models = trendingList,
-                    onSeeAllTrends = { onSeeAll("trends") },
-                    onModelClick = { onMakeModelClick(it.make, it.model) },
-                )
             }
 
             // 7. Live Now Strip (if available from streaming backend)
