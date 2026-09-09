@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="calc_title">ආනයන හා පිරිවැය</string>
+    <string name="calc_back">ආපසු</string>
+    <string name="calc_eyebrow">Motormila බුද්ධි මධ්‍යස්ථානය</string>
+    <string name="calc_headline">චලනය සහ බදු ගණක යන්ත්‍ර.</string>
+    <string name="calc_description">ආනයන බදු ගැසට් තහවුරු කර සජීවී ශ්‍රී ලංකා අනුපාතවලින් මුළු අයිතිකරණ වියදම සිතියම්ගත කරන්න.</string>
+
+    <string name="calc_tab_landed">ගොඩබෑමේ පිරිවැය</string>
+    <string name="calc_tab_tco">අයිතිකරණ TCO</string>
+    <string name="calc_tab_lease">ලීස්</string>
+    <string name="calc_tab_ownership">මාර්ග ගාස්තු</string>
+    <string name="calc_tab_permits">බලපත්‍ර</string>
+    <string name="calc_tab_depreciation">අගය රැඳීම</string>
+    <string name="calc_upsell_hint">ලීස්, මාර්ග ගාස්තු, බලපත්‍ර සහ අගය රැඳීම Pro හි අගුළු හැරේ.</string>
+
+    <string name="calc_import_config">ආනයන වින්‍යාසය</string>
+    <string name="calc_import_config_hint">CIF තක්සේරුව මත සංයුක්ත බදු · CIF රුපියල්, සජීවී FX එකින් USD බවට</string>
+    <string name="calc_cif_lkr">CIF වටිනාකම (LKR)</string>
+    <string name="calc_engine_cc">එන්ජින් ධාරිතාව (cc)</string>
+    <string name="calc_year_optional">නිෂ්පාදිත වර්ෂය (විකල්ප)</string>
+    <string name="calc_fuel_category">ඉන්ධන වර්ගය</string>
+    <string name="calc_fuel_petrol">පෙට්‍රල්</string>
+    <string name="calc_fuel_diesel">ඩීසල්</string>
+    <string name="calc_fuel_hybrid">හයිබ්‍රිඩ්</string>
+    <string name="calc_fuel_electric">විදුලි</string>
+    <string name="calc_hybrid_cliff">ධාරිතාව 1500cc සීමාව ඉක්මවයි. ආබක බදු අනුපාතය සැලකිය යුතු ලෙස ඉහළ යයි.</string>
+    <string name="calc_calculate_landed">ගොඩබෑමේ පිරිවැය ගණනය කරන්න</string>
+    <string name="calc_calculating">ගණනය වෙමින්…</string>
+    <string name="calc_fx_hint">CIF රුපියල්වලින් ඇතුළත් කරයි. Motormila CBSL-සම්බන්ධ සාර්ව අනුපාතයෙන් USD බවට පරිවර්තනය කර ගැසට් බදු යොදයි.</string>
+
+    <string name="calc_breakdown">ගොඩබෑමේ පිරිවැය බිඳවැටීම</string>
+    <string name="calc_breakdown_hint">2026 ගැසට් ගණනය මත පදනම් වූ ඇඟවුම් බදු සංරචක</string>
+    <string name="calc_base_cif">මූලික CIF (LKR)</string>
+    <string name="calc_est_landed">ඇස්තමේන්තු ගොඩබෑමේ පිරිවැය</string>
+    <string name="calc_total_taxes">මුළු බදු හා තීරුබදු</string>
+    <string name="calc_empty_result">අගයන් ඇතුළත් කර ගණනය තට්ටු කරන්න. එතෙක් කිසිවක් යවන්නේ නැත.</string>
+    <string name="calc_indicative">ඇඟවුම් පමණි — ආනයනයකට පෙර වත්මන් රේගු අනුපාත තහවුරු කරන්න.</string>
+
+    <string name="calc_line_cid">රේගු ආනයන බදු (CID)</string>
+    <string name="calc_line_surcharge">CID මත අධිභාරය</string>
+    <string name="calc_line_excise">ආබක බදු</string>
+    <string name="calc_line_sscl">SSCL (PAL)</string>
+    <string name="calc_line_vat">VAT</string>
+    <string name="calc_line_luxury">සුඛෝපභෝගී බදු</string>
+
+    <string name="calc_tco_assumptions">TCO උපකල්පන</string>
+    <string name="calc_tco_assumptions_hint">මිලදී ගැනීමේ මිල සමඟ ඉන්ධන සහ උඩින් යන වියදම අයිතිකරණ කාලය තුළ</string>
+    <string name="calc_purchase_price">මිලදී ගැනීමේ මිල (LKR)</string>
+    <string name="calc_monthly_km">මාසික කිලෝමීටර</string>
+    <string name="calc_km_per_litre">ඉන්ධන කාර්යක්ෂමතාව (km/L)</string>
+    <string name="calc_years">අයිතිකරණ වර්ෂ</string>
+    <string name="calc_calculate_tco">TCO ගණනය කරන්න</string>
+    <string name="calc_tco_breakdown">අයිතිකරණ වියදම</string>
+    <string name="calc_tco_breakdown_hint">API ළඟා විය හැකි විට ඉන්ධන Octane සජීවී මිල භාවිතා කරයි</string>
+    <string name="calc_tco_purchase">මිලදී ගැනීම</string>
+    <string name="calc_tco_fuel">කාලය තුළ ඉන්ධන</string>
+    <string name="calc_tco_service">සේවා හා උඩින් යන වියදම්</string>
+    <string name="calc_tco_monthly">මාසික අයිතිකරණ වියදම</string>
+    <string name="calc_tco_total">මුළු අයිතිකරණ වියදම</string>
+
+    <string name="calc_tco_locked_title">නොමිලේ ආරම්භක ගණක යන්ත්‍රය</string>
+    <string name="calc_tco_locked_body">ගොඩබෑමේ පිරිවැය නොමිලේ විවෘතයි. TCO, ලීස්, මාර්ග ගාස්තු, බලපත්‍ර සහ අගය රැඳීම Pro හි අගුළු හැරේ.</string>
+    <string name="calc_upgrade">Pro වෙත උත්ශ්‍රේණි කරන්න</string>
+
+    <string name="calc_error_cif">රුපියල්වලින් CIF අගයක් ඇතුළත් කරන්න (උදා. 3.6m හෝ 3600000).</string>
+    <string name="calc_error_engine_cc">එන්ජින් ධාරිතාව cc වලින් ඇතුළත් කරන්න.</string>
+    <string name="calc_error_year">වර්ෂය 1980–2035 අතර විය යුතුය, නැතහොත් හිස්ව තබන්න.</string>
+    <string name="calc_error_price">රුපියල්වලින් මිලදී ගැනීමේ මිලක් ඇතුළත් කරන්න (උදා. 15m).</string>
+    <string name="calc_error_monthly_km">ශුන්‍යයට වඩා වැඩි මාසික කිලෝමීටර ඇතුළත් කරන්න.</string>
+    <string name="calc_error_kmpl">ලීටරයකට කිලෝමීටර ලෙස ඉන්ධන කාර්යක්ෂමතාව ඇතුළත් කරන්න.</string>
+    <string name="calc_error_years">අයිතිකරණ වර්ෂ 1 සහ 15 අතර විය යුතුය.</string>
+
+    <string name="calc_cd_back">ආපසු</string>
+    <string name="calc_cd_calculate_landed">ගොඩබෑමේ පිරිවැය ගණනය කරන්න</string>
+    <string name="calc_cd_calculate_tco">මුළු අයිතිකරණ වියදම ගණනය කරන්න</string>
+    <string name="calc_cd_upgrade">Pro වෙත උත්ශ්‍රේණි කරන්න</string>
+    <string name="calc_cd_tab_locked">%1$s, Pro අවශ්‍යයි</string>
+    <string name="calc_cd_fuel">ඉන්ධන වර්ගය %1$s</string>
+</resources>
