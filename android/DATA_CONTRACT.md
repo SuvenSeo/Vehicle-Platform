@@ -45,8 +45,8 @@ via `core/network/ErrorMapper`.
 ## 2. Repository interfaces implemented (domain/repository/, read-only)
 
 `AuthRepository` (session/me/login/signup/logout/restore),
-`ListingRepository` (paging/query/getDetail/similar/priceHistory/historyReport/fmv/sellerProfile/sources/makes/models/suggestions/estimate/customEstimate),
-`StatsRepository` (summary/summaryStream/insights/trends/priceIndex/districtPrices/districtVelocity/priceDrops/fuelMix/marketSignals/liveListings/evInsight),
+`ListingRepository` (paging/searchPage/getDetail/similar/priceHistory/historyReport/fmv/sellerProfile/sources/makes/models/suggestions/estimate/customEstimate),
+`StatsRepository` (summary/summaryStream/insights/trends/priceIndex/districtPrices/districtVelocity/priceDrops/fuelMix/marketSignals/liveListings/evInsight/districtInsight/makeInsight/makeModelInsight),
 `AlertsRepository` (observeAlerts/refresh/create/**update**=delete+create/**setActive**=local+refresh/**match(id)**=match-all+filter/observeNotifications/notifications/markNotificationRead/unreadCount),
 `WatchlistRepository` (observe/isWatched/toggle/add/remove/clear/refreshPrices),
 `ValuationRepository` (landedCost/tco),

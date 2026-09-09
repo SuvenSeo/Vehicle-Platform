@@ -15,7 +15,6 @@ import lk.motormila.app.data.local.db.entity.DistrictStatEntity
 import lk.motormila.app.data.local.db.entity.StatsCacheEntity
 import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.ChargingStationsDto
-import lk.motormila.app.data.remote.dto.DistrictInsightDto
 import lk.motormila.app.data.remote.dto.GeoDto
 import lk.motormila.app.data.remote.dto.HybridBandsDto
 import lk.motormila.app.data.remote.dto.ImportEligibilityRequestDto
@@ -26,8 +25,6 @@ import lk.motormila.app.data.remote.dto.InsuranceRequestDto
 import lk.motormila.app.data.remote.dto.InsuranceResponseDto
 import lk.motormila.app.data.remote.dto.LiveMarketDto
 import lk.motormila.app.data.remote.dto.MacroDto
-import lk.motormila.app.data.remote.dto.MakeInsightDto
-import lk.motormila.app.data.remote.dto.MakeModelInsightDto
 import lk.motormila.app.data.remote.dto.MarketSignalDto
 import lk.motormila.app.data.remote.dto.MarketSummaryDto
 import lk.motormila.app.data.remote.dto.OwnershipBundleRequestDto
@@ -44,8 +41,11 @@ import lk.motormila.app.data.remote.dto.VehicleSafetyDto
 import lk.motormila.app.data.remote.mapper.toDomain
 import lk.motormila.app.data.remote.mapper.toTrendSeries
 import lk.motormila.app.di.IoDispatcher
+import lk.motormila.app.domain.model.DistrictInsight
 import lk.motormila.app.domain.model.DistrictStat
 import lk.motormila.app.domain.model.DistrictVelocity
+import lk.motormila.app.domain.model.MakeInsight
+import lk.motormila.app.domain.model.MakeModelInsight
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.domain.model.Insights
 import lk.motormila.app.domain.model.Listing
@@ -205,19 +205,16 @@ class StatsRepositoryImpl @Inject constructor(
         api.importEraSplit(topN)
     }
 
-    /** GET /stats/district-insight — single-district snapshot incl. top models. */
-    suspend fun districtInsight(district: String): DistrictInsightDto = withContext(io) {
-        api.districtInsight(district)
+    override suspend fun districtInsight(district: String): DistrictInsight = withContext(io) {
+        api.districtInsight(district).toDomain()
     }
 
-    /** GET /stats/make-model-insight — lane-level insight for make+model. */
-    suspend fun makeModelInsight(make: String, model: String): MakeModelInsightDto = withContext(io) {
-        api.makeModelInsight(make, model)
+    override suspend fun makeModelInsight(make: String, model: String): MakeModelInsight = withContext(io) {
+        api.makeModelInsight(make, model).toDomain()
     }
 
-    /** GET /stats/make-insight — make-level insight. */
-    suspend fun makeInsight(make: String): MakeInsightDto = withContext(io) {
-        api.makeInsight(make)
+    override suspend fun makeInsight(make: String): MakeInsight = withContext(io) {
+        api.makeInsight(make).toDomain()
     }
 
     /** GET /stats/model-price-history — raw model trend (see [trends] fallback). */

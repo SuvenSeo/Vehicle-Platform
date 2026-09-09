@@ -182,7 +182,7 @@ fun MotormilaNavGraph(
                         HomeScreen(
                             onListingClick = { id -> navController.navigate(ListingDetail(id)) },
                             onSearchClick = { navController.navigate(Search()) },
-                            onAlertsClick = { navController.navigate(Alerts) },
+                            onAlertsClick = { navController.navigate(Alerts()) },
                             onSeeAll = { key ->
                                 when (key) {
                                     "drops", "deals" -> navController.navigate(BestPicks)
@@ -215,7 +215,7 @@ fun MotormilaNavGraph(
                     ) {
                         WatchlistScreen(
                             onOpenDetail = { id -> navController.navigate(ListingDetail(id)) },
-                            onCreateAlert = { navController.navigate(Alerts) },
+                            onCreateAlert = { id -> navController.navigate(Alerts(listingId = id)) },
                             onBrowse = { navController.navigate(Search()) },
                         )
                     }
@@ -236,7 +236,7 @@ fun MotormilaNavGraph(
                             onSettingsClick = { navController.navigate(Settings) },
                             onProClick = { navController.navigate(Pro) },
                             onDealerClick = { navController.navigate(Dealer) },
-                            onAlertsClick = { navController.navigate(Alerts) },
+                            onAlertsClick = { navController.navigate(Alerts()) },
                             onNotificationsClick = { navController.navigate(Notifications) },
                             onEvHubClick = { navController.navigate(EvHub) },
                             onPulseClick = { navController.navigate(OfficialPulse) },

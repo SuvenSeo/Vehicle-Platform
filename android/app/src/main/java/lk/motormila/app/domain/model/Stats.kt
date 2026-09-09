@@ -183,3 +183,45 @@ data class Permit(
     val type: String,
     val marketPriceLkr: Double,
 )
+
+/** Ranked make/model row used on make, district, and model hubs. */
+data class HubTopModel(
+    val make: String,
+    val model: String,
+    val listingCount: Int,
+    val avgPriceLkr: Double,
+)
+
+/** GET /stats/district-insight. */
+data class DistrictInsight(
+    val district: String,
+    val listingCount: Int,
+    val avgPriceLkr: Double?,
+    val medianPriceLkr: Double?,
+    val changePct30d: Double?,
+    val topModels: List<HubTopModel> = emptyList(),
+)
+
+/** GET /stats/make-insight. */
+data class MakeInsight(
+    val make: String,
+    val listingCount: Int,
+    val avgPriceLkr: Double?,
+    val medianPriceLkr: Double?,
+    val topModels: List<HubTopModel> = emptyList(),
+    val trend: List<TrendPoint> = emptyList(),
+)
+
+/** GET /stats/make-model-insight. */
+data class MakeModelInsight(
+    val make: String,
+    val model: String,
+    val listingCount: Int,
+    val avgPriceLkr: Double?,
+    val medianPriceLkr: Double?,
+    val minPriceLkr: Double?,
+    val maxPriceLkr: Double?,
+    val trend: List<TrendPoint> = emptyList(),
+    val coverageScope: String = "exact",
+    val coverageNote: String? = null,
+)

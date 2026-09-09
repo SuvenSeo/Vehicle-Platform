@@ -58,4 +58,25 @@ class SearchRouteArgsTest {
         assertFalse(isBottomBarRoute(ListingDetail::class.qualifiedName))
         assertFalse(isBottomBarRoute(null))
     }
+
+    @Test
+    fun resolveMotormilaDeepLink_hubsAndCalculator() {
+        val cars = resolveMotormilaDeepLink("motormila://cars/toyota/axio")
+        assertTrue(cars is MakeModelHub)
+        assertEquals("toyota", (cars as MakeModelHub).make)
+        assertEquals("axio", cars.model)
+
+        val make = resolveMotormilaDeepLink("motormila://cars/honda")
+        assertTrue(make is MakeHub)
+        assertEquals("honda", (make as MakeHub).make)
+
+        val district = resolveMotormilaDeepLink("motormila://locations/Colombo")
+        assertTrue(district is DistrictHub)
+        assertEquals("Colombo", (district as DistrictHub).district)
+
+        assertTrue(resolveMotormilaDeepLink("motormila://calculator") is Calculator)
+        assertTrue(
+            resolveMotormilaDeepLink("https://motormila.vercel.app/cars/toyota/aqua") is MakeModelHub,
+        )
+    }
 }

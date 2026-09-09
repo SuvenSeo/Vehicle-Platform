@@ -1,8 +1,11 @@
 package lk.motormila.app.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import lk.motormila.app.domain.model.DistrictInsight
 import lk.motormila.app.domain.model.DistrictStat
 import lk.motormila.app.domain.model.DistrictVelocity
+import lk.motormila.app.domain.model.MakeInsight
+import lk.motormila.app.domain.model.MakeModelInsight
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.domain.model.Insights
 import lk.motormila.app.domain.model.Listing
@@ -42,4 +45,10 @@ interface StatsRepository {
     fun liveListings(limit: Int = 10): Flow<List<Listing>>
 
     suspend fun evInsight(make: String? = null, model: String? = null): TrendSeries
+
+    suspend fun districtInsight(district: String): DistrictInsight
+
+    suspend fun makeInsight(make: String): MakeInsight
+
+    suspend fun makeModelInsight(make: String, model: String): MakeModelInsight
 }
