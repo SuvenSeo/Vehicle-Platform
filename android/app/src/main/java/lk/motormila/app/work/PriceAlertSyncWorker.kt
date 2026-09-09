@@ -2,13 +2,14 @@ package lk.motormila.app.work
 
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -18,15 +19,17 @@ import java.util.concurrent.TimeUnit
 import lk.motormila.app.core.notifications.NotificationHelper
 import lk.motormila.app.data.local.db.MotormilaDatabase
 import lk.motormila.app.data.remote.MotormilaApiService
-import lk.motormila.app.data.remote.mapper.toDomain
+import lk.motormila.app.fcm.listingTapPendingIntent
 
 /**
  * Periodic alert matcher: reads cached alerts from Room, calls
  * POST /alerts/match, and posts a local notification per alert with new
- * matches (navigates to the alert detail route via [contentIntentOf]).
+ * matches. Tap opens [motormila://listing/{id}] when a match listing is
+ * present, otherwise [motormila://watchlist]. Package is always set so the
+ * tap stays inside this app.
  *
- * Schedule with [enqueue] (12 h interval, network-required, exponential
- * backoff); [cancel] on logout.
+ * Schedule with [enqueue] (12 h interval + immediate one-shot,
+ * network-required, exponential backoff); [cancel] on logout.
  */
 @HiltWorker
 class PriceAlertSyncWorker @AssistedInject constructor(
@@ -39,20 +42,32 @@ class PriceAlertSyncWorker @AssistedInject constructor(
 
     companion object {
         const val UNIQUE_NAME = "price_alert_sync"
+        const val UNIQUE_ONCE = "price_alert_sync_once"
         private const val NOTIF_ID_BASE = 10_000
 
         fun enqueue(context: Context) {
-            val req = PeriodicWorkRequestBuilder<PriceAlertSyncWorker>(12, TimeUnit.HOURS)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+            val wm = WorkManager.getInstance(context)
+            val periodic = PeriodicWorkRequestBuilder<PriceAlertSyncWorker>(12, TimeUnit.HOURS)
+                .setConstraints(constraints)
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
                 .addTag(UNIQUE_NAME)
                 .build()
-            WorkManager.getInstance(context)
-                .enqueueUniquePeriodicWork(UNIQUE_NAME, ExistingPeriodicWorkPolicy.KEEP, req)
+            wm.enqueueUniquePeriodicWork(UNIQUE_NAME, ExistingPeriodicWorkPolicy.KEEP, periodic)
+            val once = OneTimeWorkRequestBuilder<PriceAlertSyncWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+                .addTag(UNIQUE_NAME)
+                .build()
+            wm.enqueueUniqueWork(UNIQUE_ONCE, ExistingWorkPolicy.KEEP, once)
         }
 
         fun cancel(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_NAME)
+            val wm = WorkManager.getInstance(context)
+            wm.cancelUniqueWork(UNIQUE_NAME)
+            wm.cancelUniqueWork(UNIQUE_ONCE)
         }
     }
 
@@ -60,7 +75,6 @@ class PriceAlertSyncWorker @AssistedInject constructor(
         val alerts = runCatching { db.alertDao().getAll().filter { it.active } }.getOrElse { emptyList() }
         if (alerts.isEmpty()) return Result.success()
         val match = runCatching { api.matchAlerts() }.getOrElse { return Result.retry() }
-        var posted = 0
         match.results.forEach { row ->
             if (row.matchingCount <= 0 || alerts.none { it.id == row.alertId }) return@forEach
             val first = row.listings.firstOrNull()
@@ -69,31 +83,12 @@ class PriceAlertSyncWorker @AssistedInject constructor(
                 title = "New match: ${listOfNotNull(row.make, row.model).joinToString(" ").ifBlank { "your alert" }}",
                 body = "${row.matchingCount} matching listing(s)" +
                     (first?.let { " from Rs. ${"%,.0f".format(it.priceLkr ?: 0.0)}" } ?: ""),
-                // Deep link to the first match so tap lands on ListingDetail
-                // (motormila://listing/{id} has a manifest filter + NavHost route).
                 contentIntent = contentIntentOf(row.alertId, first?.id),
             )
-            posted++
         }
         return Result.success()
     }
 
-    private fun contentIntentOf(alertId: Int, listingId: Int?): PendingIntent? = runCatching {
-        val intent = if (listingId != null) {
-            Intent(
-                Intent.ACTION_VIEW,
-                android.net.Uri.parse("motormila://listing/$listingId"),
-            ).apply { `package` = applicationContext.packageName }
-        } else {
-            Intent(Intent.ACTION_VIEW).apply {
-                `package` = applicationContext.packageName
-                putExtra("alertId", alertId)
-                putExtra("route", "alerts/$alertId")
-            }
-        }
-        PendingIntent.getActivity(
-            applicationContext, alertId, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-    }.getOrNull()
+    private fun contentIntentOf(alertId: Int, listingId: Int?): PendingIntent? =
+        listingTapPendingIntent(applicationContext, listingId, alertId)
 }

@@ -11,11 +11,47 @@ import javax.inject.Singleton
 import lk.motormila.app.core.notifications.NotificationHelper
 import lk.motormila.app.data.local.datastore.SettingsStore
 
+const val LISTING_DEEP_LINK_PREFIX = "motormila://listing/"
+const val WATCHLIST_DEEP_LINK = "motormila://watchlist"
+
 /** Push kinds routed to NotificationHelper channels. Pure + unit-testable. */
 fun fcmChannelFor(kind: String?): String = when (kind) {
     "price_drop", "alert_match" -> NotificationHelper.CHANNEL_PRICE_DROPS
     else -> NotificationHelper.CHANNEL_MARKET_NEWS
 }
+
+/** In-app listing deep link. Manifest + NavHost: motormila://listing/{id}. */
+fun listingDeepLink(listingId: Int): String = "$LISTING_DEEP_LINK_PREFIX$listingId"
+
+/** Fallback when a push/alert has no listing id. */
+fun watchlistDeepLink(): String = WATCHLIST_DEEP_LINK
+
+/**
+ * Notification tap target: listing detail when [listingId] is present,
+ * otherwise the watchlist shortcut URI.
+ */
+fun notificationTapUri(listingId: Int?): String =
+    if (listingId != null) listingDeepLink(listingId) else watchlistDeepLink()
+
+/** VIEW intent scoped to this app so the tap never leaks to a browser. */
+fun listingTapIntent(context: Context, listingId: Int?): Intent =
+    Intent(Intent.ACTION_VIEW, Uri.parse(notificationTapUri(listingId))).apply {
+        `package` = context.packageName
+        setClassName(context.packageName, "lk.motormila.app.MainActivity")
+    }
+
+fun listingTapPendingIntent(
+    context: Context,
+    listingId: Int?,
+    requestCode: Int,
+): PendingIntent? = runCatching {
+    PendingIntent.getActivity(
+        context,
+        requestCode,
+        listingTapIntent(context, listingId),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+}.getOrNull()
 
 /**
  * Push receiver (Firebase-free stub).
@@ -68,7 +104,7 @@ class MotormilaFcmService @Inject constructor(
     /** Route an incoming push to the matching local notification channel. */
     fun onMessageReceived(title: String, body: String, kind: String?, id: Int, listingId: Int? = null) {
         runCatching {
-            val tap = listingId?.let { deepLink(it, id) }
+            val tap = listingTapPendingIntent(context, listingId, id)
             when (fcmChannelFor(kind)) {
                 NotificationHelper.CHANNEL_PRICE_DROPS ->
                     notifications.notifyPriceDrop(id, title, body, contentIntent = tap)
@@ -76,14 +112,4 @@ class MotormilaFcmService @Inject constructor(
             }
         }
     }
-
-    private fun deepLink(listingId: Int, requestCode: Int): PendingIntent? = runCatching {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("motormila://listing/$listingId")).apply {
-            `package` = context.packageName
-        }
-        PendingIntent.getActivity(
-            context, requestCode, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-    }.getOrNull()
 }

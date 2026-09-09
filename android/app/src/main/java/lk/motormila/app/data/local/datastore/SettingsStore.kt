@@ -18,6 +18,7 @@ class SettingsStore @Inject constructor(
 ) {
     private object Keys {
         val THEME = stringPreferencesKey("theme") // "system" | "light" | "dark"
+        val LANGUAGE = stringPreferencesKey("language") // "en" | "si" | "ta"
         val SORT = stringPreferencesKey("sort")
         val DISTRICT = stringPreferencesKey("district")
         val BIOMETRIC = booleanPreferencesKey("biometricEnabled")
@@ -28,6 +29,7 @@ class SettingsStore @Inject constructor(
 
     data class Settings(
         val theme: String = "system",
+        val language: String = "en",
         val sort: String = "newest",
         val district: String? = null,
         val biometricEnabled: Boolean = false,
@@ -39,6 +41,7 @@ class SettingsStore @Inject constructor(
     fun observe(): Flow<Settings> = dataStore.data.map { prefs ->
         Settings(
             theme = prefs[Keys.THEME] ?: "system",
+            language = prefs[Keys.LANGUAGE]?.takeIf { it.isNotBlank() } ?: "en",
             sort = prefs[Keys.SORT] ?: "newest",
             district = prefs[Keys.DISTRICT],
             biometricEnabled = prefs[Keys.BIOMETRIC] == true,
@@ -49,6 +52,7 @@ class SettingsStore @Inject constructor(
     }
 
     suspend fun setTheme(value: String) = edit(Keys.THEME, value)
+    suspend fun setLanguage(value: String) = edit(Keys.LANGUAGE, value)
     suspend fun setSort(value: String) = edit(Keys.SORT, value)
     suspend fun setDistrict(value: String?) = editNullable(Keys.DISTRICT, value)
     suspend fun setBiometricEnabled(value: Boolean) {

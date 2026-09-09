@@ -1,7 +1,9 @@
 package lk.motormila.app.ui.valuation
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,6 +14,7 @@ import kotlinx.coroutines.launch
 import lk.motormila.app.domain.model.Valuation
 import lk.motormila.app.domain.model.ValuationInput
 import lk.motormila.app.domain.repository.ListingRepository
+import lk.motormila.app.ui.navigation.Valuation as ValuationRoute
 
 data class ValuationForm(
     val make: String = "",
@@ -87,6 +90,7 @@ sealed interface ValuationUiEvent {
 @HiltViewModel
 class ValuationViewModel @Inject constructor(
     private val listings: ListingRepository,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ValuationUiState())
@@ -98,7 +102,17 @@ class ValuationViewModel @Inject constructor(
         // the local landed-cost model below uses the same offline default so the
         // Landed tab stays usable without network. The data builder may expose a
         // dedicated fxRate() on ValuationRepository if live FX display is needed.
-        _state.update { it.copy(fxRate = DEFAULT_FX_LKR_PER_USD) }
+        val route = runCatching { savedStateHandle.toRoute<ValuationRoute>() }.getOrNull()
+        val make = route?.make?.trim().orEmpty()
+        val model = route?.model?.trim().orEmpty()
+        _state.update { current ->
+            val form = if (make.isNotBlank() || model.isNotBlank()) {
+                current.form.copy(make = make, model = model)
+            } else {
+                current.form
+            }
+            current.copy(form = form, fxRate = DEFAULT_FX_LKR_PER_USD)
+        }
     }
 
     fun onEvent(event: ValuationUiEvent) {

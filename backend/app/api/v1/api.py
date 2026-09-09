@@ -22,22 +22,38 @@ def _normalize_browse_path(value: str) -> str:
 
 # Public-browse allowlist: safe GET reads stay open for anonymous visitors
 # even when APP_ACCESS_ENFORCED=true / PRO_ACCESS_ENFORCED=true.
-# /pro/* stays fully gated via require_pro_access below; POST /alerts and
-# /dealer/* stay gated via _app_gate.
+# Matches the web dashboard (snapshot + these live reads) so native guest
+# Home / Search / hubs are not a 401 wall. /pro/*, POST /alerts, /dealer/*,
+# /listings/estimate stay gated.
 _PUBLIC_BROWSE_PATHS = frozenset(
     _normalize_browse_path(path)
     for path in {
         "/api/v1/listings",
         "/api/v1/listings/price-drops",
+        "/api/v1/listings/makes",
+        "/api/v1/listings/models",
+        "/api/v1/listings/sources",
+        "/api/v1/listings/search-suggestions",
         "/api/v1/stats/summary",
         "/api/v1/stats/district-prices",
         "/api/v1/stats/district-velocity",
         "/api/v1/stats/trends",
+        "/api/v1/stats/insights",
+        "/api/v1/stats/fuel-mix",
+        "/api/v1/stats/live",
+        "/api/v1/stats/price-index",
+        "/api/v1/stats/hybrid-bands",
+        "/api/v1/stats/source-quality",
+        "/api/v1/stats/ev-insight",
+        "/api/v1/stats/import-era-split",
+        "/api/v1/stats/make-insight",
+        "/api/v1/stats/make-model-insight",
+        "/api/v1/stats/district-insight",
+        "/api/v1/stats/model-price-history",
     }
 )
 
-# Detail + read-only sub-resources opened by B2-A (numeric id only so that
-# /listings/makes, /listings/sources, /listings/estimate stay gated).
+# Detail + read-only sub-resources (numeric id only so /listings/estimate stays gated).
 _LISTING_DETAIL_RE = re.compile(r"^/api/v1/listings/\d+$")
 _LISTING_SUB_RE = re.compile(r"^/api/v1/listings/\d+/(similar|price-history|fmv)$")
 
@@ -45,6 +61,8 @@ _LISTING_SUB_RE = re.compile(r"^/api/v1/listings/\d+/(similar|price-history|fmv)
 def _is_public_browse_path(path: str) -> bool:
     """Exact allowlist plus B2-A read-only prefixes (GET only by caller)."""
     if path in _PUBLIC_BROWSE_PATHS:
+        return True
+    if path.startswith("/api/v1/stats/live/"):
         return True
     if _LISTING_DETAIL_RE.match(path) or _LISTING_SUB_RE.match(path):
         return True

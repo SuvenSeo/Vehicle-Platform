@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Motormila</string>
+
+    <!-- Bottom nav (content descriptions = visible labels) -->
+    <string name="nav_home">මුල් පිටුව</string>
+    <string name="nav_search">සෙවුම</string>
+    <string name="nav_watchlist">නිරීක්ෂණ ලැයිස්තුව</string>
+    <string name="nav_insights">අවබෝධ</string>
+    <string name="nav_profile">පැතිකඩ</string>
+
+    <!-- Notification channels -->
+    <string name="channel_price_drops">මිල අඩුවීම්</string>
+    <string name="channel_price_drops_desc">නිරීක්ෂණය කරන වාහනයක මිල අඩු වූ විට ඇඟවීම්.</string>
+    <string name="channel_market_news">වෙළඳපොළ පුවත්</string>
+    <string name="channel_market_news_desc">වෙළඳපොළ චලන සහ නව පැමිණීම්.</string>
+    <string name="channel_sync">සමමුහුර්තය</string>
+    <string name="channel_sync_desc">පසුබිම් නිරීක්ෂණ ලැයිස්තු සමමුහුර්ත තත්ත්වය.</string>
+
+    <!-- Quick tile / shortcuts -->
+    <string name="tile_scan_plate">තහඩුව ස්කෑන් කරන්න</string>
+    <string name="shortcut_scan_plate_short">තහඩුව ස්කෑන්</string>
+    <string name="shortcut_scan_plate_long">වාහන අංක තහඩුවක් ස්කෑන් කරන්න</string>
+    <string name="shortcut_voice_search_short">හඬ සෙවුම</string>
+    <string name="shortcut_voice_search_long">ඔබේ හඬින් සොයන්න</string>
+    <string name="shortcut_deal_of_day_short">දිනයේ ගනුදෙනුව</string>
+    <string name="shortcut_deal_of_day_long">අද හොඳම ගනුදෙනුව</string>
+    <string name="shortcut_watchlist_short">නිරීක්ෂණ ලැයිස්තුව</string>
+    <string name="shortcut_watchlist_long">ඔබේ නිරීක්ෂණ ලැයිස්තුව විවෘත කරන්න</string>
+
+    <!-- Biometric -->
+    <string name="biometric_title">Motormila</string>
+    <string name="biometric_login_subtitle">පිවිසීමට ඔබ බව තහවුරු කරන්න</string>
+    <string name="biometric_settings_subtitle">මෙම සැකසුම වෙනස් කිරීමට තහවුරු කරන්න</string>
+
+    <!-- Auth -->
+    <string name="login_browse_market">වෙළඳපොළ පිරික්සන්න</string>
+
+    <!-- Generic -->
+    <string name="offline_banner">ඔබ නොබැඳියි — කෑෂ් කළ දත්ත පෙන්වයි</string>
+    <string name="retry">නැවත උත්සාහ කරන්න</string>
+    <string name="close">වසන්න</string>
+    <string name="ok">හරි</string>
+    <string name="cancel">අවලංගු කරන්න</string>
+
+    <!-- Plate scan -->
+    <string name="scan_title">තහඩුව ස්කෑන් කරන්න</string>
+    <string name="scan_preview_desc">අංක තහඩු ස්කෑන් කිරීම සඳහා කැමරා පෙරදසුන</string>
+    <string name="scan_overlay_desc">හඳුනාගත් අකුරු ප්‍රදේශ</string>
+    <string name="scan_no_camera">මෙම උපාංගයේ කැමරාවක් නැත — පහතින් තහඩුව ටයිප් කරන්න.</string>
+    <string name="scan_rationale">කැමරා අවසරයෙන් තහඩු ස්කෑන් කළ හැක. පහතින් ටයිප් කළ හැකිය.</string>
+    <string name="scan_need_permission">කැමරා අවසරය අවශ්‍යයි — නැතහොත් පහතින් තහඩුව ටයිප් කරන්න.</string>
+    <string name="scan_grant_camera">කැමරාවට අවසර දෙන්න</string>
+    <string name="scan_tap_plate">සෙවීමට තහඩුවක් තට්ටු කරන්න</string>
+    <string name="scan_plate_label">තහඩුව (උදා. CAB-1234)</string>
+    <string name="scan_lookup">තහඩුව සොයන්න</string>
+    <string name="scan_type_first">පළමුව තහඩු අංකය ටයිප් කරන්න.</string>
+    <string name="scan_matching">ගැළපෙන ලැයිස්තු %1$d</string>
+    <string name="scan_no_match">මෙම තහඩුවේ සජීවී ලැයිස්තු නැත</string>
+    <string name="scan_search">සොයන්න</string>
+    <string name="scan_open_fmv">FMV විවෘත කරන්න</string>
+    <string name="scan_result_desc">%1$s සඳහා තහඩු ප්‍රතිඵලය</string>
+
+    <!-- Share import -->
+    <string name="share_title">බෙදාගත් සබැඳිය විවෘත කරමින්</string>
+    <string name="share_unsupported_title">සබැඳියට සහාය නොදක්වයි</string>
+    <string name="share_unsupported_body">අපි ikman, Riyasewana සහ PatPat සබැඳි විවෘත කරමු. ලැබුණේ: %1$s</string>
+    <string name="share_browse">ඒ වෙනුවට පිරික්සන්න</string>
+    <string name="share_taking_you">එම වාහනය වෙත ගෙන යමින්…</string>
+    <string name="share_resolving">බෙදාගත් සබැඳිය විසඳමින්</string>
+    <string name="share_open_search">සෙවුම විවෘත කරන්න</string>
+    <string name="share_open_compare">සංසන්දනය විවෘත කරන්න</string>
+    <string name="share_open_valuation">වටිනාකම විවෘත කරන්න</string>
+
+    <!-- Deal widget -->
+    <string name="widget_deal_title">දිනයේ ගනුදෙනුව</string>
+    <string name="widget_deal_desc">Motormila දිනයේ ගනුදෙනුව විජට්ටුව</string>
+    <string name="widget_index_missing">දර්ශකය —</string>
+    <string name="widget_open_deal">ගනුදෙනුව විවෘත කරන්න</string>
+
+    <!-- Language picker (i18n_strings.xml overlays) -->
+    <string name="settings_language">භාෂාව</string>
+    <string name="language_en_cd">ඉංග්‍රීසි</string>
+    <string name="language_si_cd">සිංහල</string>
+    <string name="language_ta_cd">දෙමළ</string>
+</resources>

@@ -67,6 +67,29 @@ class ListingRepositoryImpl @Inject constructor(
 
     override fun paging(query: ListingQuery): Flow<PagingData<Listing>> = paging(query, cached = false)
 
+    override suspend fun searchPage(query: ListingQuery, page: Int, size: Int): List<Listing> = withContext(io) {
+        api.searchListings(
+            q = query.keyword,
+            source = query.source,
+            make = query.make,
+            model = query.model,
+            yearMin = query.yearMin,
+            yearMax = query.yearMax,
+            priceMin = query.priceMin,
+            priceMax = query.priceMax,
+            mileageMax = query.mileageMax,
+            fuelType = query.fuelType,
+            transmission = query.transmission,
+            condition = query.condition,
+            bodyType = query.bodyType,
+            district = query.district,
+            vehicleCategory = query.vehicleCategory,
+            sort = query.sort,
+            page = page,
+            size = size,
+        ).items.map { it.toDomain() }
+    }
+
     override suspend fun getDetail(id: Int): Listing = withContext(io) {
         val dto = api.getListing(id)
         val domain = dto.toDomain()

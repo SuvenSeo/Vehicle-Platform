@@ -1,13 +1,13 @@
 # Motormila Android — NAV_CONTRACT (foundation ↔ screen builders)
 
 `MotormilaNavGraph` (foundation-owned) calls every screen below. Section 1 lists
-the **REAL signatures the screen builders landed** (graph verified against them).
-All screens are landed — Section 2 is retired (kept as an empty placeholder so
-old links don't break).
+the **REAL signatures the graph compiles against**. Destinations live in
+`ui.navigation.Routes.kt` (`@Serializable`, type-safe). Keep ViewModels behind
+a `viewModel = hiltViewModel()` default so the graph never names VM types.
 
-Destinations live in `ui.navigation.Routes.kt` (`@Serializable`, type-safe).
-Keep ViewModels behind a `viewModel = hiltViewModel()` default so the graph
-never names VM types.
+Search and Valuation are **data classes with query args** — screens still take
+the same composable parameters; ViewModels read args via
+`SavedStateHandle.toRoute<Search>()` / `toRoute<Valuation>()`.
 
 ## 1. Landed — graph matches these exactly
 
@@ -16,10 +16,18 @@ never names VM types.
 @Composable
 fun HomeScreen(
     onListingClick: (Int) -> Unit,   // -> ListingDetail(id)
-    onSearchClick: () -> Unit,       // -> Search
+    onSearchClick: () -> Unit,       // -> Search()
     onAlertsClick: () -> Unit,       // -> Alerts
-    onSeeAll: (String) -> Unit,      // -> Search (arg ignored, feed has no query route yet)
-    onLoginClick: () -> Unit = {},   // -> Login (default keeps old call sites compiling)
+    onSeeAll: (String) -> Unit,      // keys: "drops"|"deals" -> BestPicks
+                                     //       "districts" -> Insights
+                                     //       "feed"|"trends"|else -> Search()
+    onLoginClick: () -> Unit = {},   // -> Login
+    onEvHubClick: () -> Unit = {},   // -> EvHub
+    onBestPicksClick: () -> Unit = {}, // -> BestPicks
+    onPulseClick: () -> Unit = {},   // -> OfficialPulse
+    onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> }, // -> MakeModelHub
+    onDistrictClick: (district: String) -> Unit = {}, // -> DistrictHub
+    onCalculatorClick: () -> Unit = {}, // -> Calculator
     viewModel: HomeViewModel = hiltViewModel(),
 )
 
@@ -30,13 +38,18 @@ fun SearchScreen(
     onCompare: (List<Int>) -> Unit,  // -> Compare(ids)
     viewModel: SearchViewModel = hiltViewModel(),
 )
+// SearchViewModel injects SavedStateHandle and applies ListingQuery via
+// searchArgsToQuery(Search) (SearchArgs.kt). If q or plate is present it
+// sets the query text and calls onSearch. If voice=true, SearchUiState.pendingVoice
+// is set; SearchScreen LaunchedEffect launches VoiceSearchHelper once then
+// consumeVoice(). Free-tier deal_score sort is locked to newest.
 
 // lk.motormila.app.ui.watchlist — WatchlistScreen.kt
 @Composable
 fun WatchlistScreen(
     onOpenDetail: (id: Int) -> Unit, // -> ListingDetail(id)
-    onCreateAlert: (id: Int) -> Unit,// -> Alerts (arg ignored, no alertId route yet)
-    onBrowse: () -> Unit,            // -> Search
+    onCreateAlert: (id: Int) -> Unit,// -> Alerts(listingId=id) prefill
+    onBrowse: () -> Unit,            // -> Search()
     viewModel: WatchlistViewModel = hiltViewModel(),
 )
 
@@ -44,8 +57,8 @@ fun WatchlistScreen(
 @Composable
 fun InsightsScreen(
     onOpenPulseDetail: (signalId: String) -> Unit, // -> Notifications
-    onDrillDistrict: (district: String) -> Unit,  // -> Search
-    onSearchModels: (query: String) -> Unit,      // -> Search
+    onDrillDistrict: (district: String) -> Unit,  // -> Search(district=district)
+    onSearchModels: (query: String) -> Unit,      // -> Search(q=query)
     viewModel: InsightsViewModel = hiltViewModel(),
 )
 
@@ -55,7 +68,7 @@ fun ListingDetailScreen(
     listingId: Int,
     onBack: () -> Unit,                 // popBackStack
     onCompare: (List<Int>) -> Unit,     // -> Compare(ids)
-    onEstimate: () -> Unit,             // -> Valuation
+    onEstimate: () -> Unit,             // -> Valuation()
     viewModel: DetailViewModel = hiltViewModel(),
 )
 
@@ -64,8 +77,8 @@ fun ListingDetailScreen(
 fun CompareScreen(
     ids: List<Int>,
     onOpenDetail: (id: Int) -> Unit, // -> ListingDetail(id)
-    onAddListing: () -> Unit,        // -> Search
-    onBrowse: () -> Unit,            // -> Search
+    onAddListing: () -> Unit,        // -> Search()
+    onBrowse: () -> Unit,            // -> Search()
     viewModel: CompareViewModel = hiltViewModel(),
 )
 
@@ -75,6 +88,8 @@ fun ValuationScreen(
     onOpenListing: (id: Int) -> Unit, // -> ListingDetail(id)
     viewModel: ValuationViewModel = hiltViewModel(),
 )
+// ValuationViewModel reads Valuation(make, model) from SavedStateHandle and
+// prefills ValuationForm when either field is non-blank.
 
 // lk.motormila.app.ui.alerts — AlertsScreen.kt
 @Composable
@@ -87,15 +102,14 @@ fun AlertsScreen(
 // lk.motormila.app.ui.notifications — NotificationsScreen.kt
 @Composable
 fun NotificationsScreen(
-    // Graph parses Int ids -> ListingDetail(id); non-numeric ids are ignored.
-    onOpenNotification: (id: String) -> Unit,
+    onOpenNotification: (id: String) -> Unit, // numeric -> ListingDetail(id)
     viewModel: NotificationsViewModel = hiltViewModel(),
 )
 
 // lk.motormila.app.ui.pro — ProScreen.kt
 @Composable
 fun ProScreen(
-    onOpenCheckout: (url: String) -> Unit,   // opened via LocalUriHandler
+    onOpenCheckout: (url: String) -> Unit,   // LocalUriHandler
     onOpenDistrict: (district: String) -> Unit, // -> Insights
     viewModel: ProViewModel = hiltViewModel(),
 )
@@ -103,15 +117,15 @@ fun ProScreen(
 // lk.motormila.app.ui.dealer — DealerScreen.kt
 @Composable
 fun DealerScreen(
-    onContactSupport: () -> Unit, // opens mailto:support@motormila.lk
+    onContactSupport: () -> Unit, // mailto:support@motormila.lk
     viewModel: DealerViewModel = hiltViewModel(),
 )
 
 // lk.motormila.app.ui.auth — LoginScreen.kt
 @Composable
 fun LoginScreen(
-    onLoggedIn: () -> Unit, // -> Home (pops Login)
-    // Foundation-provided: ui.biometric.rememberBiometricAuth()
+    onLoggedIn: () -> Unit,
+    onBrowse: () -> Unit = {},        // -> Home (public browse, web `/` parity)
     onBiometricAuth: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
 )
@@ -119,14 +133,13 @@ fun LoginScreen(
 // lk.motormila.app.ui.settings — SettingsScreen.kt
 @Composable
 fun SettingsScreen(
-    onLoggedOut: () -> Unit, // -> Login (pops to Home inclusive)
-    onOpenUrl: (url: String) -> Unit, // opened via LocalUriHandler
-    // Foundation-provided: ui.biometric.rememberBiometricAuth()
+    onLoggedOut: () -> Unit,
+    onOpenUrl: (url: String) -> Unit,
     onBiometricVerify: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 )
 
-// lk.motormila.app.ui.profile — ProfileScreen.kt (LANDED, was §2)
+// lk.motormila.app.ui.profile — ProfileScreen.kt
 @Composable
 fun ProfileScreen(
     onLoginClick: () -> Unit,        // -> Login
@@ -135,82 +148,193 @@ fun ProfileScreen(
     onDealerClick: () -> Unit,       // -> Dealer
     onAlertsClick: () -> Unit,       // -> Alerts
     onNotificationsClick: () -> Unit,// -> Notifications
+    onEvHubClick: () -> Unit = {},   // -> EvHub
+    onPulseClick: () -> Unit = {},   // -> OfficialPulse
+    onBestPicksClick: () -> Unit = {}, // -> BestPicks
+    onCalculatorClick: () -> Unit = {}, // -> Calculator
     viewModel: ProfileViewModel = hiltViewModel(),
 )
 
-// lk.motormila.app.ui.scan — PlateScanScreen.kt (LANDED, was §2 assumed
-// onBack/onListingClick — REAL signature is onSearchPlate/onOpenFmv)
+// lk.motormila.app.ui.scan — PlateScanScreen.kt
 @Composable
 fun PlateScanScreen(
-    onSearchPlate: (plate: String) -> Unit, // -> Search (plate arg ignored, no query route yet)
+    onSearchPlate: (plate: String) -> Unit, // -> Search(q=plate, plate=plate)
     onOpenFmv: (listingId: Int) -> Unit,    // -> ListingDetail(id)
     viewModel: PlateScanViewModel = hiltViewModel(),
 )
 // ALSO LANDED: lk.motormila.app.ui.scan.ScanTileService : TileService
 // (manifest-registered; fires motormila://scan).
 
-// lk.motormila.app.ui.share — ShareImportScreen.kt (LANDED, was §2 assumed
-// sharedUrl/onDone/onBack/viewModel — REAL signature forwards parsed targets)
+// lk.motormila.app.ui.share — ShareImportScreen.kt
 @Composable
 fun ShareImportScreen(
     sharedUrl: String?,
-    onSearch: (ListingQuery) -> Unit,       // -> Search (query ignored, no query route yet)
+    onSearch: (ListingQuery) -> Unit,       // -> Search(q, make, model, district, sort)
     onCompare: (ids: List<Int>) -> Unit,    // -> Compare(ids)
-    onValuation: (make: String, model: String) -> Unit, // -> Valuation
+    onValuation: (make: String, model: String) -> Unit, // -> Valuation(make, model)
     onBrowse: () -> Unit,                   // -> Home
 )
 // NOTE: ShareImportScreen takes NO viewModel — parsing is synchronous via
 // parseSharedUrl() + LaunchedEffect forward-once. Do not add one.
+
+// lk.motormila.app.ui.ev — EvHubScreen.kt (Agent 2)
+@Composable
+fun EvHubScreen(
+    onBack: () -> Unit,                 // popBackStack
+    onSearchModels: (String) -> Unit,   // -> Search(q=)
+    onOpenListing: (Int) -> Unit,       // -> ListingDetail(id)
+    viewModel: EvHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.pulse — OfficialPulseScreen.kt (Agent 2)
+@Composable
+fun OfficialPulseScreen(
+    onBack: () -> Unit,                 // popBackStack
+    onOpenUrl: (String) -> Unit,        // LocalUriHandler
+    viewModel: OfficialPulseViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.bestpicks — BestPicksScreen.kt (Agent 2)
+@Composable
+fun BestPicksScreen(
+    onBack: () -> Unit,                 // popBackStack
+    onListingClick: (Int) -> Unit,      // -> ListingDetail(id)
+    onSeeAllSearch: () -> Unit,         // -> Search(sort="deal_score")
+    viewModel: BestPicksViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.make — MakeHubScreen.kt
+@Composable
+fun MakeHubScreen(
+    onBack: () -> Unit,                              // popBackStack
+    onModelClick: (make: String, model: String) -> Unit, // -> MakeModelHub
+    onListingClick: (Int) -> Unit,                   // -> ListingDetail(id)
+    onSeeAllSearch: (make: String) -> Unit,          // -> Search(make=)
+    viewModel: MakeHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.make — MakeModelHubScreen.kt
+@Composable
+fun MakeModelHubScreen(
+    onBack: () -> Unit,
+    onMakeClick: (make: String) -> Unit,             // -> MakeHub
+    onListingClick: (Int) -> Unit,                   // -> ListingDetail(id)
+    onSeeAllSearch: (make: String, model: String) -> Unit, // -> Search(make, model)
+    onEstimate: (make: String, model: String) -> Unit,     // -> Valuation(make, model)
+    viewModel: MakeModelHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.district — DistrictHubScreen.kt
+@Composable
+fun DistrictHubScreen(
+    onBack: () -> Unit,
+    onListingClick: (Int) -> Unit,                   // -> ListingDetail(id)
+    onModelClick: (make: String, model: String) -> Unit, // -> MakeModelHub
+    onSeeAllSearch: (district: String) -> Unit,      // -> Search(district=)
+    onDistrictClick: (district: String) -> Unit = {}, // -> DistrictHub
+    viewModel: DistrictHubViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.calc — CalculatorScreen.kt
+@Composable
+fun CalculatorScreen(
+    onBack: () -> Unit,                 // popBackStack
+    onUpgrade: () -> Unit,              // -> Pro
+    viewModel: CalculatorViewModel = hiltViewModel(),
+)
 ```
 
 ## 2. Missing — none (retired)
 
-All 16 destinations are landed and the graph compiles against the real
-signatures in §1. The old assumed signatures for `ProfileScreen`
-(`§2` draft matched reality — now moved to §1), `PlateScanScreen`
-(`onBack`/`onListingClick` — superseded by `onSearchPlate`/`onOpenFmv`),
-and `ShareImportScreen` (`onDone`/`onBack`/`viewModel` — superseded by
-`onSearch`/`onCompare`/`onValuation`/`onBrowse`, no ViewModel) are void.
 New screens: add the destination to `Routes.kt`, wire it in
 `MotormilaNavGraph.kt`, and record the exact signature in §1.
+
+## Route shapes (`Routes.kt`)
+
+```kotlin
+@Serializable data object Splash / Login / Home / Watchlist / Insights / Profile
+@Serializable data class Search(
+    val q: String? = null,
+    val district: String? = null,
+    val make: String? = null,
+    val model: String? = null,
+    val sort: String? = null,
+    val voice: Boolean = false,
+    val plate: String? = null,
+)
+@Serializable data class ListingDetail(val id: Int)
+@Serializable data class Compare(val ids: List<Int>)
+@Serializable data class Valuation(val make: String? = null, val model: String? = null)
+@Serializable data class Alerts(val listingId: Int = 0)
+@Serializable data object Notifications / Pro / Dealer / Settings / PlateScan
+@Serializable data class ShareImport(val url: String? = null)
+@Serializable data object EvHub / OfficialPulse / BestPicks / Calculator
+@Serializable data class MakeHub(val make: String)
+@Serializable data class MakeModelHub(val make: String, val model: String)
+@Serializable data class DistrictHub(val district: String)
+```
+
+Bottom bar still `navigate(Search())` with empty defaults + `launchSingleTop` /
+`restoreState`. `hasRoute<Search>()` and `BOTTOM_BAR_ROUTES` use the class
+qualified name (works for data classes).
 
 ## Foundation-owned extras (not screens)
 
 - `ui/biometric/BiometricAuth.kt` — `rememberBiometricAuth(title, subtitle)`
-  framework-BiometricPrompt verifier (API 29+; graceful error below).
-- `ShareImportActivity` (package root) — ACTION_SEND trampoline → MainActivity
-  (`SHARED_URL_KEY` extra); `MainActivity.extractSharedUrl()` also handles a
-  direct ACTION_SEND + first-URL fallback.
-- `SplashGate` — private to `MotormilaNavGraph.kt`; checks
-  `SessionStore.snapshot()` token non-blank → Home, else Login.
-- `AuthEventBus.Unauthorized` collector — navigates to Login with
-  `popUpTo(Home) { inclusive = true }`, `launchSingleTop = true`.
+- `ShareImportActivity` — ACTION_SEND trampoline → MainActivity (`SHARED_URL_KEY`)
+- `MainActivity.extractViewUri()` — ACTION_VIEW `intent.data` (search/watchlist/…)
+- `SplashGate` — private to `MotormilaNavGraph.kt`; then [Home] (public browse)
+  **or** the resolved deep-link target (`resolveMotormilaDeepLink`). Login is
+  not a cold-start wall; guests tap Profile → Log in. `destinationAfterSplash`
+  encodes this and is unit-tested.
+- `AuthEventBus.Unauthorized` collector — Login with `launchSingleTop` so
+  browse (Home) stays on the back stack. Only emitted when a **bearer token**
+  was rejected (`shouldForceReLogin`); anonymous 401s on gated routes do not
+  kick the visitor out of the market. Settings logout still `popUpTo(Home)`.
 - Bottom bar shows ONLY on Home/Search/Watchlist/Insights/Profile
-  (`hasRoute` checks in graph; `BOTTOM_BAR_ROUTES` in Routes.kt mirrors them).
-- `MotormilaScaffold` bottom labels come from resources (`nav_home` …);
-  nav icons + FABs carry content descriptions; FABs are 48dp/56dp.
+- `MotormilaScaffold` bottom labels from resources (`nav_home` …)
 
 ## Deep links
 
-- `motormila://listing/{id}` → ListingDetail (manifest + NavHost wired).
-- `motormila://scan` → PlateScan (manifest + NavHost wired; QS tile fires it).
-- Manifest does NOT declare `motormila://search`, `motormila://watchlist`,
-  or `motormila://pro` — those shortcut intents target MainActivity
-  explicitly (`targetClass`), so no intent-filter is needed for them.
+Handled two ways (query params on type-safe routes are picky in Navigation
+Compose, so MainActivity parses VIEW URIs and navigates after splash):
 
-## Shortcuts (`res/xml/shortcuts.xml`, referenced from MainActivity manifest)
+| URI | Destination |
+|---|---|
+| `motormila://search?q={q}&district={district}&voice={voice}` (+ make/model/sort/plate) | `Search(...)` |
+| `motormila://watchlist` | `Watchlist` |
+| `motormila://home?dealOfDay=true` | `BestPicks` |
+| `motormila://picks` | `BestPicks` |
+| `motormila://ev` | `EvHub` |
+| `motormila://pulse` | `OfficialPulse` |
+| `motormila://listing/{id}` | `ListingDetail` |
+| `https://motormila.vercel.app/listing/{id}` | `ListingDetail` (optional app link) |
+| `motormila://scan` | `PlateScan` |
+| `motormila://home` (no dealOfDay) | `Home` |
+| `motormila://pro?deal=day` | `BestPicks` (legacy) |
+| `motormila://calculator` | `Calculator` |
+| `motormila://cars/{make}` / `motormila://make/{make}` | `MakeHub` |
+| `motormila://cars/{make}/{model}` | `MakeModelHub` |
+| `motormila://locations/{district}` | `DistrictHub` |
+| `https://motormila.vercel.app/cars/{make}[/{model}]` | `MakeHub` / `MakeModelHub` |
+| `https://motormila.vercel.app/locations/{district}` | `DistrictHub` |
+| `https://motormila.vercel.app/calculator` | `Calculator` |
 
-| Id | Intent data | Status |
+Splash always runs on a cold start (unless ACTION_SEND → ShareImport). After
+splash the deep-link target is used instead of always Home. `onNewIntent`
+updates Compose state (no `recreate()`).
+
+## Shortcuts (`res/xml/shortcuts.xml`) — wired end-to-end
+
+Labels use existing `strings.xml` names (`shortcut_scan_plate_short` / `_long`,
+`shortcut_voice_search_*`, `shortcut_deal_of_day_*`, `shortcut_watchlist_*`).
+
+| Id | Intent data | Destination |
 |---|---|---|
-| `scan_plate` | `motormila://scan` | Wired end-to-end (manifest filter + NavHost). |
-| `voice_search` | `motormila://search?voice=1` | Shortcut only — NavHost has no query/voice args yet; lands on MainActivity, graph starts at Splash→Home. |
-| `deal_of_day` | `motormila://pro?deal=day` | Shortcut only — same as above (no NavHost args). |
-| `watchlist` | `motormila://watchlist` | Shortcut only — same as above (no NavHost args). |
-
-NOTE: shortcuts say `motormila://pro?deal=day`, not the older doc draft
-`motormila://home?dealOfDay=true` — the xml is source of truth.
-Wiring shortcut deep links into NavHost args (voice/dealOfDay) is a
-future search-agent + foundation task; extras are ignored for v1.
+| `scan_plate` | `motormila://scan` | PlateScan |
+| `voice_search` | `motormila://search?voice=true` | Search (pendingVoice → recogniser) |
+| `deal_of_day` | `motormila://home?dealOfDay=true` | BestPicks |
+| `watchlist` | `motormila://watchlist` | Watchlist |
 
 ## Rules for screen builders
 

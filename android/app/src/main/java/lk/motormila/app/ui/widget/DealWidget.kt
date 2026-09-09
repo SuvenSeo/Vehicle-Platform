@@ -2,7 +2,6 @@ package lk.motormila.app.ui.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,8 +25,12 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -154,17 +157,32 @@ class DealWidgetWorker(
 
     companion object {
         const val UNIQUE_NAME = "deal_widget_refresh"
+        const val UNIQUE_ONCE = "deal_widget_refresh_once"
     }
 }
 
 fun enqueueDealWidgetRefresh(context: Context) {
-    val request = PeriodicWorkRequestBuilder<DealWidgetWorker>(6, TimeUnit.HOURS)
+    val constraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.CONNECTED)
+        .build()
+    val wm = WorkManager.getInstance(context)
+    val periodic = PeriodicWorkRequestBuilder<DealWidgetWorker>(6, TimeUnit.HOURS)
+        .setConstraints(constraints)
         .addTag(DealWidgetWorker.UNIQUE_NAME)
         .build()
-    WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+    wm.enqueueUniquePeriodicWork(
         DealWidgetWorker.UNIQUE_NAME,
         ExistingPeriodicWorkPolicy.KEEP,
-        request,
+        periodic,
+    )
+    val once = OneTimeWorkRequestBuilder<DealWidgetWorker>()
+        .setConstraints(constraints)
+        .addTag(DealWidgetWorker.UNIQUE_NAME)
+        .build()
+    wm.enqueueUniqueWork(
+        DealWidgetWorker.UNIQUE_ONCE,
+        ExistingWorkPolicy.KEEP,
+        once,
     )
 }
 

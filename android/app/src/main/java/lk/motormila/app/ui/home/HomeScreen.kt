@@ -24,11 +24,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CellTower
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.ElectricCar
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,7 +53,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -64,6 +70,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import lk.motormila.app.R
 import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
@@ -97,20 +104,6 @@ data class LiveFeedItem(
     val listingId: Int? = null,
 )
 
-private val DEFAULT_TRENDING_MODELS = listOf(
-    TrendingModelItem("Bajaj", "RE", "2,040 listed", "avg Rs. 1.09M"),
-    TrendingModelItem("Suzuki", "Wagon", "1,960 listed", "avg Rs. 7.62M"),
-    TrendingModelItem("Honda", "Vezel", "1,884 listed", "avg Rs. 17.53M"),
-    TrendingModelItem("Toyota", "Raize", "1,606 listed", "avg Rs. 13.79M"),
-)
-
-private val DEFAULT_LIVE_FEED = listOf(
-    LiveFeedItem("Toyota Aqua", "Colombo", "+97 deal"),
-    LiveFeedItem("Honda Vezel", "Divulapitiya", "+93 deal"),
-    LiveFeedItem("Suzuki Wagon R", "Minuwangoda", "+91 deal"),
-    LiveFeedItem("Toyota Raize", "Colombo", "+89 deal"),
-)
-
 /**
  * Home: Cinematic Hero Header, Context Eyebrow Capsule Badges, Feature Banners,
  * Live Incoming Feed Ticker, Trending Models Rail, and Market Inventory.
@@ -126,6 +119,12 @@ fun HomeScreen(
     onAlertsClick: () -> Unit,
     onSeeAll: (String) -> Unit,
     onLoginClick: () -> Unit = {},
+    onEvHubClick: () -> Unit = {},
+    onBestPicksClick: () -> Unit = {},
+    onPulseClick: () -> Unit = {},
+    onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> },
+    onDistrictClick: (district: String) -> Unit = {},
+    onCalculatorClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -194,39 +193,69 @@ fun HomeScreen(
                 )
             }
 
-            // 5. Live Incoming Feed Ticker
             item {
-                val feedItems = remember(state.insights.hotDeals) {
-                    if (state.insights.hotDeals.isNotEmpty()) {
-                        state.insights.hotDeals.take(4).map { deal ->
-                            LiveFeedItem(
-                                title = "${deal.make} ${deal.model}",
-                                district = deal.district ?: "Colombo",
-                                dealScoreText = "+${deal.dealScore.toInt()} deal",
-                                listingId = deal.id,
-                            )
-                        }
-                    } else {
-                        DEFAULT_LIVE_FEED
-                    }
-                }
-                LiveIncomingFeedTicker(
-                    items = feedItems,
-                    onItemClick = { item ->
-                        if (item.listingId != null) {
-                            onListingClick(item.listingId)
-                        } else {
-                            onSearchClick()
-                        }
-                    },
+                HubShortcutsRow(
+                    onEvHubClick = onEvHubClick,
+                    onPulseClick = onPulseClick,
+                    onBestPicksClick = onBestPicksClick,
+                    onCalculatorClick = onCalculatorClick,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
 
-            // 6. Trending Models Rail
+            // 5. Live Incoming Feed Ticker — real listings only (no placeholder cars)
             item {
-                val trendingList = remember(state.insights.trendingModels) {
-                    if (state.insights.trendingModels.isNotEmpty()) {
+                val feedItems = remember(state.insights.hotDeals, live, state.priceDrops) {
+                    when {
+                        state.insights.hotDeals.isNotEmpty() ->
+                            state.insights.hotDeals.take(4).map { deal ->
+                                LiveFeedItem(
+                                    title = "${deal.make} ${deal.model}",
+                                    district = deal.district ?: "Sri Lanka",
+                                    dealScoreText = "+${deal.dealScore.toInt()} deal",
+                                    listingId = deal.id,
+                                )
+                            }
+                        live.isNotEmpty() ->
+                            live.take(4).map { listing ->
+                                LiveFeedItem(
+                                    title = "${listing.make} ${listing.model}",
+                                    district = listing.district ?: "Sri Lanka",
+                                    dealScoreText = listing.formattedPrice(),
+                                    listingId = listing.id,
+                                )
+                            }
+                        state.priceDrops.isNotEmpty() ->
+                            state.priceDrops.take(4).map { drop ->
+                                LiveFeedItem(
+                                    title = drop.listing.displayName,
+                                    district = drop.listing.district ?: "Sri Lanka",
+                                    dealScoreText = LkrFormat.price(drop.newPriceLkr),
+                                    listingId = drop.listing.id,
+                                )
+                            }
+                        else -> emptyList()
+                    }
+                }
+                if (feedItems.isNotEmpty()) {
+                    LiveIncomingFeedTicker(
+                        items = feedItems,
+                        onItemClick = { item ->
+                            if (item.listingId != null) {
+                                onListingClick(item.listingId)
+                            } else {
+                                onSearchClick()
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+
+            // 6. Trending Models Rail
+            if (state.insights.trendingModels.isNotEmpty()) {
+                item {
+                    val trendingList = remember(state.insights.trendingModels) {
                         state.insights.trendingModels.take(4).map {
                             TrendingModelItem(
                                 make = it.make,
@@ -236,15 +265,13 @@ fun HomeScreen(
                                 imageUrl = it.thumbnailUrl,
                             )
                         }
-                    } else {
-                        DEFAULT_TRENDING_MODELS
                     }
+                    TrendingModelsRail(
+                        models = trendingList,
+                        onSeeAllTrends = { onSeeAll("trends") },
+                        onModelClick = { onMakeModelClick(it.make, it.model) },
+                    )
                 }
-                TrendingModelsRail(
-                    models = trendingList,
-                    onSeeAllTrends = { onSeeAll("trends") },
-                    onModelClick = { onSearchClick() },
-                )
             }
 
             // 7. Live Now Strip (if available from streaming backend)
@@ -348,7 +375,7 @@ fun HomeScreen(
                                 district = d.district,
                                 count = d.count,
                                 median = LkrFormat.price(d.medianPriceLkr),
-                                onClick = { onSearchClick() },
+                                onClick = { onDistrictClick(d.district) },
                             )
                         }
                     }
@@ -831,6 +858,110 @@ private fun FeatureBannersRow(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HubShortcutsRow(
+    onEvHubClick: () -> Unit,
+    onPulseClick: () -> Unit,
+    onBestPicksClick: () -> Unit,
+    onCalculatorClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.hub_home_row).uppercase(),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp,
+            color = MotormilaPrimaryBright,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_ev_title),
+                hint = stringResource(R.string.hub_home_ev_hint),
+                icon = Icons.Filled.ElectricCar,
+                contentDescription = stringResource(R.string.hub_open_ev),
+                onClick = onEvHubClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_pulse_title),
+                hint = stringResource(R.string.hub_home_pulse_hint),
+                icon = Icons.Filled.CellTower,
+                contentDescription = stringResource(R.string.hub_open_pulse),
+                onClick = onPulseClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_picks_title),
+                hint = stringResource(R.string.hub_home_picks_hint),
+                icon = Icons.Filled.Star,
+                contentDescription = stringResource(R.string.hub_open_picks),
+                onClick = onBestPicksClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_calc_title),
+                hint = stringResource(R.string.hub_home_calc_hint),
+                icon = Icons.Filled.Calculate,
+                contentDescription = stringResource(R.string.hub_open_calc),
+                onClick = onCalculatorClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HubShortcutCard(
+    title: String,
+    hint: String,
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
+        modifier = modifier
+            .heightIn(min = 96.dp)
+            .semantics { this.contentDescription = contentDescription },
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MotormilaPrimaryBright,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = MotormilaOnSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = hint,
+                fontSize = 10.sp,
+                color = MotormilaSecondaryText,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

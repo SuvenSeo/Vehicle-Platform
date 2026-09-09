@@ -3,7 +3,6 @@ package lk.motormila.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.os.Build
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
@@ -11,8 +10,18 @@ import coil3.request.crossfade
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
-import okhttp3.OkHttpClient
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import lk.motormila.app.core.locale.LocaleHelper
+import lk.motormila.app.data.local.datastore.SettingsStore
+import lk.motormila.app.ui.widget.enqueueDealWidgetRefresh
+import lk.motormila.app.work.PriceAlertSyncWorker
+import lk.motormila.app.work.SnapshotRefreshWorker
+import okhttp3.OkHttpClient
 
 @HiltAndroidApp
 class MotormilaApp : Application(), SingletonImageLoader.Factory, Configuration.Provider {
@@ -23,16 +32,26 @@ class MotormilaApp : Application(), SingletonImageLoader.Factory, Configuration.
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject
+    lateinit var settingsStore: SettingsStore
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
-        // Swarm E: periodic background work (KEEP — unique names, network-required).
-        runCatching { lk.motormila.app.work.PriceAlertSyncWorker.enqueue(this) }
-        runCatching { lk.motormila.app.work.SnapshotRefreshWorker.enqueue(this) }
-        runCatching { lk.motormila.app.ui.widget.enqueueDealWidgetRefresh(this) }
+        appScope.launch {
+            runCatching {
+                LocaleHelper.applyFromStore(settingsStore.observe().first().language)
+            }
+        }
+        // Periodic + one-shot WorkManager (KEEP unique names, network-required).
+        runCatching { SnapshotRefreshWorker.enqueue(this) }
+        runCatching { PriceAlertSyncWorker.enqueue(this) }
+        runCatching { enqueueDealWidgetRefresh(this) }
     }
 
     override fun newImageLoader(context: coil3.PlatformContext): ImageLoader =

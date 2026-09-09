@@ -41,6 +41,24 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        // Sideload / GitHub Release preview. Play upload needs a real upload
+        // key via ANDROID_KEYSTORE_* env; until then we sign with the SDK debug
+        // key so `assembleRelease` produces an installable APK.
+        create("sideload") {
+            val envStore = providers.environmentVariable("ANDROID_KEYSTORE_FILE")
+            val store = envStore.orNull?.let { file(it) }
+                ?: file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storeFile = store
+            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
+                .orElse("android").get()
+            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
+                .orElse("androiddebugkey").get()
+            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
+                .orElse("android").get()
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -64,6 +82,7 @@ android {
                 "BASE_URL",
                 "\"https://seo292-vehicle-platform-backend.hf.space/api/v1\"",
             )
+            signingConfig = signingConfigs.getByName("sideload")
             isMinifyEnabled = false // v1: avoid R8 risk; proguard file kept for v2
             isShrinkResources = false
             proguardFiles(
@@ -113,6 +132,7 @@ dependencies {
     implementation(libs.material.icons.extended)
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
+    implementation(libs.appcompat)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
 

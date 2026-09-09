@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -73,6 +74,7 @@ fun AlertsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
     val reducedMotion = rememberReducedMotion()
     val haptics = rememberHaptics()
 
@@ -88,6 +90,13 @@ fun AlertsScreen(
             if (!reducedMotion) haptics.confirm()
             kotlinx.coroutines.delay(1600)
             viewModel.onEvent(AlertsUiEvent.ConsumeCreated)
+        }
+    }
+    LaunchedEffect(state.justPrefill, state.isLoading) {
+        if (state.justPrefill && !state.isLoading) {
+            listState.animateScrollToItem(0)
+            snacks.showSnackbar("Form filled from listing")
+            viewModel.onEvent(AlertsUiEvent.ConsumePrefill)
         }
     }
     // Consume the confetti burst after it plays.
@@ -117,11 +126,12 @@ fun AlertsScreen(
         ) {
             when {
                 state.isLoading -> SkeletonList()
-                state.error != null && state.alerts.isEmpty() ->
+                state.error != null && state.alerts.isEmpty() && !state.prefillFromListing ->
                     ErrorRetry(state.error ?: "Error", onRetry = { viewModel.onEvent(AlertsUiEvent.Refresh) })
 
                 else -> LazyColumn(
-                    Modifier.fillMaxSize().padding(16.dp),
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item { OfflineBanner(visible = state.offline) }

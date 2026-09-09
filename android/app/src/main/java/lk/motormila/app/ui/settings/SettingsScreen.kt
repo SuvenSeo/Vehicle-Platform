@@ -34,12 +34,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
+import lk.motormila.app.R
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
@@ -116,16 +118,21 @@ fun SettingsScreen(
                 }
             }
             item {
-                // Language stub: persists code + applies via AppCompatDelegate in MainActivity;
-                // full si/ta strings arrive with the localisation pass.
-                SectionTitle("Language (stub)")
+                SectionTitle(stringResource(R.string.settings_language))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("en" to "English", "si" to "සිංහල", "ta" to "தமிழ்").forEach { (code, label) ->
+                    for (option in LanguageChips) {
+                        val label = stringResource(option.labelRes)
+                        val description = stringResource(option.contentDescriptionRes)
                         FilterChip(
-                            selected = language == code,
-                            onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.LanguageChanged(code)) },
+                            selected = language == option.code,
+                            onClick = {
+                                tapTick()
+                                viewModel.onEvent(SettingsUiEvent.LanguageChanged(option.code))
+                            },
                             label = { Text(label) },
-                            modifier = Modifier.heightIn(min = 48.dp),
+                            modifier = Modifier
+                                .heightIn(min = 48.dp)
+                                .semantics { contentDescription = description },
                         )
                     }
                 }
@@ -253,3 +260,15 @@ fun SettingsScreen(
         }
     }
 }
+
+private data class LanguageChip(
+    val code: String,
+    val labelRes: Int,
+    val contentDescriptionRes: Int,
+)
+
+private val LanguageChips = listOf(
+    LanguageChip("en", R.string.language_en, R.string.language_en_cd),
+    LanguageChip("si", R.string.language_si, R.string.language_si_cd),
+    LanguageChip("ta", R.string.language_ta, R.string.language_ta_cd),
+)

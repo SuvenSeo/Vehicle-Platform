@@ -11,9 +11,13 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature
         android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
         android:required="false" />
 
     <application
@@ -49,10 +53,7 @@
                     android:scheme="motormila"
                     android:host="listing" />
             </intent-filter>
-            <!-- Deep link: motormila://scan (Swarm E additive: ScanTileService sends
-                 implicit ACTION_VIEW motormila://scan; without this filter the tile
-                 intent throws ActivityNotFound. Agent A: kept additive, no existing
-                 filters touched.) -->
+            <!-- Deep link: motormila://scan (QS tile + shortcut). -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -60,6 +61,59 @@
                 <data
                     android:scheme="motormila"
                     android:host="scan" />
+            </intent-filter>
+            <!-- Shortcuts + in-app deep links: search, watchlist, home/picks, ev, pulse. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="motormila" android:host="search" />
+                <data android:scheme="motormila" android:host="watchlist" />
+                <data android:scheme="motormila" android:host="home" />
+                <data android:scheme="motormila" android:host="picks" />
+                <data android:scheme="motormila" android:host="ev" />
+                <data android:scheme="motormila" android:host="pulse" />
+                <data android:scheme="motormila" android:host="calculator" />
+                <data android:scheme="motormila" android:host="cars" />
+                <data android:scheme="motormila" android:host="make" />
+                <data android:scheme="motormila" android:host="locations" />
+            </intent-filter>
+            <!-- Optional https app links: listing, cars, locations, calculator. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/listing" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/cars" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/locations" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="motormila.vercel.app"
+                    android:pathPrefix="/calculator" />
             </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"
@@ -105,6 +159,17 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/deal_widget_info" />
         </receiver>
+
+        <!-- Share-card PNGs written to cacheDir/share (FmvShare). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <!-- Hilt-injected WorkManager (MotormilaApp implements Configuration.Provider):
              disable the default initializer so our HiltWorkerFactory is used. -->

@@ -33,6 +33,9 @@
     <string name="biometric_login_subtitle">Confirm it\'s you to sign in</string>
     <string name="biometric_settings_subtitle">Verify to change this setting</string>
 
+    <!-- Auth -->
+    <string name="login_browse_market">Browse the market</string>
+
     <!-- Generic -->
     <string name="offline_banner">You\'re offline — showing cached data</string>
     <string name="retry">Retry</string>

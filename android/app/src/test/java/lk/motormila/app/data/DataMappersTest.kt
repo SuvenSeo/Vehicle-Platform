@@ -1,9 +1,13 @@
 package lk.motormila.app.data
 
+import lk.motormila.app.data.remote.dto.DistrictInsightDto
 import lk.motormila.app.data.remote.dto.DistrictPriceDto
+import lk.motormila.app.data.remote.dto.DistrictTopModelDto
 import lk.motormila.app.data.remote.dto.FmvDto
 import lk.motormila.app.data.remote.dto.FuelMixBucketDto
 import lk.motormila.app.data.remote.dto.ListingDto
+import lk.motormila.app.data.remote.dto.MakeInsightDto
+import lk.motormila.app.data.remote.dto.MakeModelInsightDto
 import lk.motormila.app.data.remote.dto.NotificationDto
 import lk.motormila.app.data.remote.dto.StatsSummaryDto
 import lk.motormila.app.data.remote.dto.TrendPointDto
@@ -99,5 +103,50 @@ class DataMappersTest {
         ).toDomain()
         assertEquals("alert", n.kind)
         assertNull(n.listingId)
+    }
+
+    @Test
+    fun makeInsight_mapsTopModelsAndTrend() {
+        val domain = MakeInsightDto(
+            make = "Toyota",
+            listingCount = 12,
+            avgPriceLkr = 4_000_000.0,
+            medianPriceLkr = 3_800_000.0,
+            topModels = listOf(
+                DistrictTopModelDto(make = "Toyota", model = "Aqua", listingCount = 5, avgPriceLkr = 6_000_000.0),
+            ),
+            trendPoints = listOf(TrendPointDto(year = 2026, month = 1, listingCount = 4)),
+        ).toDomain()
+        assertEquals("Toyota", domain.make)
+        assertEquals(12, domain.listingCount)
+        assertEquals("Aqua", domain.topModels.single().model)
+        assertEquals(2026, domain.trend.single().year)
+    }
+
+    @Test
+    fun makeModelInsight_nullMakeFallsBackEmpty() {
+        val domain = MakeModelInsightDto(
+            make = null,
+            model = "Axio",
+            listingCount = 3,
+            coverageScope = "district_fallback",
+        ).toDomain()
+        assertEquals("", domain.make)
+        assertEquals("Axio", domain.model)
+        assertEquals("district_fallback", domain.coverageScope)
+    }
+
+    @Test
+    fun districtInsight_mapsTopModels() {
+        val domain = DistrictInsightDto(
+            district = "Colombo",
+            listingCount = 80,
+            topModels = listOf(
+                DistrictTopModelDto(make = "Honda", model = "Vezel", listingCount = 9, avgPriceLkr = 12_000_000.0),
+            ),
+        ).toDomain()
+        assertEquals("Colombo", domain.district)
+        assertEquals("Vezel", domain.topModels.single().model)
+        assertEquals(9, domain.topModels.single().listingCount)
     }
 }

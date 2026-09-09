@@ -1,27 +1,40 @@
 package lk.motormila.app
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
 import lk.motormila.app.ui.navigation.MotormilaNavGraph
 import lk.motormila.app.ui.theme.MotormilaTheme
 
 /**
- * Launcher activity. Forwards share intents into the nav graph via the
- * [SHARED_URL_KEY] saved-state key consumed by the ShareImport route.
+ * Launcher activity. Forwards share intents and VIEW deep links into the nav graph.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    private var sharedUrl by mutableStateOf<String?>(null)
+    private var startDeepLink by mutableStateOf<Uri?>(null)
+    private var navigationEventId by mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyIncomingIntent(intent)
         enableEdgeToEdge()
         setContent {
             MotormilaTheme {
-                MotormilaNavGraph(sharedUrl = extractSharedUrl(intent))
+                MotormilaNavGraph(
+                    sharedUrl = sharedUrl,
+                    startDeepLink = startDeepLink,
+                    navigationEventId = navigationEventId,
+                )
             }
         }
     }
@@ -29,9 +42,13 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Recompose path: NavGraph reads sharedUrl from the current intent.
-        // Simplest compile-safe approach: recreate content with new extras.
-        recreate()
+        applyIncomingIntent(intent)
+    }
+
+    private fun applyIncomingIntent(intent: Intent?) {
+        sharedUrl = extractSharedUrl(intent)
+        startDeepLink = extractViewUri(intent)
+        navigationEventId += 1
     }
 
     private fun extractSharedUrl(intent: Intent?): String? {
@@ -39,11 +56,6 @@ class MainActivity : ComponentActivity() {
         // Trampoline path (ShareImportActivity) always sets SHARED_URL_KEY —
         // check it FIRST: the forwarded intent keeps ACTION_SEND but drops type.
         intent.getStringExtra(SHARED_URL_KEY)?.takeIf { it.isNotBlank() }?.let { return it }
-        // Graceful v1 handling for shortcut VIEW deep links (NAV_CONTRACT):
-        // motormila://search?voice=true, motormila://home?dealOfDay=true,
-        // motormila://watchlist carry no in-NavHost args yet — fall through to
-        // normal launch (Home) without crashing. motormila://scan + listing/{id}
-        // are handled by NavHost deepLinks.
         if (intent.action == Intent.ACTION_VIEW) return null
         if (intent.action != Intent.ACTION_SEND) {
             return intent.getStringExtra(SHARED_URL_KEY)
@@ -59,5 +71,10 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val SHARED_URL_KEY = "shared_url"
         private val URL_REGEX = Regex("https?://[^\\s]+")
+
+        fun extractViewUri(intent: Intent?): Uri? {
+            if (intent?.action != Intent.ACTION_VIEW) return null
+            return intent.data
+        }
     }
 }

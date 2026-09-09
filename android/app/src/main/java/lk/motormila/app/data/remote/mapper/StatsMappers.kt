@@ -1,7 +1,11 @@
 package lk.motormila.app.data.remote.mapper
 
+import lk.motormila.app.data.remote.dto.DistrictInsightDto
 import lk.motormila.app.data.remote.dto.DistrictPriceDto
+import lk.motormila.app.data.remote.dto.DistrictTopModelDto
 import lk.motormila.app.data.remote.dto.DistrictVelocityPointDto
+import lk.motormila.app.data.remote.dto.MakeInsightDto
+import lk.motormila.app.data.remote.dto.MakeModelInsightDto
 import lk.motormila.app.data.remote.dto.EvInsightDto
 import lk.motormila.app.data.remote.dto.FuelMixBucketDto
 import lk.motormila.app.data.remote.dto.HotDealDto
@@ -14,8 +18,12 @@ import lk.motormila.app.data.remote.dto.StatsSummaryDto
 import lk.motormila.app.data.remote.dto.TrendPointDto
 import lk.motormila.app.data.remote.dto.TrendSeriesDto
 import lk.motormila.app.data.remote.dto.TrendingModelDto
+import lk.motormila.app.domain.model.DistrictInsight
 import lk.motormila.app.domain.model.DistrictStat
 import lk.motormila.app.domain.model.DistrictVelocity
+import lk.motormila.app.domain.model.HubTopModel
+import lk.motormila.app.domain.model.MakeInsight
+import lk.motormila.app.domain.model.MakeModelInsight
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.domain.model.HotDeal
 import lk.motormila.app.domain.model.Insights
@@ -128,10 +136,57 @@ fun FuelMixBucketDto.toDomain(total: Int = 0): FuelMixBucket {
 }
 
 fun MarketSignalDto.toDomain(): MarketSignal = MarketSignal(
-    id = id, source = source, signalType = signalType, metric = metric,
-    valueNumeric = valueNumeric, unit = unit, observedAt = observedAt,
+    id = id,
+    source = source,
+    signalType = signalType,
+    metric = metric,
+    valueNumeric = valueNumeric,
+    unit = unit,
+    observedAt = observedAt,
+    sourceUrl = sourceUrl.takeIf { it.isNotBlank() },
+    category = category,
+    periodYear = periodYear,
+    periodMonth = periodMonth,
 )
 
 /** EV insight endpoint returns top models + trend; surfaced as TrendSeries. */
 fun EvInsightDto.toTrendSeries(): TrendSeries =
     TrendSeries(points = trendPoints.map { it.toDomain() }, coverageScope = "exact", coverageNote = null)
+
+fun DistrictTopModelDto.toHubTopModel(): HubTopModel = HubTopModel(
+    make = make,
+    model = model,
+    listingCount = listingCount,
+    avgPriceLkr = avgPriceLkr,
+)
+
+fun DistrictInsightDto.toDomain(): DistrictInsight = DistrictInsight(
+    district = district,
+    listingCount = listingCount,
+    avgPriceLkr = avgPriceLkr,
+    medianPriceLkr = medianPriceLkr,
+    changePct30d = changePct30d,
+    topModels = topModels.map { it.toHubTopModel() },
+)
+
+fun MakeInsightDto.toDomain(): MakeInsight = MakeInsight(
+    make = make,
+    listingCount = listingCount,
+    avgPriceLkr = avgPriceLkr,
+    medianPriceLkr = medianPriceLkr,
+    topModels = topModels.map { it.toHubTopModel() },
+    trend = trendPoints.map { it.toDomain() },
+)
+
+fun MakeModelInsightDto.toDomain(): MakeModelInsight = MakeModelInsight(
+    make = make.orEmpty(),
+    model = model.orEmpty(),
+    listingCount = listingCount,
+    avgPriceLkr = avgPriceLkr,
+    medianPriceLkr = medianPriceLkr,
+    minPriceLkr = minPriceLkr,
+    maxPriceLkr = maxPriceLkr,
+    trend = trendPoints.map { it.toDomain() },
+    coverageScope = coverageScope,
+    coverageNote = coverageNote,
+)

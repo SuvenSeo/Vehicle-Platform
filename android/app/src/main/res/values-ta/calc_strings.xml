@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="calc_title">இறக்குமதி &amp; செலவு</string>
+    <string name="calc_back">பின்செல்</string>
+    <string name="calc_eyebrow">Motormila நுண்ணறிவு மையம்</string>
+    <string name="calc_headline">நடமாட்டம் மற்றும் வரி கணிப்பான்கள்.</string>
+    <string name="calc_description">இறக்குமதி வரி அரசிதழ்களை உறுதிசெய்து, நேரடி இலங்கை விகிதங்களில் மொத்த உரிமை செலவை வரைபடமாக்குங்கள்.</string>
+
+    <string name="calc_tab_landed">தரையிறக்க செலவு</string>
+    <string name="calc_tab_tco">உரிமை TCO</string>
+    <string name="calc_tab_lease">குத்தகை</string>
+    <string name="calc_tab_ownership">சாலைக் கட்டணம்</string>
+    <string name="calc_tab_permits">அனுமதிகள்</string>
+    <string name="calc_tab_depreciation">மதிப்புத் தக்கவைப்பு</string>
+    <string name="calc_upsell_hint">குத்தகை, சாலைக் கட்டணம், அனுமதிகள் மற்றும் மதிப்புத் தக்கவைப்பு Pro-இல் திறக்கும்.</string>
+
+    <string name="calc_import_config">இறக்குமதி அமைப்பு</string>
+    <string name="calc_import_config_hint">CIF மதிப்பீட்டில் கூட்டு வரிகள் · CIF ரூபாய், நேரடி FX மூலம் USD</string>
+    <string name="calc_cif_lkr">CIF மதிப்பு (LKR)</string>
+    <string name="calc_engine_cc">என்ஜின் கொள்ளளவு (cc)</string>
+    <string name="calc_year_optional">தயாரிப்பு ஆண்டு (விரும்பினால்)</string>
+    <string name="calc_fuel_category">எரிபொருள் வகை</string>
+    <string name="calc_fuel_petrol">பெட்ரோல்</string>
+    <string name="calc_fuel_diesel">டீசல்</string>
+    <string name="calc_fuel_hybrid">கலப்பினம்</string>
+    <string name="calc_fuel_electric">மின்சாரம்</string>
+    <string name="calc_hybrid_cliff">கொள்ளளவு 1500cc வரம்புக்கு மேல். ஆயத்தீர்வை விகிதம் கணிசமாக உயரும்.</string>
+    <string name="calc_calculate_landed">தரையிறக்க செலவைக் கணக்கிடு</string>
+    <string name="calc_calculating">கணக்கிடுகிறது…</string>
+    <string name="calc_fx_hint">CIF ரூபாயில் உள்ளிடப்படுகிறது. Motormila CBSL-இணைந்த மேக்ரோ விகிதத்தில் USD-க்கு மாற்றி அரசிதழ் வரிகளைப் பயன்படுத்துகிறது.</string>
+
+    <string name="calc_breakdown">தரையிறக்க செலவு பிரிவு</string>
+    <string name="calc_breakdown_hint">2026 அரசிதழ் கணக்கீடுகளின் அடிப்படையிலான அறிகுறி வரி கூறுகள்</string>
+    <string name="calc_base_cif">அடிப்படை CIF (LKR)</string>
+    <string name="calc_est_landed">மதிப்பிடப்பட்ட தரையிறக்க செலவு</string>
+    <string name="calc_total_taxes">மொத்த வரிகள் &amp; தீர்வைகள்</string>
+    <string name="calc_empty_result">எண்களை உள்ளிட்டு கணக்கிடு என தட்டவும். அதுவரை எதுவும் அனுப்பப்படாது.</string>
+    <string name="calc_indicative">அறிகுறி மட்டும் — இறக்குமதிக்கு முன் தற்போதைய சுங்க விகிதங்களை உறுதிசெய்யுங்கள்.</string>
+
+    <string name="calc_line_cid">சுங்க இறக்குமதி வரி (CID)</string>
+    <string name="calc_line_surcharge">CID மீதான கூடுதல் வரி</string>
+    <string name="calc_line_excise">ஆயத்தீர்வை</string>
+    <string name="calc_line_sscl">SSCL (PAL)</string>
+    <string name="calc_line_vat">VAT</string>
+    <string name="calc_line_luxury">ஆடம்பர வரி</string>
+
+    <string name="calc_tco_assumptions">TCO அனுமானங்கள்</string>
+    <string name="calc_tco_assumptions_hint">வாங்கும் விலைடன் எரிபொருள் மற்றும் மேலதிக செலவு உரிமை காலத்தில்</string>
+    <string name="calc_purchase_price">வாங்கும் விலை (LKR)</string>
+    <string name="calc_monthly_km">மாத கிலோமீட்டர்</string>
+    <string name="calc_km_per_litre">எரிபொருள் திறன் (km/L)</string>
+    <string name="calc_years">உரிமை ஆண்டுகள்</string>
+    <string name="calc_calculate_tco">TCO கணக்கிடு</string>
+    <string name="calc_tco_breakdown">உரிமை செலவு</string>
+    <string name="calc_tco_breakdown_hint">API அடையும்போது எரிபொருள் Octane நேரடி விலைகளைப் பயன்படுத்துகிறது</string>
+    <string name="calc_tco_purchase">வாங்குதல்</string>
+    <string name="calc_tco_fuel">கால எரிபொருள்</string>
+    <string name="calc_tco_service">சேவை &amp; மேலதிக செலவு</string>
+    <string name="calc_tco_monthly">மாத உரிமை செலவு</string>
+    <string name="calc_tco_total">மொத்த உரிமை செலவு</string>
+
+    <string name="calc_tco_locked_title">இலவச தொடக்க கணிப்பான்</string>
+    <string name="calc_tco_locked_body">தரையிறக்க செலவு இலவசத்தில் திறந்தது. TCO, குத்தகை, சாலைக் கட்டணம், அனுமதிகள் மற்றும் மதிப்புத் தக்கவைப்பு Pro-இல் திறக்கும்.</string>
+    <string name="calc_upgrade">Pro-க்கு மேம்படுத்து</string>
+
+    <string name="calc_error_cif">ரூபாயில் CIF மதிப்பை உள்ளிடுங்கள் (எ.கா. 3.6m அல்லது 3600000).</string>
+    <string name="calc_error_engine_cc">என்ஜின் கொள்ளளவை cc-இல் உள்ளிடுங்கள்.</string>
+    <string name="calc_error_year">ஆண்டு 1980–2035 இடையே இருக்க வேண்டும், அல்லது காலியாக விடுங்கள்.</string>
+    <string name="calc_error_price">ரூபாயில் வாங்கும் விலையை உள்ளிடுங்கள் (எ.கா. 15m).</string>
+    <string name="calc_error_monthly_km">பூஜ்ஜியத்தை விட அதிக மாத கிலோமீட்டரை உள்ளிடுங்கள்.</string>
+    <string name="calc_error_kmpl">லிட்டருக்கு கிலோமீட்டராக எரிபொருள் திறனை உள்ளிடுங்கள்.</string>
+    <string name="calc_error_years">உரிமை ஆண்டுகள் 1 மற்றும் 15 இடையே இருக்க வேண்டும்.</string>
+
+    <string name="calc_cd_back">பின்செல்</string>
+    <string name="calc_cd_calculate_landed">தரையிறக்க செலவைக் கணக்கிடு</string>
+    <string name="calc_cd_calculate_tco">மொத்த உரிமை செலவைக் கணக்கிடு</string>
+    <string name="calc_cd_upgrade">Pro-க்கு மேம்படுத்து</string>
+    <string name="calc_cd_tab_locked">%1$s, Pro தேவை</string>
+    <string name="calc_cd_fuel">எரிபொருள் வகை %1$s</string>
+</resources>

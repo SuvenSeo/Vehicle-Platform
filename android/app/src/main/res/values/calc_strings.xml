@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="calc_title">Import &amp; cost</string>
+    <string name="calc_back">Back</string>
+    <string name="calc_eyebrow">Motormila intelligence hub</string>
+    <string name="calc_headline">Mobility &amp; tax calculators.</string>
+    <string name="calc_description">Verify import tax gazettes and map total cost of ownership from live Sri Lanka rates.</string>
+
+    <string name="calc_tab_landed">Landed cost</string>
+    <string name="calc_tab_tco">Ownership TCO</string>
+    <string name="calc_tab_lease">Lease</string>
+    <string name="calc_tab_ownership">On-road fees</string>
+    <string name="calc_tab_permits">Permits</string>
+    <string name="calc_tab_depreciation">Retention</string>
+    <string name="calc_upsell_hint">Lease, on-road fees, permits, and retention curves unlock on Pro.</string>
+
+    <string name="calc_import_config">Import configuration</string>
+    <string name="calc_import_config_hint">Taxes compounding on CIF valuation · CIF is LKR, converted with live FX</string>
+    <string name="calc_cif_lkr">CIF value (LKR)</string>
+    <string name="calc_engine_cc">Engine capacity (cc)</string>
+    <string name="calc_year_optional">Year of manufacture (optional)</string>
+    <string name="calc_fuel_category">Fuel category</string>
+    <string name="calc_fuel_petrol">Petrol</string>
+    <string name="calc_fuel_diesel">Diesel</string>
+    <string name="calc_fuel_hybrid">Hybrid</string>
+    <string name="calc_fuel_electric">Electric</string>
+    <string name="calc_hybrid_cliff">Capacity is above the 1500cc cliff. Excise rate steps up significantly.</string>
+    <string name="calc_calculate_landed">Calculate landed cost</string>
+    <string name="calc_calculating">Calculating…</string>
+    <string name="calc_fx_hint">CIF is entered in rupees. Motormila converts to USD with the CBSL-linked macro rate before applying gazette duties.</string>
+
+    <string name="calc_breakdown">Landed cost breakdown</string>
+    <string name="calc_breakdown_hint">Indicative tax components based on 2026 gazette calculations</string>
+    <string name="calc_base_cif">Base CIF (LKR)</string>
+    <string name="calc_est_landed">Est. landed cost</string>
+    <string name="calc_total_taxes">Total taxes &amp; duties</string>
+    <string name="calc_empty_result">Enter figures and tap Calculate. Nothing is sent until you do.</string>
+    <string name="calc_indicative">Indicative only — confirm current customs rates before committing an import.</string>
+
+    <string name="calc_line_cid">Customs import duty (CID)</string>
+    <string name="calc_line_surcharge">Surcharge on CID</string>
+    <string name="calc_line_excise">Excise duty</string>
+    <string name="calc_line_sscl">SSCL (PAL)</string>
+    <string name="calc_line_vat">VAT</string>
+    <string name="calc_line_luxury">Luxury tax</string>
+
+    <string name="calc_tco_assumptions">TCO assumptions</string>
+    <string name="calc_tco_assumptions_hint">Purchase price plus fuel and overhead over the ownership horizon</string>
+    <string name="calc_purchase_price">Purchase price (LKR)</string>
+    <string name="calc_monthly_km">Monthly kilometres</string>
+    <string name="calc_km_per_litre">Fuel efficiency (km/L)</string>
+    <string name="calc_years">Ownership years</string>
+    <string name="calc_calculate_tco">Calculate TCO</string>
+    <string name="calc_tco_breakdown">Cost of ownership</string>
+    <string name="calc_tco_breakdown_hint">Fuel uses live Octane benchmarks when the API can reach them</string>
+    <string name="calc_tco_purchase">Purchase</string>
+    <string name="calc_tco_fuel">Fuel over horizon</string>
+    <string name="calc_tco_service">Service &amp; overhead</string>
+    <string name="calc_tco_monthly">Monthly ownership cost</string>
+    <string name="calc_tco_total">Total cost of ownership</string>
+
+    <string name="calc_tco_locked_title">Starter calculator on Free</string>
+    <string name="calc_tco_locked_body">Landed-cost is open on Free. TCO, lease, on-road fees, permits, and retention curves unlock on Pro.</string>
+    <string name="calc_upgrade">Upgrade to Pro</string>
+
+    <string name="calc_error_cif">Enter a CIF value in rupees (e.g. 3.6m or 3600000).</string>
+    <string name="calc_error_engine_cc">Enter engine capacity in cc.</string>
+    <string name="calc_error_year">Year must be between 1980 and 2035, or leave it blank.</string>
+    <string name="calc_error_price">Enter a purchase price in rupees (e.g. 15m).</string>
+    <string name="calc_error_monthly_km">Enter monthly kilometres greater than zero.</string>
+    <string name="calc_error_kmpl">Enter fuel efficiency in km per litre.</string>
+    <string name="calc_error_years">Ownership years must be between 1 and 15.</string>
+
+    <string name="calc_cd_back">Back</string>
+    <string name="calc_cd_calculate_landed">Calculate landed cost</string>
+    <string name="calc_cd_calculate_tco">Calculate total cost of ownership</string>
+    <string name="calc_cd_upgrade">Upgrade to Pro</string>
+    <string name="calc_cd_tab_locked">%1$s, Pro required</string>
+    <string name="calc_cd_fuel">Fuel type %1$s</string>
+</resources>

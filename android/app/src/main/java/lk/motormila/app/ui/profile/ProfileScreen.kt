@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import lk.motormila.app.R
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SectionTitle
@@ -58,6 +60,10 @@ fun ProfileScreen(
     onDealerClick: () -> Unit,
     onAlertsClick: () -> Unit,
     onNotificationsClick: () -> Unit,
+    onEvHubClick: () -> Unit = {},
+    onPulseClick: () -> Unit = {},
+    onBestPicksClick: () -> Unit = {},
+    onCalculatorClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -242,6 +248,26 @@ fun ProfileScreen(
                             }
                         }
                         item {
+                            SectionTitle(stringResource(R.string.hub_profile_section))
+                            TileRow(
+                                label = stringResource(R.string.hub_ev_title),
+                                onClick = { navTap(onEvHubClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_pulse_title),
+                                onClick = { navTap(onPulseClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_picks_title),
+                                onClick = { navTap(onBestPicksClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_calc_title),
+                                onClick = { navTap(onCalculatorClick) },
+                                openDescription = stringResource(R.string.hub_open_calc),
+                            )
+                        }
+                        item {
                             SectionTitle("Manage")
                             TileRow("Settings", onClick = { navTap(onSettingsClick) })
                             TileRow(if (p.planName.equals("Pro", true)) "Pro dashboard" else "Go Pro", onClick = { navTap(onProClick) })
@@ -258,11 +284,15 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun TileRow(label: String, onClick: () -> Unit) {
+private fun TileRow(
+    label: String,
+    onClick: () -> Unit,
+    openDescription: String? = null,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-            .semantics { contentDescription = "Open $label" },
+            .semantics { contentDescription = openDescription ?: "Open $label" },
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp).heightIn(min = 48.dp),
