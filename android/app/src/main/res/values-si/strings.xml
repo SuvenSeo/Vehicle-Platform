@@ -33,6 +33,9 @@
     <string name="biometric_login_subtitle">පිවිසීමට ඔබ බව තහවුරු කරන්න</string>
     <string name="biometric_settings_subtitle">මෙම සැකසුම වෙනස් කිරීමට තහවුරු කරන්න</string>
 
+    <!-- Auth -->
+    <string name="login_browse_market">වෙළඳපොළ පිරික්සන්න</string>
+
     <!-- Generic -->
     <string name="offline_banner">ඔබ නොබැඳියි — කෑෂ් කළ දත්ත පෙන්වයි</string>
     <string name="retry">නැවත උත්සාහ කරන්න</string>

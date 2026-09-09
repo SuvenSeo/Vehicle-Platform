@@ -205,3 +205,13 @@ private fun ParsedDeepLink.flagQuery(key: String): Boolean {
 
 private fun decodeQuery(value: String): String =
     value.replace("+", " ").replace("%20", " ")
+
+/**
+ * Web `/` is public browse. Native splash therefore always lands on [Home]
+ * (or a deep-link target). [isLoggedIn] is kept so tests can prove we ignore it;
+ * login stays opt-in from Profile / 401-with-token.
+ */
+internal fun destinationAfterSplash(isLoggedIn: Boolean, deepLinkTarget: Any? = null): Any {
+    if (deepLinkTarget != null) return deepLinkTarget
+    return Home
+}

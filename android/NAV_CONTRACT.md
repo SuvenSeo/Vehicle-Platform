@@ -125,6 +125,7 @@ fun DealerScreen(
 @Composable
 fun LoginScreen(
     onLoggedIn: () -> Unit,
+    onBrowse: () -> Unit = {},        // -> Home (public browse, web `/` parity)
     onBiometricAuth: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
 )
@@ -282,9 +283,14 @@ qualified name (works for data classes).
 - `ui/biometric/BiometricAuth.kt` — `rememberBiometricAuth(title, subtitle)`
 - `ShareImportActivity` — ACTION_SEND trampoline → MainActivity (`SHARED_URL_KEY`)
 - `MainActivity.extractViewUri()` — ACTION_VIEW `intent.data` (search/watchlist/…)
-- `SplashGate` — private to `MotormilaNavGraph.kt`; then Home, Login, **or** the
-  resolved deep-link target (`resolveMotormilaDeepLink`)
-- `AuthEventBus.Unauthorized` collector — Login, `popUpTo(Home) { inclusive = true }`
+- `SplashGate` — private to `MotormilaNavGraph.kt`; then [Home] (public browse)
+  **or** the resolved deep-link target (`resolveMotormilaDeepLink`). Login is
+  not a cold-start wall; guests tap Profile → Log in. `destinationAfterSplash`
+  encodes this and is unit-tested.
+- `AuthEventBus.Unauthorized` collector — Login with `launchSingleTop` so
+  browse (Home) stays on the back stack. Only emitted when a **bearer token**
+  was rejected (`shouldForceReLogin`); anonymous 401s on gated routes do not
+  kick the visitor out of the market. Settings logout still `popUpTo(Home)`.
 - Bottom bar shows ONLY on Home/Search/Watchlist/Insights/Profile
 - `MotormilaScaffold` bottom labels from resources (`nav_home` …)
 

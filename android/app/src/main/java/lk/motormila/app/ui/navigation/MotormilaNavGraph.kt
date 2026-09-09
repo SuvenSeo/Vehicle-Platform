@@ -99,7 +99,6 @@ fun MotormilaNavGraph(
         viewModel.authEventBus.events.collect { event ->
             if (event is AuthEvent.Unauthorized) {
                 navController.navigate(Login) {
-                    popUpTo(Home) { inclusive = true }
                     launchSingleTop = true
                 }
             }
@@ -159,12 +158,10 @@ fun MotormilaNavGraph(
                         SplashGate(
                             sessionStore = viewModel.sessionStore,
                             onDone = { isLoggedIn ->
-                                val deepLinkTarget = startDeepLink?.let { resolveMotormilaDeepLink(it) }
-                                val target: Any = when {
-                                    deepLinkTarget != null -> deepLinkTarget
-                                    isLoggedIn -> Home
-                                    else -> Login
-                                }
+                                val target = destinationAfterSplash(
+                                    isLoggedIn = isLoggedIn,
+                                    deepLinkTarget = startDeepLink?.let { resolveMotormilaDeepLink(it) },
+                                )
                                 navController.navigate(target) {
                                     popUpTo(Splash) { inclusive = true }
                                     launchSingleTop = true
@@ -175,6 +172,11 @@ fun MotormilaNavGraph(
                     composable<Login> {
                         LoginScreen(
                             onLoggedIn = {
+                                navController.navigate(Home) {
+                                    popUpTo(Login) { inclusive = true }
+                                }
+                            },
+                            onBrowse = {
                                 navController.navigate(Home) {
                                     popUpTo(Login) { inclusive = true }
                                 }
@@ -481,8 +483,9 @@ fun MotormilaNavGraph(
 }
 
 /**
- * Foundation-owned splash gate: verifies active session before navigating.
- * When a session exists, proceeds to [Home] (or a deep-link target); otherwise Login.
+ * Foundation-owned splash gate: restores any saved session, then proceeds to
+ * [Home] (public browse, matching web `/`) or a deep-link target. Login is
+ * opt-in from Profile, not a cold-start wall.
  */
 @Composable
 private fun SplashGate(

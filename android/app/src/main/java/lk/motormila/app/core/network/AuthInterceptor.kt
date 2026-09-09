@@ -20,8 +20,9 @@ import okhttp3.Response
  * [Provider] indirection breaks the Hilt cycle:
  * OkHttp -> Interceptor -> SessionStore -/-> ApiService -> OkHttp.
  *
- * On HTTP 401 the [AuthEventBus] is notified (UI forces re-login). The 401
- * response itself still propagates so repositories map it to [AppError.Unauthorized].
+ * On HTTP 401 **with a bearer token**, [AuthEventBus] is notified so the UI
+ * can send the user to Login. Anonymous 401s (gated product routes while
+ * browsing) still propagate to repositories but do not force re-login.
  */
 @Singleton
 class AuthInterceptor @Inject constructor(
@@ -50,9 +51,17 @@ class AuthInterceptor @Inject constructor(
             chain.request()
         }
         val response = chain.proceed(request)
-        if (response.code == 401) {
+        if (shouldForceReLogin(hadBearerToken = !token.isNullOrBlank(), statusCode = response.code)) {
             authEventBus.post(AuthEvent.Unauthorized(request.url.encodedPath))
         }
         return response
     }
 }
+
+/**
+ * Only a rejected session token is a re-login event. Anonymous 401s are
+ * expected on gated product routes (watchlist sync, makes, calculators)
+ * while the visitor is still browsing the public market — same as web `/`.
+ */
+internal fun shouldForceReLogin(hadBearerToken: Boolean, statusCode: Int): Boolean =
+    statusCode == 401 && hadBearerToken

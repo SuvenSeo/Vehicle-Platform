@@ -33,6 +33,9 @@
     <string name="biometric_login_subtitle">உள்நுழைய நீங்கள் தான் என உறுதிப்படுத்தவும்</string>
     <string name="biometric_settings_subtitle">இந்த அமைப்பை மாற்ற உறுதிப்படுத்தவும்</string>
 
+    <!-- Auth -->
+    <string name="login_browse_market">சந்தையை உலாவவும்</string>
+
     <!-- Generic -->
     <string name="offline_banner">நீங்கள் ஆஃப்லைனில் உள்ளீர்கள் — சேமித்த தரவைக் காட்டுகிறோம்</string>
     <string name="retry">மீண்டும் முயலவும்</string>

@@ -2,6 +2,7 @@ package lk.motormila.app.ui.auth
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -68,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import lk.motormila.app.R
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.ui.components.OfflineBanner
@@ -77,6 +80,7 @@ import lk.motormila.app.ui.theme.rememberHaptics
 @Composable
 fun LoginScreen(
     onLoggedIn: () -> Unit,
+    onBrowse: () -> Unit = {},
     onBiometricAuth: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
@@ -88,6 +92,7 @@ fun LoginScreen(
     val shake = remember { Animatable(0f) }
     var passwordVisible by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val browseMarketLabel = stringResource(R.string.login_browse_market)
 
     LaunchedEffect(state.loggedIn) {
         if (state.loggedIn) {
@@ -144,6 +149,9 @@ fun LoginScreen(
                 size = BrandLogoSize.DEFAULT,
                 showWordmark = true,
                 showTagline = true,
+                modifier = Modifier
+                    .clickable(onClick = onBrowse)
+                    .semantics { contentDescription = browseMarketLabel },
             )
             Spacer(Modifier.height(18.dp))
             Row(
@@ -293,6 +301,14 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            TextButton(
+                onClick = onBrowse,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+            ) {
+                Text(browseMarketLabel)
+            }
             TextButton(onClick = {}, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Forgot password?")
             }

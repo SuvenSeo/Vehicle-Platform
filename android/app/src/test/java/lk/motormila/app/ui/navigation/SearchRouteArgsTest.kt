@@ -79,4 +79,13 @@ class SearchRouteArgsTest {
             resolveMotormilaDeepLink("https://motormila.vercel.app/cars/toyota/aqua") is MakeModelHub,
         )
     }
+
+    @Test
+    fun destinationAfterSplash_alwaysHomeUnlessDeepLink() {
+        assertEquals(Home, destinationAfterSplash(isLoggedIn = false))
+        assertEquals(Home, destinationAfterSplash(isLoggedIn = true))
+        val listing = ListingDetail(42)
+        assertEquals(listing, destinationAfterSplash(isLoggedIn = false, deepLinkTarget = listing))
+        assertEquals(listing, destinationAfterSplash(isLoggedIn = true, deepLinkTarget = listing))
+    }
 }
