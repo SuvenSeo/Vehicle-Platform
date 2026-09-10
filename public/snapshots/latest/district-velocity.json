@@ -1,0 +1,197 @@
+{
+  "points": [
+    {
+      "district": "Colombo",
+      "lat": 6.9271,
+      "lng": 79.8612,
+      "listing_count": 21038,
+      "new_7d_count": 7310,
+      "velocity_score": 0.3475
+    },
+    {
+      "district": "Gampaha",
+      "lat": 7.084,
+      "lng": 80.0098,
+      "listing_count": 10106,
+      "new_7d_count": 2892,
+      "velocity_score": 0.2862
+    },
+    {
+      "district": "Kurunegala",
+      "lat": 7.4863,
+      "lng": 80.3647,
+      "listing_count": 8330,
+      "new_7d_count": 1652,
+      "velocity_score": 0.1983
+    },
+    {
+      "district": "Kandy",
+      "lat": 7.2906,
+      "lng": 80.6337,
+      "listing_count": 7685,
+      "new_7d_count": 1449,
+      "velocity_score": 0.1885
+    },
+    {
+      "district": "Galle",
+      "lat": 6.0535,
+      "lng": 80.221,
+      "listing_count": 3504,
+      "new_7d_count": 672,
+      "velocity_score": 0.1918
+    },
+    {
+      "district": "Matara",
+      "lat": 5.9549,
+      "lng": 80.555,
+      "listing_count": 3417,
+      "new_7d_count": 542,
+      "velocity_score": 0.1586
+    },
+    {
+      "district": "Kalutara",
+      "lat": 6.5854,
+      "lng": 79.9607,
+      "listing_count": 2517,
+      "new_7d_count": 665,
+      "velocity_score": 0.2642
+    },
+    {
+      "district": "Ampara",
+      "lat": 7.2964,
+      "lng": 81.6747,
+      "listing_count": 2097,
+      "new_7d_count": 1314,
+      "velocity_score": 0.6266
+    },
+    {
+      "district": "Kegalle",
+      "lat": 7.2513,
+      "lng": 80.3464,
+      "listing_count": 1945,
+      "new_7d_count": 378,
+      "velocity_score": 0.1943
+    },
+    {
+      "district": "Ratnapura",
+      "lat": 6.6828,
+      "lng": 80.3992,
+      "listing_count": 1286,
+      "new_7d_count": 281,
+      "velocity_score": 0.2185
+    },
+    {
+      "district": "Matale",
+      "lat": 7.4675,
+      "lng": 80.6234,
+      "listing_count": 1208,
+      "new_7d_count": 225,
+      "velocity_score": 0.1863
+    },
+    {
+      "district": "Polonnaruwa",
+      "lat": 7.9403,
+      "lng": 81.0188,
+      "listing_count": 799,
+      "new_7d_count": 138,
+      "velocity_score": 0.1727
+    },
+    {
+      "district": "Hambantota",
+      "lat": 6.1243,
+      "lng": 81.1185,
+      "listing_count": 741,
+      "new_7d_count": 189,
+      "velocity_score": 0.2551
+    },
+    {
+      "district": "Badulla",
+      "lat": 6.9934,
+      "lng": 81.055,
+      "listing_count": 714,
+      "new_7d_count": 189,
+      "velocity_score": 0.2647
+    },
+    {
+      "district": "Anuradhapura",
+      "lat": 8.3114,
+      "lng": 80.4037,
+      "listing_count": 666,
+      "new_7d_count": 280,
+      "velocity_score": 0.4204
+    },
+    {
+      "district": "Puttalam",
+      "lat": 8.0362,
+      "lng": 79.8283,
+      "listing_count": 596,
+      "new_7d_count": 254,
+      "velocity_score": 0.4262
+    },
+    {
+      "district": "Jaffna",
+      "lat": 9.6615,
+      "lng": 80.0255,
+      "listing_count": 476,
+      "new_7d_count": 189,
+      "velocity_score": 0.3971
+    },
+    {
+      "district": "Batticaloa",
+      "lat": 7.731,
+      "lng": 81.6747,
+      "listing_count": 414,
+      "new_7d_count": 150,
+      "velocity_score": 0.3623
+    },
+    {
+      "district": "Trincomalee",
+      "lat": 8.5874,
+      "lng": 81.2152,
+      "listing_count": 280,
+      "new_7d_count": 113,
+      "velocity_score": 0.4036
+    },
+    {
+      "district": "Nuwara Eliya",
+      "lat": 6.9497,
+      "lng": 80.7891,
+      "listing_count": 268,
+      "new_7d_count": 55,
+      "velocity_score": 0.2052
+    },
+    {
+      "district": "Vavuniya",
+      "lat": 8.7514,
+      "lng": 80.4971,
+      "listing_count": 181,
+      "new_7d_count": 59,
+      "velocity_score": 0.326
+    },
+    {
+      "district": "Monaragala",
+      "lat": 6.8728,
+      "lng": 81.3507,
+      "listing_count": 83,
+      "new_7d_count": 52,
+      "velocity_score": 0.6265
+    },
+    {
+      "district": "Kilinochchi",
+      "lat": 9.3803,
+      "lng": 80.377,
+      "listing_count": 70,
+      "new_7d_count": 19,
+      "velocity_score": 0.2714
+    },
+    {
+      "district": "Mannar",
+      "lat": 8.981,
+      "lng": 79.9044,
+      "listing_count": 36,
+      "new_7d_count": 17,
+      "velocity_score": 0.4722
+    }
+  ],
+  "generated_at": "2026-07-31T04:41:14.943Z"
+}

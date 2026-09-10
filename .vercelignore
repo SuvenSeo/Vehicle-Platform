@@ -12,3 +12,5 @@ __pycache__/
 *.db.gz
 *.log
 .pytest_cache/
+/android/
+public/snapshots/latest/listing-catalog*.json

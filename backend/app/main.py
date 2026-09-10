@@ -205,6 +205,7 @@ def _probe_db() -> None:
 
 
 @app.get("/health")
+@app.get("/api/v1/health")
 async def health_check():
     # A cheap bounded read probe: a Space with a dead database must not
     # keep reporting itself healthy to uptime monitoring.
