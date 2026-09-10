@@ -4,9 +4,10 @@
 # reads R2 snapshots, not this dump.
 name: Weekly DB Backup
 
+# on:
+#   schedule:
+#     - cron: "30 2 * * 0"   # Paused to protect Neon free transfer quota (550MB remaining until Oct 1)
 on:
-  schedule:
-    - cron: "30 2 * * 0"   # Sunday 02:30 UTC
   workflow_dispatch:
 
 jobs:

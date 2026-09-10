@@ -119,10 +119,10 @@ jobs:
           # a deeper scan is needed after the Supabase migration.
           SCRAPE_MAX_PAGES: "20"
           SCRAPE_MAX_PAGES_ALT: "20"
-          # Routine daily runs use 40 pages (covers ~1,200 newest listings per run).
+          # Routine daily runs use 25 pages to conserve DB connection time & egress.
           # Full backfills (120+ pages) are available on demand via *-bulk-backfill.yml.
-          SCRAPE_MAX_PAGES_IKMAN: "40"
-          SCRAPE_MAX_PAGES_RIYASEWANA: "40"
+          SCRAPE_MAX_PAGES_IKMAN: "25"
+          SCRAPE_MAX_PAGES_RIYASEWANA: "25"
           SCRAPE_MAX_PAGES_PATPAT: "30"
           SCRAPE_MAX_PAGES_AUTOLANKA: "30"
           SCRAPE_MAX_PAGES_AUTO_LANKA_SITE: "30"
@@ -218,10 +218,10 @@ jobs:
           RUN_DEDUP: "true"
           RUN_LISTING_LIFECYCLE: "true"
           RUN_OUTLIER_DETECTION: "true"
-          RUN_PRICE_RECOVERY: "true"
-          RUN_ALERT_MATCH: "true"
-          RUN_THUMBNAIL_CACHE: "true"
-          RUN_IMAGE_PHASH: "true"
+          RUN_PRICE_RECOVERY: "false"
+          RUN_ALERT_MATCH: "false"
+          RUN_THUMBNAIL_CACHE: "false"
+          RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
 
       - name: Notify Slack on job failure

@@ -151,8 +151,8 @@ jobs:
           RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
 
-      - name: Export and deploy SQLite snapshots (Neon outage only)
-        if: steps.discover.outputs.count != '0' && github.event.inputs.publish-full-catalog == 'true'
+      - name: Export and deploy SQLite snapshots (Neon outage or zero-egress refresh)
+        if: github.event.inputs.publish-full-catalog == 'true'
         working-directory: ${{ github.workspace }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

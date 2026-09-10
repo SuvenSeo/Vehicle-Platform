@@ -9,9 +9,10 @@
 
 name: Full-Catalog Snapshot Refresh (Every 3 Days)
 
+# on:
+#   schedule:
+#     - cron: "0 3 */3 * *"   # Paused to protect Neon free transfer quota (550MB remaining until Oct 1)
 on:
-  schedule:
-    - cron: "0 3 */3 * *"   # Every 3 days at 03:00 UTC
   workflow_dispatch:
 
 concurrency:
