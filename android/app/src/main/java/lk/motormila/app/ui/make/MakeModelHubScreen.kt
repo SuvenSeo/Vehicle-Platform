@@ -208,6 +208,7 @@ private fun MakeModelHubBody(
                 description = stringResource(R.string.make_model_hub_description, state.vehicleLabel),
                 trailing = {
                     TextButton(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = onMakeClick,
                         modifier = Modifier
                             .heightIn(min = 48.dp)
@@ -277,7 +278,7 @@ private fun MakeModelHubBody(
         item {
             OutlinedButton(
                 onClick = onEstimate,
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MotormilaOnSurface),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier

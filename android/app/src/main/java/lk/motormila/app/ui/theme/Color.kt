@@ -12,7 +12,7 @@ val MotormilaSurfaceHighest = Color(0xFF1F1F24) // #1f1f24 highest elevation
 val MotormilaOnSurface = Color(0xFFF5F5F7)    // #f5f5f7 pure white text
 val MotormilaSecondaryText = Color(0xFF8E8E93) // #8e8e93 Apple secondary label
 val MotormilaOutline = Color(0x1FFFFFFF)      // Hairline rgba(255, 255, 255, 0.12)
-val MotormilaGlassBorder = Color(0x14FFFFFF) // 1px subtle glass edge rgba(255, 255, 255, 0.08)
+val MotormilaGlassBorder = Color(0x22FFFFFF) // 1px glass edge rgba(255, 255, 255, 0.13)
 
 // Brand accent: Motormila Electric Blue (#0A7AFF / #3D94FF)
 val MotormilaPrimary = Color(0xFF0A7AFF)      // Motormila system electric blue

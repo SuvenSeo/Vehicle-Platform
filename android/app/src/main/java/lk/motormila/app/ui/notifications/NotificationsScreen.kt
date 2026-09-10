@@ -76,6 +76,7 @@ fun NotificationsScreen(
                 },
                 actions = {
                     TextButton(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = { viewModel.onEvent(NotificationsUiEvent.MarkAllRead) },
                         enabled = state.unreadCount > 0,
                         modifier = Modifier.heightIn(min = 48.dp),

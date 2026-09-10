@@ -301,6 +301,7 @@ private fun TrendsTab(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         popularMakes.forEach { makeName ->
                             FilterChip(
+                                shape = androidx.compose.foundation.shape.CircleShape,
                                 selected = s.make.equals(makeName, ignoreCase = true),
                                 onClick = {
                                     val nextMake = if (s.make.equals(makeName, ignoreCase = true)) "" else makeName
@@ -336,6 +337,7 @@ private fun TrendsTab(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("All districts", "Colombo", "Kandy", "Gampaha", "Kurunegala").forEach { dist ->
                             FilterChip(
+                                shape = androidx.compose.foundation.shape.CircleShape,
                                 selected = s.district.equals(dist, ignoreCase = true),
                                 onClick = {
                                     viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(district = dist)))
@@ -393,7 +395,7 @@ private fun TrendsTab(
                                 Text("Median", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
                             }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(MotormilaPrimary.copy(alpha = 0.25f)))
+                                Box(Modifier.size(8.dp).clip(RoundedCornerShape(999.dp)).background(MotormilaPrimary.copy(alpha = 0.25f)))
                                 Text("±10% Band", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
                             }
                         }
@@ -465,7 +467,7 @@ private fun TrendsTab(
             val query = "${s.make} ${s.model}".trim().ifBlank { "All listings" }
             Button(
                 onClick = { onSearchModels("${s.make} ${s.model}".trim()) },
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -494,7 +496,7 @@ private fun InsightTextField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
             unfocusedBorderColor = MotormilaOutline,
@@ -563,12 +565,12 @@ private fun BandChart(points: List<TrendPoint>, modifier: Modifier = Modifier) {
 @Composable
 private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        AssistChip(onClick = {}, label = { Text("${summary.totalListings} live") })
-        AssistChip(onClick = {}, label = { Text("Avg ${formatLkrCompact(summary.avgPriceLkr)}") })
-        AssistChip(onClick = {}, label = { Text("${summary.goodDealsCount} good deals") })
-        AssistChip(onClick = {}, label = { Text("${summary.listingsThisWeek} new / 7d") })
+        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.totalListings} live") })
+        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("Avg ${formatLkrCompact(summary.avgPriceLkr)}") })
+        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.goodDealsCount} good deals") })
+        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.listingsThisWeek} new / 7d") })
         summary.priceChangeMom?.let {
-            AssistChip(onClick = {}, label = { Text("MoM ${formatPct(it)}") })
+            AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("MoM ${formatPct(it)}") })
         }
     }
 }
@@ -601,12 +603,12 @@ private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
             }
             Box(
                 Modifier.fillMaxWidth().height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(999.dp))
                     .background(MotormilaSurface),
             ) {
                 Box(
                     Modifier.fillMaxWidth(frac).height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(999.dp))
                         .background(MotormilaPrimary),
                 )
             }
@@ -634,6 +636,7 @@ private fun FuelMixRow(mix: List<lk.motormila.app.domain.model.FuelMixBucket>) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             mix.forEach { bucket ->
                 AssistChip(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     onClick = {},
                     label = { Text("${bucket.fuelType}: ${formatPct(bucket.pct, 0)}") },
                     modifier = Modifier.heightIn(min = 44.dp),
@@ -696,6 +699,7 @@ private fun LiveTicker(live: List<Listing>) {
         ) {
             live.take(8).forEach { listing ->
                 AssistChip(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     onClick = {},
                     label = { Text("${listing.displayName} · ${formatLkrCompact(listing.priceLkr)}") },
                     modifier = Modifier.heightIn(min = 44.dp),
@@ -1086,6 +1090,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(10, 25, 50, 100).forEach { km ->
                                 FilterChip(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     selected = state.chargerRadiusKm == km,
                                     onClick = { viewModel.onEvent(InsightsUiEvent.ChargerRadiusChanged(km)) },
                                     label = { Text("${km}km") },
@@ -1187,6 +1192,7 @@ private fun IndexTab(state: InsightsUiState) {
                 state.index.takeLast(6).forEach { p ->
                     val mom = p.momChangePct ?: 0.0
                     AssistChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = {},
                         label = { Text("${p.period.takeLast(7)}: ${if (mom >= 0) "+" else ""}${formatPct(mom)}") },
                         modifier = Modifier.heightIn(min = 44.dp),
@@ -1344,7 +1350,7 @@ private fun PulseTab(state: InsightsUiState, live: List<Listing>, onOpenPulseDet
                     .semantics { contentDescription = "Signal ${s.title}" },
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(onClick = {}, label = { Text(s.tag) })
+                    AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text(s.tag) })
                     Text(s.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     Text(s.body, style = MaterialTheme.typography.bodySmall, color = MotormilaSecondaryText)
                     Text(s.timeLabel, style = MaterialTheme.typography.labelSmall.copy(color = MotormilaPrimaryBright))

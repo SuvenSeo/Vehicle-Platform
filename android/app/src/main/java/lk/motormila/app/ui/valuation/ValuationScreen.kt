@@ -433,6 +433,7 @@ private fun Step01VehicleProfile(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     popularMakes.forEach { m ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.make.equals(m, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(make = m))) },
                             label = { Text(m, fontSize = 11.sp) },
@@ -462,6 +463,7 @@ private fun Step01VehicleProfile(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     popularModels.forEach { m ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.model.equals(m, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(model = m))) },
                             label = { Text(m, fontSize = 11.sp) },
@@ -492,6 +494,7 @@ private fun Step01VehicleProfile(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     years.forEach { y ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.year == y,
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(year = y))) },
                             label = { Text(y, fontSize = 11.sp) },
@@ -517,6 +520,7 @@ private fun Step01VehicleProfile(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Automatic", "Manual", "CVT", "Tiptronic").forEach { t ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.transmission.equals(t, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(transmission = t))) },
                             label = { Text(t, fontSize = 12.sp) },
@@ -542,6 +546,7 @@ private fun Step01VehicleProfile(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Petrol", "Diesel", "Hybrid", "Electric", "Plug-in Hybrid").forEach { fuel ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.fuel.equals(fuel, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(fuel = fuel))) },
                             label = { Text(fuel, fontSize = 12.sp) },
@@ -567,6 +572,7 @@ private fun Step01VehicleProfile(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Colombo", "Gampaha", "Kandy", "Kurunegala", "Kalutara", "Galle").forEach { d ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.district.equals(d, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(district = d))) },
                             label = { Text(d, fontSize = 12.sp) },
@@ -596,7 +602,7 @@ private fun Step01VehicleProfile(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -662,7 +668,7 @@ private fun Step02MileageCondition(
 
             // Summary of vehicle selected
             Surface(
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MotormilaSurface,
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -686,6 +692,7 @@ private fun Step02MileageCondition(
                         )
                     }
                     AssistChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = onBack,
                         label = { Text("Edit profile") },
                     )
@@ -703,6 +710,7 @@ private fun Step02MileageCondition(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     mileagePresets.forEach { km ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = f.mileageKm == km.replace(",", ""),
                             onClick = {
                                 viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(mileageKm = km.replace(",", ""))))
@@ -756,7 +764,7 @@ private fun Step02MileageCondition(
                     val isSelected = f.condition.equals(condKey, ignoreCase = true)
                     Card(
                         onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(condition = condKey))) },
-                        shape = RoundedCornerShape(22.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MotormilaPrimary.copy(alpha = 0.12f) else MotormilaSurface,
                         ),
@@ -829,7 +837,7 @@ private fun Step02MileageCondition(
             ) {
                 OutlinedButton(
                     onClick = onBack,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier
                         .weight(0.8f)
@@ -843,7 +851,7 @@ private fun Step02MileageCondition(
                 Button(
                     onClick = onEstimate,
                     enabled = f.mileageKm.isNotBlank() && !state.estimating,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -908,6 +916,7 @@ private fun Step03ValuationGuidance(
                 )
             }
             AssistChip(
+                shape = androidx.compose.foundation.shape.CircleShape,
                 onClick = onModify,
                 label = { Text("Edit inputs") },
             )
@@ -1078,9 +1087,9 @@ private fun Step03ValuationGuidance(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp))
+                            .clip(RoundedCornerShape(999.dp))
                             .background(MotormilaSurface)
-                            .border(1.dp, MotormilaOutline, RoundedCornerShape(5.dp)),
+                            .border(1.dp, MotormilaOutline, RoundedCornerShape(999.dp)),
                     ) {
                         Box(
                             modifier = Modifier
@@ -1156,7 +1165,7 @@ private fun Step03ValuationGuidance(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Card(
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(28.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1182,7 +1191,7 @@ private fun Step03ValuationGuidance(
                         }
 
                         Card(
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(28.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1260,7 +1269,7 @@ private fun Step03ValuationGuidance(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Card(
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(28.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1280,7 +1289,7 @@ private fun Step03ValuationGuidance(
                         }
 
                         Card(
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(28.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1300,7 +1309,7 @@ private fun Step03ValuationGuidance(
                         }
 
                         Card(
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(28.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1335,7 +1344,7 @@ private fun Step03ValuationGuidance(
                             clipboard.setText(AnnotatedString(text))
                             copiedWhatsApp = true
                         },
-                        shape = RoundedCornerShape(22.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MotormilaGood.copy(alpha = 0.15f),
                             contentColor = MotormilaGoodText,
@@ -1402,6 +1411,7 @@ private fun Step03ValuationGuidance(
                                     )
                                 }
                                 AssistChip(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     onClick = { onOpenListing(c.id) },
                                     label = { Text("View") },
                                 )
@@ -1451,7 +1461,7 @@ private fun Step03ValuationGuidance(
             ) {
                 OutlinedButton(
                     onClick = onModify,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier
                         .weight(1f)
@@ -1462,7 +1472,7 @@ private fun Step03ValuationGuidance(
 
                 Button(
                     onClick = onReset,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -1498,7 +1508,7 @@ private fun Step03ValuationGuidance(
                     )
                     Button(
                         onClick = onReset,
-                        shape = RoundedCornerShape(22.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MotormilaPrimary,
                             contentColor = MotormilaOnPrimary,
@@ -1527,7 +1537,7 @@ private fun GlassTextField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
@@ -1574,6 +1584,7 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Petrol", "Diesel", "Hybrid", "Electric").forEach { fuel ->
                     FilterChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         selected = i.fuel == fuel,
                         onClick = { viewModel.onEvent(ValuationUiEvent.LandedChanged(i.copy(fuel = fuel))) },
                         label = { Text(fuel) },
@@ -1590,7 +1601,7 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { viewModel.onEvent(ValuationUiEvent.CalcLanded) },
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MotormilaPrimary, contentColor = MotormilaOnPrimary),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
@@ -1749,6 +1760,7 @@ private fun BundleTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 classes.forEach { c ->
                     FilterChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         selected = state.bundleClass == c,
                         onClick = { viewModel.onEvent(ValuationUiEvent.BundleChanged(c, state.bundleFuel)) },
                         label = { Text(c) },
@@ -1760,6 +1772,7 @@ private fun BundleTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Petrol", "Diesel").forEach { f ->
                     FilterChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         selected = state.bundleFuel == f,
                         onClick = { viewModel.onEvent(ValuationUiEvent.BundleChanged(state.bundleClass, f)) },
                         label = { Text(f) },
@@ -1813,7 +1826,7 @@ private fun PermitsTab() {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(name, style = MaterialTheme.typography.bodyLarge.copy(color = MotormilaOnSurface))
-                        AssistChip(onClick = {}, label = { Text(cadence) })
+                        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text(cadence) })
                     }
                 }
             }

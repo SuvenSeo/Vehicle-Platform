@@ -183,6 +183,7 @@ fun PlateScanScreen(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.ocrCandidates.forEach { plate ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = state.selectedPlate == plate,
                             onClick = {
                                 if (!reducedMotion) runCatching { haptics.confirm() }
@@ -234,12 +235,14 @@ fun PlateScanScreen(
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             AssistChip(
+                                shape = androidx.compose.foundation.shape.CircleShape,
                                 onClick = { onSearchPlate(state.selectedPlate.orEmpty()) },
                                 label = { Text(stringResource(R.string.scan_search)) },
                                 modifier = Modifier.heightIn(min = 48.dp),
                             )
                             r.listingId?.let { id ->
                                 AssistChip(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     onClick = { onOpenFmv(id) },
                                     label = { Text(stringResource(R.string.scan_open_fmv)) },
                                     modifier = Modifier.heightIn(min = 48.dp),

@@ -349,6 +349,7 @@ fun ListingDetailScreen(
                                     }
                                 }
                                 OutlinedButton(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     onClick = { onCompare(listOf(listingId) + state.similar.take(2).map { it.id }) },
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                 ) { Text("Compare with similar") }
@@ -370,7 +371,7 @@ fun ListingDetailScreen(
                                         containerColor = MotormilaPrimary,
                                         contentColor = Color.White,
                                     ),
-                                    shape = RoundedCornerShape(22.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     modifier = Modifier.weight(1f),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -389,7 +390,7 @@ fun ListingDetailScreen(
                                         containerColor = MotormilaGoodContainer,
                                         contentColor = MotormilaGoodText,
                                     ),
-                                    shape = RoundedCornerShape(22.dp),
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     modifier = Modifier.weight(1f),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(16.dp))
@@ -426,7 +427,7 @@ fun ListingDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onEstimate, modifier = Modifier.fillMaxWidth()) { Text("Get full estimate") }
+                Button(shape = androidx.compose.foundation.shape.CircleShape, onClick = onEstimate, modifier = Modifier.fillMaxWidth()) { Text("Get full estimate") }
                 Spacer(Modifier.height(12.dp))
             }
         }
@@ -678,7 +679,7 @@ private fun HeroActionsRow(
                 containerColor = MotormilaPrimary,
                 contentColor = Color.White,
             ),
-            shape = RoundedCornerShape(22.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             modifier = Modifier
                 .weight(1.1f)
@@ -712,7 +713,7 @@ private fun HeroActionsRow(
                 containerColor = MotormilaGoodContainer,
                 contentColor = MotormilaGoodText,
             ),
-            shape = RoundedCornerShape(22.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             modifier = Modifier
                 .weight(1.2f)
@@ -743,7 +744,7 @@ private fun HeroActionsRow(
         // Quick Share Icon Button (48dp target).
         Surface(
             onClick = onShare,
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MotormilaSurfaceHigh,
             border = BorderStroke(1.dp, MotormilaOutline),
             modifier = Modifier
@@ -1121,7 +1122,7 @@ private fun LeasePaymentCalculator(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(MotormilaSurfaceHigh)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1380,7 +1381,7 @@ private fun ImportDutyEstimator(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(MotormilaSurfaceHigh)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1404,7 +1405,7 @@ private fun ImportDutyEstimator(
                 // Total Estimated Taxes
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                 ) {
@@ -1434,7 +1435,7 @@ private fun ImportDutyEstimator(
                 // Estimated Landed Cost
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = MotormilaPrimaryGlow,
                     border = BorderStroke(1.5.dp, MotormilaPrimary.copy(alpha = 0.5f)),
                 ) {
@@ -1473,7 +1474,7 @@ private fun ImportDutyEstimator(
             // Alert card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MotormilaWarnContainer,
                 border = BorderStroke(1.dp, MotormilaWarn.copy(alpha = 0.35f)),
             ) {
@@ -1712,7 +1713,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
                         if (phone != null) context.startActivity(Intent(Intent.ACTION_DIAL, "tel:$phone".toUri()))
                     },
                     enabled = phone != null,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -1729,7 +1730,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
                         containerColor = MotormilaGoodContainer,
                         contentColor = MotormilaGoodText,
                     ),
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(14.dp))
@@ -1766,24 +1767,28 @@ private fun DeepLinksRow(
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(
+            shape = androidx.compose.foundation.shape.CircleShape,
             onClick = onEstimate,
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp),
         ) { Text("Estimate", fontSize = 12.sp) }
         OutlinedButton(
+            shape = androidx.compose.foundation.shape.CircleShape,
             onClick = onTax,
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp),
         ) { Text("Tax", fontSize = 12.sp) }
         OutlinedButton(
+            shape = androidx.compose.foundation.shape.CircleShape,
             onClick = onLease,
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 48.dp),
         ) { Text("Lease", fontSize = 12.sp) }
         OutlinedButton(
+            shape = androidx.compose.foundation.shape.CircleShape,
             onClick = onMap,
             modifier = Modifier
                 .weight(1f)

@@ -146,6 +146,7 @@ fun OfficialPulseDetailScreen(
                         }
                     }
                     Button(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = {
                             if (!reducedMotion) haptics.tick()
                             onOpenGuide()
@@ -157,6 +158,7 @@ fun OfficialPulseDetailScreen(
                     val url = signal.sourceUrl
                     if (!url.isNullOrBlank()) {
                         Button(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             onClick = {
                                 if (!reducedMotion) haptics.tick()
                                 onOpenUrl(url)

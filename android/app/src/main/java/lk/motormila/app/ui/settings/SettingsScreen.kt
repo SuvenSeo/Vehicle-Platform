@@ -109,6 +109,7 @@ fun SettingsScreen(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("light", "dark", "system").forEach { t ->
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = theme == t,
                             onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.ThemeChanged(t)) },
                             label = { Text(t.replaceFirstChar { c -> c.uppercase() }) },
@@ -124,6 +125,7 @@ fun SettingsScreen(
                         val label = stringResource(option.labelRes)
                         val description = stringResource(option.contentDescriptionRes)
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = language == option.code,
                             onClick = {
                                 tapTick()
@@ -201,6 +203,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 )
                 TextButton(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.ClearCache) },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {
@@ -239,10 +242,12 @@ fun SettingsScreen(
                 SectionTitle("Legal")
                 Row {
                     TextButton(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = { onOpenUrl("https://motormila.vercel.app/privacy") },
                         modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Privacy") }
                     TextButton(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = { onOpenUrl("https://motormila.vercel.app/terms") },
                         modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Terms") }

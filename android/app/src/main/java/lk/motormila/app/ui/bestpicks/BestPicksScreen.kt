@@ -273,7 +273,7 @@ fun BestPicksScreen(
                                 if (!reducedMotion) haptics.tick()
                                 onSeeAllSearch()
                             },
-                            shape = RoundedCornerShape(22.dp),
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MotormilaPrimary,
                                 contentColor = MotormilaOnPrimary,
@@ -385,6 +385,7 @@ private fun SortChip(
     onClick: () -> Unit,
 ) {
     FilterChip(
+        shape = androidx.compose.foundation.shape.CircleShape,
         selected = selected,
         onClick = onClick,
         label = { Text(label) },
@@ -460,7 +461,7 @@ private fun CutRow(drop: PriceDrop, onClick: () -> Unit) {
     val cd = stringResource(R.string.hub_picks_cd_drop, drop.listing.displayName, pct)
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = cd },

@@ -1,10 +1,10 @@
 package lk.motormila.app.ui
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,39 +30,37 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import lk.motormila.app.R
+import lk.motormila.app.ui.chat.AIChatBottomSheet
 import lk.motormila.app.ui.home.badgeFor
-import lk.motormila.app.ui.theme.MotormilaGlassBorder
+import lk.motormila.app.ui.theme.MotormilaGlassFill
+import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.applePress
 import lk.motormila.app.ui.theme.fluidSpring
-import lk.motormila.app.ui.theme.pressSpring
-
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.ui.Alignment
-import lk.motormila.app.ui.chat.AIChatBottomSheet
+import lk.motormila.app.ui.theme.liquidGlass
 
 data class BottomNavItem(
     val route: String,
@@ -92,8 +90,10 @@ fun MotormilaScaffold(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     var showAIChat by rememberSaveable { mutableStateOf(false) }
+    val dockShape = RoundedCornerShape(32.dp)
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
                 Box(
@@ -102,26 +102,20 @@ fun MotormilaScaffold(
                         .navigationBarsPadding()
                         .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
                 ) {
-                    val dockShape = RoundedCornerShape(32.dp)
-                    Surface(
-                        shape = dockShape,
-                        color = Color(0xCC0F0F12),
-                        tonalElevation = 0.dp,
-                        shadowElevation = 18.dp,
+                    NavigationBar(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(0.5.dp, MotormilaGlassBorder, dockShape),
+                            .liquidGlass(dockShape, fill = MotormilaGlassFill)
+                            .clip(dockShape),
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White,
+                        tonalElevation = 0.dp,
+                        windowInsets = WindowInsets(0, 0, 0, 0),
                     ) {
-                        NavigationBar(
-                            modifier = Modifier.clip(dockShape),
-                            containerColor = Color.Transparent,
-                            contentColor = Color.White,
-                            tonalElevation = 0.dp,
-                            windowInsets = WindowInsets(0, 0, 0, 0),
-                        ) {
                         motormilaNavItems().forEach { item ->
                             val isSelected = selected == item.route
                             val count = item.badgeKey?.let { badgeFor(it, badges) }
+                            val interaction = remember(item.route) { MutableInteractionSource() }
 
                             val iconScale by animateFloatAsState(
                                 targetValue = if (isSelected) 1.12f else 1.0f,
@@ -132,8 +126,14 @@ fun MotormilaScaffold(
                             NavigationBarItem(
                                 selected = isSelected,
                                 onClick = { onNavigate(item.route) },
+                                interactionSource = interaction,
                                 icon = {
-                                    Box(modifier = Modifier.scale(iconScale)) {
+                                    Box(
+                                        modifier = Modifier.graphicsLayer {
+                                            scaleX = iconScale
+                                            scaleY = iconScale
+                                        },
+                                    ) {
                                         if (count != null && count > 0) {
                                             BadgedBox(
                                                 badge = {
@@ -173,10 +173,11 @@ fun MotormilaScaffold(
                                     unselectedIconColor = MotormilaSecondaryText,
                                     unselectedTextColor = MotormilaSecondaryText,
                                 ),
-                                modifier = Modifier.semantics { contentDescription = item.label },
+                                modifier = Modifier
+                                    .applePress(interaction, pressedScale = 0.94f)
+                                    .semantics { contentDescription = item.label },
                             )
                         }
-                    }
                     }
                 }
             }
@@ -187,28 +188,25 @@ fun MotormilaScaffold(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    // Motormila AI Assistant FAB
                     val aiInteraction = remember { MutableInteractionSource() }
-                    val aiPressed by aiInteraction.collectIsPressedAsState()
-                    val aiFabScale by animateFloatAsState(
-                        targetValue = if (aiPressed) 0.92f else 1.0f,
-                        animationSpec = pressSpring(),
-                        label = "ai-fab-press",
-                    )
-
                     FloatingActionButton(
                         onClick = { showAIChat = true },
-                        containerColor = Color(0xFF0F0F12),
+                        containerColor = Color.Transparent,
                         contentColor = MotormilaPrimaryBright,
                         elevation = FloatingActionButtonDefaults.elevation(
-                            defaultElevation = 6.dp,
-                            pressedElevation = 10.dp,
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp,
                         ),
                         interactionSource = aiInteraction,
+                        shape = CircleShape,
                         modifier = Modifier
                             .size(48.dp)
-                            .scale(aiFabScale)
-                            .border(1.5.dp, Color(0xFF0A7AFF), CircleShape)
+                            .applePress(aiInteraction, pressedScale = 0.92f)
+                            .liquidGlass(
+                                CircleShape,
+                                fill = MotormilaGlassFillStrong,
+                                border = Color(0xFF0A7AFF),
+                            )
                             .semantics { contentDescription = "Open Motormila AI Intelligence Assistant" },
                     ) {
                         Icon(
@@ -219,15 +217,7 @@ fun MotormilaScaffold(
                         )
                     }
 
-                    // Plate Scan FAB
-                    val interaction = remember { MutableInteractionSource() }
-                    val pressed by interaction.collectIsPressedAsState()
-                    val fabScale by animateFloatAsState(
-                        targetValue = if (pressed) 0.92f else 1.0f,
-                        animationSpec = pressSpring(),
-                        label = "fab-press",
-                    )
-
+                    val scanInteraction = remember { MutableInteractionSource() }
                     FloatingActionButton(
                         onClick = onScan,
                         containerColor = MotormilaPrimary,
@@ -236,11 +226,11 @@ fun MotormilaScaffold(
                             defaultElevation = 6.dp,
                             pressedElevation = 10.dp,
                         ),
-                        interactionSource = interaction,
+                        interactionSource = scanInteraction,
+                        shape = CircleShape,
                         modifier = Modifier
                             .size(56.dp)
-                            .scale(fabScale)
-                            .border(1.dp, Color(0x663D94FF), CircleShape)
+                            .applePress(scanInteraction, pressedScale = 0.92f)
                             .semantics { contentDescription = "Scan number plate" },
                     ) {
                         Icon(

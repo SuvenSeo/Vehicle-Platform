@@ -254,7 +254,7 @@ private fun EvHubBody(
                     onHaptic()
                     onSearchModels("electric")
                 },
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -637,7 +637,7 @@ private fun OwnershipGuidelines() {
 @Composable
 private fun OwnershipTile(label: String, value: String, note: String) {
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -691,6 +691,7 @@ private fun ChargersSection(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RadiusOptionsKm.forEach { km ->
                     FilterChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         selected = radiusKm == km,
                         onClick = { onRadius(km) },
                         label = { Text(stringResource(R.string.hub_ev_radius_km, km)) },

@@ -4,7 +4,7 @@ import android.app.Activity
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.Check
@@ -45,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -68,6 +71,10 @@ import lk.motormila.app.ui.components.SearchBar
 import lk.motormila.app.ui.components.rememberReducedMotion
 import lk.motormila.app.ui.scan.VoiceSearchHelper
 import lk.motormila.app.ui.scan.parseVoiceQuery
+import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
+import lk.motormila.app.ui.theme.MotormilaPill
+import lk.motormila.app.ui.theme.fluidSpring
+import lk.motormila.app.ui.theme.liquidGlass
 
 /**
  * Search: query + suggestions + filters + sort + Paging3 LazyColumn
@@ -316,6 +323,7 @@ private fun SortFilterRow(
             FilterChip(
                 selected = sort == s,
                 onClick = { onSort(s) },
+                shape = MotormilaPill,
                 modifier = Modifier.heightIn(min = 48.dp),
                 colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
                     selectedContainerColor = lk.motormila.app.ui.theme.MotormilaPrimary,
@@ -369,7 +377,7 @@ private fun StaggeredItem(index: Int, reducedMotion: Boolean, content: @Composab
     }
     val alpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (shown.value) 1f else 0f,
-        animationSpec = tween(220),
+        animationSpec = fluidSpring(),
         label = "stagger-alpha",
     )
     Box(
@@ -381,7 +389,8 @@ private fun StaggeredItem(index: Int, reducedMotion: Boolean, content: @Composab
 }
 
 @Composable
-private fun CompareToggleRow(selected: Boolean, enabled: Boolean, onToggle: () -> Unit) {    Row(
+private fun CompareToggleRow(selected: Boolean, enabled: Boolean, onToggle: () -> Unit) {
+    Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
@@ -391,6 +400,7 @@ private fun CompareToggleRow(selected: Boolean, enabled: Boolean, onToggle: () -
             selected = selected,
             enabled = enabled,
             onClick = onToggle,
+            shape = MotormilaPill,
             modifier = Modifier.heightIn(min = 48.dp),
             label = { Text(if (selected) "Added to compare" else "Compare") },
             leadingIcon = {
@@ -407,10 +417,13 @@ private fun CompareToggleRow(selected: Boolean, enabled: Boolean, onToggle: () -
 @Composable
 private fun CompareTray(count: Int, onCompare: () -> Unit, onClear: () -> Unit, modifier: Modifier = Modifier) {
     androidx.compose.material3.Surface(
-        tonalElevation = 6.dp,
-        shadowElevation = 8.dp,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
-        modifier = modifier.padding(16.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        color = Color.Transparent,
+        shape = RoundedCornerShape(28.dp),
+        modifier = modifier
+            .padding(16.dp)
+            .liquidGlass(RoundedCornerShape(28.dp), fill = MotormilaGlassFillStrong),
     ) {
         Row(
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -429,6 +442,7 @@ private fun CompareTray(count: Int, onCompare: () -> Unit, onClear: () -> Unit, 
             Button(
                 onClick = onCompare,
                 enabled = count >= 2,
+                shape = CircleShape,
                 modifier = Modifier.heightIn(min = 48.dp),
             ) { Text("Compare") }
         }

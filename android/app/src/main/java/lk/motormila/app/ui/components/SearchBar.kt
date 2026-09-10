@@ -27,14 +27,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.domain.model.Listing
+import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
+import lk.motormila.app.ui.theme.MotormilaPill
+import lk.motormila.app.ui.theme.liquidGlass
 
 /**
  * Docked search field + suggestions dropdown + voice slot + recent searches.
@@ -58,7 +61,7 @@ fun SearchBar(
             value = query,
             onValueChange = onQueryChange,
             singleLine = true,
-            shape = RoundedCornerShape(999.dp),
+            shape = MotormilaPill,
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 Row {
@@ -87,8 +90,11 @@ fun SearchBar(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    .padding(top = 6.dp)
+                    .liquidGlass(RoundedCornerShape(28.dp), fill = MotormilaGlassFillStrong),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                shape = RoundedCornerShape(28.dp),
             ) {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     if (query.isBlank()) {

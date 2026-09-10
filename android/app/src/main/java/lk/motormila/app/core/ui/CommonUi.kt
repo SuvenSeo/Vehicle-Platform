@@ -1,6 +1,7 @@
 package lk.motormila.app.core.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -20,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +34,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import lk.motormila.app.core.motion.rememberReducedMotion
+import lk.motormila.app.ui.theme.applePress
 
 /** Standard 48dp-minimum primary action. */
 @Composable
@@ -41,12 +45,16 @@ fun PrimaryAction(
     enabled: Boolean = true,
     loading: Boolean = false,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
         enabled = enabled && !loading,
+        shape = CircleShape,
+        interactionSource = interaction,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
+            .applePress(interaction)
             .semantics { contentDescription = label },
     ) {
         if (loading) {
@@ -82,6 +90,7 @@ fun ErrorRetry(
         Spacer(Modifier.height(16.dp))
         Button(
             onClick = onRetry,
+            shape = CircleShape,
             modifier = Modifier.heightIn(min = 48.dp),
         ) { Text("Retry") }
     }
@@ -118,6 +127,7 @@ fun EmptyState(
             Spacer(Modifier.height(16.dp))
             OutlinedButton(
                 onClick = onAction,
+                shape = CircleShape,
                 modifier = Modifier.heightIn(min = 48.dp),
             ) { Text(actionLabel) }
         }
@@ -149,7 +159,7 @@ fun SkeletonList(
                     Modifier
                         .fillMaxWidth()
                         .height(84.dp)
-                        .clip(RoundedCornerShape(22.dp)),
+                        .clip(RoundedCornerShape(28.dp)),
                 )
             }
         }

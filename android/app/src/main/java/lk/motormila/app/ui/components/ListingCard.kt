@@ -3,13 +3,10 @@
 package lk.motormila.app.ui.components
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -50,11 +47,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import lk.motormila.app.core.format.LkrFormat
+import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.domain.model.DealBand
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.navigation.LocalNavAnimatedVisibilityScope
 import lk.motormila.app.ui.navigation.LocalSharedTransitionScope
 import lk.motormila.app.ui.navigation.listingHeroKey
+import lk.motormila.app.ui.theme.MotormilaGlassBorder
+import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
+import lk.motormila.app.ui.theme.applePress
+import lk.motormila.app.ui.theme.fluidSpring
 
 /**
  * 28dp card, 16:10 Coil image, source badge, 48dp heart with burst scale,
@@ -74,20 +76,11 @@ fun ListingCard(
     sharedElementModifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
     val reducedMotion = rememberReducedMotion()
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed && !reducedMotion) 0.97f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "card-press",
-    )
     val haptics = LocalHapticFeedback.current
     val watchScale by animateFloatAsState(
         targetValue = if (isWatched) 1.15f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
+        animationSpec = fluidSpring(),
         label = "heart-burst",
     )
     val band = listing.dealBand()
@@ -108,11 +101,11 @@ fun ListingCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .scale(pressScale)
+            .applePress(interaction)
             .semantics { contentDescription = "${listing.displayName}, ${listing.formattedPrice()}" },
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
+        colors = CardDefaults.cardColors(containerColor = MotormilaGlassFillStrong),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MotormilaGlassBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 6.dp),
         onClick = onClick,
         interactionSource = interaction,
@@ -160,7 +153,11 @@ fun ListingCard(
                         imageVector = if (isWatched) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = null,
                         tint = if (isWatched) MaterialTheme.colorScheme.error else Color.White,
-                        modifier = Modifier.scale(if (reducedMotion) 1f else watchScale),
+                        modifier = Modifier.graphicsLayer {
+                            val s = if (reducedMotion) 1f else watchScale
+                            scaleX = s
+                            scaleY = s
+                        },
                     )
                 }
             }

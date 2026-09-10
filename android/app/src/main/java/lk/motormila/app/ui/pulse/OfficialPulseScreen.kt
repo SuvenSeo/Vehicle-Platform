@@ -266,7 +266,7 @@ private fun SignalsPane(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.weight(1f),
@@ -279,7 +279,7 @@ private fun SignalsPane(
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.weight(1f),
@@ -353,6 +353,7 @@ private fun SignalsPane(
 @Composable
 private fun SourceChip(label: String, selected: Boolean, onClick: () -> Unit) {
     FilterChip(
+        shape = androidx.compose.foundation.shape.CircleShape,
         selected = selected,
         onClick = onClick,
         label = { Text(label) },

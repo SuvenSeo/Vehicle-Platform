@@ -306,6 +306,7 @@ private fun ProUpsellChips(onUpgrade: () -> Unit) {
                 R.string.calc_tab_depreciation,
             ).forEach { labelRes ->
                 FilterChip(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     selected = false,
                     onClick = onUpgrade,
                     label = { Text(stringResource(labelRes)) },
@@ -420,6 +421,7 @@ private fun LandedPane(
                         val label = fuelLabel(fuel)
                         val fuelCd = stringResource(R.string.calc_cd_fuel, label)
                         FilterChip(
+                            shape = androidx.compose.foundation.shape.CircleShape,
                             selected = form.fuelType == fuel,
                             onClick = { onForm(form.copy(fuelType = fuel)) },
                             label = { Text(label) },
@@ -453,7 +455,7 @@ private fun LandedPane(
                 Button(
                     onClick = onCalculate,
                     enabled = !state.calculatingLanded,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -545,7 +547,7 @@ private fun TcoPane(
                 Button(
                     onClick = onCalculate,
                     enabled = !state.calculatingTco,
-                    shape = RoundedCornerShape(22.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -606,7 +608,7 @@ private fun TcoLockedCard(onUpgrade: () -> Unit) {
             )
             Button(
                 onClick = onUpgrade,
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -911,7 +913,7 @@ private fun CalcTextField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,

@@ -87,9 +87,11 @@ import lk.motormila.app.ui.components.DealBadge
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaOutline
+import lk.motormila.app.ui.theme.MotormilaPill
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.MotormilaSheetShape
 import lk.motormila.app.ui.theme.MotormilaSurface
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaSurfaceHighest
@@ -129,7 +131,7 @@ fun AIChatBottomSheet(
         sheetState = sheetState,
         containerColor = MotormilaSurface,
         scrimColor = Color.Black.copy(alpha = 0.72f),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = MotormilaSheetShape,
         dragHandle = null,
         modifier = modifier
             .fillMaxHeight(0.92f)
@@ -223,7 +225,7 @@ private fun AIChatHeader(
                 .align(Alignment.CenterHorizontally)
                 .width(36.dp)
                 .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(RoundedCornerShape(999.dp))
                 .background(Color(0x33FFFFFF)),
         )
 
@@ -243,9 +245,9 @@ private fun AIChatHeader(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(CircleShape)
                         .background(Color(0x2E0A7AFF))
-                        .border(1.dp, Color(0x663D94FF), RoundedCornerShape(24.dp)),
+                        .border(1.dp, Color(0x663D94FF), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -323,6 +325,7 @@ private fun ChatErrorRow(
             modifier = Modifier.weight(1f),
         )
         TextButton(
+            shape = androidx.compose.foundation.shape.CircleShape,
             onClick = onRetry,
             modifier = Modifier.heightIn(min = 48.dp),
         ) { Text("Retry") }
@@ -369,9 +372,9 @@ private fun QuickPromptChipsRow(
             Row(
                 modifier = Modifier
                     .scale(chipScale)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(MotormilaPill)
                     .background(Color(0x1A0A7AFF))
-                    .border(0.8.dp, Color(0x550A7AFF), RoundedCornerShape(22.dp))
+                    .border(0.8.dp, Color(0x550A7AFF), MotormilaPill)
                     .clickable(
                         interactionSource = interaction,
                         indication = null,
@@ -781,7 +784,7 @@ private fun EmbeddedVehicleCard(
         Box(
             modifier = Modifier
                 .size(68.dp)
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(28.dp))
                 .background(MotormilaBg),
             contentAlignment = Alignment.Center,
         ) {
@@ -869,9 +872,9 @@ private fun EmbeddedVehicleCard(
 private fun LoadingThinkingIndicator(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(Color(0x1A0A7AFF))
-            .border(0.8.dp, Color(0x440A7AFF), RoundedCornerShape(22.dp))
+            .border(0.8.dp, Color(0x440A7AFF), RoundedCornerShape(28.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),

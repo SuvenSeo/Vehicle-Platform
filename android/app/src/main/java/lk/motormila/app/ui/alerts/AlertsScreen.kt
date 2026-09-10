@@ -154,6 +154,7 @@ fun AlertsScreen(
                                 )
                             } else if (state.alerts.isNotEmpty()) {
                                 TextButton(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     onClick = { viewModel.onEvent(AlertsUiEvent.RefreshMatches) },
                                     modifier = Modifier.heightIn(min = 48.dp),
                                 ) { Text("Refresh matches") }
@@ -222,11 +223,13 @@ private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgra
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     selected = f.push,
                     onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(push = !f.push))) },
                     label = { Text("Push") }, modifier = Modifier.heightIn(min = 48.dp),
                 )
                 FilterChip(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     selected = f.email,
                     onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(email = !f.email))) },
                     label = { Text("Email") }, modifier = Modifier.heightIn(min = 48.dp),
@@ -241,7 +244,7 @@ private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgra
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f),
                     )
-                    AssistChip(onClick = onUpgrade, label = { Text("Go Pro") })
+                    AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = onUpgrade, label = { Text("Go Pro") })
                 }
                 Spacer(Modifier.height(8.dp))
             }
@@ -252,6 +255,7 @@ private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgra
                     loading = state.updating,
                 )
                 TextButton(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     onClick = { viewModel.onEvent(AlertsUiEvent.CancelEdit) },
                     modifier = Modifier.heightIn(min = 48.dp).fillMaxWidth(),
                 ) { Text("Cancel editing") }
@@ -349,7 +353,7 @@ private fun AlertRow(
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         }
-                        AssistChip(onClick = { onOpenDetail(m.id) }, label = { Text("View") })
+                        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = { onOpenDetail(m.id) }, label = { Text("View") })
                     }
                 }
             } else if (!active) {

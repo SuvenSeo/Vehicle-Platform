@@ -314,7 +314,7 @@ private fun CompareEmptyState(
                 containerColor = MotormilaPrimary,
                 contentColor = Color.White,
             ),
-            shape = RoundedCornerShape(22.dp),
+            shape = androidx.compose.foundation.shape.CircleShape,
             modifier = Modifier
                 .heightIn(min = 48.dp)
                 .semantics { contentDescription = "Browse listings" },

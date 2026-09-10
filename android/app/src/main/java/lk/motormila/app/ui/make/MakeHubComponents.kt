@@ -294,7 +294,7 @@ internal fun MakeHubBrowseButton(
 ) {
     Button(
         onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
+        shape = androidx.compose.foundation.shape.CircleShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MotormilaPrimary,
             contentColor = MotormilaOnPrimary,

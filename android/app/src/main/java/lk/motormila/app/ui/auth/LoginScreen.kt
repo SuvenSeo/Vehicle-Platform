@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
 import lk.motormila.app.ui.theme.MotormilaOutline
+import lk.motormila.app.ui.theme.MotormilaPill
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import androidx.compose.material3.Scaffold
@@ -198,6 +199,7 @@ fun LoginScreen(
                 onValueChange = { viewModel.onEvent(AuthUiEvent.EmailChanged(it)) },
                 label = { Text("Email") },
                 singleLine = true,
+                shape = MotormilaPill,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             )
             Spacer(Modifier.height(8.dp))
@@ -207,6 +209,7 @@ fun LoginScreen(
                 label = { Text("Password") },
                 singleLine = true,
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                shape = MotormilaPill,
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
@@ -225,6 +228,7 @@ fun LoginScreen(
                     label = { Text("Invite token") },
                     singleLine = true,
                     supportingText = { Text("Invite-only: get a token from /admin or your dealer.") },
+                    shape = MotormilaPill,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 )
             }
@@ -237,6 +241,7 @@ fun LoginScreen(
             if (state.error != null && !state.loading) {
                 Spacer(Modifier.height(8.dp))
                 TextButton(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     onClick = { viewModel.onEvent(AuthUiEvent.Retry) },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) {
@@ -250,10 +255,10 @@ fun LoginScreen(
                     viewModel.onEvent(AuthUiEvent.PasswordChanged("motormila2026"))
                     viewModel.onEvent(AuthUiEvent.Submit)
                 },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color(0x440A7AFF), RoundedCornerShape(24.dp))
+                    .border(1.dp, Color(0x440A7AFF), RoundedCornerShape(28.dp))
                     .semantics { contentDescription = "Quick sign-in with review account" },
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0x1A0A7AFF),
@@ -302,6 +307,7 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             TextButton(
+                shape = androidx.compose.foundation.shape.CircleShape,
                 onClick = onBrowse,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -309,7 +315,7 @@ fun LoginScreen(
             ) {
                 Text(browseMarketLabel)
             }
-            TextButton(onClick = {}, modifier = Modifier.heightIn(min = 48.dp)) {
+            TextButton(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Forgot password?")
             }
         }

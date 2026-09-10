@@ -262,7 +262,7 @@ private fun DistrictHubBody(
             val browseLabel = stringResource(R.string.district_hub_browse, displayName)
             Button(
                 onClick = { onSeeAllSearch(searchDistrict) },
-                shape = RoundedCornerShape(22.dp),
+                shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,

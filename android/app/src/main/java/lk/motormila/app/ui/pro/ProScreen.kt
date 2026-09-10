@@ -316,6 +316,7 @@ private fun ProContent(
                                 horizontalArrangement = Arrangement.End,
                             ) {
                                 TextButton(
+                                    shape = androidx.compose.foundation.shape.CircleShape,
                                     onClick = { onToggleDistrict(d.district) },
                                     modifier = Modifier.heightIn(min = 48.dp),
                                 ) {
@@ -356,6 +357,7 @@ private fun ProContent(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3.0, 5.0, 8.0).forEach { pct ->
                     FilterChip(
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         selected = state.arbitrageThresholdPct == pct,
                         onClick = { onThreshold(pct) },
                         label = { Text("≥ ${"%.0f".format(pct)}%") },
@@ -390,7 +392,7 @@ private fun ProContent(
                                 modifier = Modifier.weight(1f),
                             )
                             if (hot && !blurred) {
-                                AssistChip(onClick = {}, label = { Text("GAP ${formatPct(a.gapPct)}") })
+                                AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("GAP ${formatPct(a.gapPct)}") })
                             }
                         }
                         Text(
@@ -469,7 +471,7 @@ private fun BlurredPreview() {
 
 @Composable
 private fun KpiChip(label: String, value: String) {
-    AssistChip(onClick = {}, label = { Text("$label: $value") })
+    AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("$label: $value") })
 }
 
 private fun previewLanes() = listOf(

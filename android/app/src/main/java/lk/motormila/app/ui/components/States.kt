@@ -87,7 +87,7 @@ fun LoadingSkeletonCard(modifier: Modifier = Modifier) {
             .padding(12.dp)
             .semantics { contentDescription = "Loading listing" },
     ) {
-        Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(22.dp)).shimmer(!reduced))
+        Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(28.dp)).shimmer(!reduced))
         Spacer(Modifier.height(10.dp))
         Box(Modifier.width(180.dp).height(16.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
         Spacer(Modifier.height(6.dp))
@@ -122,7 +122,7 @@ fun LoadingSkeletonChart(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(28.dp))
             .shimmer(!reduced)
             .semantics { contentDescription = "Loading chart" },
     )
@@ -151,7 +151,7 @@ fun EmptyState(
         Text(body, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         if (ctaLabel != null && onCta != null) {
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onCta) { Text(ctaLabel) }
+            Button(onClick = onCta, shape = CircleShape) { Text(ctaLabel) }
         }
     }
 }
@@ -188,15 +188,15 @@ fun ErrorState(
         )
         Spacer(Modifier.height(16.dp))
         if (isAuthError && onLogin != null) {
-            Button(onClick = onLogin) { Text("Sign in to Motormila") }
+            Button(onClick = onLogin, shape = CircleShape) { Text("Sign in to Motormila") }
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onRetry) { Text("Retry") }
+            OutlinedButton(onClick = onRetry, shape = CircleShape) { Text("Retry") }
         } else {
-            Button(onClick = onRetry) { Text("Retry") }
+            Button(onClick = onRetry, shape = CircleShape) { Text("Retry") }
         }
         if (cachedAvailable && onShowCached != null) {
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onShowCached) { Text("Show cached results") }
+            OutlinedButton(onClick = onShowCached, shape = CircleShape) { Text("Show cached results") }
         }
     }
 }
@@ -212,6 +212,8 @@ fun OfflineBanner(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(999.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
             .semantics { contentDescription = "Offline, showing cached data" },

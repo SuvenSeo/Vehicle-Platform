@@ -148,6 +148,7 @@ fun ProfileScreen(
                                             )
                                         }
                                         AssistChip(
+                                            shape = androidx.compose.foundation.shape.CircleShape,
                                             onClick = { navTap(onProClick) },
                                             colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
                                                 containerColor = androidx.compose.ui.graphics.Color(0x2E0A7AFF),
@@ -169,6 +170,7 @@ fun ProfileScreen(
                                     if (p.isAdmin) {
                                         Spacer(Modifier.height(8.dp))
                                         AssistChip(
+                                            shape = androidx.compose.foundation.shape.CircleShape,
                                             onClick = { navTap(onSettingsClick) },
                                             label = { Text("ADMIN — manage invites in /admin") },
                                             leadingIcon = {
@@ -245,6 +247,7 @@ fun ProfileScreen(
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 p.badges.forEach { b ->
                                     AssistChip(
+                                        shape = androidx.compose.foundation.shape.CircleShape,
                                         onClick = {},
                                         label = { Text("${if (b.earned) "★ " else "☆ "}${b.label}") },
                                         modifier = Modifier.heightIn(min = 48.dp),

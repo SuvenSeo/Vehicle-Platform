@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -98,6 +99,7 @@ fun FilterSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        shape = lk.motormila.app.ui.theme.MotormilaSheetShape,
         modifier = modifier.semantics { contentDescription = "Search filters" },
     ) {
         Column(
@@ -165,10 +167,12 @@ fun FilterSheet(
                         draft = FilterDraft()
                         onReset()
                     },
+                    shape = CircleShape,
                     modifier = Modifier.weight(1f),
                 ) { Text("Reset") }
                 Button(
                     onClick = { onApply(draft.toQuery(current)) },
+                    shape = CircleShape,
                     modifier = Modifier.weight(2f),
                 ) {
                     Text(if (resultCount != null) "Show $resultCount results" else "Apply filters")
@@ -206,6 +210,7 @@ private fun ChipFlow(
             FilterChip(
                 selected = isSel,
                 onClick = { onSelect(if (isSel) null else option) },
+                shape = CircleShape,
                 label = { Text(option) },
                 modifier = Modifier.heightIn(min = 48.dp),
             )

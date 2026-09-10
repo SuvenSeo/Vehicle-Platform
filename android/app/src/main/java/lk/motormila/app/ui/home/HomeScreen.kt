@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,6 +87,7 @@ import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.applePress
 
 /** Data representation for Trending Models rail. */
 data class TrendingModelItem(
@@ -710,9 +712,9 @@ private fun MetricMiniCell(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF131318)),
-        modifier = modifier.border(1.dp, MotormilaOutline, RoundedCornerShape(22.dp)),
+        modifier = modifier.border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
@@ -742,6 +744,7 @@ private fun MetricMiniCell(
  * - VEHICLE TYPES ("Browse cars, vans, and SUVs across the live index.")
  * - VERIFIED SIGNALS ("Deal scores and seller trust baked into every listing.")
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeatureBannersRow(
     onVehicleTypesClick: () -> Unit,
@@ -752,14 +755,17 @@ private fun FeatureBannersRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // Card 1: VEHICLE TYPES
+        val typesInteraction = remember { MutableInteractionSource() }
         Card(
+            onClick = onVehicleTypesClick,
+            interactionSource = typesInteraction,
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
             modifier = Modifier
                 .weight(1f)
                 .height(115.dp)
-                .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp))
-                .clickable(onClick = onVehicleTypesClick),
+                .applePress(typesInteraction)
+                .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
         ) {
             Box(
                 modifier = Modifier
@@ -927,12 +933,15 @@ private fun HubShortcutCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Card(
         onClick = onClick,
+        interactionSource = interaction,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .heightIn(min = 96.dp)
+            .applePress(interaction)
             .semantics { this.contentDescription = contentDescription },
     ) {
         Column(
@@ -1142,19 +1151,23 @@ private fun TrendingModelsRail(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TrendingModelCard(
     item: TrendingModelItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Card(
+        onClick = onClick,
+        interactionSource = interaction,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .width(260.dp)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp))
-            .clickable(onClick = onClick),
+            .applePress(interaction)
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -1244,12 +1257,15 @@ private fun SectionRow(title: String, onSeeAll: (() -> Unit)?) {
 
 @Composable
 private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dropPct: Double, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
     Card(
         onClick = onClick,
+        interactionSource = interaction,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .width(220.dp)
+            .applePress(interaction)
             .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column {
@@ -1284,12 +1300,15 @@ private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dr
 
 @Composable
 private fun HotDealCard(title: String, imageUrl: String?, price: String, score: Double, isPro: Boolean, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
     Card(
         onClick = onClick,
+        interactionSource = interaction,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .width(220.dp)
+            .applePress(interaction)
             .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column {

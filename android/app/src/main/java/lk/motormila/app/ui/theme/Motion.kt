@@ -13,11 +13,13 @@ val AppleEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 /** Emphasized easing cubic (0.05, 0.7, 0.1, 1). */
 val EmphasizedEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 
-/** Standard Apple smooth tween: 300ms. */
-fun <T> appleTween() = tween<T>(durationMillis = 300, easing = AppleEasing)
+/** Standard Apple smooth tween. */
+fun <T> appleTween(durationMillis: Int = 300) =
+    tween<T>(durationMillis = durationMillis, easing = AppleEasing)
 
 /** Standard emphasized tween: 350ms. */
-fun <T> emphasizedTween() = tween<T>(durationMillis = 350, easing = EmphasizedEasing)
+fun <T> emphasizedTween(durationMillis: Int = 350) =
+    tween<T>(durationMillis = durationMillis, easing = EmphasizedEasing)
 
 /** Snappy press feedback with natural Apple spring physics. */
 fun <T> pressSpring() = spring<T>(
@@ -29,6 +31,21 @@ fun <T> pressSpring() = spring<T>(
 fun <T> fluidSpring() = spring<T>(
     dampingRatio = 0.65f,
     stiffness = 380f,
+)
+
+/**
+ * Overdamped push-navigation spring (iOS-like: settles without bounce).
+ * Pair with a short fade tween; do not spring opacity.
+ */
+fun <T> pushSpring() = spring<T>(
+    dampingRatio = 0.86f,
+    stiffness = 380f,
+)
+
+/** Tab cross-fade scale spring — slightly stiffer than [pushSpring]. */
+fun <T> tabSpring() = spring<T>(
+    dampingRatio = 0.90f,
+    stiffness = 500f,
 )
 
 /** Bottom-sheet entrance. */

@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
+import coil3.memory.MemoryCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import androidx.hilt.work.HiltWorkerFactory
@@ -59,7 +60,12 @@ class MotormilaApp : Application(), SingletonImageLoader.Factory, Configuration.
             .components {
                 add(OkHttpNetworkFetcherFactory(callFactory = { okHttpClient }))
             }
-            .crossfade(true)
+            .memoryCache {
+                MemoryCache.Builder()
+                    .maxSizePercent(context, 0.28)
+                    .build()
+            }
+            .crossfade(160)
             .build()
 
     private fun createNotificationChannels() {

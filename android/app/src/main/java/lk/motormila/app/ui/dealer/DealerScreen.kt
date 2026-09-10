@@ -184,11 +184,12 @@ private fun ProfileCard(state: DealerUiState, viewModel: DealerViewModel, onCont
                     )
                 }
                 TextButton(
+                    shape = androidx.compose.foundation.shape.CircleShape,
                     onClick = { viewModel.onEvent(DealerUiEvent.SignOut) },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text("Release") }
             }
-            TextButton(onClick = onContactSupport, modifier = Modifier.heightIn(min = 48.dp)) {
+            TextButton(shape = androidx.compose.foundation.shape.CircleShape, onClick = onContactSupport, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text("Something wrong? Contact support")
             }
         }
