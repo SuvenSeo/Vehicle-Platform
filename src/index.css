@@ -1800,8 +1800,8 @@
 }
 @media (max-width: 640px) {
   .aw-tooltip-in, .aw-tooltip-out { display: none !important; }
-  .aw-fab-wrapper { right: 14px; bottom: 16px; }
-  .aw-panel-wrapper { right: 10px; bottom: 82px; }
+  .aw-fab-wrapper { right: 14px; bottom: 88px; }
+  .aw-panel-wrapper { right: 10px; bottom: 154px; height: min(650px, calc(100vh - 180px)); }
 }
 
 @media (min-width: 1024px) and (max-height: 760px) {
