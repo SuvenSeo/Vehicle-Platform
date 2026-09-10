@@ -161,8 +161,8 @@ jobs:
           SNAPSHOT_SOURCE_DIR: public/snapshots/latest
         run: |
           set -euo pipefail
-          echo "Full catalog export from SQLite (Neon outage override)"
-          python backend/export_public_snapshots.py --output backend/snapshots/latest
+          echo "Full catalog export from SQLite (zero-egress refresh)"
+          COLD_DATABASE_URL="sqlite:///${GITHUB_WORKSPACE}/backend/motormila.db" python backend/export_public_snapshots.py --output backend/snapshots/latest
           mkdir -p public/snapshots/latest
           cp -r backend/snapshots/latest/. public/snapshots/latest/
           bash scripts/deploy-snapshots-to-prod.sh
