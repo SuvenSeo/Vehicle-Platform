@@ -1,9 +1,12 @@
 import { MotionConfig } from "framer-motion";
 import { Suspense, useState, useEffect } from "react";
-import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ScrollRestoration } from "@/components/ScrollRestoration";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { RouteFallback } from "@/components/RouteFallback";
+import { RouteTransition } from "@/components/RouteTransition";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { prefetchAppShellRoutes } from "@/lib/routePrefetch";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -75,17 +78,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const MinimalLoader = () => (
-  <div className="flex h-[50vh] w-full items-center justify-center" aria-label="Loading" role="status">
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative w-10 h-10">
-        <div className="absolute inset-0 rounded-full border-2 border-foreground/[0.08]" />
-        <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" />
-      </div>
-      <p className="tech-label">Loading</p>
-    </div>
-  </div>
-);
+const MinimalLoader = () => <RouteFallback />;
 
 function TrialBannerSlot() {
   const { user } = useAuth();
@@ -119,8 +112,8 @@ function AppShell({ chatMounted }: { chatMounted: boolean }) {
       <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
           <TrialBannerSlot />
         <RouteErrorBoundary>
-          <Suspense fallback={<MinimalLoader />}>
-            <Outlet />
+          <Suspense fallback={<RouteFallback />}>
+            <RouteTransition />
           </Suspense>
         </RouteErrorBoundary>
       </main>
@@ -151,11 +144,19 @@ const App = () => {
   const [chatMounted, setChatMounted] = useState(false);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setChatMounted(true), 2000);
-    // Do not clear chunk/css reload guards on mount — that re-arms infinite
-    // reload loops when a stale asset is still being served. Guards expire
-    // via TTL in lazyWithRetry / index.html instead.
-    return () => window.clearTimeout(id);
+    const chatId = window.setTimeout(() => setChatMounted(true), 2000);
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    if (typeof window.requestIdleCallback === "function") {
+      idleHandle = window.requestIdleCallback(() => prefetchAppShellRoutes(), { timeout: 2500 });
+    } else {
+      timeoutHandle = window.setTimeout(() => prefetchAppShellRoutes(), 1200);
+    }
+    return () => {
+      window.clearTimeout(chatId);
+      if (idleHandle !== undefined) window.cancelIdleCallback?.(idleHandle);
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle);
+    };
   }, []);
 
   return (

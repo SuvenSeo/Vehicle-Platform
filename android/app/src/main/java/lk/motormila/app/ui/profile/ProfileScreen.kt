@@ -64,6 +64,11 @@ fun ProfileScreen(
     onPulseClick: () -> Unit = {},
     onBestPicksClick: () -> Unit = {},
     onCalculatorClick: () -> Unit = {},
+    onCompareClick: () -> Unit = {},
+    onTrendsClick: () -> Unit = {},
+    onDocsClick: () -> Unit = {},
+    onPricingClick: () -> Unit = {},
+    onPermitsClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -265,6 +270,26 @@ fun ProfileScreen(
                                 label = stringResource(R.string.hub_calc_title),
                                 onClick = { navTap(onCalculatorClick) },
                                 openDescription = stringResource(R.string.hub_open_calc),
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_compare_title),
+                                onClick = { navTap(onCompareClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_trends_title),
+                                onClick = { navTap(onTrendsClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_permits_title),
+                                onClick = { navTap(onPermitsClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_docs_title),
+                                onClick = { navTap(onDocsClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_pricing_title),
+                                onClick = { navTap(onPricingClick) },
                             )
                         }
                         item {

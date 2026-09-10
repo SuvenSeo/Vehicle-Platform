@@ -1129,9 +1129,9 @@ export default function Dashboard() {
                   variants={cardContainerVariants}
                   className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
                 >
-                  {listings.map((listing) => (
+                  {listings.map((listing, index) => (
                     <motion.div key={listing.id} variants={cardItemVariants}>
-                      <ListingCard listing={listing} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
+                      <ListingCard listing={listing} priority={index < 6} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
                     </motion.div>
                   ))}
                 </motion.div>

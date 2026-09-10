@@ -5,7 +5,7 @@ import { visuals } from "@/lib/visualAssets";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { PrefetchLink } from "@/components/PrefetchLink";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -24,13 +24,13 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ label: s
       <ul className="mt-6 space-y-4">
         {links.map((link) => (
           <li key={link.label}>
-            <Link
+            <PrefetchLink
               to={link.to}
               className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
             >
               <span>{link.label}</span>
               <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
-            </Link>
+            </PrefetchLink>
           </li>
         ))}
       </ul>
@@ -160,7 +160,7 @@ export function AppFooter() {
             <h2 id="platform-footer-title" className="sr-only">
               Motormila
             </h2>
-            <Link
+            <PrefetchLink
               to="/"
               className="group inline-flex items-center gap-3 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
               aria-label={t("footer.homeAria", "Go to Motormila home")}
@@ -181,7 +181,7 @@ export function AppFooter() {
                   {t("footer.tagline", "Market Intelligence")}
                 </span>
               </span>
-            </Link>
+            </PrefetchLink>
 
             <p className="mt-6 text-[14px] leading-7 text-zinc-400">
               {t(
@@ -191,13 +191,13 @@ export function AppFooter() {
             </p>
 
             <motion.div whileHover={reduceMotion ? undefined : { y: -2 }} whileTap={reduceMotion ? undefined : { scale: 0.98 }}>
-              <Link
+              <PrefetchLink
                 to="/pricing"
                 className="mt-8 inline-flex items-center gap-2 rounded-[14px] bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-300 px-6 py-4 text-[13px] font-semibold text-[#04101f] no-underline shadow-[0_10px_40px_rgba(34,211,238,0.25)] transition-[filter] duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
               >
                 {t("footer.explorePro", "Explore Pro")}
                 <ArrowUpRight className="h-4 w-4" />
-              </Link>
+              </PrefetchLink>
             </motion.div>
           </div>
 

@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalSharedTransitionApi::class)
+
 package lk.motormila.app.ui.detail
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -102,6 +105,9 @@ import lk.motormila.app.ui.components.LoadingSkeletonChart
 import lk.motormila.app.ui.components.LockedValue
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.PriceChart
+import lk.motormila.app.ui.navigation.LocalNavAnimatedVisibilityScope
+import lk.motormila.app.ui.navigation.LocalSharedTransitionScope
+import lk.motormila.app.ui.navigation.listingHeroKey
 import lk.motormila.app.ui.share.FmvShare
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaGoodContainer
@@ -223,6 +229,7 @@ fun ListingDetailScreen(
                             GalleryPager(
                                 images = listing.images.ifEmpty { listOfNotNull(listing.thumbnailUrl) },
                                 title = listing.displayName,
+                                listingId = listing.id,
                             )
                         }
                         item {
@@ -427,8 +434,9 @@ fun ListingDetailScreen(
 }
 
 /** Gallery pager with parallax dots (dots scale/translate with page offset). */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun GalleryPager(images: List<String>, title: String) {
+private fun GalleryPager(images: List<String>, title: String, listingId: Int) {
     if (images.isEmpty()) {
         EmptyState(
             title = "No photos",
@@ -439,6 +447,8 @@ private fun GalleryPager(images: List<String>, title: String) {
         return
     }
     val pagerState = rememberPagerState(pageCount = { images.size })
+    val sharedScope = LocalSharedTransitionScope.current
+    val animatedScope = LocalNavAnimatedVisibilityScope.current
     Column {
         HorizontalPager(
             state = pagerState,
@@ -447,11 +457,21 @@ private fun GalleryPager(images: List<String>, title: String) {
                 .aspectRatio(16f / 10f)
                 .semantics { contentDescription = "Photos of $title, ${images.size} photos" },
         ) { page ->
+            val heroModifier = if (page == 0 && sharedScope != null && animatedScope != null) {
+                with(sharedScope) {
+                    Modifier.sharedElement(
+                        rememberSharedContentState(key = listingHeroKey(listingId)),
+                        animatedScope,
+                    )
+                }
+            } else {
+                Modifier
+            }
             AsyncImage(
                 model = images[page],
                 contentDescription = "Photo ${page + 1} of $title",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().then(heroModifier),
             )
         }
         Row(

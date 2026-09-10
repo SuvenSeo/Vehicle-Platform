@@ -1,6 +1,8 @@
 import { BrandLogo } from "@/components/BrandLogo";
 import { scrollBehavior } from "@/lib/motion";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { motion } from "framer-motion";
 import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, Shield, UserCircle2, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -254,17 +256,24 @@ export function Navbar() {
                     <a
                       key={`${section.id}-${section.label}`}
                       href={section.href}
+                      onPointerEnter={() => prefetchRoute(section.href)}
+                      onFocus={() => prefetchRoute(section.href)}
                       onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                       aria-current={active ? "page" : undefined}
                       data-active={active}
-                      className={`relative whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium tracking-tight no-underline outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 xl:px-2.5 xl:text-[12px] 2xl:px-3.5 ${
+                      className={`relative whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium tracking-tight no-underline outline-none transition-all duration-200 ease-apple active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 xl:px-2.5 xl:text-[12px] 2xl:px-3.5 ${
                         active
                           ? "text-foreground"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {active && (
-                        <span className="absolute inset-0 rounded-full bg-card shadow-soft" />
+                        <motion.span
+                          layoutId="desktop-nav-pill"
+                          className="absolute inset-0 rounded-full bg-card shadow-soft"
+                          transition={{ type: "spring", bounce: 0, duration: 0.32 }}
+                          aria-hidden
+                        />
                       )}
                       <span className="relative z-10">{section.label}</span>
                     </a>
@@ -298,6 +307,7 @@ export function Navbar() {
                   {moreSections.map((section) => (
                     <DropdownMenuItem
                       key={section.href}
+                      onPointerEnter={() => prefetchRoute(section.href)}
                       onSelect={() => navigate(section.href)}
                       className="rounded-2xl px-3 py-2 text-foreground/80 focus:bg-accent focus:text-foreground"
                     >

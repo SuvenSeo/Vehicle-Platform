@@ -75,6 +75,16 @@ class SearchRouteArgsTest {
         assertEquals("Colombo", (district as DistrictHub).district)
 
         assertTrue(resolveMotormilaDeepLink("motormila://calculator") is Calculator)
+        assertTrue(resolveMotormilaDeepLink("motormila://pulse/12") is OfficialPulseDetail)
+        assertEquals(12, (resolveMotormilaDeepLink("motormila://pulse/12") as OfficialPulseDetail).id)
+        assertTrue(
+            resolveMotormilaDeepLink("https://motormila.vercel.app/official-pulse/9") is OfficialPulseDetail,
+        )
+        assertTrue(isTabNavRoute(Home::class.qualifiedName))
+        assertFalse(isTabNavRoute(ListingDetail::class.qualifiedName))
+        assertFalse(isTabNavRoute(null))
+        assertTrue(isTabSwitch(Home::class.qualifiedName, Search::class.qualifiedName))
+        assertFalse(isTabSwitch(Home::class.qualifiedName, ListingDetail::class.qualifiedName))
         assertTrue(
             resolveMotormilaDeepLink("https://motormila.vercel.app/cars/toyota/aqua") is MakeModelHub,
         )

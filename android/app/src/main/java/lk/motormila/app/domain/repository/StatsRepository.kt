@@ -41,6 +41,8 @@ interface StatsRepository {
 
     suspend fun marketSignals(limit: Int = 20): List<MarketSignal>
 
+    suspend fun marketSignal(id: Int): MarketSignal
+
     /** Lightweight "live" ticker for the home live-strip (poll/SSE abstracted by data). */
     fun liveListings(limit: Int = 10): Flow<List<Listing>>
 

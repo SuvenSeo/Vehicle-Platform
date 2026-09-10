@@ -35,3 +35,18 @@ export const revealItem = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: springSoft },
 } as const;
+
+/** Route enter/exit — opacity + 12px rise. Transform-only so the GPU stays cheap. */
+export const pageEnter = {
+  opacity: 1,
+  y: 0,
+  transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+} as const;
+
+export const pageInitial = { opacity: 0, y: 10 } as const;
+
+export const pageExit = {
+  opacity: 0,
+  y: -6,
+  transition: { duration: 0.16, ease: [0.16, 1, 0.3, 1] },
+} as const;

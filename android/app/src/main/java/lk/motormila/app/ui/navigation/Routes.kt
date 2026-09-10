@@ -70,6 +70,9 @@ data object EvHub
 data object OfficialPulse
 
 @Serializable
+data class OfficialPulseDetail(val id: Int)
+
+@Serializable
 data object BestPicks
 
 @Serializable
@@ -159,6 +162,10 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
         if (segments.size >= 2 && segments[0] == "locations") {
             return DistrictHub(segments[1])
         }
+        if (segments.size >= 2 && segments[0] == "official-pulse") {
+            if (segments[1] == "guide") return OfficialPulse
+            return segments[1].toIntOrNull()?.let { OfficialPulseDetail(it) }
+        }
         if (segments.firstOrNull() == "calculator") return Calculator
         return null
     }
@@ -177,7 +184,10 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
         "picks" -> BestPicks
         "home" -> if (parsed.flagQuery("dealOfDay")) BestPicks else Home
         "ev" -> EvHub
-        "pulse" -> OfficialPulse
+        "pulse" -> {
+            val id = segments.firstOrNull()?.toIntOrNull()
+            if (id != null) OfficialPulseDetail(id) else OfficialPulse
+        }
         "scan" -> PlateScan
         "listing" -> segments.firstOrNull()?.toIntOrNull()?.let { ListingDetail(it) }
         "pro" -> if (parsed.queryOrNull("deal") == "day") BestPicks else Pro

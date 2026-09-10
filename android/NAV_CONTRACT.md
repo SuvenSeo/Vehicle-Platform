@@ -56,7 +56,7 @@ fun WatchlistScreen(
 // lk.motormila.app.ui.insights — InsightsScreen.kt
 @Composable
 fun InsightsScreen(
-    onOpenPulseDetail: (signalId: String) -> Unit, // -> Notifications
+    onOpenPulseDetail: (signalId: String) -> Unit, // -> OfficialPulseDetail(id)
     onDrillDistrict: (district: String) -> Unit,  // -> Search(district=district)
     onSearchModels: (query: String) -> Unit,      // -> Search(q=query)
     viewModel: InsightsViewModel = hiltViewModel(),
@@ -152,6 +152,11 @@ fun ProfileScreen(
     onPulseClick: () -> Unit = {},   // -> OfficialPulse
     onBestPicksClick: () -> Unit = {}, // -> BestPicks
     onCalculatorClick: () -> Unit = {}, // -> Calculator
+    onCompareClick: () -> Unit = {},     // -> Compare
+    onTrendsClick: () -> Unit = {},     // -> Insights
+    onDocsClick: () -> Unit = {},       // web /docs
+    onPricingClick: () -> Unit = {},     // web /pricing
+    onPermitsClick: () -> Unit = {},    // -> OfficialPulse
     viewModel: ProfileViewModel = hiltViewModel(),
 )
 
@@ -191,7 +196,17 @@ fun EvHubScreen(
 fun OfficialPulseScreen(
     onBack: () -> Unit,                 // popBackStack
     onOpenUrl: (String) -> Unit,        // LocalUriHandler
+    onOpenSignal: (Int) -> Unit = {},  // -> OfficialPulseDetail
     viewModel: OfficialPulseViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.pulse — OfficialPulseDetailScreen.kt
+@Composable
+fun OfficialPulseDetailScreen(
+    onBack: () -> Unit,
+    onOpenUrl: (String) -> Unit,
+    onOpenGuide: () -> Unit,
+    viewModel: OfficialPulseDetailViewModel = hiltViewModel(),
 )
 
 // lk.motormila.app.ui.bestpicks — BestPicksScreen.kt (Agent 2)
@@ -269,6 +284,7 @@ New screens: add the destination to `Routes.kt`, wire it in
 @Serializable data object Notifications / Pro / Dealer / Settings / PlateScan
 @Serializable data class ShareImport(val url: String? = null)
 @Serializable data object EvHub / OfficialPulse / BestPicks / Calculator
+@Serializable data class OfficialPulseDetail(val id: Int)
 @Serializable data class MakeHub(val make: String)
 @Serializable data class MakeModelHub(val make: String, val model: String)
 @Serializable data class DistrictHub(val district: String)
