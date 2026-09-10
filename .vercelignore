@@ -13,4 +13,3 @@ __pycache__/
 *.log
 .pytest_cache/
 /android/
-public/snapshots/latest/listing-catalog*.json
