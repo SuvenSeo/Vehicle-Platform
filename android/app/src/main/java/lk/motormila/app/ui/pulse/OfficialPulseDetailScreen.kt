@@ -137,7 +137,7 @@ fun OfficialPulseDetailScreen(
                         color = MotormilaSecondaryText,
                     )
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

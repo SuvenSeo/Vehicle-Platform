@@ -46,7 +46,7 @@ export function DataFreshnessIndicator({
     return (
       <div
         className={cn(
-          "flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.06] px-4 py-2.5",
+          "flex items-start gap-2 rounded-2xl border border-primary/20 bg-primary/[0.06] px-4 py-2.5",
           className,
         )}
         role="status"
@@ -88,7 +88,7 @@ export function DataFreshnessIndicator({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
         tone.border,
         tone.text,
         className,

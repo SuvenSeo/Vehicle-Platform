@@ -109,7 +109,7 @@ function AppShell({ chatMounted }: { chatMounted: boolean }) {
           <AIChatWidget />
         </Suspense>
       )}
-      <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
+      <main id="main-content" className="relative z-[1] pt-[4rem] pb-24 md:pb-0">
           <TrialBannerSlot />
         <RouteErrorBoundary>
           <Suspense fallback={<RouteFallback />}>

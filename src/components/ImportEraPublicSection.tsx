@@ -45,7 +45,7 @@ export function ImportEraPublicSection() {
       {loading ? (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-lg border border-border bg-surface" />
+            <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface" />
           ))}
         </div>
       ) : error ? (
@@ -60,7 +60,7 @@ export function ImportEraPublicSection() {
             const premium =
               pre && post && pre > 0 ? Math.round(((post - pre) / pre) * 1000) / 10 : null;
             return (
-              <article key={row.make} className="rounded-lg border border-border bg-surface p-4">
+              <article key={row.make} className="rounded-2xl border border-border bg-surface p-4">
                 <p className="text-sm font-semibold text-foreground">{row.make}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                   <div>
@@ -93,7 +93,7 @@ export function ImportEraPublicSection() {
         </div>
       )}
 
-      <div className="mt-5 flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <Crown className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <div>
@@ -105,7 +105,7 @@ export function ImportEraPublicSection() {
         </div>
         <Link
           to="/pro"
-          className="inline-flex h-9 items-center gap-1.5 self-start rounded-lg border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground no-underline hover:bg-foreground/[0.03]"
+          className="inline-flex h-9 items-center gap-1.5 self-start rounded-2xl border border-border px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground no-underline hover:bg-foreground/[0.03]"
         >
           <ArrowRightLeft className="h-3.5 w-3.5" />
           Open Pro lanes

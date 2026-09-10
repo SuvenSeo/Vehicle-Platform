@@ -6,9 +6,13 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
@@ -26,11 +30,13 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,8 +48,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import lk.motormila.app.R
 import lk.motormila.app.ui.home.badgeFor
+import lk.motormila.app.ui.theme.MotormilaGlassBorder
 import lk.motormila.app.ui.theme.MotormilaGood
-import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
@@ -90,20 +96,29 @@ fun MotormilaScaffold(
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                // Apple Liquid Glass navigation dock
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(
-                            width = 0.5.dp,
-                            color = MotormilaOutline,
-                        ),
+                        .navigationBarsPadding()
+                        .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
                 ) {
-                    NavigationBar(
-                        containerColor = Color(0xF20F0F12),
-                        contentColor = Color.White,
+                    val dockShape = RoundedCornerShape(32.dp)
+                    Surface(
+                        shape = dockShape,
+                        color = Color(0xCC0F0F12),
                         tonalElevation = 0.dp,
+                        shadowElevation = 18.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(0.5.dp, MotormilaGlassBorder, dockShape),
                     ) {
+                        NavigationBar(
+                            modifier = Modifier.clip(dockShape),
+                            containerColor = Color.Transparent,
+                            contentColor = Color.White,
+                            tonalElevation = 0.dp,
+                            windowInsets = WindowInsets(0, 0, 0, 0),
+                        ) {
                         motormilaNavItems().forEach { item ->
                             val isSelected = selected == item.route
                             val count = item.badgeKey?.let { badgeFor(it, badges) }
@@ -161,6 +176,7 @@ fun MotormilaScaffold(
                                 modifier = Modifier.semantics { contentDescription = item.label },
                             )
                         }
+                    }
                     }
                 }
             }

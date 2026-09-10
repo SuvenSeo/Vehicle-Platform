@@ -149,7 +149,7 @@ fun SkeletonList(
                     Modifier
                         .fillMaxWidth()
                         .height(84.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(22.dp)),
                 )
             }
         }

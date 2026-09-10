@@ -139,7 +139,7 @@ function AlertMatchSection({ token }: { token: string }) {
       </div>
 
       {error && (
-        <p className="mb-4 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] text-destructive/80">
+        <p className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] text-destructive/80">
           {error}
         </p>
       )}
@@ -194,7 +194,7 @@ function AlertMatchSection({ token }: { token: string }) {
                         <Link
                           to={`/listing/${listing.id}`}
                           aria-label={t("alerts.viewListingAria", "View listing {title}", { title: listing.title || listing.id })}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-foreground"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground no-underline transition-all hover:border-primary/40 hover:text-foreground"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
@@ -600,17 +600,17 @@ function AlertRow({
             {alert.district && <span>{alert.district}</span>}
             {alert.max_price && <span className="num">{t("alerts.underPrice", "Under {price}", { price: formatPrice(alert.max_price) })}</span>}
             {alert.notify_phone && (
-              <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+              <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
                 WA {alert.notify_phone}
               </span>
             )}
             {alert.notify_email && (
-              <span className="rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
+              <span className="rounded-full border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-400">
                 ✉ {alert.notify_email}
               </span>
             )}
             {alert.notify_telegram_chat_id && (
-              <span className="rounded-md border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
+              <span className="rounded-full border border-sky-500/25 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 dark:text-sky-400">
                 TG {alert.notify_telegram_chat_id}
               </span>
             )}
@@ -623,7 +623,7 @@ function AlertRow({
           <Link
             to={`/?make=${encodeURIComponent(alert.make || "")}&model=${encodeURIComponent(alert.model || "")}${alert.district ? `&district=${encodeURIComponent(alert.district)}` : ""}${alert.max_price ? `&price_max=${alert.max_price}` : ""}#market`}
             onClick={() => trackEvent("listing_view", { user_token: token, alert_token: token, alert_id: alert.id })}
-            className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
+            className="flex h-7 items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
           >
             {t("common.browse", "Browse")}
           </Link>
@@ -632,7 +632,7 @@ function AlertRow({
             onClick={handleDelete}
             disabled={deleting}
             aria-label={t("alerts.deleteAria", "Delete alert for {label}", { label })}
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-rose-600 disabled:opacity-40 dark:hover:text-rose-400"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-destructive/40 hover:text-rose-600 disabled:opacity-40 dark:hover:text-rose-400"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -764,7 +764,7 @@ export default function Alerts() {
         )}
 
         {!loading && error && alerts.length === 0 && (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] font-medium text-destructive/80" role="alert">
+          <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] font-medium text-destructive/80" role="alert">
             {error}
           </div>
         )}
@@ -793,7 +793,7 @@ export default function Alerts() {
             </p>
             <div className="space-y-1.5">
               {localAlerts.map((a) => (
-                <div key={a.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+                <div key={a.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{a.label}</p>
                     {a.target_price_lkr ? (
@@ -802,7 +802,7 @@ export default function Alerts() {
                   </div>
                   <Link
                     to={`/?${new URLSearchParams(Object.fromEntries(Object.entries(a.filters).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))).toString()}#market`}
-                    className="flex h-7 items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
+                    className="flex h-7 items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 text-[10px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/20"
                   >
                     {t("common.browse", "Browse")}
                   </Link>

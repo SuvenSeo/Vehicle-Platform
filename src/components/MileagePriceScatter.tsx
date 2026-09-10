@@ -58,7 +58,7 @@ export const MileagePriceScatter = memo(function MileagePriceScatter({
     <div className="data-card p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <p className="tech-label">{title}</p>
-        <span className="rounded-lg border border-border bg-surface px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+        <span className="rounded-2xl border border-border bg-surface px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
           {validPoints.length} listings
         </span>
       </div>

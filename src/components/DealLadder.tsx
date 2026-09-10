@@ -73,7 +73,7 @@ export function DealLadder({ askingPrice, marketMedianLkr, className }: DealLadd
             <li
               key={rung.band}
               className={cn(
-                "flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                "flex items-center justify-between rounded-2xl border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
                 rung.active ? tone.active : tone.idle,
               )}
             >

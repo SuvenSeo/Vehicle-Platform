@@ -29,7 +29,7 @@ function formatDate(iso: string | null): string {
 function FlagRow({ flag }: { flag: HistoryReportFlag }) {
   const Icon = FLAG_ICON[flag.kind] || Info;
   return (
-    <div className={`flex items-start gap-2.5 rounded-lg border p-3 ${flagTone(flag.severity)}`}>
+    <div className={`flex items-start gap-2.5 rounded-2xl border p-3 ${flagTone(flag.severity)}`}>
       <Icon className="h-4 w-4 shrink-0 mt-0.5" />
       <p className="text-[12px] leading-relaxed font-medium">{flag.detail}</p>
     </div>
@@ -71,7 +71,7 @@ export function ListingHistoryReport({ listingId }: { listingId: number | string
       className="rounded-xl border border-border bg-card p-5 backdrop-blur-md"
     >
       <div className="mb-4 flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+        <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
           <History className="h-4 w-4 text-primary-bright" />
         </div>
         <div>
@@ -119,7 +119,7 @@ export function ListingHistoryReport({ listingId }: { listingId: number | string
               <Link
                 key={r.id}
                 to={`/listing/${r.id}`}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-2.5 no-underline transition-colors hover:border-primary/40 hover:bg-card"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-2.5 no-underline transition-colors hover:border-primary/40 hover:bg-card"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[12px] font-semibold text-foreground">{r.title}</span>

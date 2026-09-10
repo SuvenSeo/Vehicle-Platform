@@ -254,7 +254,7 @@ private fun EvHubBody(
                     onHaptic()
                     onSearchModels("electric")
                 },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -350,7 +350,7 @@ private fun HubMetricCard(
     valueColor: Color = MotormilaOnSurface,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = modifier,
@@ -431,7 +431,7 @@ private fun TopModelsSection(
             val searchCd = stringResource(R.string.hub_ev_search_model, model)
             Card(
                 onClick = { onSearchModels(model) },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier
@@ -472,7 +472,7 @@ private fun TopModelsSection(
 private fun TcoCard(state: EvHubUiState) {
     val saving = LkrFormat.price(state.annualFuelSavingLkr)
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -580,7 +580,7 @@ private fun ModuleCard(
     tint: Color,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -605,7 +605,7 @@ private fun ModuleCard(
 @Composable
 private fun OwnershipGuidelines() {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -637,7 +637,7 @@ private fun OwnershipGuidelines() {
 @Composable
 private fun OwnershipTile(label: String, value: String, note: String) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -663,7 +663,7 @@ private fun ChargersSection(
     onRadius: (Int) -> Unit,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -730,7 +730,7 @@ private fun ChargerRow(station: ChargingStation) {
     val place = listOfNotNull(station.town, station.address).firstOrNull().orEmpty()
     val rowCd = stringResource(R.string.hub_ev_cd_charger, station.name, distance)
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = rowCd },
@@ -768,7 +768,7 @@ private fun ChargerRow(station: ChargingStation) {
 @Composable
 private fun UpgradeStrip(title: String, body: String) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),

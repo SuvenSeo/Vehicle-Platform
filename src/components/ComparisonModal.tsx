@@ -449,13 +449,13 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
                         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
                           {isBestDeal ? (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-400/30 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-emerald-300 backdrop-blur-md">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-emerald-300 backdrop-blur-md">
                               <BadgeCheck className="h-2.5 w-2.5" />
                               Best deal
                             </span>
                           ) : null}
                           {isLowestPrice && !isBestDeal ? (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-zinc-100 backdrop-blur-md">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-zinc-100 backdrop-blur-md">
                               Lowest
                             </span>
                           ) : null}
@@ -485,15 +485,15 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                         </div>
 
                         <div className="flex flex-wrap gap-1.5 text-[10px] font-medium text-muted-foreground">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-card/80 px-1.5 py-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-card/80 px-1.5 py-0.5">
                             <Gauge className="h-2.5 w-2.5" />
                             {formatMileageCompact(mileage)}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-md bg-card/80 px-1.5 py-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-card/80 px-1.5 py-0.5">
                             <Fuel className="h-2.5 w-2.5" />
                             {formatToken(listing.fuel_type)}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-md bg-card/80 px-1.5 py-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-card/80 px-1.5 py-0.5">
                             <MapPin className="h-2.5 w-2.5" />
                             {listing.district || "—"}
                           </span>

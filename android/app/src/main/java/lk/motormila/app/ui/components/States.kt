@@ -82,16 +82,16 @@ fun LoadingSkeletonCard(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(MaterialTheme.colorScheme.surface)
             .padding(12.dp)
             .semantics { contentDescription = "Loading listing" },
     ) {
-        Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(12.dp)).shimmer(!reduced))
+        Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(22.dp)).shimmer(!reduced))
         Spacer(Modifier.height(10.dp))
-        Box(Modifier.width(180.dp).height(16.dp).clip(RoundedCornerShape(6.dp)).shimmer(!reduced))
+        Box(Modifier.width(180.dp).height(16.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
         Spacer(Modifier.height(6.dp))
-        Box(Modifier.width(120.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).shimmer(!reduced))
+        Box(Modifier.width(120.dp).height(14.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
     }
 }
 
@@ -105,12 +105,12 @@ fun LoadingSkeletonRow(modifier: Modifier = Modifier) {
             .semantics { contentDescription = "Loading row" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(56.dp).clip(RoundedCornerShape(10.dp)).shimmer(!reduced))
+        Box(Modifier.size(56.dp).clip(RoundedCornerShape(28.dp)).shimmer(!reduced))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Box(Modifier.width(160.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).shimmer(!reduced))
+            Box(Modifier.width(160.dp).height(14.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
             Spacer(Modifier.height(6.dp))
-            Box(Modifier.width(100.dp).height(12.dp).clip(RoundedCornerShape(6.dp)).shimmer(!reduced))
+            Box(Modifier.width(100.dp).height(12.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
         }
     }
 }
@@ -122,7 +122,7 @@ fun LoadingSkeletonChart(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(22.dp))
             .shimmer(!reduced)
             .semantics { contentDescription = "Loading chart" },
     )

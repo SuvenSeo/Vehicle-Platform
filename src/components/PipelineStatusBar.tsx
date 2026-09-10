@@ -141,9 +141,9 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
         </div>
 
         <div className="flex items-center gap-2 tech-label">
-          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{healthyJobs} healthy</span>
-          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{runningJobs} running</span>
-          <span className="rounded-md border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{delayedJobs} delayed</span>
+          <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{healthyJobs} healthy</span>
+          <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{runningJobs} running</span>
+          <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-primary-bright num">{delayedJobs} delayed</span>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
               return (
                 <li
                   key={row.source}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2 py-1"
                   title={row.last_success ? `Last success ${row.last_success}` : "Never synced"}
                 >
                   <span className="tech-label text-foreground">{row.source}</span>
@@ -224,7 +224,7 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
                       />
                       <p className="text-sm font-semibold text-foreground truncate">{prettifyJobName(job.name)}</p>
                     </div>
-                    <span className="tech-label rounded-md border border-border bg-card px-2 py-1 text-foreground">
+                    <span className="tech-label rounded-full border border-border bg-card px-2 py-1 text-foreground">
                       {job.status}
                     </span>
                   </div>

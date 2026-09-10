@@ -214,7 +214,7 @@ function ListingResults({ messageId, listings }: { messageId: string; listings?:
       {listings.slice(0, 3).map((item) => {
         const sourceUrl = safeExternalUrl(item.external_url);
         return (
-          <div key={`${messageId}-${item.id}`} className="rounded-xl border border-border bg-surface p-3 transition-colors hover:border-primary/40">
+          <div key={`${messageId}-${item.id}`} className="rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-primary/40">
             <p className="line-clamp-2 text-xs font-bold leading-snug text-foreground">{item.title}</p>
             <p className="mt-1 ui-caption num text-muted-foreground">
               {item.price_lkr ? formatPrice(item.price_lkr) : t("chat.card.priceUnavailable", "Price unavailable")}
@@ -273,7 +273,7 @@ function WebSourcesPanel({ sources }: { sources: ChatWebSource[] }) {
               href={src.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col gap-0.5 rounded-xl border border-border bg-surface p-2.5 no-underline transition-colors hover:border-primary/30"
+              className="flex flex-col gap-0.5 rounded-2xl border border-border bg-surface p-2.5 no-underline transition-colors hover:border-primary/30"
             >
               <span className="line-clamp-1 text-xs font-semibold text-foreground">{src.title}</span>
               <span className="line-clamp-2 ui-caption leading-snug text-muted-foreground">{src.snippet}</span>
@@ -456,9 +456,9 @@ export function AIChatWidget() {
 
       {showTooltip && !open && (
         <div
-          className={`${tooltipOut ? "aw-tooltip-out" : "aw-tooltip-in"} fixed bottom-7 right-[92px] z-[9998] hidden max-w-[250px] items-center gap-3 rounded-xl border border-primary/25 bg-popover/95 px-3 py-3 shadow-soft-lg backdrop-blur-2xl sm:flex`}
+          className={`${tooltipOut ? "aw-tooltip-out" : "aw-tooltip-in"} fixed bottom-7 right-[92px] z-[9998] hidden max-w-[250px] items-center gap-3 rounded-2xl border border-primary/25 bg-popover/95 px-3 py-3 shadow-soft-lg backdrop-blur-2xl sm:flex`}
         >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12 text-primary">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/12 text-primary">
             <Bot className="h-4 w-4" />
           </div>
           <div>
@@ -489,13 +489,13 @@ export function AIChatWidget() {
         <section
           role="dialog"
           aria-modal="false"
-          className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-xl border border-border bg-card text-foreground shadow-soft-xl`}
+          className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-3xl border border-white/40 bg-card/80 text-foreground shadow-soft-xl backdrop-blur-2xl dark:border-white/12`}
           aria-label={t("chat.header.title", "Motormila Copilot")}
         >
           <header className="border-b border-border px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12 text-primary">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-primary/12 text-primary">
                   <Bot className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
@@ -509,7 +509,7 @@ export function AIChatWidget() {
                 <button
                   type="button"
                   onClick={() => setShowGuide((value) => !value)}
-                  className={`aw-ctrl flex h-9 w-9 items-center justify-center rounded-xl border transition-colors ${
+                  className={`aw-ctrl flex h-9 w-9 items-center justify-center rounded-2xl border transition-colors ${
                     showGuide
                       ? "border-primary/35 bg-primary/12 text-primary"
                       : "border-border bg-surface text-muted-foreground hover:text-foreground"
@@ -521,7 +521,7 @@ export function AIChatWidget() {
                 <button
                   type="button"
                   onClick={closePanel}
-                  className="aw-ctrl flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-muted-foreground transition-colors hover:text-foreground"
+                  className="aw-ctrl flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-surface text-muted-foreground transition-colors hover:text-foreground"
                   aria-label={t("chat.close", "Close Motormila Copilot")}
                 >
                   <X className="h-4 w-4" />
@@ -530,11 +530,11 @@ export function AIChatWidget() {
             </div>
 
             {showGuide && (
-              <div className="mt-4 grid gap-2 rounded-xl border border-border bg-surface p-3">
+              <div className="mt-4 grid gap-2 rounded-2xl border border-border bg-surface p-3">
                 {CAPABILITIES.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <div key={item.title} className="flex gap-3 rounded-xl bg-card p-2.5">
+                    <div key={item.title} className="flex gap-3 rounded-2xl bg-card p-2.5">
                       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <div>
                         <p className="text-xs font-bold text-foreground">{item.title}</p>
@@ -549,7 +549,7 @@ export function AIChatWidget() {
 
           <div className="aw-scroll flex-1 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
-              <div className="aw-msg rounded-xl border border-border bg-card p-4">
+              <div className="aw-msg rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 tech-label font-bold text-primary">
                   <Sparkles className="h-3.5 w-3.5" />
                   {pageContext.label}
@@ -569,7 +569,7 @@ export function AIChatWidget() {
                       key={action.label}
                       type="button"
                       onClick={() => sendPrompt(action.value)}
-                      className="aw-chip rounded-xl border border-border bg-surface px-3 py-2 text-left text-label font-mono font-bold text-foreground transition-colors hover:border-primary/40"
+                      className="aw-chip rounded-2xl border border-border bg-surface px-3 py-2 text-left text-label font-mono font-bold text-foreground transition-colors hover:border-primary/40"
                     >
                       {action.label}
                     </button>
@@ -587,7 +587,7 @@ export function AIChatWidget() {
                     className={`flex flex-col gap-2 ${assistant ? "items-start" : "items-end"}`}
                   >
                     <div
-                      className={`max-w-[88%] rounded-xl border px-4 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[88%] rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
                         assistant
                           ? "border-border bg-card text-foreground"
                           : "border-primary/25 bg-primary/12 text-primary"
@@ -615,7 +615,7 @@ export function AIChatWidget() {
               })}
 
               {loading && (
-                <div className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary-bright">
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary-bright">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   {t("chat.thinking", "Reading live market context...")}
                 </div>
@@ -631,7 +631,7 @@ export function AIChatWidget() {
                   key={`footer-${action.label}`}
                   type="button"
                   onClick={() => sendPrompt(action.value)}
-                  className="aw-chip rounded-xl border border-border bg-card px-2.5 py-1.5 tech-label font-bold text-muted-foreground transition-colors hover:text-foreground"
+                  className="aw-chip rounded-2xl border border-border bg-card px-2.5 py-1.5 tech-label font-bold text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {action.label}
                 </button>
@@ -639,13 +639,13 @@ export function AIChatWidget() {
               <button
                 type="button"
                 onClick={clearChat}
-                className="aw-chip rounded-xl border border-border bg-surface px-2.5 py-1.5 tech-label font-bold text-muted-foreground transition-colors hover:text-foreground"
+                className="aw-chip rounded-2xl border border-border bg-surface px-2.5 py-1.5 tech-label font-bold text-muted-foreground transition-colors hover:text-foreground"
               >
                 {t("chat.quick.clear", "Clear")}
               </button>
             </div>
 
-            <div className={`aw-input-wrap flex items-end gap-2 rounded-xl border border-border bg-surface p-2 ${focused ? "focused" : ""}`}>
+            <div className={`aw-input-wrap flex items-end gap-2 rounded-2xl border border-border bg-surface p-2 ${focused ? "focused" : ""}`}>
               <Car className="mb-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <textarea
                 ref={textareaRef}
@@ -667,7 +667,7 @@ export function AIChatWidget() {
                 type="button"
                 onClick={() => sendPrompt(input)}
                 disabled={!input.trim() || loading}
-                className="aw-send flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-transform active:scale-95 disabled:bg-surface disabled:text-muted-foreground disabled:active:scale-100"
+                className="aw-send flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground transition-transform active:scale-95 disabled:bg-surface disabled:text-muted-foreground disabled:active:scale-100"
                 aria-label={t("chat.send", "Send message")}
               >
                 <Send className="h-4 w-4" />

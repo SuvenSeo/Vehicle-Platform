@@ -191,7 +191,7 @@ export default function BestPicks() {
         {/* Biggest cuts this week — powered by per-listing price history */}
         <motion.section initial="hidden" animate="show" variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft backdrop-blur-md sm:p-6">
             <div className="flex items-center gap-2.5 border-b border-border pb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10">
+              <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10">
                 <TrendingDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
               </div>
               <div>
@@ -202,7 +202,7 @@ export default function BestPicks() {
             {!dropsLoaded ? (
               <div className="grid gap-2.5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-lg border border-border bg-surface animate-pulse" />
+                  <div key={i} className="h-24 rounded-2xl border border-border bg-surface animate-pulse" />
                 ))}
               </div>
             ) : drops.length === 0 ? (
@@ -221,7 +221,7 @@ export default function BestPicks() {
                       <span className="truncate text-[12px] font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                         {drop.listing.make} {drop.listing.model}{drop.listing.year ? ` ${drop.listing.year}` : ""}
                       </span>
-                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 num">
+                      <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 num">
                         −{drop.drop_pct}%
                       </span>
                     </div>
@@ -282,7 +282,7 @@ export default function BestPicks() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{featured.source}</span>
-                        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
                           <Star className="mr-1 inline h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />{dealBandLabel(score, t)}
                         </span>
                       </div>
@@ -334,12 +334,12 @@ export default function BestPicks() {
                         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" aria-hidden />
                         <Link to={`/listing/${listing.id}`} className="relative block aspect-[16/10] overflow-hidden bg-muted no-underline">
                           <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
-                          <span className="absolute left-2 top-2 rounded-md border border-white/20 bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white num backdrop-blur-sm">{String(idx + 2).padStart(2, "0")}</span>
+                          <span className="absolute left-2 top-2 rounded-full border border-white/20 bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white num backdrop-blur-sm">{String(idx + 2).padStart(2, "0")}</span>
                         </Link>
                         <div className="flex flex-1 flex-col gap-3 p-4">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{listing.source}</span>
-                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score, t)}</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score, t)}</span>
                           </div>
                           <Link to={`/listing/${listing.id}`} className="block no-underline">
                             <h3 className="font-display text-[15px] font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors truncate">{listing.make} {listing.model}</h3>

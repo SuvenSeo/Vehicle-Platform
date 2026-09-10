@@ -87,7 +87,7 @@ export function ListingPriceTimeline({
     <section className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
             <LineChart className="h-4 w-4 text-primary-bright" />
           </div>
           <div>
@@ -109,7 +109,7 @@ export function ListingPriceTimeline({
       </div>
 
       <div className="grid grid-cols-2 gap-2 border-b border-border pb-4 sm:grid-cols-4">
-        <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="rounded-2xl border border-border bg-surface p-3">
           <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Opening ask</p>
           <p className="mt-1 text-[13px] font-bold text-foreground num">
             {history.first_price_lkr ? formatPrice(history.first_price_lkr) : "—"}
@@ -118,7 +118,7 @@ export function ListingPriceTimeline({
             <p className="mt-0.5 text-[10px] text-muted-foreground">{formatFullDate(points[0].scraped_at)}</p>
           ) : null}
         </div>
-        <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="rounded-2xl border border-border bg-surface p-3">
           <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Current ask</p>
           <p className="mt-1 text-[13px] font-bold text-foreground num">
             {history.current_price_lkr ? formatPrice(history.current_price_lkr) : "—"}
@@ -127,7 +127,7 @@ export function ListingPriceTimeline({
             <p className="mt-0.5 text-[10px] text-muted-foreground">Updated {formatFullDate(lastChangeAt)}</p>
           ) : null}
         </div>
-        <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="rounded-2xl border border-border bg-surface p-3">
           <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Total move</p>
           <div
             className={`mt-1 inline-flex items-center gap-1 text-[13px] font-bold num ${
@@ -142,7 +142,7 @@ export function ListingPriceTimeline({
             {formatChangePct(changePct)}
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-surface p-3">
+        <div className="rounded-2xl border border-border bg-surface p-3">
           <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Price moves</p>
           <p className="mt-1 text-[13px] font-bold text-foreground num">
             {cutCount > 0 || raiseCount > 0 ? (

@@ -242,7 +242,7 @@ private fun TrendsTab(
         state.summary?.let { summary ->
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth()
@@ -269,7 +269,7 @@ private fun TrendsTab(
         // Selectors Card (16dp rounded glass card)
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -362,7 +362,7 @@ private fun TrendsTab(
         // Median Price Movement Chart with ±10% Confidence Band
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -441,7 +441,7 @@ private fun TrendsTab(
 
                     state.trendCoverageNote?.let {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(28.dp),
                             color = MotormilaSurface,
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.fillMaxWidth(),
@@ -465,7 +465,7 @@ private fun TrendsTab(
             val query = "${s.make} ${s.model}".trim().ifBlank { "All listings" }
             Button(
                 onClick = { onSearchModels("${s.make} ${s.model}".trim()) },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -494,7 +494,7 @@ private fun InsightTextField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
             unfocusedBorderColor = MotormilaOutline,
@@ -578,7 +578,7 @@ private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) 
 private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
     val frac = if (maxScore > 0) (v.velocityScore / maxScore).toFloat().coerceIn(0f, 1f) else 0f
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth()
@@ -646,7 +646,7 @@ private fun FuelMixRow(mix: List<lk.motormila.app.domain.model.FuelMixBucket>) {
 @Composable
 private fun PriceDropCard(drop: PriceDrop) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth()
@@ -765,7 +765,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                 ) {
                     // Metric 1: ELECTRIC LISTINGS LIVE: 599
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                         border = BorderStroke(1.dp, MotormilaOutline),
                         modifier = Modifier.weight(1f),
@@ -803,7 +803,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 
                     // Metric 2: EV MARKET SHARE: 0.3%
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                         border = BorderStroke(1.dp, MotormilaOutline),
                         modifier = Modifier.weight(1f),
@@ -846,7 +846,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                         border = BorderStroke(1.dp, MotormilaOutline),
                         modifier = Modifier.weight(1f),
@@ -876,7 +876,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                     }
 
                     Card(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                         border = BorderStroke(1.dp, MotormilaOutline),
                         modifier = Modifier.weight(1f),
@@ -927,7 +927,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 
                 // 1. Battery Health
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),
@@ -953,7 +953,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 
                 // 2. Duty & Policy
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),
@@ -979,7 +979,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 
                 // 3. Charging Fit
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),
@@ -1008,7 +1008,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
         // Sri Lanka Fast-Charging Network Status
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1058,7 +1058,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                     ) {
                         listOf("CCS2 (50-120kW)", "CHAdeMO (50kW)", "Type 2 (22kW)").forEach { connector ->
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(28.dp),
                                 color = MotormilaSurface,
                                 border = BorderStroke(1.dp, MotormilaOutline),
                                 modifier = Modifier.weight(1f),
@@ -1120,7 +1120,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 
                         activeChargers.forEach { c ->
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(28.dp),
                                 color = MotormilaSurface,
                                 border = BorderStroke(1.dp, MotormilaOutline),
                                 modifier = Modifier.fillMaxWidth(),
@@ -1155,7 +1155,7 @@ private fun IndexTab(state: InsightsUiState) {
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1196,7 +1196,7 @@ private fun IndexTab(state: InsightsUiState) {
         }
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1249,7 +1249,7 @@ private fun DistrictsTab(state: InsightsUiState, onDrillDistrict: (String) -> Un
         item { OfflineBanner(visible = state.offline) }
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "District map placeholder" },
@@ -1288,7 +1288,7 @@ private fun DistrictRow(d: DistrictStat, onDrill: () -> Unit) {
         .joinToString(" · ")
     Card(
         onClick = onDrill,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth()
@@ -1337,7 +1337,7 @@ private fun PulseTab(state: InsightsUiState, live: List<Listing>, onOpenPulseDet
         items(state.pulse, key = { it.id }) { s ->
             Card(
                 onClick = { onOpenPulseDetail(s.id) },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth()
@@ -1354,7 +1354,7 @@ private fun PulseTab(state: InsightsUiState, live: List<Listing>, onOpenPulseDet
         item { SectionTitle("Automotive Industry News") }
         items(state.news, key = { it.id }) { n ->
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),

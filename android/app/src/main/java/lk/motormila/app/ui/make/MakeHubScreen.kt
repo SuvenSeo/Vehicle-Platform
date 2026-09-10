@@ -267,7 +267,7 @@ private fun MakeHubModelRow(
     val rowCd = stringResource(R.string.make_hub_cd_model, make, entry.model)
     Card(
         onClick = { onClick(make, entry.model) },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier

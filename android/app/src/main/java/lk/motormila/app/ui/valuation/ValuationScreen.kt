@@ -206,7 +206,7 @@ private fun ValuationWorkbenchTab(
         // Multi-step appraisal wizard indicator
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -313,7 +313,7 @@ private fun AppraisalWizardStepIndicator(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .clickable { onStepClick(stepNum) }
                     .padding(vertical = 4.dp, horizontal = 2.dp),
             ) {
@@ -393,7 +393,7 @@ private fun Step01VehicleProfile(
     val years = listOf("2024", "2022", "2020", "2018", "2015", "2012")
 
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -596,7 +596,7 @@ private fun Step01VehicleProfile(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -630,7 +630,7 @@ private fun Step02MileageCondition(
     val mileagePresets = listOf("20,000", "45,000", "70,000", "100,000", "140,000")
 
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -662,7 +662,7 @@ private fun Step02MileageCondition(
 
             // Summary of vehicle selected
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 color = MotormilaSurface,
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -756,7 +756,7 @@ private fun Step02MileageCondition(
                     val isSelected = f.condition.equals(condKey, ignoreCase = true)
                     Card(
                         onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(condition = condKey))) },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(22.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected) MotormilaPrimary.copy(alpha = 0.12f) else MotormilaSurface,
                         ),
@@ -829,7 +829,7 @@ private fun Step02MileageCondition(
             ) {
                 OutlinedButton(
                     onClick = onBack,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier
                         .weight(0.8f)
@@ -843,7 +843,7 @@ private fun Step02MileageCondition(
                 Button(
                     onClick = onEstimate,
                     enabled = f.mileageKm.isNotBlank() && !state.estimating,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -916,7 +916,7 @@ private fun Step03ValuationGuidance(
         // When estimating / loading
         if (state.estimating) {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -942,7 +942,7 @@ private fun Step03ValuationGuidance(
         } else if (r != null) {
             // 1. Fair Market Value Hero Card
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier
@@ -1015,7 +1015,7 @@ private fun Step03ValuationGuidance(
 
             // 2. FMV Range Bar Card
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1120,7 +1120,7 @@ private fun Step03ValuationGuidance(
 
             // 3. Strategic Negotiation Angle
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1156,7 +1156,7 @@ private fun Step03ValuationGuidance(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Card(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(22.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1182,7 +1182,7 @@ private fun Step03ValuationGuidance(
                         }
 
                         Card(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(22.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1227,7 +1227,7 @@ private fun Step03ValuationGuidance(
 
             // 4. Private Seller Fair Ask Guidance
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1260,7 +1260,7 @@ private fun Step03ValuationGuidance(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Card(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(22.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1280,7 +1280,7 @@ private fun Step03ValuationGuidance(
                         }
 
                         Card(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(22.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1300,7 +1300,7 @@ private fun Step03ValuationGuidance(
                         }
 
                         Card(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(22.dp),
                             colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.weight(1f),
@@ -1335,7 +1335,7 @@ private fun Step03ValuationGuidance(
                             clipboard.setText(AnnotatedString(text))
                             copiedWhatsApp = true
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(22.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MotormilaGood.copy(alpha = 0.15f),
                             contentColor = MotormilaGoodText,
@@ -1362,7 +1362,7 @@ private fun Step03ValuationGuidance(
             // 5. Comparables
             if (r.comparables.isNotEmpty()) {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),
@@ -1413,7 +1413,7 @@ private fun Step03ValuationGuidance(
 
             // Methodology (how the median/range above is derived).
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1451,7 +1451,7 @@ private fun Step03ValuationGuidance(
             ) {
                 OutlinedButton(
                     onClick = onModify,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier
                         .weight(1f)
@@ -1462,7 +1462,7 @@ private fun Step03ValuationGuidance(
 
                 Button(
                     onClick = onReset,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -1476,7 +1476,7 @@ private fun Step03ValuationGuidance(
             }
         } else {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1498,7 +1498,7 @@ private fun Step03ValuationGuidance(
                     )
                     Button(
                         onClick = onReset,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(22.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MotormilaPrimary,
                             contentColor = MotormilaOnPrimary,
@@ -1527,7 +1527,7 @@ private fun GlassTextField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
@@ -1590,7 +1590,7 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { viewModel.onEvent(ValuationUiEvent.CalcLanded) },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MotormilaPrimary, contentColor = MotormilaOnPrimary),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
@@ -1600,7 +1600,7 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
         state.landed?.let { l ->
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),
@@ -1672,7 +1672,7 @@ private fun LeaseTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             }
             Spacer(Modifier.height(8.dp))
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1723,7 +1723,7 @@ private fun TcoTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             }
             Spacer(Modifier.height(8.dp))
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1769,7 +1769,7 @@ private fun BundleTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             }
             Spacer(Modifier.height(8.dp))
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
@@ -1802,7 +1802,7 @@ private fun PermitsTab() {
         rows.forEach { (name, cadence) ->
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),
@@ -1829,7 +1829,7 @@ private fun DeprecationTab(state: ValuationUiState, viewModel: ValuationViewMode
         viewModel.depreciationSchedule(base).forEach { (label, value) ->
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.fillMaxWidth(),

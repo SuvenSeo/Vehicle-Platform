@@ -29,7 +29,7 @@ export function ListingGeoCard({ geo, isLoading = false }: ListingGeoCardProps) 
     return (
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <div className="h-4 w-32 animate-pulse rounded bg-surface" />
-        <div className="mt-3 h-12 animate-pulse rounded-lg bg-surface" />
+        <div className="mt-3 h-12 animate-pulse rounded-2xl bg-surface" />
       </div>
     );
   }

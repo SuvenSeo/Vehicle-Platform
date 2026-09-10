@@ -57,7 +57,7 @@ import lk.motormila.app.ui.navigation.LocalSharedTransitionScope
 import lk.motormila.app.ui.navigation.listingHeroKey
 
 /**
- * 16dp card, 16:10 Coil image, source badge, 48dp heart with burst scale,
+ * 28dp card, 16:10 Coil image, source badge, 48dp heart with burst scale,
  * mono price + delta chip, [DealBadge]/[DealRing], meta line.
  * Press scale 0.97. Hero image uses shared-element transitions when the
  * navigation graph provides [LocalSharedTransitionScope].
@@ -110,7 +110,7 @@ fun ListingCard(
             .fillMaxWidth()
             .scale(pressScale)
             .semantics { contentDescription = "${listing.displayName}, ${listing.formattedPrice()}" },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 6.dp),
@@ -126,7 +126,7 @@ fun ListingCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(16f / 10f)
-                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .then(heroShared),
                 )
                 if (!listing.source.isNullOrBlank()) {
@@ -138,9 +138,9 @@ fun ListingCard(
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(8.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(999.dp))
                             .background(Color(0xCC09090B))
-                            .border(0.5.dp, Color(0x44FFFFFF), RoundedCornerShape(6.dp))
+                            .border(0.5.dp, Color(0x44FFFFFF), RoundedCornerShape(999.dp))
                             .padding(horizontal = 7.dp, vertical = 3.dp),
                     )
                 }

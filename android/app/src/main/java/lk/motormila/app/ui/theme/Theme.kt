@@ -80,6 +80,7 @@ fun MotormilaTheme(
     MaterialTheme(
         colorScheme = scheme,
         typography = MotormilaTypography,
+        shapes = MotormilaShapes,
         content = content,
     )
 }

@@ -34,7 +34,7 @@ export function VelocityBadge({ medianDomDays, firstSeenAt, lastSeenAt, classNam
     <span
       title={domDays !== null ? `~${domDays} days on market` : "Velocity signal"}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
         TONE[band],
         className,
       )}

@@ -24,7 +24,7 @@ function HybridTaxAdvantageCallout({ engineCapacity, fuelType }: { engineCapacit
   const atCliff = isAtHybridExciseCliff(engineCapacity);
 
   return (
-    <div className="flex gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] p-3">
+    <div className="flex gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3">
       <Leaf className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden="true" />
       <div className="min-w-0 space-y-1.5">
         <p className="text-[11px] font-semibold text-emerald-300">Hybrid tax advantage</p>
@@ -86,7 +86,7 @@ export function TaxBreakdown({
     <div className="page-panel space-y-4 rounded-xl p-6">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="field-label text-foreground">Import duty and tax</h3>
-        <span className="rounded-lg border border-primary/20 bg-primary/10 px-2 py-0.5 text-label font-mono font-bold text-primary-bright">
+        <span className="rounded-2xl border border-primary/20 bg-primary/10 px-2 py-0.5 text-label font-mono font-bold text-primary-bright">
           Indicative
         </span>
       </div>
@@ -99,7 +99,7 @@ export function TaxBreakdown({
               key={option.value}
               type="button"
               onClick={() => setFuelType(option.value)}
-              className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                 fuelType === option.value
                   ? "border-primary/25 bg-primary/10 text-primary-bright"
                   : "border-border text-muted-foreground hover:text-foreground"
@@ -117,7 +117,7 @@ export function TaxBreakdown({
               min={0}
               value={motorKw}
               onChange={(e) => setMotorKw(Number(e.target.value))}
-              className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary/50 num"
+              className="w-20 rounded-full border border-border bg-surface px-2 py-1 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary/50 num"
               aria-label="Motor power in kilowatts"
             />
             kW
@@ -156,7 +156,7 @@ export function TaxBreakdown({
         </div>
       </div>
 
-      <div className="flex gap-2 rounded-lg border border-deal-amber/30 bg-deal-amber/10 p-3">
+      <div className="flex gap-2 rounded-2xl border border-deal-amber/30 bg-deal-amber/10 p-3">
         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-deal-amber" />
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           Indicative model of the post-2025 import regime (per-cm³/per-kW excise bands, luxury tax above the CIF

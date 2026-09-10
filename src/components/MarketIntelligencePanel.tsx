@@ -206,7 +206,7 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
             {sources.length > 0 && (
               <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-5">
                 {sources.map((s) => (
-                  <span key={s} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-foreground">
+                  <span key={s} className="rounded-full border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors duration-200 hover:border-primary/40 hover:text-foreground">
                     {s}
                   </span>
                 ))}

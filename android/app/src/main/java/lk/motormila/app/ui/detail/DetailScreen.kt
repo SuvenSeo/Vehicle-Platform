@@ -370,7 +370,7 @@ fun ListingDetailScreen(
                                         containerColor = MotormilaPrimary,
                                         contentColor = Color.White,
                                     ),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(22.dp),
                                     modifier = Modifier.weight(1f),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -389,7 +389,7 @@ fun ListingDetailScreen(
                                         containerColor = MotormilaGoodContainer,
                                         contentColor = MotormilaGoodText,
                                     ),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(22.dp),
                                     modifier = Modifier.weight(1f),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(16.dp))
@@ -586,7 +586,7 @@ private fun IntelligencePills(listing: Listing, modifier: Modifier = Modifier) {
     ) {
         // Mileage Intelligence Pill
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MotormilaGoodContainer,
             border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.35f)),
         ) {
@@ -602,7 +602,7 @@ private fun IntelligencePills(listing: Listing, modifier: Modifier = Modifier) {
 
         // Sell Speed Intelligence Pill
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(28.dp),
             color = Color(0x2E38BDF8),
             border = BorderStroke(1.dp, MotormilaTeal.copy(alpha = 0.35f)),
         ) {
@@ -630,7 +630,7 @@ private fun IntelligencePills(listing: Listing, modifier: Modifier = Modifier) {
 
         // Advert Health Intelligence Pill
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MotormilaWarnContainer,
             border = BorderStroke(1.dp, MotormilaWarn.copy(alpha = 0.35f)),
         ) {
@@ -678,7 +678,7 @@ private fun HeroActionsRow(
                 containerColor = MotormilaPrimary,
                 contentColor = Color.White,
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(22.dp),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             modifier = Modifier
                 .weight(1.1f)
@@ -712,7 +712,7 @@ private fun HeroActionsRow(
                 containerColor = MotormilaGoodContainer,
                 contentColor = MotormilaGoodText,
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(22.dp),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
             modifier = Modifier
                 .weight(1.2f)
@@ -743,7 +743,7 @@ private fun HeroActionsRow(
         // Quick Share Icon Button (48dp target).
         Surface(
             onClick = onShare,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(22.dp),
             color = MotormilaSurfaceHigh,
             border = BorderStroke(1.dp, MotormilaOutline),
             modifier = Modifier
@@ -886,7 +886,7 @@ private fun BentoSpecsGrid(listing: Listing, modifier: Modifier = Modifier) {
 private fun BentoCell(item: BentoSpecItem, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
@@ -897,7 +897,7 @@ private fun BentoCell(item: BentoSpecItem, modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(MotormilaPrimaryGlow),
                 contentAlignment = Alignment.Center,
             ) {
@@ -956,7 +956,7 @@ private fun LeasePaymentCalculator(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
@@ -1091,7 +1091,7 @@ private fun LeasePaymentCalculator(
                             val selected = tenureYears == yr
                             val label = if (yr == 5) "5 Yrs (60 mo)" else "$yr ${if (yr == 1) "Yr" else "Yrs"}"
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(28.dp),
                                 color = if (selected) MotormilaPrimary else MotormilaSurfaceHigh,
                                 border = BorderStroke(1.dp, if (selected) MotormilaPrimary else MotormilaOutline),
                                 onClick = { tenureYears = yr },
@@ -1121,7 +1121,7 @@ private fun LeasePaymentCalculator(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(MotormilaSurfaceHigh)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1165,7 +1165,7 @@ private fun LeasePaymentCalculator(
             // Prominent electric blue container card: EST. MONTHLY PAYMENT
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MotormilaPrimaryGlow,
                 border = BorderStroke(1.5.dp, MotormilaPrimary.copy(alpha = 0.5f)),
             ) {
@@ -1303,7 +1303,7 @@ private fun ImportDutyEstimator(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
@@ -1325,7 +1325,7 @@ private fun ImportDutyEstimator(
                     color = MotormilaOnSurface,
                 )
                 Surface(
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(999.dp),
                     color = MotormilaPrimaryGlow,
                     border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.4f)),
                 ) {
@@ -1353,7 +1353,7 @@ private fun ImportDutyEstimator(
                 ).forEach { fuel ->
                     val selected = selectedFuel == fuel
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(28.dp),
                         color = if (selected) MotormilaPrimary else MotormilaSurfaceHigh,
                         border = BorderStroke(1.dp, if (selected) MotormilaPrimary else MotormilaOutline),
                         onClick = { selectedFuel = fuel },
@@ -1380,7 +1380,7 @@ private fun ImportDutyEstimator(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(MotormilaSurfaceHigh)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1404,7 +1404,7 @@ private fun ImportDutyEstimator(
                 // Total Estimated Taxes
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                 ) {
@@ -1434,7 +1434,7 @@ private fun ImportDutyEstimator(
                 // Estimated Landed Cost
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(24.dp),
                     color = MotormilaPrimaryGlow,
                     border = BorderStroke(1.5.dp, MotormilaPrimary.copy(alpha = 0.5f)),
                 ) {
@@ -1473,7 +1473,7 @@ private fun ImportDutyEstimator(
             // Alert card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 color = MotormilaWarnContainer,
                 border = BorderStroke(1.dp, MotormilaWarn.copy(alpha = 0.35f)),
             ) {
@@ -1593,7 +1593,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
@@ -1640,7 +1640,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(28.dp))
                             .background(MotormilaWarnContainer)
                             .padding(horizontal = 6.dp, vertical = 3.dp),
                     ) {
@@ -1669,7 +1669,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
                 ) {
                     badges.forEach { badge ->
                         Surface(
-                            shape = RoundedCornerShape(6.dp),
+                            shape = RoundedCornerShape(999.dp),
                             color = MotormilaGoodContainer,
                             border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.3f)),
                         ) {
@@ -1712,7 +1712,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
                         if (phone != null) context.startActivity(Intent(Intent.ACTION_DIAL, "tel:$phone".toUri()))
                     },
                     enabled = phone != null,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -1729,7 +1729,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
                         containerColor = MotormilaGoodContainer,
                         contentColor = MotormilaGoodText,
                     ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(14.dp))

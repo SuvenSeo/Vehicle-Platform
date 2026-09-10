@@ -36,7 +36,7 @@ function FuelBadge({ bucket }: { bucket: FuelMixBucket }) {
   const colors = FUEL_COLORS[bucket.fuel_type] ?? FUEL_COLORS.other;
   if (bucket.count === 0) return null;
   return (
-    <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-colors ${colors.badge}`}>
+    <div className={`flex items-center gap-1.5 rounded-2xl border px-2.5 py-1.5 transition-colors ${colors.badge}`}>
       <span className="text-[11px] font-semibold">{colors.label}</span>
       <span className="num text-[10px] font-bold opacity-80">{bucket.pct}%</span>
       <span className="num text-[10px] opacity-60">({bucket.count.toLocaleString()})</span>
@@ -49,9 +49,9 @@ function HybridBandRow({ band, maxCount }: { band: HybridBand; maxCount: number 
   return (
     <div className="flex items-center gap-3">
       <span className="w-28 shrink-0 text-[11px] font-semibold text-foreground">{band.label}</span>
-      <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-emerald-500/10">
+      <div className="relative h-5 flex-1 overflow-hidden rounded-full bg-emerald-500/10">
         <div
-          className="h-full rounded-md bg-emerald-500/30 transition-all duration-500 ease-apple"
+          className="h-full rounded-full bg-emerald-500/30 transition-all duration-500 ease-apple"
           style={{ width: `${widthPct}%` }}
         />
         <span className="absolute inset-0 flex items-center pl-2 num text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
@@ -111,7 +111,7 @@ export function FuelMixStrip() {
           <div className="h-2.5 animate-pulse rounded-full bg-border" />
           <div className="flex gap-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-7 w-20 animate-pulse rounded-lg bg-border" />
+              <div key={i} className="h-7 w-20 animate-pulse rounded-2xl bg-border" />
             ))}
           </div>
         </div>

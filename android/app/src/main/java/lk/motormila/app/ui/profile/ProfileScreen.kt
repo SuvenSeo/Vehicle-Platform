@@ -124,7 +124,7 @@ fun ProfileScreen(
                         item {
                             // Session card + plan badge + role/admin affordance
                             Card(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                 colors = androidx.compose.material3.CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface,
@@ -189,7 +189,7 @@ fun ProfileScreen(
                             // Watchlist / alert counts
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Card(
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                     colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     modifier = Modifier.weight(1f),
@@ -200,7 +200,7 @@ fun ProfileScreen(
                                     }
                                 }
                                 Card(
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                     colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     modifier = Modifier.weight(1f),
@@ -215,7 +215,7 @@ fun ProfileScreen(
                         item {
                             // Deal-hunter score + streaks
                             Card(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                 colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 modifier = Modifier.fillMaxWidth(),

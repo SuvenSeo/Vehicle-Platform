@@ -116,7 +116,7 @@ internal fun MakeHubMetricCard(
     valueColor: Color = MotormilaOnSurface,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = modifier,
@@ -201,7 +201,7 @@ internal fun MakeHubTrendSection(
     val visible = points.takeLast(MAKE_HUB_TREND_LIMIT)
     if (visible.isEmpty()) return
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = modifier.fillMaxWidth(),
@@ -248,7 +248,7 @@ private fun MakeHubTrendRow(point: TrendPoint) {
     val count = stringResource(R.string.make_hub_trend_count, point.listingCount)
     val rowCd = stringResource(R.string.make_hub_cd_trend, period, price)
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(28.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier
@@ -294,7 +294,7 @@ internal fun MakeHubBrowseButton(
 ) {
     Button(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = MotormilaPrimary,
             contentColor = MotormilaOnPrimary,

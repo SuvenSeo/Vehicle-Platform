@@ -266,7 +266,7 @@ private fun SignalsPane(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.weight(1f),
@@ -279,7 +279,7 @@ private fun SignalsPane(
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.weight(1f),
@@ -385,7 +385,7 @@ private fun SignalCard(
             onHaptic()
             onOpenSignal(signal.id)
         },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = cardCd },
@@ -488,7 +488,7 @@ private fun NewsCard(
             }
         },
         enabled = !url.isNullOrBlank(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = newsCd },
@@ -562,7 +562,7 @@ private fun PermitCard(permit: Permit) {
     val price = LkrFormat.full(permit.marketPriceLkr)
     val cd = stringResource(R.string.hub_pulse_cd_permit, permit.name, price)
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = cd },
@@ -596,7 +596,7 @@ private fun PermitCard(permit: Permit) {
 @Composable
 private fun PulseUpgradeStrip() {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),

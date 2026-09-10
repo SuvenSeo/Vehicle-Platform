@@ -45,7 +45,7 @@ function PillBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
+      className={`rounded-2xl border px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
         active
           ? "border-primary/35 bg-primary/[0.12] text-primary"
           : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -191,7 +191,7 @@ export function MobileFilterSheet({
   );
 
   const selectTriggerClass =
-    "h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
+    "h-9 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
   const selectContentClass =
     "max-h-64 border-border bg-popover text-foreground";
 
@@ -322,7 +322,7 @@ export function MobileFilterSheet({
                   inputMode="numeric"
                   placeholder={t("filter.minLkr", "Min LKR")}
                   aria-label={t("filter.minPriceAria", "Minimum price")}
-                  className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
+                  className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
                 <Input
                   value={localPriceMax}
@@ -332,7 +332,7 @@ export function MobileFilterSheet({
                   inputMode="numeric"
                   placeholder={t("filter.maxLkr", "Max LKR")}
                   aria-label={t("filter.maxPriceAria", "Maximum price")}
-                  className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
+                  className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
               </div>
             </FilterSection>

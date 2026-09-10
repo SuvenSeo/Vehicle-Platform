@@ -378,8 +378,8 @@ export default function ListingDetail() {
                 <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
-                  <span className="rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">{listing.make} {listing.model} · {listing.year || 'N/A'}</span>
-                  <span className="flex items-center gap-1 rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-primary-bright backdrop-blur-md"><Database aria-hidden className="h-3 w-3" /> {listing.source}</span>
+                  <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">{listing.make} {listing.model} · {listing.year || 'N/A'}</span>
+                  <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-primary-bright backdrop-blur-md"><Database aria-hidden className="h-3 w-3" /> {listing.source}</span>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3 bg-card">
@@ -474,7 +474,7 @@ export default function ListingDetail() {
                       </div>
                       <Link
                         to={`/calculator?tab=landed-cost&fuel=${importFuelType}${typeof listing.engine_cc === 'number' ? `&cc=${listing.engine_cc}` : ''}`}
-                        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright no-underline transition-all hover:bg-primary/15"
+                        className="inline-flex w-fit items-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright no-underline transition-all hover:bg-primary/15"
                       >
                         Model a fresh import <ArrowRight aria-hidden className="h-3 w-3" />
                       </Link>
@@ -506,7 +506,7 @@ export default function ListingDetail() {
                 <AdvertHealthChip listing={listing} />
                 {priceHistory && priceHistory.cut_count > 0 && (
                   <span
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
                     title={`Tracked since first sighting: ${priceHistory.cut_count} downward price ${priceHistory.cut_count === 1 ? 'move' : 'moves'}${priceHistory.change_pct !== null ? `, ${priceHistory.change_pct}% overall` : ''}`}
                   >
                     <Clock aria-hidden className="h-3 w-3" />
@@ -605,7 +605,7 @@ export default function ListingDetail() {
                   <p className="text-[14px] font-bold text-foreground leading-tight">{sellerHeadline}</p>
                   <p className="mt-1 truncate text-[12px] text-muted-foreground font-medium">{sellerName}</p>
                 </div>
-                <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-primary-bright">{trustBadges[0] || 'Source'}</span>
+                <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-primary-bright">{trustBadges[0] || 'Source'}</span>
               </div>
 
               <p className="mt-3 text-[11px] text-muted-foreground font-medium">{trustMeta}</p>
@@ -627,13 +627,13 @@ export default function ListingDetail() {
                 <div className="mt-4 flex flex-wrap gap-1.5 pt-1">
                   {phonePreview.map((p) => (
                     <a key={p} href={`tel:${p.replace(/[^\d+]/g, "")}`}
-                      className="num rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-bold text-foreground no-underline transition-colors hover:border-primary/30 hover:bg-card">
+                      className="num rounded-full border border-border bg-surface px-2 py-1 text-[10px] font-bold text-foreground no-underline transition-colors hover:border-primary/30 hover:bg-card">
                       {p}
                     </a>
                   ))}
                   {whatsappPreview.map((p) => (
                     <a key={`wa-${p}`} href={`https://wa.me/${p.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                      className="num rounded-md border border-emerald-500/25 bg-emerald-500/5 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 no-underline transition-colors hover:bg-emerald-500/10">
+                      className="num rounded-full border border-emerald-500/25 bg-emerald-500/5 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 no-underline transition-colors hover:bg-emerald-500/10">
                       WA {p}
                     </a>
                   ))}
@@ -654,7 +654,7 @@ export default function ListingDetail() {
                     <Link
                       key={s.id}
                       to={`/listing/${s.id}`}
-                      className="group flex items-center justify-between rounded-lg border border-border bg-surface px-3.5 py-2.5 no-underline transition-all hover:bg-card hover:border-primary/30 hover:translate-y-[-1px]"
+                      className="group flex items-center justify-between rounded-2xl border border-border bg-surface px-3.5 py-2.5 no-underline transition-all hover:bg-card hover:border-primary/30 hover:translate-y-[-1px]"
                     >
                       <div className="min-w-0">
                         <p className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">{s.make} {s.model} · {s.year}</p>

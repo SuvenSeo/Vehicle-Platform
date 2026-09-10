@@ -44,7 +44,7 @@ export function DealScoreBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 font-bold tabular-nums",
+        "inline-flex items-center gap-1 rounded-full border px-1.5 font-bold tabular-nums",
         size === "sm" ? "py-0.5 text-xs" : "px-2 py-1 text-[13px]",
         meta.classes,
         className,

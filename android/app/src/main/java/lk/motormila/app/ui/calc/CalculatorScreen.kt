@@ -346,7 +346,7 @@ private fun LandedPane(
     val calculateCd = stringResource(R.string.calc_cd_calculate_landed)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
             border = BorderStroke(1.dp, MotormilaOutline),
             modifier = Modifier.fillMaxWidth(),
@@ -453,7 +453,7 @@ private fun LandedPane(
                 Button(
                     onClick = onCalculate,
                     enabled = !state.calculatingLanded,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -491,7 +491,7 @@ private fun TcoPane(
     val calculateCd = stringResource(R.string.calc_cd_calculate_tco)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
             border = BorderStroke(1.dp, MotormilaOutline),
             modifier = Modifier.fillMaxWidth(),
@@ -545,7 +545,7 @@ private fun TcoPane(
                 Button(
                     onClick = onCalculate,
                     enabled = !state.calculatingTco,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MotormilaPrimary,
                         contentColor = MotormilaOnPrimary,
@@ -577,7 +577,7 @@ private fun TcoPane(
 private fun TcoLockedCard(onUpgrade: () -> Unit) {
     val upgradeCd = stringResource(R.string.calc_cd_upgrade)
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),
@@ -606,7 +606,7 @@ private fun TcoLockedCard(onUpgrade: () -> Unit) {
             )
             Button(
                 onClick = onUpgrade,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -625,7 +625,7 @@ private fun TcoLockedCard(onUpgrade: () -> Unit) {
 @Composable
 private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -668,7 +668,7 @@ private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
                         }
                     }
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         color = MotormilaPrimary.copy(alpha = 0.08f),
                         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.25f)),
                         modifier = Modifier.fillMaxWidth(),
@@ -725,7 +725,7 @@ private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
 @Composable
 private fun TcoResultCard(result: Tco?, calculating: Boolean) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -765,7 +765,7 @@ private fun TcoResultCard(result: Tco?, calculating: Boolean) {
                     CostLineRow(stringResource(R.string.calc_tco_fuel), result.fuelLkr)
                     CostLineRow(stringResource(R.string.calc_tco_service), result.serviceLkr)
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(28.dp),
                         color = MotormilaPrimary.copy(alpha = 0.08f),
                         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.25f)),
                         modifier = Modifier.fillMaxWidth(),
@@ -911,7 +911,7 @@ private fun CalcTextField(
         onValueChange = onChange,
         label = { Text(label) },
         singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,

@@ -352,11 +352,11 @@ export default function Estimate() {
                           })}
                         </p>
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-lg border border-border bg-card p-3">
+                          <div className="rounded-2xl border border-border bg-card p-3">
                             <p className="text-[10px] text-muted-foreground font-semibold">{t("estimate.oneYearProjected", "1Y projected")}</p>
                             <p className="num mt-1 text-[13px] font-bold text-foreground">{formatPrice(projection.oneYearValue)}</p>
                           </div>
-                          <div className="rounded-lg border border-border bg-card p-3">
+                          <div className="rounded-2xl border border-border bg-card p-3">
                             <p className="text-[10px] text-muted-foreground font-semibold">{t("estimate.threeYearProjected", "3Y projected")}</p>
                             <p className="num mt-1 text-[13px] font-bold text-foreground">{formatPrice(projection.threeYearValue)}</p>
                           </div>

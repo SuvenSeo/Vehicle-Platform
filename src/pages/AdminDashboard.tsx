@@ -867,7 +867,7 @@ export default function AdminDashboard() {
                   {allInvites.map((invite) => (
                     <div
                       key={`hist-${invite.id}`}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2 text-[12px]"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-3 py-2 text-[12px]"
                     >
                       <span className="truncate font-medium">{invite.email}</span>
                       <span className="shrink-0 uppercase tracking-wide text-muted-foreground">
@@ -1218,7 +1218,7 @@ export default function AdminDashboard() {
                     ].map(([label, value]) => (
                       <li
                         key={label}
-                        className="flex items-center justify-between rounded-lg border border-border bg-surface px-3 py-2"
+                        className="flex items-center justify-between rounded-2xl border border-border bg-surface px-3 py-2"
                       >
                         <span className="text-muted-foreground">{label}</span>
                         <span className="font-semibold text-foreground">{value}</span>
@@ -1263,7 +1263,7 @@ export default function AdminDashboard() {
                   {systemQuery.data.providers.map((provider) => (
                     <li
                       key={provider.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-[13px]"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-3 py-2 text-[13px]"
                     >
                       <span className="min-w-0">
                         <span className="block font-semibold text-foreground">{provider.label}</span>

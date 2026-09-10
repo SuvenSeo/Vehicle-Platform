@@ -105,7 +105,7 @@ export function PriceHistoryChart({
             </div>
             <div className="data-card p-3">
               <p className="tech-label">Movement</p>
-              <div className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${
+              <div className={`mt-2 inline-flex items-center gap-1.5 rounded-2xl px-2.5 py-1 text-xs font-bold ${
                 !hasChangeSignal
                   ? "bg-foreground/[0.03] text-muted-foreground"
                   : changePositive
@@ -164,7 +164,7 @@ export function PriceHistoryChart({
                   <button
                     type="button"
                     onClick={onEmptyAction}
-                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-all duration-150 hover:bg-primary/20 active:scale-[0.97]"
+                    className="tech-label rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-all duration-150 hover:bg-primary/20 active:scale-[0.97]"
                   >
                     {emptyActionLabel}
                   </button>

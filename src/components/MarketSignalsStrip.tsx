@@ -27,7 +27,7 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
             <h3 className="mt-2 text-sm font-semibold text-foreground">{title}</h3>
           </div>
           <span
-            className="rounded-md border border-border p-1.5 text-muted-foreground"
+            className="rounded-full border border-border p-1.5 text-muted-foreground"
             aria-hidden
           >
             <ArrowUpRight className="h-3.5 w-3.5" />

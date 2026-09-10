@@ -621,16 +621,16 @@ export default function Dashboard() {
       : "text-foreground/80 [text-shadow:0_1px_14px_hsl(var(--background)/0.45)]";
   const heroSearchShellClass =
     heroVariant.tone === "dark"
-      ? "border-white/20 bg-white/10 shadow-soft-lg backdrop-blur-md focus-within:border-primary/50"
-      : "border-border bg-card/95 shadow-soft-lg backdrop-blur-md focus-within:border-primary/40 focus-within:shadow-gold-glow";
+      ? "border-white/20 bg-white/10 shadow-soft-lg backdrop-blur-2xl focus-within:border-primary/50"
+      : "border-white/50 bg-white/55 shadow-soft-lg backdrop-blur-2xl focus-within:border-primary/40 focus-within:shadow-gold-glow";
   const heroInputClass =
     heroVariant.tone === "dark"
       ? "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder:text-white/45 outline-none [&::-webkit-search-cancel-button]:hidden"
       : "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden";
   const heroPopularBtnClass =
     heroVariant.tone === "dark"
-      ? "w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10"
-      : "w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-foreground transition-colors hover:bg-surface";
+      ? "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10"
+      : "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-bold text-foreground transition-colors hover:bg-surface";
 
   // ═════════════════════════════════════════════════════════════════
   // RENDER
@@ -724,7 +724,7 @@ export default function Dashboard() {
             {/* Search — sole interactive card in the hero */}
             <motion.div variants={heroItemVariants} className="mt-8 max-w-2xl text-left">
                 <div className="relative">
-                  <div className={`flex items-center gap-2 rounded-xl border transition-all ${heroSearchShellClass}`}>
+                  <div className={`flex items-center gap-2 rounded-full border transition-all ${heroSearchShellClass}`}>
                     <Search aria-hidden className={`ml-4 h-5 w-5 shrink-0 ${heroVariant.tone === "dark" ? "text-white/55" : "text-muted-foreground"}`} />
                     <label htmlFor="hero-search" className="sr-only">{t("common.search", "Search")} vehicles</label>
                     <input
@@ -786,7 +786,7 @@ export default function Dashboard() {
                       enterKeyHint="search"
                       className={heroInputClass}
                     />
-                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
+                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-full bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
                       {t("common.search", "Search")}
                     </button>
                   </div>
@@ -829,7 +829,7 @@ export default function Dashboard() {
                               id={`hero-suggestion-${idx}`}
                               aria-selected={idx === heroActiveIdx}
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
+                              className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
                             >
                               <span className="text-[13px] font-bold text-foreground">{s.make} {s.model} {s.year}</span>
                               <span className="text-[12px] font-bold text-primary-bright num">
@@ -912,7 +912,7 @@ export default function Dashboard() {
                     <button key={`${row.make}-${row.model}`} type="button" onClick={() => focusModel(row.make, row.model)}
                       className="group/trend flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]"
                     >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                         <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -945,14 +945,14 @@ export default function Dashboard() {
                     <Link key={row.id} to={`/listing/${row.id}`}
                       className="group/deal flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]"
                     >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                         <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
                       </div>
-                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
+                      <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
                         +{Number(row.deal_score || 0).toFixed(0)}
                       </span>
                     </Link>
@@ -979,7 +979,7 @@ export default function Dashboard() {
                     <Link key={drop.listing.id} to={`/listing/${drop.listing.id}`}
                       className="group/drop flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]"
                     >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                         <VehicleThumbnail src={drop.listing.thumbnail_url} listingId={drop.listing.id} alt={`${drop.listing.make} ${drop.listing.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -989,7 +989,7 @@ export default function Dashboard() {
                           <span className="font-semibold text-foreground">{formatPrice(drop.new_price_lkr)}</span>
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
+                      <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
                         &minus;{drop.drop_pct}%
                       </span>
                     </Link>
@@ -1035,20 +1035,20 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setShowSavedListings(true)}
-                className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+                className="rounded-full border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
               >{watchlistIds.length} {t("common.saved", "saved")}</button>
               <button type="button" onClick={saveCurrentMarketAlert}
-                className="rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright transition-colors hover:bg-primary/10"
+                className="rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright transition-colors hover:bg-primary/10"
               >{t("common.saveAlert", "Save alert")}</button>
               <button type="button" onClick={() => setShowMarketAlerts(true)}
-                className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
               >{marketAlerts.length} {t("common.alerts", "alerts")}</button>
               <div className="hidden items-center gap-0.5 md:flex">
                 <button type="button" onClick={() => setMarketView("grid")} aria-label={t("home.gridView", "Grid view")} aria-pressed={marketView === "grid"}
-                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
+                  className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><LayoutGrid className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setMarketView("list")} aria-label={t("home.listView", "List view")} aria-pressed={marketView === "list"}
-                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "list" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
+                  className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${marketView === "list" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><List className="h-3.5 w-3.5" /></button>
               </div>
             </div>
@@ -1058,16 +1058,16 @@ export default function Dashboard() {
           {activeFilterLabels.length > 0 && (
             <div className="mb-5 flex flex-wrap items-center gap-1.5">
               {activeFilterLabels.map((label) => (
-                <span key={label} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
+                <span key={label} className="rounded-full border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
               ))}
               <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
-                className="rounded-md px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
               >Clear all</button>
             </div>
           )}
 
           {newLiveListingsAvailable && (
-            <div className="mb-5 flex items-center justify-between rounded-lg border border-primary/15 bg-primary/5 px-4 py-2.5">
+            <div className="mb-5 flex items-center justify-between rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5">
               <span className="text-[12px] font-semibold text-primary-bright">New listings available</span>
               <button type="button" onClick={() => { setFilters((p) => ({ ...p, sort: "newest", page: 1 })); setNewLiveListingsAvailable(false); }}
                 className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright transition-colors hover:text-primary-bright"
@@ -1103,7 +1103,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={retryListings}
-                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+                    className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
                   >
                     Retry
                   </button>
@@ -1119,7 +1119,7 @@ export default function Dashboard() {
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("home.noResults", "No results")}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
-                    className="mt-4 rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
+                    className="mt-4 rounded-2xl border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
                   >Reset filters</button>
                 </div>
               ) : marketView === "grid" ? (
@@ -1147,7 +1147,7 @@ export default function Dashboard() {
                     return (
                       <motion.div key={listing.id} variants={cardItemVariants}>
                         <Link to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]">
-                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                             <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -1183,11 +1183,11 @@ export default function Dashboard() {
                   </p>
                   <div className="flex items-center gap-1.5">
                     <button type="button" aria-label="Previous page" disabled={filters.page <= 1} onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronLeft className="h-3.5 w-3.5" /></button>
                     <span className="px-2 text-[11px] font-semibold text-muted-foreground num">{filters.page} / {totalPages}</span>
                     <button type="button" aria-label="Next page" disabled={filters.page >= totalPages} onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
@@ -1280,7 +1280,7 @@ export default function Dashboard() {
               { label: "Official Pulse", to: "/official-pulse" },
             ].map((tool) => (
               <Link key={tool.label} to={tool.to}
-                className="group/tool flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/30 hover:bg-primary/[0.06] hover:shadow-soft active:scale-[0.98]"
+                className="group/tool flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2.5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/30 hover:bg-primary/[0.06] hover:shadow-soft active:scale-[0.98]"
               >
                 {tool.label}
                 <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover/tool:text-primary group-hover/tool:translate-x-0.5" />
@@ -1296,7 +1296,7 @@ export default function Dashboard() {
         type="button"
         aria-label="Open quick filters"
         onClick={() => setShowMobileFilter(true)}
-        className="md:hidden fixed bottom-[4.75rem] right-4 z-[1100] flex h-12 items-center gap-2 rounded-full border border-border bg-card/95 pl-3.5 pr-4 shadow-soft-xl backdrop-blur-xl transition-all hover:bg-card active:scale-95"
+        className="md:hidden fixed bottom-24 right-4 z-[1100] flex h-12 items-center gap-2 rounded-full border border-border bg-card/95 pl-3.5 pr-4 shadow-soft-xl backdrop-blur-xl transition-all hover:bg-card active:scale-95"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
@@ -1317,7 +1317,7 @@ export default function Dashboard() {
                 {compareListings.slice(0, 4).map((listing) => (
                   <div
                     key={listing.id}
-                    className="relative h-9 w-9 overflow-hidden rounded-lg border-2 border-card bg-muted ring-1 ring-border"
+                    className="relative h-9 w-9 overflow-hidden rounded-2xl border-2 border-card bg-muted ring-1 ring-border"
                   >
                     <VehicleThumbnail
                       src={pickVehicleImageUrl(
@@ -1373,31 +1373,31 @@ export default function Dashboard() {
 
       {/* ── DIALOGS ─────────────────────────────────────────────── */}
       <Dialog open={showMarketAlerts} onOpenChange={setShowMarketAlerts}>
-        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-border bg-card text-foreground">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-3xl border-white/40 bg-card/80 text-foreground backdrop-blur-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Market alerts</DialogTitle>
           </DialogHeader>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current lane</p>
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
-              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-base md:text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Save</button>
+              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-2xl border-border bg-transparent text-base md:text-sm" />
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-full bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (
             <div className="space-y-1.5">
               {marketAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{alert.label}</p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : t("home.newListingsAvailable", "New listings available")}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
-                      className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Open</button>
+                      className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Open</button>
                     <button type="button" onClick={() => deleteMarketAlert(alert.id)}
-                      className="h-7 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
+                      className="h-7 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
                   </div>
                 </div>
               ))}
@@ -1407,23 +1407,23 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={showSavedListings} onOpenChange={setShowSavedListings}>
-        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-border bg-card text-foreground">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-3xl border-white/40 bg-card/80 text-foreground backdrop-blur-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Saved listings</DialogTitle>
           </DialogHeader>
           {savedListingsLoading ? (
-            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-shimmer h-16 rounded-lg" />)}</div>
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-shimmer h-16 rounded-2xl" />)}</div>
           ) : savedListings.length ? (
             <div className="space-y-1.5">
               {savedListings.map((listing) => (
-                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{listing.make} {listing.model} {listing.year || ""}</p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">{t("home.remove", "Remove")}</button>
-                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">{t("home.remove", "Remove")}</button>
+                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
                       Open <ExternalLink className="h-2.5 w-2.5" />
                     </Link>
                   </div>

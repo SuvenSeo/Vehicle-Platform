@@ -182,7 +182,7 @@ export default function EVHub() {
                       >
                         <div className="mb-4 flex items-center gap-2">
                           <div className={cn(
-                            "flex items-center justify-center rounded-lg border border-border bg-surface",
+                            "flex items-center justify-center rounded-2xl border border-border bg-surface",
                             featured ? "h-10 w-10" : "h-8 w-8",
                           )}>
                             <Zap className={cn("text-primary", featured ? "h-5 w-5" : "h-3.5 w-3.5")} aria-hidden />

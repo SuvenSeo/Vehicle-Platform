@@ -883,20 +883,20 @@ export default function ProDashboard() {
       <div className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-md ring-1 ring-border" />
+            <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-full ring-1 ring-border" />
             <div>
               <p className="text-[13px] font-bold text-foreground">Motormila</p>
               <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-border bg-surface text-foreground hover:bg-card text-[10px] font-bold">
+            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-2xl border-border bg-surface text-foreground hover:bg-card text-[10px] font-bold">
               <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
               <Crown className="h-3 w-3" /> {user?.plan || "pro"}
             </span>
-            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-600 dark:hover:text-rose-400">
+            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-2xl border border-border bg-surface px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-600 dark:hover:text-rose-400">
               <LogOut className="h-3 w-3" /> Sign out
             </button>
           </div>
@@ -1324,10 +1324,10 @@ export default function ProDashboard() {
             {/* Import-era depreciation cohort split */}
             <SectionTitle eyebrow="Import-era market" title="Pre-freeze vs post-freeze cohorts">
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                   Pre-freeze ≤2024
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
                   Post-freeze ≥2025
                 </span>
               </div>
@@ -1380,7 +1380,7 @@ export default function ProDashboard() {
                 )}
               </div>
               {(eraData?.makes?.length ?? 0) > 0 && (
-                <div className="mt-4 overflow-auto rounded-lg border border-border" aria-label="Import era split table">
+                <div className="mt-4 overflow-auto rounded-2xl border border-border" aria-label="Import era split table">
                   <table className="w-full min-w-[580px] text-sm">
                     <thead className="bg-surface">
                       <tr>

@@ -56,7 +56,7 @@ function TabItem({ tab }: { tab: NavTab }) {
         {isActive && (
           <motion.span
             layoutId="mobile-nav-pill"
-            className="absolute inset-0 rounded-xl bg-primary/12"
+            className="absolute inset-0 rounded-full bg-primary/12"
             transition={springSnappy}
             aria-hidden
           />
@@ -84,11 +84,11 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label={t("nav.mobileNavigation", "Mobile bottom navigation")}
-      className="md:hidden fixed inset-x-0 bottom-0 z-[999] pointer-events-auto"
+      className="md:hidden fixed inset-x-3 bottom-3 z-[999] pointer-events-auto"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="nav-glass border-t border-border">
-        <div className="flex h-16 items-stretch">
+      <div className="nav-glass overflow-hidden">
+        <div className="flex h-16 items-stretch px-1">
           {TABS.map((tab) => (
             <TabItem key={tab.href} tab={tab} />
           ))}
