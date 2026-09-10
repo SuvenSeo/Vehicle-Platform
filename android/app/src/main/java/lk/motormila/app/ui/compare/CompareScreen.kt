@@ -274,9 +274,9 @@ private fun CompareEmptyState(
         Box(
             modifier = Modifier
                 .size(68.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(28.dp))
                 .background(Color(0x2E0A7AFF))
-                .border(1.2.dp, Color(0x663D94FF), RoundedCornerShape(20.dp)),
+                .border(1.2.dp, Color(0x663D94FF), RoundedCornerShape(28.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -314,7 +314,7 @@ private fun CompareEmptyState(
                 containerColor = MotormilaPrimary,
                 contentColor = Color.White,
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(22.dp),
             modifier = Modifier
                 .heightIn(min = 48.dp)
                 .semantics { contentDescription = "Browse listings" },
@@ -438,7 +438,7 @@ private fun VehicleMatrixColumn(
                 .height(180.dp)
                 .clickable { onOpenDetail() }
                 .semantics { contentDescription = "Vehicle ${listing.displayName}" },
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh),
             border = androidx.compose.foundation.BorderStroke(1.dp, MotormilaOutline),
         ) {
@@ -631,9 +631,9 @@ private fun AddVehicleColumnSlot(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(28.dp))
                 .background(MotormilaSurface)
-                .border(1.dp, Color(0x443D94FF), RoundedCornerShape(16.dp))
+                .border(1.dp, Color(0x443D94FF), RoundedCornerShape(28.dp))
                 .clickable { onAdd() }
                 .padding(16.dp),
             contentAlignment = Alignment.Center,
@@ -704,12 +704,12 @@ private fun ValueCell(
         modifier = Modifier
             .fillMaxWidth()
             .height(52.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(if (isBest) BestCellHighlight else Color.Transparent)
             .border(
                 width = if (isBest) 0.8.dp else 0.dp,
                 color = if (isBest) BestCellBorder else Color.Transparent,
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(28.dp),
             )
             .padding(horizontal = 12.dp)
             .semantics { contentDescription = "$desc${if (isBest) ", leader" else ""}" },

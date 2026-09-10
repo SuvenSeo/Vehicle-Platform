@@ -117,7 +117,7 @@ export function CompareTray({ className }: { className?: string }) {
                   </dl>
                   <Link
                     to={`/listing/${p.id}`}
-                    className="mt-3 inline-flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-border bg-card text-[11px] font-semibold text-foreground no-underline transition-colors hover:border-primary/30 hover:text-primary-bright"
+                    className="mt-3 inline-flex h-8 w-full items-center justify-center gap-1 rounded-2xl border border-border bg-card text-[11px] font-semibold text-foreground no-underline transition-colors hover:border-primary/30 hover:text-primary-bright"
                   >
                     Open listing <ArrowUpRight className="h-3 w-3" aria-hidden />
                   </Link>

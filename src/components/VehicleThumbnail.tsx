@@ -8,6 +8,8 @@ interface VehicleThumbnailProps {
   alt: string;
   className?: string;
   placeholderClassName?: string;
+  /** First-screen images should load eagerly to protect LCP. */
+  priority?: boolean;
 }
 
 function createFallbackThumbnailDataUri(label: string): string {
@@ -37,6 +39,7 @@ export const VehicleThumbnail = memo(function VehicleThumbnail({
   alt,
   className,
   placeholderClassName,
+  priority = false,
 }: VehicleThumbnailProps) {
   const fallbackSrc = useMemo(() => createFallbackThumbnailDataUri(alt), [alt]);
   const proxyUrl = useMemo(() => {
@@ -70,8 +73,9 @@ export const VehicleThumbnail = memo(function VehicleThumbnail({
           width={480}
           height={270}
           className={className}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
+          sizes="(max-width: 768px) 100vw, 33vw"
           onError={handleError}
         />
       ) : (

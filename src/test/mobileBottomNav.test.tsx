@@ -97,11 +97,12 @@ describe("MobileBottomNav", () => {
     expect(nav.className).toContain("md:hidden");
   });
 
-  it("has fixed bottom positioning", () => {
+  it("floats as a liquid-glass capsule above the home indicator", () => {
     renderNav();
     const nav = screen.getByRole("navigation", { name: /mobile bottom navigation/i });
     expect(nav.className).toContain("fixed");
-    expect(nav.className).toContain("bottom-0");
+    expect(nav.className).toContain("bottom-3");
+    expect(nav.className).toContain("inset-x-3");
   });
 
   it("applies safe-area-inset-bottom padding via inline style", () => {

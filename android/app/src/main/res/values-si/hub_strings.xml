@@ -160,4 +160,13 @@
     <string name="hub_picks_cd_drop">මිල අඩුවීම %1$s, %2$s කින් අඩු</string>
     <string name="hub_picks_cd_refresh">හොඳම තෝරාගැනීම් නැවුම් කරන්න</string>
     <string name="hub_picks_min_score">අවම ලකුණු 8+</string>
+    <string name="hub_pulse_detail_title">සංඥාව</string>
+    <string name="hub_pulse_detail_missing">මෙම වෙළඳපොළ සංඥාව නැත හෝ ජීවී දර්ශකයෙන් ඉවත් වී ඇත.</string>
+    <string name="hub_pulse_detail_metric">මිනුම</string>
+    <string name="hub_pulse_read_guides">නිල ස්පන්දනය කියවන්න</string>
+    <string name="hub_compare_title">සසඳන්න</string>
+    <string name="hub_trends_title">ප්‍රවණතා</string>
+    <string name="hub_permits_title">බලපත්‍ර වෙළඳපොළ</string>
+    <string name="hub_docs_title">ලේඛන</string>
+    <string name="hub_pricing_title">මිලකරණය</string>
 </resources>

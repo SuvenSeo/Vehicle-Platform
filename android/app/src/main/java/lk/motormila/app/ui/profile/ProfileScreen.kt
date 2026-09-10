@@ -64,6 +64,11 @@ fun ProfileScreen(
     onPulseClick: () -> Unit = {},
     onBestPicksClick: () -> Unit = {},
     onCalculatorClick: () -> Unit = {},
+    onCompareClick: () -> Unit = {},
+    onTrendsClick: () -> Unit = {},
+    onDocsClick: () -> Unit = {},
+    onPricingClick: () -> Unit = {},
+    onPermitsClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -119,7 +124,7 @@ fun ProfileScreen(
                         item {
                             // Session card + plan badge + role/admin affordance
                             Card(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                 colors = androidx.compose.material3.CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.surface,
@@ -184,7 +189,7 @@ fun ProfileScreen(
                             // Watchlist / alert counts
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Card(
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                     colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     modifier = Modifier.weight(1f),
@@ -195,7 +200,7 @@ fun ProfileScreen(
                                     }
                                 }
                                 Card(
-                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                     colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     modifier = Modifier.weight(1f),
@@ -210,7 +215,7 @@ fun ProfileScreen(
                         item {
                             // Deal-hunter score + streaks
                             Card(
-                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, lk.motormila.app.ui.theme.MotormilaOutline),
                                 colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 modifier = Modifier.fillMaxWidth(),
@@ -265,6 +270,26 @@ fun ProfileScreen(
                                 label = stringResource(R.string.hub_calc_title),
                                 onClick = { navTap(onCalculatorClick) },
                                 openDescription = stringResource(R.string.hub_open_calc),
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_compare_title),
+                                onClick = { navTap(onCompareClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_trends_title),
+                                onClick = { navTap(onTrendsClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_permits_title),
+                                onClick = { navTap(onPermitsClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_docs_title),
+                                onClick = { navTap(onDocsClick) },
+                            )
+                            TileRow(
+                                label = stringResource(R.string.hub_pricing_title),
+                                onClick = { navTap(onPricingClick) },
                             )
                         }
                         item {

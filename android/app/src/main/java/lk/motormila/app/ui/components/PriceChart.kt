@@ -76,7 +76,7 @@ fun PriceChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(22.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                 .semantics {
                     contentDescription = "Price history, ${points.size} points, " +

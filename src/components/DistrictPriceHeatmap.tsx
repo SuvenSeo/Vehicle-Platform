@@ -86,7 +86,7 @@ export const DistrictPriceHeatmap = memo(function DistrictPriceHeatmap({
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+            className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
           >
             Retry
           </button>
@@ -106,13 +106,13 @@ export const DistrictPriceHeatmap = memo(function DistrictPriceHeatmap({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.1em]">
-        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground">
+        <div className="rounded-2xl border border-border bg-surface px-3 py-1.5 text-foreground">
           Color = avg district price
         </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground">
+        <div className="rounded-2xl border border-border bg-surface px-3 py-1.5 text-foreground">
           Size = relative price level
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-muted-foreground">
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-1.5 text-muted-foreground">
           <span className="text-indigo-500 dark:text-indigo-400">Low</span>
           <div className="h-1.5 w-20 rounded-full bg-gradient-to-r from-[#4f46e5] via-[#14b8a6] to-[#f59e0b]" />
           <span className="text-amber-500">High</span>

@@ -80,8 +80,8 @@ describe("ListingCard render states and interactions", () => {
 
     // Surface now routes through the semantic token (theme-adaptive) rather
     // than the old hardcoded dark-glass fill.
-    expect(card.className).toContain("bg-card");
-    expect(card.className).toContain("rounded-2xl");
+    expect(card.className).toContain("liquid-panel");
+    expect(card.className).toContain("rounded-3xl");
     expect(cardLink).toHaveAttribute("href", "/listing/11");
     expect(card.querySelector("button")).not.toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe("ListingCard render states and interactions", () => {
 
     expect(screen.getByText("District N/A")).toBeInTheDocument();
     expect(screen.getByText("Mileage N/A")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Toyota Aqua" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Toyota Aqua" })).toHaveAttribute("loading", "lazy");
   });
 
   it("renders an unavailable price badge when listing price is not positive", () => {
@@ -151,5 +151,12 @@ describe("ListingCard render states and interactions", () => {
     expect(onWatchlistToggle).toHaveBeenCalledWith(listing);
     expect(onCompareToggle).toHaveBeenCalledTimes(1);
     expect(onCompareToggle).toHaveBeenCalledWith(listing);
+  });
+
+  it("eager-loads the first-screen thumbnail when priority is set", () => {
+    renderCard(<ListingCard listing={buildListing()} priority />);
+    const img = screen.getByRole("img", { name: "Toyota Aqua" });
+    expect(img).toHaveAttribute("loading", "eager");
+    expect(img).toHaveAttribute("sizes", "(max-width: 768px) 100vw, 33vw");
   });
 });

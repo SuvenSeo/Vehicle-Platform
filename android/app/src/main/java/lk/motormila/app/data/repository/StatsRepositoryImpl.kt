@@ -162,6 +162,12 @@ class StatsRepositoryImpl @Inject constructor(
         api.marketSignals(limit = limit).map { it.toDomain() }
     }
 
+    override suspend fun marketSignal(id: Int): MarketSignal = withContext(io) {
+        runCatching { api.marketSignal(id).toDomain().takeIf { it.id == id } }.getOrNull()
+            ?: api.marketSignals(limit = 200).map { it.toDomain() }.firstOrNull { it.id == id }
+            ?: error("Market signal $id was not found")
+    }
+
     override fun liveListings(limit: Int): Flow<List<Listing>> = flow {
         while (true) {
             val items = runCatching {
@@ -230,11 +236,6 @@ class StatsRepositoryImpl @Inject constructor(
     /** GET /market/summary — signal coverage summary. */
     suspend fun marketSummary(): MarketSummaryDto = withContext(io) {
         api.marketSummary()
-    }
-
-    /** GET /market/signals/{id} — single market signal detail. */
-    suspend fun marketSignal(id: Int): MarketSignalDto = withContext(io) {
-        api.marketSignal(id)
     }
 
     /** GET /market/import-prices — observed import price rows. */

@@ -61,7 +61,7 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
             A fresh deploy may have left an old tab cached. Reload to pull the latest app bundle.
           </p>
           {this.state.message ? (
-            <p className="mt-3 break-all rounded-lg border border-border bg-surface px-3 py-2 font-mono text-[10px] text-muted-foreground">
+            <p className="mt-3 break-all rounded-2xl border border-border bg-surface px-3 py-2 font-mono text-[10px] text-muted-foreground">
               {this.state.message}
             </p>
           ) : null}
@@ -72,13 +72,13 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
               transition={springSnappy}
-              className="h-9 rounded-lg bg-primary px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
+              className="h-9 rounded-2xl bg-primary px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
             >
               Reload page
             </motion.button>
             <Link
               to="/"
-              className="h-9 rounded-lg border border-border px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-foreground no-underline inline-flex items-center"
+              className="h-9 rounded-2xl border border-border px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-foreground no-underline inline-flex items-center"
             >
               Back home
             </Link>

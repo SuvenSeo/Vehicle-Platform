@@ -83,7 +83,7 @@ export function OwnershipCostsPanel({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <div className="h-fit space-y-5 rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6">
         <div className="flex items-center gap-3 border-b border-border pb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
             <FileBadge className="h-4 w-4 text-primary" />
           </div>
           <div>
@@ -105,7 +105,7 @@ export function OwnershipCostsPanel({
                 type="button"
                 onClick={() => setVehicleClass(item.id)}
                 aria-pressed={vehicleClass === item.id}
-                className={`min-h-[36px] rounded-lg border py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${
+                className={`min-h-[36px] rounded-2xl border py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${
                   vehicleClass === item.id
                     ? "border-primary/40 bg-primary/10 text-primary-bright"
                     : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -128,7 +128,7 @@ export function OwnershipCostsPanel({
                 type="button"
                 onClick={() => setFuelType(fuel)}
                 aria-pressed={fuelType === fuel}
-                className={`min-h-[36px] rounded-lg border py-2 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
+                className={`min-h-[36px] rounded-2xl border py-2 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                   fuelType === fuel
                     ? "border-primary/40 bg-primary/10 text-primary-bright"
                     : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -287,7 +287,7 @@ export function OwnershipCostsPanel({
               </div>
             ) : null}
 
-            <div className="flex gap-2 rounded-lg border border-border bg-surface p-3">
+            <div className="flex gap-2 rounded-2xl border border-border bg-surface p-3">
               <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <p className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
                 {bundle.notes} {bundle.revenue_licence.schedule_note}

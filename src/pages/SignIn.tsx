@@ -76,7 +76,7 @@ export default function SignIn() {
         >
           <div>
             <Link to="/" className="mb-8 inline-flex items-center gap-2.5 group">
-              <div className="h-9 w-9 overflow-hidden rounded-lg ring-1 ring-white/20 transition-all group-hover:ring-primary/50">
+              <div className="h-9 w-9 overflow-hidden rounded-2xl ring-1 ring-white/20 transition-all group-hover:ring-primary/50">
                 <img src="/logo.svg" alt="" className="h-full w-full object-cover" />
               </div>
               <span className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">

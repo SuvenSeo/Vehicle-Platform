@@ -262,7 +262,7 @@ private fun DistrictHubBody(
             val browseLabel = stringResource(R.string.district_hub_browse, displayName)
             Button(
                 onClick = { onSeeAllSearch(searchDistrict) },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MotormilaPrimary,
                     contentColor = MotormilaOnPrimary,
@@ -380,7 +380,7 @@ private fun DistrictMetricCard(
     valueColor: Color = MotormilaOnSurface,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = modifier,
@@ -446,7 +446,7 @@ private fun NearbyDistrictChip(
     val chipCd = stringResource(R.string.district_hub_cd_nearby, item.district)
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier
@@ -529,7 +529,7 @@ private fun TopModelCard(
     )
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier

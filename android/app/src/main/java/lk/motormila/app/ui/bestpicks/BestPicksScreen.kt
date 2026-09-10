@@ -273,7 +273,7 @@ fun BestPicksScreen(
                                 if (!reducedMotion) haptics.tick()
                                 onSeeAllSearch()
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(22.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MotormilaPrimary,
                                 contentColor = MotormilaOnPrimary,
@@ -416,7 +416,7 @@ private fun CutsSection(
     onHaptic: () -> Unit,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth(),
@@ -460,7 +460,7 @@ private fun CutRow(drop: PriceDrop, onClick: () -> Unit) {
     val cd = stringResource(R.string.hub_picks_cd_drop, drop.listing.displayName, pct)
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MotormilaSurface,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = cd },
@@ -526,7 +526,7 @@ private fun PickCard(
 @Composable
 private fun PicksUpgradeStrip() {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),

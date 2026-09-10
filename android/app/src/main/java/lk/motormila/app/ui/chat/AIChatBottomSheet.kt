@@ -243,9 +243,9 @@ private fun AIChatHeader(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(24.dp))
                         .background(Color(0x2E0A7AFF))
-                        .border(1.dp, Color(0x663D94FF), RoundedCornerShape(14.dp)),
+                        .border(1.dp, Color(0x663D94FF), RoundedCornerShape(24.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -369,9 +369,9 @@ private fun QuickPromptChipsRow(
             Row(
                 modifier = Modifier
                     .scale(chipScale)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(22.dp))
                     .background(Color(0x1A0A7AFF))
-                    .border(0.8.dp, Color(0x550A7AFF), RoundedCornerShape(12.dp))
+                    .border(0.8.dp, Color(0x550A7AFF), RoundedCornerShape(22.dp))
                     .clickable(
                         interactionSource = interaction,
                         indication = null,
@@ -464,9 +464,9 @@ private fun WelcomeGlassCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(MotormilaSurfaceHigh)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(18.dp))
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp))
             .padding(18.dp),
     ) {
         Row(
@@ -524,9 +524,9 @@ private fun WelcomeGlassCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(28.dp))
                         .background(MotormilaBg)
-                        .border(0.5.dp, MotormilaOutline, RoundedCornerShape(10.dp))
+                        .border(0.5.dp, MotormilaOutline, RoundedCornerShape(28.dp))
                         .clickable { onPromptSelected(prompt) }
                         .heightIn(min = 48.dp)
                         .padding(horizontal = 12.dp, vertical = 9.dp)
@@ -565,9 +565,9 @@ private fun UserSpeechBubble(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
+                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
                 .background(Color(0x2E0A7AFF))
-                .border(1.dp, Color(0x660A7AFF), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
+                .border(1.dp, Color(0x660A7AFF), RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 16.dp, bottomEnd = 4.dp))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
             Text(
@@ -610,9 +610,9 @@ private fun AssistantSpeechBubble(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp))
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 4.dp, bottomEnd = 16.dp))
                     .background(MotormilaSurfaceHigh)
-                    .border(0.8.dp, MotormilaOutline, RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp))
+                    .border(0.8.dp, MotormilaOutline, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 4.dp, bottomEnd = 16.dp))
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -674,7 +674,7 @@ private fun AssistantSpeechBubble(
             // Copy action button
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .clickable {
                         clipboardManager.setText(AnnotatedString(message.content))
                         copied = true
@@ -764,9 +764,9 @@ private fun EmbeddedVehicleCard(
         modifier = modifier
             .fillMaxWidth()
             .scale(cardScale)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(MotormilaSurfaceHighest)
-            .border(1.dp, Color(0x330A7AFF), RoundedCornerShape(16.dp))
+            .border(1.dp, Color(0x330A7AFF), RoundedCornerShape(28.dp))
             .clickable(
                 interactionSource = interaction,
                 indication = null,
@@ -781,7 +781,7 @@ private fun EmbeddedVehicleCard(
         Box(
             modifier = Modifier
                 .size(68.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(22.dp))
                 .background(MotormilaBg),
             contentAlignment = Alignment.Center,
         ) {
@@ -869,9 +869,9 @@ private fun EmbeddedVehicleCard(
 private fun LoadingThinkingIndicator(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(Color(0x1A0A7AFF))
-            .border(0.8.dp, Color(0x440A7AFF), RoundedCornerShape(12.dp))
+            .border(0.8.dp, Color(0x440A7AFF), RoundedCornerShape(22.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -947,7 +947,7 @@ private fun AIChatInputBar(
                     unfocusedIndicatorColor = MotormilaOutline,
                     cursorColor = MotormilaPrimaryBright,
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(28.dp),
                 modifier = Modifier
                     .weight(1f)
                     .semantics { contentDescription = "Chat input text field" },

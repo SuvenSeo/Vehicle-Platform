@@ -120,7 +120,7 @@ fun SearchBar(
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier
                                         .size(44.dp)
-                                        .clip(RoundedCornerShape(8.dp)),
+                                        .clip(RoundedCornerShape(28.dp)),
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {

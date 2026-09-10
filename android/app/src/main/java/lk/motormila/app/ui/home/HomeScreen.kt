@@ -599,11 +599,11 @@ private fun HeroStatsCard(
     )
 
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(20.dp)),
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column(
             modifier = Modifier
@@ -710,9 +710,9 @@ private fun MetricMiniCell(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF131318)),
-        modifier = modifier.border(1.dp, MotormilaOutline, RoundedCornerShape(12.dp)),
+        modifier = modifier.border(1.dp, MotormilaOutline, RoundedCornerShape(22.dp)),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
@@ -753,12 +753,12 @@ private fun FeatureBannersRow(
     ) {
         // Card 1: VEHICLE TYPES
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
             modifier = Modifier
                 .weight(1f)
                 .height(115.dp)
-                .border(1.dp, MotormilaOutline, RoundedCornerShape(16.dp))
+                .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp))
                 .clickable(onClick = onVehicleTypesClick),
         ) {
             Box(
@@ -808,12 +808,12 @@ private fun FeatureBannersRow(
 
         // Card 2: VERIFIED SIGNALS
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
             modifier = Modifier
                 .weight(1f)
                 .height(115.dp)
-                .border(1.dp, MotormilaOutline, RoundedCornerShape(16.dp)),
+                .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
         ) {
             Box(
                 modifier = Modifier
@@ -929,7 +929,7 @@ private fun HubShortcutCard(
 ) {
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .heightIn(min = 96.dp)
@@ -976,11 +976,11 @@ private fun LiveIncomingFeedTicker(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(18.dp)),
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header Row: Pulse icon + LIVE INCOMING FEED + ((•)) SYNCED 2H
@@ -990,7 +990,7 @@ private fun LiveIncomingFeedTicker(
                     .border(
                         width = 0.5.dp,
                         color = MotormilaOutline,
-                        shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp),
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                     )
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1065,9 +1065,9 @@ private fun LiveIncomingFeedTicker(
                         // Deal score badge in blue
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(999.dp))
                                 .background(Color(0x2E0A7AFF))
-                                .border(0.5.dp, Color(0x550A7AFF), RoundedCornerShape(6.dp))
+                                .border(0.5.dp, Color(0x550A7AFF), RoundedCornerShape(999.dp))
                                 .padding(horizontal = 8.dp, vertical = 3.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -1149,11 +1149,11 @@ private fun TrendingModelCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .width(260.dp)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(16.dp))
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp))
             .clickable(onClick = onClick),
     ) {
         Row(
@@ -1163,7 +1163,7 @@ private fun TrendingModelCard(
             Box(
                 modifier = Modifier
                     .size(46.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(28.dp))
                     .background(Color(0xFF1B1B22)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1246,11 +1246,11 @@ private fun SectionRow(title: String, onSeeAll: (() -> Unit)?) {
 private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dropPct: Double, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .width(220.dp)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(16.dp)),
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column {
             AsyncImage(
@@ -1286,11 +1286,11 @@ private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dr
 private fun HotDealCard(title: String, imageUrl: String?, price: String, score: Double, isPro: Boolean, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
             .width(220.dp)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(16.dp)),
+            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
     ) {
         Column {
             AsyncImage(

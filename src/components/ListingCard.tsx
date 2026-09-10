@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { CarListing } from "@/types/car";
-import { formatPrice } from "@/services/api";
+import { formatPrice, getListing } from "@/services/api";
 import { Gauge, MapPin, ArrowRight, Heart, Check, Plus, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
@@ -16,6 +16,7 @@ import { MileageTrustChip } from "@/components/MileageTrustChip";
 import { summarizeFmv } from "@/lib/fmv";
 import { useAuth } from "@/lib/authContext";
 import { hasFullPlatformAccess } from "@/lib/planLimits";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import { useAppPreferences } from "@/lib/appPreferences";
 
 interface ListingCardProps {
@@ -24,6 +25,7 @@ interface ListingCardProps {
   isComparing?: boolean;
   onWatchlistToggle?: (listing: CarListing) => void;
   isWatchlisted?: boolean;
+  priority?: boolean;
 }
 
 function getDealBadgeClasses(label: ReturnType<typeof getListingDealLabel>): string {
@@ -68,6 +70,7 @@ export const ListingCard = memo(function ListingCard({
   isComparing,
   onWatchlistToggle,
   isWatchlisted,
+  priority = false,
 }: ListingCardProps) {
   const { t } = useAppPreferences();
   const { hasProAccess, isAdmin } = useAuth();
@@ -95,13 +98,17 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
-      className="group relative isolate h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg"
+      className="liquid-panel group relative isolate h-full overflow-hidden rounded-3xl border-white/40 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg active:scale-[0.985] active:shadow-soft dark:border-white/15"
+      onPointerEnter={() => {
+        prefetchRoute(`/listing/${listing.id}`);
+        void getListing(listing.id);
+      }}
     >
       <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" />
       <Link
         to={`/listing/${listing.id}`}
         aria-label={t("listingCard.openAria", "Open {title}", { title: listingTitle || "vehicle listing" })}
-        className="absolute inset-0 z-10 rounded-2xl"
+        className="absolute inset-0 z-10 rounded-3xl"
       />
 
       <div className="pointer-events-none relative z-20 flex h-full flex-col">
@@ -111,6 +118,7 @@ export const ListingCard = memo(function ListingCard({
             src={imageUrl}
             listingId={listing.id}
             alt={`${listing.make} ${listing.model}`}
+            priority={priority}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
@@ -167,12 +175,12 @@ export const ListingCard = memo(function ListingCard({
               />
             )}
             {hasDealScore && (
-              <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
                 {t("listingCard.deal", "{score} deal", { score: `${dealScore >= 0 ? "+" : ""}${dealScore.toFixed(0)}` })}
               </span>
             )}
             {!fullAccess && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white/85 backdrop-blur-md">
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white/85 backdrop-blur-md">
                 <Lock className="h-2.5 w-2.5" aria-hidden />
                 {t("listingCard.proScore", "Pro score")}
               </span>
@@ -211,7 +219,7 @@ export const ListingCard = memo(function ListingCard({
           />
 
           {/* Market position bar */}
-          <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="rounded-2xl border border-white/30 bg-white/40 p-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {t("listingCard.fmv", "Fair market value")}

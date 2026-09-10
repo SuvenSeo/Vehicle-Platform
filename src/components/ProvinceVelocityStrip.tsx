@@ -127,7 +127,7 @@ export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+            className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
           >
             Retry
           </button>
@@ -148,10 +148,10 @@ export const ProvinceVelocityStrip = memo(function ProvinceVelocityStrip({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
-          <span className="rounded-lg border border-border bg-surface px-2.5 py-1 text-foreground">
+          <span className="rounded-2xl border border-border bg-surface px-2.5 py-1 text-foreground">
             Province rollup
           </span>
-          <span className="rounded-lg border border-border bg-surface px-2.5 py-1">
+          <span className="rounded-2xl border border-border bg-surface px-2.5 py-1">
             Sum volume · weighted velocity
           </span>
         </div>

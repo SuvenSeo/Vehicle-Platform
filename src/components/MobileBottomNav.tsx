@@ -1,6 +1,9 @@
 import { BarChart2, Bell, Crown, Home, Star, TrendingUp } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useLocation } from "react-router-dom";
+import { PrefetchLink } from "@/components/PrefetchLink";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { springSnappy } from "@/lib/motion";
 
 type NavTab = {
   labelKey: string;
@@ -40,26 +43,27 @@ function TabItem({ tab }: { tab: NavTab }) {
   const label = t(tab.labelKey, tab.fallback);
 
   return (
-    <Link
+    <PrefetchLink
       to={tab.href}
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
       data-active={isActive}
-      className={`group flex flex-1 flex-col items-center justify-center gap-1 py-2 no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+      className={`group relative flex flex-1 flex-col items-center justify-center gap-1 py-2 no-underline outline-none transition-colors duration-200 ease-apple focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.96] ${
         isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
       }`}
     >
-      <span
-        className={`relative flex h-7 w-7 items-center justify-center rounded-xl transition-all duration-200 ${
-          isActive ? "bg-primary/10" : "group-hover:bg-foreground/[0.04]"
-        }`}
-      >
+      <span className="relative flex h-7 w-7 items-center justify-center">
         {isActive && (
-          <span className="absolute inset-0 rounded-xl bg-primary/10" aria-hidden />
+          <motion.span
+            layoutId="mobile-nav-pill"
+            className="absolute inset-0 rounded-full bg-primary/12"
+            transition={springSnappy}
+            aria-hidden
+          />
         )}
         <Icon
-          className={`relative z-10 h-4 w-4 transition-transform duration-200 ${
-            isActive ? "scale-110" : ""
+          className={`relative z-10 h-4 w-4 transition-transform duration-200 ease-apple ${
+            isActive ? "scale-110" : "group-hover:scale-105"
           }`}
         />
       </span>
@@ -70,7 +74,7 @@ function TabItem({ tab }: { tab: NavTab }) {
       >
         {label}
       </span>
-    </Link>
+    </PrefetchLink>
   );
 }
 
@@ -80,11 +84,11 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label={t("nav.mobileNavigation", "Mobile bottom navigation")}
-      className="md:hidden fixed inset-x-0 bottom-0 z-[999] pointer-events-auto"
+      className="md:hidden fixed inset-x-3 bottom-3 z-[999] pointer-events-auto"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="nav-glass border-t border-border">
-        <div className="flex h-16 items-stretch">
+      <div className="nav-glass overflow-hidden">
+        <div className="flex h-16 items-stretch px-1">
           {TABS.map((tab) => (
             <TabItem key={tab.href} tab={tab} />
           ))}

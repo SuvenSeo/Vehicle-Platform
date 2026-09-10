@@ -58,7 +58,7 @@ export default function HeroLab() {
           </div>
           <Link
             to={`/?hero=${activeId}`}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-[12px] font-bold hover:border-primary/40"
+            className="rounded-2xl border border-border bg-background px-3 py-2 text-[12px] font-bold hover:border-primary/40"
           >
             Open on home (needs sign-in)
           </Link>
@@ -133,7 +133,7 @@ export default function HeroLab() {
               }`}
             >
               <span className="text-[13px] opacity-60">Search vehicles…</span>
-              <span className="ml-auto rounded-lg bg-primary px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white">
+              <span className="ml-auto rounded-2xl bg-primary px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white">
                 Search
               </span>
             </div>

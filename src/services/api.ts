@@ -45,6 +45,7 @@ import { normalizeVehicleImageUrlWithBase, pickVehicleImageUrl } from "@/lib/lis
 import { formatPriceLkrMillions } from "@/lib/formatting";
 import { authHeaders } from "@/lib/authToken";
 import { districtCoords, normalizeDistrictName } from "@/data/districts";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const DEFAULT_PRODUCTION_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const HF_COLD_START_TIMEOUT_MS = 60_000;
@@ -1246,7 +1247,31 @@ export const sendFeedback = async (payload: FeedbackInput): Promise<FeedbackRece
   };
 };
 
+const listingDetailCache = new Map<string, { expires: number; listing: CarListing }>();
+const listingDetailInflight = new Map<string, Promise<CarListing>>();
+
 export const getListing = async (id: string | number) => {
+  const key = String(id);
+  const cached = listingDetailCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.listing;
+  const inflight = listingDetailInflight.get(key);
+  if (inflight) return inflight;
+
+  const pending = loadListing(id)
+    .then((listing) => {
+      listingDetailCache.set(key, { expires: Date.now() + QUERY_STALE.listings, listing });
+      listingDetailInflight.delete(key);
+      return listing;
+    })
+    .catch((error: unknown) => {
+      listingDetailInflight.delete(key);
+      throw error;
+    });
+  listingDetailInflight.set(key, pending);
+  return pending;
+};
+
+async function loadListing(id: string | number) {
   const catalog = await getSnapshotListingCatalog();
   if (catalog) {
     const match = catalog.find((listing) => String(listing.id) === String(id));
@@ -1261,7 +1286,7 @@ export const getListing = async (id: string | number) => {
 
   const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
-};
+}
 
 function normalizePriceDropItems(data: JsonRecord, limit = 12): PriceDropItem[] {
   if (!Array.isArray(data?.items)) return [];

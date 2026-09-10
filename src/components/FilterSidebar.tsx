@@ -113,7 +113,7 @@ function PillButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-2.5 py-1.5 text-caption font-medium transition-colors active:scale-[0.97] ${
+      className={`rounded-2xl border px-2.5 py-1.5 text-caption font-medium transition-colors active:scale-[0.97] ${
         active
           ? "border-primary/35 bg-primary/12 text-primary"
           : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -125,7 +125,7 @@ function PillButton({
 }
 
 function selectTriggerClass() {
-  return "h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
+  return "h-9 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
 }
 
 function selectContentClass() {
@@ -429,7 +429,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 key={chip.key}
                 type="button"
                 onClick={chip.onRemove}
-                className="inline-flex max-w-full items-center gap-1 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-caption text-primary-bright"
+                className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-caption text-primary-bright"
               >
                 <span className="truncate">{chip.label}</span>
                 <X className="h-3 w-3 shrink-0 opacity-70" />
@@ -438,11 +438,11 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           </div>
         ) : null}
 
-        <div className="flex gap-1 rounded-lg border border-border bg-surface p-1">
+        <div className="flex gap-1 rounded-2xl border border-border bg-surface p-1">
           <button
             type="button"
             onClick={() => setInventoryMode("priced")}
-            className={`flex-1 rounded-md px-2 py-1.5 text-caption font-medium transition-colors ${
+            className={`flex-1 rounded-full px-2 py-1.5 text-caption font-medium transition-colors ${
               priceAvailability === "priced" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -451,7 +451,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           <button
             type="button"
             onClick={() => setInventoryMode("unavailable")}
-            className={`flex-1 rounded-md px-2 py-1.5 text-caption font-medium transition-colors ${
+            className={`flex-1 rounded-full px-2 py-1.5 text-caption font-medium transition-colors ${
               priceAvailability === "unavailable" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -469,7 +469,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               saveSavedSearch(String(label), filters);
               setSavedTick((n) => n + 1);
             }}
-            className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-caption font-medium text-foreground transition-colors hover:border-primary/40"
+            className="w-full rounded-2xl border border-border bg-surface px-2.5 py-1.5 text-caption font-medium text-foreground transition-colors hover:border-primary/40"
           >
             {t("filter.saveCurrentSearch", "Save current search")}
           </button>
@@ -482,7 +482,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                   <button
                     type="button"
                     onClick={() => onFiltersChange({ ...saved.filters, page: 1 } as FilterState)}
-                    className="min-w-0 flex-1 truncate rounded-md border border-transparent px-2 py-1 text-left text-caption text-primary-bright hover:border-primary/25 hover:bg-primary/5"
+                    className="min-w-0 flex-1 truncate rounded-full border border-transparent px-2 py-1 text-left text-caption text-primary-bright hover:border-primary/25 hover:bg-primary/5"
                     title={saved.name}
                   >
                     {saved.name}
@@ -532,7 +532,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           }}
           placeholder={t("filter.searchPlaceholder", "Make, model, year…")}
           aria-label={t("filter.searchAria", "Search listings")}
-          className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
+          className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
         />
       </FilterGroup>
 
@@ -571,7 +571,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 onChange={(event) => setModelSearchQuery(event.target.value)}
                 placeholder={t("filter.findModel", "Find model…")}
                 aria-label={t("common.model", "Model")}
-                className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
+                className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
@@ -635,7 +635,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder={t("filter.minLkr", "Min LKR")}
                 aria-label={t("filter.minPriceAria", "Minimum price")}
-                className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
+                className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
               />
               <Input
                 value={priceMaxInput}
@@ -650,7 +650,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder={t("filter.maxLkr", "Max LKR")}
                 aria-label={t("filter.maxPriceAria", "Maximum price")}
-                className="h-9 rounded-lg border-border bg-surface text-sm text-foreground"
+                className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
               />
             </div>
             <Slider
@@ -772,7 +772,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               inputMode="numeric"
               placeholder={t("filter.maxKm", "Max km")}
               aria-label={t("filter.maxMileageAria", "Maximum mileage")}
-              className="h-9 flex-1 rounded-lg border-border bg-surface text-sm text-foreground"
+              className="h-9 flex-1 rounded-2xl border-border bg-surface text-sm text-foreground"
             />
             <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue === MAX_MILEAGE ? undefined : mileageValue, t("filter.anyMileage", "Any"))}</span>
           </div>

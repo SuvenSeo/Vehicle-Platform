@@ -81,6 +81,7 @@ import lk.motormila.app.ui.theme.rememberHaptics
 fun OfficialPulseScreen(
     onBack: () -> Unit,
     onOpenUrl: (url: String) -> Unit,
+    onOpenSignal: (Int) -> Unit = {},
     viewModel: OfficialPulseViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -159,7 +160,7 @@ fun OfficialPulseScreen(
                     else -> when (state.section) {
                         PulseSection.SIGNALS -> SignalsPane(
                             state = state,
-                            onOpenUrl = onOpenUrl,
+                            onOpenSignal = onOpenSignal,
                             onFilter = { viewModel.onEvent(OfficialPulseUiEvent.SourceFilterChanged(it)) },
                             onHaptic = { if (!reducedMotion) haptics.tick() },
                         )
@@ -251,7 +252,7 @@ private fun PulseHero() {
 @Composable
 private fun SignalsPane(
     state: OfficialPulseUiState,
-    onOpenUrl: (String) -> Unit,
+    onOpenSignal: (Int) -> Unit,
     onFilter: (String) -> Unit,
     onHaptic: () -> Unit,
 ) {
@@ -265,7 +266,7 @@ private fun SignalsPane(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.weight(1f),
@@ -278,7 +279,7 @@ private fun SignalsPane(
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(22.dp),
                     color = MotormilaSurfaceHigh,
                     border = BorderStroke(1.dp, MotormilaOutline),
                     modifier = Modifier.weight(1f),
@@ -337,7 +338,7 @@ private fun SignalsPane(
             }
         } else {
             items(visible, key = { it.id }) { signal ->
-                SignalCard(signal = signal, onOpenUrl = onOpenUrl, onHaptic = onHaptic)
+                SignalCard(signal = signal, onOpenSignal = onOpenSignal, onHaptic = onHaptic)
             }
             if (!state.unlocked) {
                 item {
@@ -372,7 +373,7 @@ private fun SourceChip(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun SignalCard(
     signal: MarketSignal,
-    onOpenUrl: (String) -> Unit,
+    onOpenSignal: (Int) -> Unit,
     onHaptic: () -> Unit,
 ) {
     val title = signalTitle(signal)
@@ -381,13 +382,10 @@ private fun SignalCard(
     val openCd = stringResource(R.string.hub_pulse_cd_open_url, title)
     Card(
         onClick = {
-            if (!url.isNullOrBlank()) {
-                onHaptic()
-                onOpenUrl(url)
-            }
+            onHaptic()
+            onOpenSignal(signal.id)
         },
-        enabled = !url.isNullOrBlank(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = cardCd },
@@ -490,7 +488,7 @@ private fun NewsCard(
             }
         },
         enabled = !url.isNullOrBlank(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = newsCd },
@@ -564,7 +562,7 @@ private fun PermitCard(permit: Permit) {
     val price = LkrFormat.full(permit.marketPriceLkr)
     val cd = stringResource(R.string.hub_pulse_cd_permit, permit.name, price)
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = cd },
@@ -598,7 +596,7 @@ private fun PermitCard(permit: Permit) {
 @Composable
 private fun PulseUpgradeStrip() {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
         border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth(),

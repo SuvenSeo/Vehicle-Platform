@@ -484,7 +484,7 @@ export default function Calculator() {
                       type="button"
                       onClick={toggleSurchargeNotify}
                       aria-pressed={surchargeNotifyOn}
-                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-400/20 dark:text-amber-200"
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-2xl border border-amber-500/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-400/20 dark:text-amber-200"
                     >
                       {surchargeNotifyOn ? (
                         <>
@@ -518,7 +518,7 @@ export default function Calculator() {
               {/* Inputs */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft h-fit space-y-5">
                 <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
                     <Banknote className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -550,7 +550,7 @@ export default function Calculator() {
                           type="button"
                           onClick={() => void applyLiveFx()}
                           disabled={fxLoading}
-                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[10px] font-bold text-foreground transition-colors hover:border-primary/40 disabled:opacity-60"
+                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-2xl border border-border bg-surface px-3 text-[10px] font-bold text-foreground transition-colors hover:border-primary/40 disabled:opacity-60"
                           title="Pull latest CBSL-linked USD/LKR"
                         >
                           <RefreshCw className={`h-3.5 w-3.5 ${fxLoading ? "animate-spin" : ""}`} />
@@ -577,7 +577,7 @@ export default function Calculator() {
                           key={fuel}
                           onClick={() => setLcFuelType(fuel)}
                           aria-pressed={lcFuelType === fuel}
-                          className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
+                          className={`min-h-[36px] rounded-2xl border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                             lcFuelType === fuel
                               ? "border-primary/40 bg-primary/10 text-primary-bright"
                               : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -676,7 +676,7 @@ export default function Calculator() {
                       </div>
                     </div>
 
-                    <div className="rounded-lg bg-surface border border-border p-3 flex gap-2">
+                    <div className="rounded-2xl bg-surface border border-border p-3 flex gap-2">
                       <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <p className="text-[10px] leading-relaxed text-muted-foreground font-semibold">{lcResult.notes}</p>
                     </div>
@@ -698,7 +698,7 @@ export default function Calculator() {
               {/* ORIGINAL CONFIG INPUTS */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft h-fit space-y-5">
                 <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
                     <WalletCards className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -784,7 +784,7 @@ export default function Calculator() {
               {/* Inputs */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft space-y-4 h-fit">
                 <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
                     <Gauge className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -812,7 +812,7 @@ export default function Calculator() {
                         key={fuel}
                         onClick={() => setTcoFuelType(fuel)}
                         aria-pressed={tcoFuelType === fuel}
-                        className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
+                        className={`min-h-[36px] rounded-2xl border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                           tcoFuelType === fuel
                             ? "border-primary/40 bg-primary/10 text-primary-bright"
                             : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -889,7 +889,7 @@ export default function Calculator() {
                       <p className="display-1 text-foreground mt-2 num">{formatPrice(tcoResult.total_tco_monthly)}</p>
                     </div>
 
-                    <div className="rounded-lg bg-surface border border-border p-3 flex gap-2">
+                    <div className="rounded-2xl bg-surface border border-border p-3 flex gap-2">
                       <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <p className="text-[10px] leading-relaxed text-muted-foreground font-semibold">{tcoResult.notes}</p>
                     </div>

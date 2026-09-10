@@ -409,7 +409,7 @@ private fun CompareTray(count: Int, onCompare: () -> Unit, onClear: () -> Unit, 
     androidx.compose.material3.Surface(
         tonalElevation = 6.dp,
         shadowElevation = 8.dp,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
         modifier = modifier.padding(16.dp),
     ) {
         Row(

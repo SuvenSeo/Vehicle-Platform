@@ -160,4 +160,13 @@
     <string name="hub_picks_cd_drop">விலை குறைப்பு %1$s, %2$s குறைவு</string>
     <string name="hub_picks_cd_refresh">சிறந்த தேர்வுகளைப் புதுப்பி</string>
     <string name="hub_picks_min_score">குறைந்த மதிப்பெண் 8+</string>
+    <string name="hub_pulse_detail_title">சிக்னல்</string>
+    <string name="hub_pulse_detail_missing">இந்த சந்தை சிக்னல் இல்லை அல்லது நேரடி குறியீட்டில் இல்லை.</string>
+    <string name="hub_pulse_detail_metric">அளவீடு</string>
+    <string name="hub_pulse_read_guides">Official Pulse-ஐப் படி</string>
+    <string name="hub_compare_title">ஒப்பிடு</string>
+    <string name="hub_trends_title">போக்குகள்</string>
+    <string name="hub_permits_title">அனுமதி சந்தை</string>
+    <string name="hub_docs_title">ஆவணங்கள்</string>
+    <string name="hub_pricing_title">விலை</string>
 </resources>

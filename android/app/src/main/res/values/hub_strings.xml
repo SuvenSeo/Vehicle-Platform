@@ -160,4 +160,14 @@
     <string name="hub_picks_cd_drop">Price drop %1$s, down %2$s</string>
     <string name="hub_picks_cd_refresh">Refresh best picks</string>
     <string name="hub_picks_min_score">Min score 8+</string>
+
+    <string name="hub_pulse_detail_title">Signal</string>
+    <string name="hub_pulse_detail_missing">This market signal is missing or no longer in the live index.</string>
+    <string name="hub_pulse_detail_metric">Metric</string>
+    <string name="hub_pulse_read_guides">Read Official Pulse</string>
+    <string name="hub_compare_title">Compare</string>
+    <string name="hub_trends_title">Trends</string>
+    <string name="hub_permits_title">Permit market</string>
+    <string name="hub_docs_title">Docs</string>
+    <string name="hub_pricing_title">Pricing</string>
 </resources>

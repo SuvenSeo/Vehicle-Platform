@@ -277,7 +277,7 @@ private fun MakeModelHubBody(
         item {
             OutlinedButton(
                 onClick = onEstimate,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MotormilaOnSurface),
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier

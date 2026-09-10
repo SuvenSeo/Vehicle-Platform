@@ -1,18 +1,18 @@
 export function ListingCardSkeleton() {
   return (
-    <div className="asset-surface relative block h-full rounded-xl">
+    <div className="liquid-panel relative block h-full rounded-3xl">
       <div className="p-4 sm:p-5 flex flex-col space-y-4 sm:space-y-5">
         {/* Header badges */}
         <div className="flex items-start justify-between">
           <div className="flex gap-2">
-            <div className="skeleton-shimmer h-5 w-16 rounded" />
-            <div className="skeleton-shimmer h-5 w-14 rounded" />
+            <div className="skeleton-shimmer h-5 w-16 rounded-full" />
+            <div className="skeleton-shimmer h-5 w-14 rounded-full" />
           </div>
-          <div className="skeleton-shimmer h-5 w-12 rounded" />
+          <div className="skeleton-shimmer h-5 w-12 rounded-full" />
         </div>
 
         {/* Image placeholder */}
-        <div className="skeleton-shimmer aspect-[16/10] rounded-lg" />
+        <div className="skeleton-shimmer aspect-[16/10] rounded-2xl" />
 
         {/* Title row */}
         <div className="space-y-3">
@@ -37,7 +37,7 @@ export function ListingCardSkeleton() {
             <div className="skeleton-shimmer h-3.5 w-24 rounded" />
             <div className="skeleton-shimmer h-3 w-20 rounded" />
           </div>
-          <div className="skeleton-shimmer h-8 w-8 rounded-lg" />
+          <div className="skeleton-shimmer h-8 w-8 rounded-2xl" />
         </div>
       </div>
     </div>

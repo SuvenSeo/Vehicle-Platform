@@ -250,10 +250,10 @@ fun LoginScreen(
                     viewModel.onEvent(AuthUiEvent.PasswordChanged("motormila2026"))
                     viewModel.onEvent(AuthUiEvent.Submit)
                 },
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color(0x440A7AFF), RoundedCornerShape(14.dp))
+                    .border(1.dp, Color(0x440A7AFF), RoundedCornerShape(24.dp))
                     .semantics { contentDescription = "Quick sign-in with review account" },
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0x1A0A7AFF),
