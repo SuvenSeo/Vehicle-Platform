@@ -23,20 +23,22 @@ from pathlib import Path
 
 DUMP_PREFIXES = ("manus-scrape-", "neon-export-", "laptop-db-")
 ASSET_NAME = "autolens.db.gz"
-TS_RE = re.compile(r"(\d{8}T\d{4,6}Z?)")
+# A hand-created release once used %H%M%SZ (6 digits) instead of the script's
+# %H%MZ (4 digits) — e.g. manus-scrape-20260823T093908Z. Tolerate and drop a
+# stray 2-digit seconds component so the result stays comparable; the old
+# strict-4-digit regex fell through to the raw-text fallback below, which
+# then got written to last-merged.txt and silently blocked every future dump
+# for 10 days (any short "YYYYMMDDTHHMMZ" sorts before a "manus-scrape-…"
+# string, so `ts > last_ts` was always false — see select_dumps_to_merge).
+TS_RE = re.compile(r"(\d{8}T\d{4})\d{0,2}Z")
 USER_AGENT = "manus-to-live"
 
 
 def extract_dump_timestamp(value: str) -> str:
-    """Return normalized YYYYMMDDTHHMMSSZ from a tag or marker for reliable string comparison."""
+    """Return YYYYMMDDTHHMMZ from a tag or last-merged marker, else stripped text."""
     text = (value or "").strip()
     match = TS_RE.search(text)
-    if not match:
-        return text
-    raw = match.group(1).rstrip("Z")
-    date_part, time_part = raw.split("T", 1)
-    time_part = (time_part + "000000")[:6]
-    return f"{date_part}T{time_part}Z"
+    return f"{match.group(1)}Z" if match else text
 
 
 def parse_next_link(link_header: str | None) -> str | None:
