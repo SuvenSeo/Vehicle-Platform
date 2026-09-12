@@ -75,6 +75,33 @@ def ttl_for_key(key: str) -> int:
     return CACHE_TTLS.get(key, CACHE_TTL_SECONDS)
 
 
+def get_cache_anchor(db: Session, key: str) -> Optional[str]:
+    """Return an identity string for the current ``market_stats_cache`` entry.
+
+    Format: ``"<key>:<refreshed_at iso8601>"`` or ``None`` when no entry
+    exists. Callers use it to key process-local memory entries (see
+    ``app.utils.memory_cache``) so any DB-side invalidation — TTL expiry,
+    row deletion, exporter refresh — changes the anchor and the stale
+    memory payload is bypassed automatically. The DB stays the single
+    freshness authority; memory only avoids re-transferring and re-parsing
+    a payload it already built from this exact entry.
+
+    Cost: one scalar SELECT (``refreshed_at`` only — the payload column is
+    NOT loaded), so the per-request overhead is ~tens of bytes.
+    """
+    refreshed = (
+        db.query(MarketStatsCache.refreshed_at)
+        .filter(MarketStatsCache.cache_key == key)
+        .first()
+    )
+    if refreshed is None or refreshed[0] is None:
+        return None
+    value = refreshed[0]
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return f"{key}:{value.isoformat()}"
+
+
 def _entry_age_seconds(entry: MarketStatsCache) -> Optional[float]:
     refreshed = entry.refreshed_at
     if refreshed is None:

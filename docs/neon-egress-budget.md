@@ -8,9 +8,11 @@
 > API cache misses re-reading Postgres. Fixes in this repo:
 >
 > 1. **Process-local TTL cache** (`app/utils/memory_cache.py`, wired into
->    `/stats/*` endpoints) — repeat API hits within the TTL cost **zero DB
->    round-trips**; the DB-side materialized cache is only consulted after.
->    Tune with `STATS_MEMORY_CACHE_TTL_SECONDS` (default 300 s).
+>    `/stats/*` endpoints) — repeat API hits within the TTL cost **zero
+>    payload bytes**; entries are keyed by the materialized cache entry's
+>    `refreshed_at` anchor, so `DELETE FROM market_stats_cache` (the
+>    documented ops lever) and every DB-side recompute invalidate it
+>    automatically. Tune with `STATS_MEMORY_CACHE_TTL_SECONDS` (default 300 s).
 > 2. **SQL-side outlier pass** (`app/utils/outliers.py`) — IQR fences are
 >    computed with `percentile_cont` inside Postgres; nothing streams the
 >    table to the runner anymore. SQLite (tests) keeps the Python path.
@@ -168,7 +170,10 @@ unblocking accounts on request once the first fix ships.
 2. ✅ Catalog refresh merges SQLite dumps — zero Neon reads (`manus-to-live.yml`).
 3. ✅ Heavy passes weekly + egress-gated at 50% (`heavy-maintenance.yml`).
 4. ✅ Outlier fences computed in Postgres, not streamed (this repo).
-5. ✅ Hot stats endpoints cached in-process first (`app/utils/memory_cache.py`).
+5. ✅ Hot stats endpoints cached in-process first (`app/utils/memory_cache.py`),
+   keyed by the `market_stats_cache` entry's `refreshed_at` anchor — DB-side
+   invalidation stays authoritative; memory only saves re-transferring and
+   re-parsing a payload the worker already built.
 6. ✅ `top_egress_queries.py` — pg_stat_statements watch for over-fetching.
 7. ✅ Watchdog (`neon-egress-watch.yml`) warns at 70% and gates at 50%.
 8. ⬜ Optional: set `NEON_API_KEY` + `NEON_PROJECT_ID` secrets so the

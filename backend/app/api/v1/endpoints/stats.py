@@ -16,9 +16,12 @@ from app.utils.districts import (
 )
 from app.utils.import_era import classify_import_era, era_label, FREEZE_BOUNDARY_YEAR
 from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
-from app.utils.memory_cache import get_cached as memory_get_cached
-from app.utils.memory_cache import set_cached as memory_set_cached
-from app.utils.memory_cache import MISSING as MEMORY_MISS
+from app.utils.memory_cache import get_cached as _mem_get
+from app.utils.memory_cache import set_cached as _mem_set
+from app.utils.memory_cache import MISSING as _MEM_MISS
+from app.utils.stats_cache import (
+    get_cache_anchor,
+)
 from app.utils.stats_cache import (
     build_trends_cache_key,
     compute_district_velocity,
@@ -66,6 +69,7 @@ MIN_REASONABLE_PRICE_LKR = 100_000
 # after expiry the normal DB-side cache/fresh-recompute flow runs. Listings
 # land 2-3x/day, so 5 minutes of payload staleness is well inside budget.
 STATS_MEMORY_TTL_SECONDS = int(os.getenv("STATS_MEMORY_CACHE_TTL_SECONDS", "300"))
+
 LIVE_STREAM_INTERVAL_SECONDS = int(os.getenv("LIVE_STREAM_INTERVAL_SECONDS", "120"))
 RECENT_SUCCESS_HOURS = 24
 
@@ -194,28 +198,37 @@ def get_price_index(
     db: Session = Depends(get_db),
 ):
     """Mix-adjusted monthly used-vehicle price index (overall + top makes)."""
-    memory_hit = memory_get_cached("stats:price_index", STATS_MEMORY_TTL_SECONDS)
-    if memory_hit is not MEMORY_MISS:
-        result = memory_hit
-    else:
-        cached = get_cached_price_index(db, allow_stale=False)
-        if cached is not None:
-            result = cached
-            memory_set_cached("stats:price_index", cached, STATS_MEMORY_TTL_SECONDS)
+    pi_anchor = get_cache_anchor(db, "price_index")
+    if pi_anchor is not None:
+        memory_hit = _mem_get(pi_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            result = memory_hit
         else:
-            try:
-                result = _compute_price_index_payload(db)
-            except Exception:
-                stale = get_cached_price_index(db, allow_stale=True)
-                if stale is not None:
-                    age = get_cache_age_seconds(db, "price_index")
-                    _mark_stale_response(response, age)
-                    result = with_degraded_flag(stale, stale_age_seconds=age)
-                else:
-                    raise
+            cached = get_cached_price_index(db, allow_stale=False)
+            if cached is not None:
+                result = cached
+                _mem_set(pi_anchor, cached, STATS_MEMORY_TTL_SECONDS)
             else:
-                store_price_index_cache(db, result)
-                memory_set_cached("stats:price_index", result, STATS_MEMORY_TTL_SECONDS)
+                result = None
+    else:
+        result = None
+
+    if result is None:
+        try:
+            result = _compute_price_index_payload(db)
+        except Exception:
+            stale = get_cached_price_index(db, allow_stale=True)
+            if stale is not None:
+                age = get_cache_age_seconds(db, "price_index")
+                _mark_stale_response(response, age)
+                result = with_degraded_flag(stale, stale_age_seconds=age)
+            else:
+                raise
+        else:
+            store_price_index_cache(db, result)
+            fresh_anchor = get_cache_anchor(db, "price_index")
+            if fresh_anchor is not None:
+                _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
 
     plan, role = resolve_request_access(request, authorization, db)
     if is_free_browse_plan(plan, role=role):
@@ -253,16 +266,21 @@ def _mark_stale_response(response, age_seconds) -> None:
 
 @router.get("/summary", response_model=StatsSummary)
 def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    # 1) Process-local hit → zero DB reads. 2) Materialized cache. 3) Recompute.
-    memory_hit = memory_get_cached("stats:summary", STATS_MEMORY_TTL_SECONDS)
-    if memory_hit is not MEMORY_MISS:
-        _set_cache_control(response)
-        return memory_hit
+    # Memory hit (same materialized entry) → zero payload transfer. The
+    # anchor changes whenever the DB-side entry is invalidated, so the
+    # documented DELETE FROM market_stats_cache lever keeps working.
+    summary_anchor = get_cache_anchor(db, "summary")
+    if summary_anchor is not None:
+        memory_hit = _mem_get(summary_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            _set_cache_control(response)
+            return memory_hit
 
     # Serve from materialized cache when fresh (summary TTL: 15 min).
     cached = get_cached_summary(db, allow_stale=False)
     if cached is not None:
-        memory_set_cached("stats:summary", cached, STATS_MEMORY_TTL_SECONDS)
+        if summary_anchor is not None:
+            _mem_set(summary_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         _set_cache_control(response)
         return cached
 
@@ -323,14 +341,15 @@ def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_summary(db, allow_stale=True)
         if stale is not None:
-            memory_set_cached("stats:summary", stale, STATS_MEMORY_TTL_SECONDS)
             _set_cache_control(response)
             _mark_stale_response(response, get_cache_age_seconds(db, "summary"))
             return stale
         raise
 
     store_summary_cache(db, result)
-    memory_set_cached("stats:summary", result, STATS_MEMORY_TTL_SECONDS)
+    fresh_anchor = get_cache_anchor(db, "summary")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     _set_cache_control(response)
     return result
 
@@ -398,16 +417,19 @@ async def stream_live_market_snapshot(request: Request):
 
 @router.get("/district-prices")
 def get_district_prices(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    # Process-local hit → zero DB reads before touching market_stats_cache.
-    memory_hit = memory_get_cached("stats:district_prices", STATS_MEMORY_TTL_SECONDS)
-    if memory_hit is not MEMORY_MISS:
-        _set_cache_control(response)
-        return memory_hit
+    # Memory hit (same materialized entry) → zero payload transfer.
+    dp_anchor = get_cache_anchor(db, "district_prices")
+    if dp_anchor is not None:
+        memory_hit = _mem_get(dp_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            _set_cache_control(response)
+            return memory_hit
 
     # Serve from materialized cache when fresh (district-prices TTL: 1 hour).
     cached = get_cached_district_prices(db, allow_stale=False)
     if cached is not None:
-        memory_set_cached("stats:district_prices", cached, STATS_MEMORY_TTL_SECONDS)
+        if dp_anchor is not None:
+            _mem_set(dp_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         _set_cache_control(response)
         return cached
 
@@ -498,7 +520,6 @@ def get_district_prices(response: Response = None, db: Session = Depends(get_db)
             points.sort(key=lambda p: p["count"], reverse=True)
             result = {"points": points}
             store_district_prices_cache(db, result)
-            memory_set_cached("stats:district_prices", result, STATS_MEMORY_TTL_SECONDS)
             return result
 
         model_results = (
@@ -562,7 +583,9 @@ def get_district_prices(response: Response = None, db: Session = Depends(get_db)
         raise
 
     store_district_prices_cache(db, result)
-    memory_set_cached("stats:district_prices", result, STATS_MEMORY_TTL_SECONDS)
+    fresh_anchor = get_cache_anchor(db, "district_prices")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     _set_cache_control(response)
     return result
 
@@ -1104,13 +1127,15 @@ def get_dashboard_insights(
     response: Response = None,  # type: ignore[assignment]
     db: Session = Depends(get_db),
 ):
-    memory_hit = memory_get_cached("stats:insights", STATS_MEMORY_TTL_SECONDS)
-    if memory_hit is not MEMORY_MISS:
-        return memory_hit
+    ins_anchor = get_cache_anchor(db, "insights")
+    if ins_anchor is not None:
+        memory_hit = _mem_get(ins_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            return memory_hit
 
     cached = get_cached_insights(db, allow_stale=False)
     if cached is not None:
-        memory_set_cached("stats:insights", cached, STATS_MEMORY_TTL_SECONDS)
+        _mem_set(ins_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         return cached
 
     try:
@@ -1124,7 +1149,9 @@ def get_dashboard_insights(
         raise
 
     store_insights_cache(db, result)
-    memory_set_cached("stats:insights", result, STATS_MEMORY_TTL_SECONDS)
+    fresh_anchor = get_cache_anchor(db, "insights")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     return result
 
 
@@ -1726,14 +1753,16 @@ def get_ev_insight(
 
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
 def get_district_velocity(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    memory_hit = memory_get_cached("stats:district_velocity", STATS_MEMORY_TTL_SECONDS)
-    if memory_hit is not MEMORY_MISS:
-        _set_cache_control(response)
-        return memory_hit
+    dv_anchor = get_cache_anchor(db, "district_velocity")
+    if dv_anchor is not None:
+        memory_hit = _mem_get(dv_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            _set_cache_control(response)
+            return memory_hit
 
     cached = get_cached_district_velocity(db, allow_stale=False)
     if cached is not None:
-        memory_set_cached("stats:district_velocity", cached, STATS_MEMORY_TTL_SECONDS)
+        _mem_set(dv_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         _set_cache_control(response)
         return cached
 
@@ -1748,7 +1777,9 @@ def get_district_velocity(response: Response = None, db: Session = Depends(get_d
         raise
 
     store_district_velocity_cache(db, result)
-    memory_set_cached("stats:district_velocity", result, STATS_MEMORY_TTL_SECONDS)
+    fresh_anchor = get_cache_anchor(db, "district_velocity")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     _set_cache_control(response)
     return result
 

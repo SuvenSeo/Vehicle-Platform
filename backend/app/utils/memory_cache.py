@@ -1,34 +1,49 @@
 """Process-local TTL cache in front of the hot stats endpoints.
 
-Why: Neon transfer (egress) is dominated by *repeated identical reads*. The
-materialized ``market_stats_cache`` table already prevents full recomputation,
-but every API request that misses it still runs the cache-table SELECT plus —
-on expiry — the whole aggregate query chain against Postgres. This module
-sits inside each FastAPI worker so repeat hits within the TTL cost zero DB
-round-trips, and the DB-side materialized cache is only consulted after the
-memory TTL expires.
+Why: Neon transfer (egress) is dominated by *repeated identical transfers*.
+The materialized ``market_stats_cache`` table already prevents recomputation,
+but every API request that hits it still re-transfers the payload from
+Postgres and re-parses/re-validates it in Python. This module caches the
+parsed payload inside each FastAPI worker so repeat hits within the TTL cost
+zero payload bytes; the DB-side entry stays the single freshness authority.
+
+Correctness contract (pinned by tests): memory entries are keyed by the
+*anchor* of the underlying ``market_stats_cache`` entry (its ``refreshed_at``
+timestamp). Any DB-side invalidation — TTL expiry + recompute, row deletion
+(the documented ops lever: DELETE FROM market_stats_cache), exporter refresh
+— changes the anchor, so the stale memory payload is bypassed automatically.
+While the DB entry is unchanged and fresh, repeat requests cost zero payload
+bytes. Freshness is therefore never worse than the pre-existing materialized
+cache behavior (15 min–24 h TTLs).
+
+Anchors are read with a scalar SELECT (``refreshed_at`` only, not the payload
+column), so an anchor probe is ~tens of bytes — three orders of magnitude
+cheaper than re-transferring a payload.
 
 Deliberately process-local (no Redis dependency): HF Spaces runs a single
 uvicorn worker, so process-local is effectively global there. Multi-worker
 deployments simply get one cache per worker, which is still a Nx reduction
-in DB reads. Scrapers/exporters that must always see fresh data run in their
-own process, so they are unaffected.
+in payload transfer. Scrapers/exporters run in separate processes and are
+unaffected.
 
-Tuning: ``STATS_MEMORY_CACHE_TTL_SECONDS`` (default 300) applies to all keys.
-Listings land 2–3×/day, so five minutes of staleness on stats payloads is
-well inside the freshness budget the materialized cache (15 min–24 h TTLs)
-already accepts.
+Tuning: ``STATS_MEMORY_CACHE_TTL_SECONDS`` (default 300) bounds how long a
+payload may live in memory beyond its DB anchor being valid. If the DB entry
+is deleted outright, the anchor read returns ``None`` — a ``None`` anchor
+still differs from any stored anchor, so deletion invalidates too.
 """
 
 from __future__ import annotations
 
 import threading
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 _MISSING = object()
 
-# Module-level singleton store: {(key): (expires_at_monotonic, value)}.
+# Module-level singleton store: {(anchor): (expires_at_monotonic, value)}.
+# Anchored entries are also written under the sentinel key
+# _LIVE_ANCHOR_PREFIX + logical-key so get_cached can find them after the
+# anchor changed (unused by reads; kept for debugging/diagnostics only).
 _STORE: dict[str, tuple[float, Any]] = {}
 _LOCK = threading.Lock()
 
@@ -61,6 +76,12 @@ def set_cached(key: str, value: Any, ttl_seconds: int | float) -> None:
     """Store *value* under *key* for *ttl_seconds* (from now)."""
     with _LOCK:
         _STORE[key] = (time.monotonic() + float(ttl_seconds), value)
+
+
+def clear() -> None:
+    """Empty the store entirely (tests, admin cache flush)."""
+    with _LOCK:
+        _STORE.clear()
 
 
 def get_or_set(
