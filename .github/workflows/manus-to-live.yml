@@ -18,9 +18,10 @@
 #      dumps file always ends with a newline so a single pending dump is not
 #      skipped by `wc -l` / `while read`),
 #   3. runs market analysis + dedup,
-#   4. publishes the merged DB + marker. Production snapshots stay on the Neon
-#      daily/midday/weekly jobs. Set publish-full-catalog=true on
-#      workflow_dispatch during a Neon outage to export SQLite and deploy.
+#   4. publishes the merged DB + marker,
+#   5. exports the public snapshots from the merged SQLite DB and deploys
+#      them to Vercel — this is now the PERMANENT zero-egress catalog path:
+#      the live site's listings refresh from SQLite and never read Neon.
 name: Manus to Live (hosted merge and deploy)
 
 on:
@@ -38,7 +39,7 @@ on:
         required: false
         type: string
       publish-full-catalog:
-        description: "Neon outage only: export the SQLite catalog and deploy it to Vercel. Leave off so scheduled merges do not overwrite the live site."
+        description: "Force a snapshot export+deploy even when no new dumps were merged (scheduled merges always deploy when new data lands)."
         required: false
         type: boolean
         default: false
@@ -140,7 +141,10 @@ jobs:
           RUN_MARKET_SIGNALS: "true"
           RUN_DEAL_SCORE_REFRESH: "true"
           RUN_DEDUP: "true"
-          DEDUP_FULL_PASS: "true"
+          # Incremental (48h window) dedup — a full sweep re-reads 240k rows
+          # and adds ~40 min to every merge. Full passes run on-demand via
+          # heavy-maintenance.yml against SQLite (zero egress cost).
+          DEDUP_FULL_PASS: "false"
           RUN_STATS_CACHE_REFRESH: "true"
           RUN_LISTING_LIFECYCLE: "true"
           RUN_OUTLIER_DETECTION: "true"
@@ -151,8 +155,12 @@ jobs:
           RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
 
-      - name: Export and deploy SQLite snapshots (Neon outage or zero-egress refresh)
-        if: github.event.inputs.publish-full-catalog == 'true'
+      - name: Export and deploy SQLite snapshots (zero-egress catalog refresh)
+        # Permanent path: whenever new dump data was merged, refresh the live
+        # catalog from the merged SQLite DB (zero Neon reads) and deploy.
+        # Manual runs with publish-full-catalog=true force a deploy even when
+        # no new dumps landed (e.g. redeploying after a bad snapshot push).
+        if: steps.discover.outputs.count != '0' || github.event.inputs.publish-full-catalog == 'true'
         working-directory: ${{ github.workspace }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -161,7 +169,7 @@ jobs:
           SNAPSHOT_SOURCE_DIR: public/snapshots/latest
         run: |
           set -euo pipefail
-          echo "Full catalog export from SQLite (zero-egress refresh)"
+          echo "Full catalog export from merged SQLite (zero Neon egress)"
           COLD_DATABASE_URL="sqlite:///${GITHUB_WORKSPACE}/backend/motormila.db" python backend/export_public_snapshots.py --output backend/snapshots/latest
           mkdir -p public/snapshots/latest
           cp -r backend/snapshots/latest/. public/snapshots/latest/

@@ -6,9 +6,10 @@
 
 name: Weekly Open Charge Map cache
 
+# Dispatch-only: the EV charger dataset is refreshed on demand rather than
+# weekly, to keep Neon compute-hours near zero while scale-to-zero handles the
+# rest. The /ev-chargers page keeps serving the last ingested POIs.
 on:
-  schedule:
-    - cron: "30 4 * * 0"  # Sunday 04:30 UTC
   workflow_dispatch:
 
 concurrency:

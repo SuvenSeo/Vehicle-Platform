@@ -2,13 +2,14 @@
 # weekly on Mondays; public browsing reads R2 snapshots, not this API.
 name: Weekly Pro Digest
 
+# Dispatch-only: the digest is a pro feature, and the scheduled Monday run
+# kept Neon warm weekly (compute-hours) for a job that only ever ran during
+# manual verification. Run it manually when you want to send a digest.
 on:
-  schedule:
-    - cron: "0 1 * * 1"   # Monday 01:00 UTC
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Print to stdout only (no email sent)"
+        description: "Dry run (print to stdout only, no emails sent)"
         required: false
         default: "true"
         type: choice

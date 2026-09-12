@@ -46,10 +46,14 @@ WARN_FRACTION_DEFAULT = 0.70
 
 # Documented full-table reads that move the whole car_listings table out of Neon
 # each month. Kept as a conservative estimate when the API is unavailable.
+#
+# Architecture (see docs/neon-egress-budget.md): the live catalog is exported
+# from the merged SQLite DB (zero Neon reads). The remaining Neon full reads
+# are the weekly heavy-maintenance passes (Python-side dedup/outliers/
+# aggregates/deal scores, budget-gated at 50%) plus occasional manual jobs.
 FULL_READS_PER_MONTH = {
-    "listing_catalog_full_exports": 10,  # full catalog refresh every 3 days (10x/month)
-    "pg_dump_weekly": 4,                 # 1 weekly full compressed backup
-    "scrape_export_redeploy": 1,         # occasional manual full refresh
+    "weekly_heavy_maintenance_full_passes": 4,  # gated weekly (skips when budget > 50%)
+    "manual_full_exports_and_backfills": 2,     # occasional manual refresh / DR export
 }
 
 

@@ -1,0 +1,140 @@
+# Weekly heavy maintenance — the ONLY scheduled job allowed to do Python-side
+# full-table passes against Neon (dedup full sweep, outlier detection, monthly
+# aggregates, deal-score refresh). Each of these streams the whole
+# car_listings table (~240k rows) to the runner, so running them daily burned
+# ~2 GB/mo of Neon Free's 5 GB transfer allowance and blocked scrapers.
+#
+# EGRESS GATE: check_neon_egress.py must report the budget under 50% before
+# the heavy passes run. Over the gate the job skips cleanly (exit 0) and the
+# next week's run tries again. Override with force=true after a quota reset.
+#
+# The public catalog never depends on this job: manus-to-live.yml refreshes
+# the live listings from the merged SQLite DB (zero Neon reads). Heavy passes
+# only affect deal scores / outlier flags / price aggregates, which propagate
+# to the site via the stats-only snapshot export at the end of this workflow.
+name: Weekly Heavy Maintenance (egress-gated)
+
+on:
+  schedule:
+    # Sunday 01:00 UTC — clear of the 02:00 scrape slots and Monday's digest.
+    - cron: "0 1 * * 0"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Skip the egress budget gate (use after a monthly quota reset)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: heavy-maintenance
+  cancel-in-progress: false
+
+jobs:
+  heavy-passes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt boto3
+
+      - name: Egress budget gate
+        id: gate
+        env:
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          # Proceed only when usage is below 50% of the 5 GB budget: the heavy
+          # passes themselves cost ~60-80 MB, so this leaves a wide margin.
+          NEON_WARN_FRACTION: "0.5"
+          FORCE: ${{ github.event.inputs.force || 'false' }}
+        run: |
+          set -euo pipefail
+          if [[ "${FORCE}" == "true" ]]; then
+            echo "Forced run — skipping the egress budget gate."
+            echo "gate=forced" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          set +e
+          python scripts/ops/check_neon_egress.py
+          code=$?
+          set -e
+          if [ "$code" -eq 0 ]; then
+            echo "Egress under gate — heavy passes may run."
+            echo "gate=ok" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 2 ]; then
+            echo "::notice::Neon transfer at/over 50% gate — skipping heavy passes this week (exit 2)."
+            echo "gate=skipped" >> "$GITHUB_OUTPUT"
+          elif [ "$code" -eq 1 ]; then
+            echo "::notice::Neon transfer OVER budget — skipping heavy passes this week (exit 1)."
+            echo "gate=skipped" >> "$GITHUB_OUTPUT"
+          else
+            # Unknown usage (API + estimate both unavailable): skip to be safe.
+            echo "::notice::Egress usage unknown — skipping heavy passes this week (exit ${code})."
+            echo "gate=skipped" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run heavy Python-side passes (dedup, outliers, aggregates, deal scores)
+        if: steps.gate.outputs.gate != 'skipped'
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+          SCRAPE_PROFILE: "all"
+          RUN_SCRAPERS: "false"
+          RUN_MARKET_ANALYSIS: "true"
+          RUN_MARKET_SIGNALS: "true"
+          RUN_DEAL_SCORE_REFRESH: "true"
+          RUN_STATS_CACHE_REFRESH: "true"
+          RUN_DEDUP: "true"
+          DEDUP_FULL_PASS: "true"
+          RUN_LISTING_LIFECYCLE: "true"
+          RUN_OUTLIER_DETECTION: "true"
+          RUN_PRICE_RECOVERY: "false"
+          RUN_ALERT_MATCH: "false"
+          RUN_THUMBNAIL_CACHE: "false"
+          RUN_IMAGE_PHASH: "false"
+        run: python run_sync.py
+
+      - name: Export stats-only snapshots
+        if: steps.gate.outputs.gate != 'skipped'
+        env:
+          COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+          ALLOW_SQLITE_FALLBACK: "false"
+        run: python export_public_snapshots.py --output snapshots/latest --skip-catalog
+
+      - name: Upload snapshots to R2
+        if: steps.gate.outputs.gate != 'skipped'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ secrets.R2_PREFIX }}
+          SNAPSHOT_SOURCE_DIR: snapshots/latest
+        run: python upload_snapshots_r2.py
+
+      - name: Notify Slack when gated
+        if: steps.gate.outputs.gate == 'skipped' && github.event_name == 'schedule'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "No Slack webhook configured; skipping."
+            exit 0
+          fi
+          curl -X POST -H "Content-type: application/json" \
+            --data "{\"text\":\":warning: Motormila weekly heavy maintenance SKIPPED by egress gate. Heavy passes (dedup/outliers/deal scores) did not run this week. Run: ${RUN_URL}\"}" \
+            "${SLACK_WEBHOOK_URL}"

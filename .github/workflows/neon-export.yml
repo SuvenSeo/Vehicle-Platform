@@ -6,17 +6,20 @@
 # publishes it as a neon-export-* release. manus-to-live.yml merges that
 # release into the public snapshot catalog (the live site).
 #
-# Scheduled daily: before the reset, the probe skips (Neon unreachable). After
-# a successful full export this calendar month, later runs skip so we do not
-# immediately burn the new quota with another full-table read.
+# Previously scheduled daily (skipping once a month-tagged export existed) —
+# now dispatch-only because the live site publishes from SQLite instead. Run
+# it manually when a DR capture is actually needed; the monthly guard below
+# still prevents accidental repeat full reads in the same calendar month.
 #
 # Requires repo secret HOT_DATABASE_URL (the Neon DSN).
-name: Neon Export
+#
+# EGRESS NOTE: this is a full-table read (~80-300 MB). It is now DISPATCH-ONLY
+# and must only run as a disaster-recovery capture — the live site no longer
+# depends on it: manus-to-live.yml exports the public catalog from the merged
+# SQLite DB with zero Neon reads (see docs/neon-egress-budget.md).
+name: Neon Export (DR capture — dispatch only)
 
 on:
-  schedule:
-    # 03:20 UTC daily — after weekly backup/catalog jobs on Sundays.
-    - cron: "20 3 * * *"
   workflow_dispatch:
     inputs:
       limit:
