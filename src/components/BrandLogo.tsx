@@ -104,14 +104,14 @@ export function BrandLogo({
         <span className="brand-wordmark min-w-0 leading-none">
           <span
             className={cn(
-              "block font-display font-extrabold italic tracking-[-0.045em] text-foreground",
+              "brand-wordmark block font-display text-foreground",
               text,
             )}
           >
             Motor<span className="text-primary">mila</span>
           </span>
           {showTagline && (
-            <span className="mt-1.5 block max-w-[16rem] truncate text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            <span className="mt-1.5 block max-w-[16rem] truncate text-[10px] font-medium tracking-[-0.005em] text-muted-foreground">
               {tagline}
             </span>
           )}

@@ -58,7 +58,7 @@ export const MileagePriceScatter = memo(function MileagePriceScatter({
     <div className="data-card p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <p className="tech-label">{title}</p>
-        <span className="rounded-2xl border border-border bg-surface px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+        <span className="rounded-2xl border border-border bg-surface px-2.5 py-1 text-[12px] font-semibold text-muted-foreground">
           {validPoints.length} listings
         </span>
       </div>
@@ -88,11 +88,10 @@ export const MileagePriceScatter = memo(function MileagePriceScatter({
                 offset: -12,
                 style: {
                   fill: "hsl(var(--muted-foreground))",
-                  fontSize: 9,
+                  fontSize: 11,
                   fontFamily: "Geist Mono",
-                  fontWeight: 600,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
+                  fontWeight: 500,
+                  letterSpacing: "0.02em",
                 },
               }}
             />

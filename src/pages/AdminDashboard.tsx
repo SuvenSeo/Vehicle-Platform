@@ -501,7 +501,7 @@ export default function AdminDashboard() {
                 <h2 className="font-display text-lg font-semibold">Live market glance</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-border bg-surface p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[12px] font-medium text-muted-foreground">
                       Avg ask
                     </p>
                     <p className="mt-2 text-lg font-semibold num">
@@ -509,7 +509,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div className="rounded-xl border border-border bg-surface p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[12px] font-medium text-muted-foreground">
                       Active alerts
                     </p>
                     <p className="mt-2 text-lg font-semibold num">
@@ -517,7 +517,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div className="rounded-xl border border-border bg-surface p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[12px] font-medium text-muted-foreground">
                       Market signals
                     </p>
                     <p className="mt-2 text-lg font-semibold num">
@@ -525,7 +525,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div className="rounded-xl border border-border bg-surface p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[12px] font-medium text-muted-foreground">
                       Scrape health
                     </p>
                     <p className="mt-2 text-lg font-semibold num">
@@ -573,7 +573,7 @@ export default function AdminDashboard() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[13px] font-semibold">{run.source}</p>
-                        <span className="rounded-full border border-border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                        <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                           {run.status || "—"}
                         </span>
                       </div>
@@ -628,7 +628,7 @@ export default function AdminDashboard() {
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[900px] text-left text-sm">
                       <thead>
-                        <tr className="border-b border-border text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        <tr className="border-b border-border text-[11px] font-medium text-muted-foreground">
                           <th className="pb-3 pr-3 font-bold">User</th>
                           <th className="pb-3 pr-3 font-bold">Plan</th>
                           <th className="pb-3 pr-3 font-bold">Role</th>
@@ -827,7 +827,7 @@ export default function AdminDashboard() {
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
                               <p className="text-[14px] font-semibold">{invite.email}</p>
-                              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              <p className="text-[11px] font-medium text-muted-foreground">
                                 {invite.plan} · {invite.role}
                                 {invite.expiresAt
                                   ? ` · expires ${new Date(invite.expiresAt).toLocaleDateString()}`
@@ -870,7 +870,7 @@ export default function AdminDashboard() {
                       className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-3 py-2 text-[12px]"
                     >
                       <span className="truncate font-medium">{invite.email}</span>
-                      <span className="shrink-0 uppercase tracking-wide text-muted-foreground">
+                      <span className="shrink-0 font-medium text-muted-foreground">
                         {invite.status} · {invite.plan}
                       </span>
                     </div>
@@ -916,7 +916,7 @@ export default function AdminDashboard() {
                 ) : (
                   <table className="w-full min-w-[800px] text-left text-sm">
                     <thead>
-                      <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <tr className="border-b border-border text-[11px] font-medium text-muted-foreground">
                         <th className="pb-3 pr-3">Source</th>
                         <th className="pb-3 pr-3">Status</th>
                         <th className="pb-3 pr-3">Found</th>
@@ -1031,7 +1031,7 @@ export default function AdminDashboard() {
                     <div key={item.id} className="rounded-2xl border border-border bg-surface p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-primary/80">
+                          <p className="text-[12px] font-medium text-primary/80">
                             {item.category} · {item.status}
                           </p>
                           <p className="mt-2 text-[14px] font-medium leading-relaxed text-foreground">
@@ -1087,7 +1087,7 @@ export default function AdminDashboard() {
                 ) : (
                   <table className="w-full min-w-[760px] text-left text-sm">
                     <thead>
-                      <tr className="border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground">
+                      <tr className="border-b border-border text-[11px] font-medium text-muted-foreground">
                         <th className="pb-3 pr-3">Dealer</th>
                         <th className="pb-3 pr-3">Contact</th>
                         <th className="pb-3 pr-3">Status</th>
@@ -1106,7 +1106,7 @@ export default function AdminDashboard() {
                           <td className="py-3 pr-3 text-[12px] text-muted-foreground">
                             {dealer.contactEmail || dealer.contactPhone || "—"}
                           </td>
-                          <td className="py-3 pr-3 uppercase tracking-wide text-[11px]">
+                          <td className="py-3 pr-3 text-[11px] font-medium">
                             {dealer.status}
                           </td>
                           <td className="py-3">

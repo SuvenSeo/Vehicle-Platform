@@ -97,7 +97,7 @@ export function FuelMixStrip() {
       <div className="mb-5 flex items-center gap-2">
         <Zap className="h-4 w-4 text-emerald-600/80 dark:text-emerald-400/80" />
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="text-[12px] font-medium text-muted-foreground">
             Fuel mix
           </p>
           <h2 className="text-sm font-semibold text-foreground">
@@ -134,7 +134,7 @@ export function FuelMixStrip() {
           {hybridBands && hybridBands.total_hybrids > 0 && (
             <div className="mt-2 space-y-2 border-t border-border pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                <p className="text-[12px] font-medium text-muted-foreground">
                   Hybrid engine bands
                 </p>
                 <p className="text-[10px] text-muted-foreground num">

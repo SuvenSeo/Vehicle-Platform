@@ -444,18 +444,18 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                           listingId={listing.id}
                           alt={`${listing.make} ${listing.model}`}
                           className="h-full w-full object-cover"
-                          placeholderClassName="flex h-full w-full items-center justify-center bg-muted text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+                          placeholderClassName="flex h-full w-full items-center justify-center bg-muted text-[10px] font-medium text-muted-foreground"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
                         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
                           {isBestDeal ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-emerald-300 backdrop-blur-md">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-zinc-950/80 px-1.5 py-0.5 text-[11px] font-medium text-emerald-300 backdrop-blur-md">
                               <BadgeCheck className="h-2.5 w-2.5" />
                               Best deal
                             </span>
                           ) : null}
                           {isLowestPrice && !isBestDeal ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-zinc-950/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-zinc-100 backdrop-blur-md">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-zinc-950/80 px-1.5 py-0.5 text-[11px] font-medium text-zinc-100 backdrop-blur-md">
                               Lowest
                             </span>
                           ) : null}
@@ -466,7 +466,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                               {formatPrice(price)}
                             </p>
                           ) : (
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/80">
+                            <p className="text-[12px] font-medium text-white/80">
                               Price N/A
                             </p>
                           )}
@@ -547,7 +547,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                           style={{ gridTemplateColumns: columnTemplate }}
                         >
                           <div className="min-w-0 pr-1">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                            <p className="text-[12px] font-medium text-muted-foreground">
                               {row.label}
                             </p>
                           </div>
@@ -567,7 +567,7 @@ export const ComparisonModal = memo(function ComparisonModal({ listings, open, o
                                 <div className="flex h-full min-w-0 items-center justify-between gap-2">
                                   <span className="min-w-0 truncate font-medium">{row.render(listing)}</span>
                                   {isBest ? (
-                                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-primary-bright">
+                                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-primary/25 bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary-bright">
                                       <Trophy className="h-2.5 w-2.5" />
                                       Best
                                     </span>
@@ -613,7 +613,7 @@ function VerdictChip({
       )}
     >
       <span className="shrink-0 opacity-80">{icon}</span>
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em]">{label}</span>
+      <span className="shrink-0 text-[12px] font-medium">{label}</span>
       <span className="truncate text-[12px] font-semibold text-foreground">{value}</span>
     </div>
   );

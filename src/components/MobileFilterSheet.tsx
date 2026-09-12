@@ -65,7 +65,7 @@ function FilterSection({
 }) {
   return (
     <div className="space-y-2 border-t border-border pt-4 first:border-0 first:pt-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[12px] font-medium text-muted-foreground">
         {label}
       </p>
       {children}

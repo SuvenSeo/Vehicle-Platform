@@ -98,7 +98,7 @@ export default function Compare() {
             <ArrowLeft className="h-3.5 w-3.5" />
           </Link>
           <div>
-            <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-bright">
+            <div className="mb-1 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[12px] font-medium text-primary-bright">
               <Scale className="h-3 w-3" />
               Compare
             </div>
@@ -246,7 +246,7 @@ export default function Compare() {
                         type="button"
                         onClick={() => handleTilePin(listing)}
                         aria-pressed={pinned}
-                        className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-primary-bright transition-all hover:bg-primary/15 active:scale-[0.97]"
+                        className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary-bright transition-all hover:bg-primary/15 active:scale-[0.97]"
                       >
                         <Scale className="h-3 w-3" aria-hidden />
                         {pinned ? "Pinned ✓" : "Pin"}

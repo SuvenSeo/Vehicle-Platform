@@ -67,7 +67,7 @@ function LockedOverlay({ label }: { label?: string }) {
     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-background/70 backdrop-blur-[3px]">
       <div className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-3 text-center shadow-soft">
         <Lock aria-hidden className="mx-auto mb-1.5 h-4 w-4 text-primary" />
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright">
+        <p className="text-[12px] font-semibold text-primary-bright">
           {label ?? t("pro.unlockWithPro", "Unlock with Pro")}
         </p>
       </div>
@@ -152,7 +152,7 @@ export default function ProPreview({ sampleLane, gaps, trialCtaTo = "/sign-up" }
             <motion.div variants={revealItem} className="premium-surface relative p-6 sm:p-7">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <p className="section-eyebrow">Sample lane</p>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-600 dark:text-emerald-300">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
                   <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                   Live sample
                 </span>
@@ -162,7 +162,7 @@ export default function ProPreview({ sampleLane, gaps, trialCtaTo = "/sign-up" }
                   <thead>
                     <tr className="bg-surface">
                       {["Vehicle", "Listings", "Median", "Top area"].map((h) => (
-                        <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-[12px] font-semibold text-muted-foreground">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -187,7 +187,7 @@ export default function ProPreview({ sampleLane, gaps, trialCtaTo = "/sign-up" }
               {gapCards.slice(0, 3).map((gap) => (
                 <motion.div key={gap.title} variants={revealItem} className="data-card relative min-h-[190px] p-5">
                   <LockedOverlay />
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-primary-bright">{gap.meta}</p>
+                  <p className="text-[11px] font-medium text-primary-bright">{gap.meta}</p>
                   <h3 className="mt-2 text-[13px] font-bold text-foreground">{gap.title}</h3>
                   <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">{gap.body}</p>
                 </motion.div>

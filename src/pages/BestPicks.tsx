@@ -163,7 +163,7 @@ export default function BestPicks() {
                 type="button"
                 onClick={() => setSortMode("deal_score")}
                 aria-pressed={sortMode === "deal_score"}
-                className={`rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] transition-all active:scale-[0.97] ${
+                className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition-all active:scale-[0.97] ${
                   sortMode === "deal_score"
                     ? "border-primary/40 bg-primary/10 text-primary-bright shadow-soft"
                     : "border-border bg-card text-muted-foreground hover:bg-surface hover:text-foreground"
@@ -175,7 +175,7 @@ export default function BestPicks() {
                 type="button"
                 onClick={() => setSortMode("affordability")}
                 aria-pressed={sortMode === "affordability"}
-                className={`rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] transition-all active:scale-[0.97] ${
+                className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition-all active:scale-[0.97] ${
                   sortMode === "affordability"
                     ? "border-primary/40 bg-primary/10 text-primary-bright shadow-soft"
                     : "border-border bg-card text-muted-foreground hover:bg-surface hover:text-foreground"
@@ -281,7 +281,7 @@ export default function BestPicks() {
                   <div className="flex flex-col justify-between gap-6 p-6 sm:p-8">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{featured.source}</span>
+                        <span className="text-[12px] font-semibold text-muted-foreground">{featured.source}</span>
                         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
                           <Star className="mr-1 inline h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />{dealBandLabel(score, t)}
                         </span>
@@ -303,7 +303,7 @@ export default function BestPicks() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Link to={`/listing/${featured.id}`} className="flex h-11 flex-1 items-center justify-center rounded-full bg-primary text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">{t("picks.openDetail", "Open detail")}</Link>
+                      <Link to={`/listing/${featured.id}`} className="flex h-11 flex-1 items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">{t("picks.openDetail", "Open detail")}</Link>
                       {featured.external_url && (
                         <a href={featured.external_url} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center gap-1 rounded-full border border-border bg-card px-4 text-[11px] font-semibold text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
                           {t("common.source", "Source")} <ExternalLink className="h-3 w-3" aria-hidden />
@@ -338,7 +338,7 @@ export default function BestPicks() {
                         </Link>
                         <div className="flex flex-1 flex-col gap-3 p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{listing.source}</span>
+                            <span className="text-[12px] font-semibold text-muted-foreground">{listing.source}</span>
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score, t)}</span>
                           </div>
                           <Link to={`/listing/${listing.id}`} className="block no-underline">

@@ -42,7 +42,7 @@ export function UpgradePrompt({
         </div>
         <Link
           to="/pricing"
-          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
         >
           <Crown className="h-3.5 w-3.5" aria-hidden />
           {resolvedCta}
@@ -54,7 +54,7 @@ export function UpgradePrompt({
 
   return (
     <div className={cn("premium-surface p-6 text-center shadow-soft-lg sm:p-8", className)}>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[12px] font-semibold text-primary-bright">
         <Crown className="h-3 w-3" aria-hidden />
         {t("upgrade.proUnlock", "Pro unlock")}
       </span>
@@ -62,7 +62,7 @@ export function UpgradePrompt({
       <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-muted-foreground">{body}</p>
       <Link
         to="/pricing"
-        className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[12px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
+        className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
       >
         {resolvedCta}
         <ArrowRight className="h-4 w-4" aria-hidden />

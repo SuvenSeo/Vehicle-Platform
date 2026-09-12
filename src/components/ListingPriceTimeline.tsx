@@ -100,7 +100,7 @@ export function ListingPriceTimeline({
         {cutCount > 0 && (
           <Link
             to="/best-picks"
-            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-700 no-underline transition-colors hover:bg-emerald-500/15 dark:text-emerald-300"
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[12px] font-semibold text-emerald-700 no-underline transition-colors hover:bg-emerald-500/15 dark:text-emerald-300"
           >
             <TrendingDown className="h-3 w-3" />
             {cutCount} cut{cutCount === 1 ? "" : "s"} recorded
@@ -110,7 +110,7 @@ export function ListingPriceTimeline({
 
       <div className="grid grid-cols-2 gap-2 border-b border-border pb-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-border bg-surface p-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Opening ask</p>
+          <p className="text-[11px] font-medium text-muted-foreground">Opening ask</p>
           <p className="mt-1 text-[13px] font-bold text-foreground num">
             {history.first_price_lkr ? formatPrice(history.first_price_lkr) : "—"}
           </p>
@@ -119,7 +119,7 @@ export function ListingPriceTimeline({
           ) : null}
         </div>
         <div className="rounded-2xl border border-border bg-surface p-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Current ask</p>
+          <p className="text-[11px] font-medium text-muted-foreground">Current ask</p>
           <p className="mt-1 text-[13px] font-bold text-foreground num">
             {history.current_price_lkr ? formatPrice(history.current_price_lkr) : "—"}
           </p>
@@ -128,7 +128,7 @@ export function ListingPriceTimeline({
           ) : null}
         </div>
         <div className="rounded-2xl border border-border bg-surface p-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Total move</p>
+          <p className="text-[11px] font-medium text-muted-foreground">Total move</p>
           <div
             className={`mt-1 inline-flex items-center gap-1 text-[13px] font-bold num ${
               isDrop
@@ -143,7 +143,7 @@ export function ListingPriceTimeline({
           </div>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-3">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Price moves</p>
+          <p className="text-[11px] font-medium text-muted-foreground">Price moves</p>
           <p className="mt-1 text-[13px] font-bold text-foreground num">
             {cutCount > 0 || raiseCount > 0 ? (
               <>

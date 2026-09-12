@@ -28,7 +28,7 @@ export function HybridCliffBadge({
     <span
       title={badge.detail}
       className={cn(
-        "inline-flex items-center rounded-full border font-semibold uppercase tracking-[0.08em]",
+        "inline-flex items-center rounded-full border font-semibold tracking-tight",
         compact ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-1 text-[10px]",
         tone,
         className,

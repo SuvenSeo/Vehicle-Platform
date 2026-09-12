@@ -70,7 +70,7 @@ export const DistrictPriceHeatmap = memo(function DistrictPriceHeatmap({
     return (
       <div className="h-[420px] rounded-xl border border-border bg-card overflow-hidden flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-4" />
-        <p className="text-sm font-bold uppercase tracking-widest text-primary/80">Loading price map</p>
+        <p className="text-sm font-semibold tracking-tight text-primary/80">Loading price map</p>
         <p className="text-xs text-muted-foreground font-medium">Mapping district price levels…</p>
       </div>
     );
@@ -86,7 +86,7 @@ export const DistrictPriceHeatmap = memo(function DistrictPriceHeatmap({
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+            className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
           >
             Retry
           </button>
@@ -105,7 +105,7 @@ export const DistrictPriceHeatmap = memo(function DistrictPriceHeatmap({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.1em]">
+      <div className="flex flex-wrap items-center gap-3 text-[12px] font-semibold">
         <div className="rounded-2xl border border-border bg-surface px-3 py-1.5 text-foreground">
           Color = avg district price
         </div>

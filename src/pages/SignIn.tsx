@@ -86,7 +86,7 @@ export default function SignIn() {
 
             <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/35 bg-primary/15 px-3 py-1">
               <Lock className="h-3 w-3 text-primary" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[hsl(var(--primary-bright))]">
+              <span className="text-[12px] font-semibold text-[hsl(var(--primary-bright))]">
                 {t("signin.eyebrow", "Invite only")}
               </span>
             </div>
@@ -138,7 +138,7 @@ export default function SignIn() {
                     <p className="text-[11px] font-medium text-white/50">{acc.email}</p>
                   </div>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${
+                    className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                       acc.subscriptionStatus === "active"
                         ? "border-primary/35 bg-primary/15 text-[hsl(var(--primary-bright))]"
                         : "border-white/15 text-white/50"
@@ -156,7 +156,7 @@ export default function SignIn() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-7 space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50">
+              <Label htmlFor="email" className="text-[12px] font-semibold text-white/50">
                 {t("signin.email", "Email")}
               </Label>
               <Input
@@ -172,7 +172,7 @@ export default function SignIn() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/50">
+              <Label htmlFor="password" className="text-[12px] font-semibold text-white/50">
                 {t("signin.password", "Password")}
               </Label>
               <div className="relative">
@@ -207,7 +207,7 @@ export default function SignIn() {
               disabled={loading}
               whileTap={{ scale: 0.98 }}
               transition={springSoft}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground shadow-[0_12px_40px_-16px_hsl(var(--primary)/0.85)] transition-all hover:bg-primary/95 disabled:opacity-50"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-semibold text-primary-foreground shadow-[0_12px_40px_-16px_hsl(var(--primary)/0.85)] transition-all hover:bg-primary/95 disabled:opacity-50"
             >
               {loading ? (
                 t("signin.loading", "Signing in...")

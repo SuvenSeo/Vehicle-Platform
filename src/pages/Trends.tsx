@@ -145,7 +145,7 @@ export default function Trends() {
 
   const selectTriggerClass = "h-11 rounded-xl border-border bg-surface text-sm text-foreground";
   const selectContentClass = "border-border bg-popover text-popover-foreground";
-  const fieldLabelClass = "text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground";
+  const fieldLabelClass = "text-[12px] font-semibold text-muted-foreground";
 
   return (
     <PageCanvas>
@@ -331,7 +331,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
     >
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+          <p className="inline-flex items-center gap-2 text-[0.6875rem] font-medium tracking-tight text-primary-bright">
             <span aria-hidden className="h-1 w-1 rounded-full bg-primary-bright" />
             {t("trends.hybridEyebrow", "Import tax intelligence")}
           </p>
@@ -396,7 +396,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
                       {band.label}
                     </span>
                     {isCliffBand && (
-                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-emerald-700 dark:text-emerald-400">
+                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
                         {t("trends.taxCliff", "Tax cliff ↓")}
                       </span>
                     )}
@@ -445,7 +445,7 @@ function HybridTaxArbitrageSection({ data, loading, error }: HybridTaxArbitrageS
       <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
         <div className="mb-2 flex items-center gap-2">
           <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-400">
+          <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400">
             {t("trends.cliffTitle", "1,500 cc excise cliff")}
           </p>
         </div>

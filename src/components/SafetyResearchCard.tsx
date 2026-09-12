@@ -46,7 +46,7 @@ export function SafetyResearchCard({
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <div className="mb-2 flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-muted-foreground" aria-hidden />
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          <h2 className="text-[12px] font-semibold text-muted-foreground">
             {t("safety.title", "Safety & known issues")}
           </h2>
         </div>
@@ -78,7 +78,7 @@ export function SafetyResearchCard({
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="mb-3 flex items-center gap-2">
         <ShieldAlert className="h-4 w-4 text-primary" aria-hidden />
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        <h2 className="text-[12px] font-semibold text-muted-foreground">
           {t("safety.title", "Safety & known issues")}
         </h2>
       </div>
@@ -94,7 +94,7 @@ export function SafetyResearchCard({
 
       {recalls.length > 0 ? (
         <div className="mt-3 space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-[12px] font-semibold text-muted-foreground">
             {t("safety.recalls", "US recall campaigns (year/make/model)")}
           </p>
           {recalls.slice(0, 4).map((recall) => (

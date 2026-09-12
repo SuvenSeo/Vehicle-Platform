@@ -79,7 +79,7 @@ function RelatedSignalCard({ signal }: { signal: MarketSignal }) {
       className="group rounded-2xl border border-border bg-card p-5 shadow-soft transition-colors hover:border-primary/30"
     >
       <Link to={`/official-pulse/${signal.id}`} className="flex h-full flex-col no-underline">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
+        <p className="text-[12px] font-medium text-primary/70">
           {labelPulseSource(signal.source)} · {signal.signal_type.replace(/_/g, " ")}
         </p>
         <h3 className="mt-2 text-sm font-semibold text-foreground group-hover:text-primary">{title}</h3>

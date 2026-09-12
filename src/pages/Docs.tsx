@@ -75,7 +75,7 @@ export default function Docs() {
               >
                 <div className="mb-2 inline-flex items-center gap-2">
                   <FileText aria-hidden className="h-3.5 w-3.5 text-primary" />
-                  <span className="num text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  <span className="num text-[12px] font-semibold text-muted-foreground">
                     {section.id}
                   </span>
                 </div>

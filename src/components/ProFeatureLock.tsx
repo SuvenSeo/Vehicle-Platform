@@ -37,7 +37,7 @@ export function ProFeatureLock({
       </div>
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-background/60 px-5 text-center backdrop-blur-[3px]">
         <div className="rounded-2xl border border-primary/25 bg-card/90 px-6 py-5 shadow-soft-lg backdrop-blur-md">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[12px] font-semibold text-primary-bright">
             <Lock className="h-3 w-3" aria-hidden />
             {label}
           </span>
@@ -46,7 +46,7 @@ export function ProFeatureLock({
           </p>
           <Link
             to="/pricing"
-            className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
+            className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
           >
             <Crown className="h-3.5 w-3.5" aria-hidden />
             Start 7-day free trial

@@ -112,7 +112,7 @@ export function TrialCountdownBanner() {
         </p>
         <Link
           to="/pricing"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline"
         >
           Keep Pro
           <ArrowRight aria-hidden className="h-3.5 w-3.5" />
@@ -133,7 +133,7 @@ export function TrialCountdownBanner() {
       </p>
       <Link
         to={TRIAL_OFFER.ctaTo}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline"
+        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline"
       >
         {TRIAL_OFFER.cta}
         <ArrowRight aria-hidden className="h-3.5 w-3.5" />
@@ -342,11 +342,11 @@ export default function Pricing() {
                 }`}
               >
                 {tier.highlight && (
-                  <span className="absolute -top-2.5 right-4 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-primary-bright">
+                  <span className="absolute -top-2.5 right-4 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-0.5 text-[11px] font-medium text-primary-bright">
                     {t("pricing.recommended", "Recommended")}
                   </span>
                 )}
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{tier.name}</p>
+                <p className="text-[12px] font-semibold text-muted-foreground">{tier.name}</p>
                 <div className="mt-3 flex items-baseline gap-1.5">
                   <span className="num text-2xl font-bold text-foreground">{tier.priceLkr}</span>
                   <span className="text-[12px] text-muted-foreground">{tier.priceNote}</span>
@@ -403,11 +403,11 @@ export default function Pricing() {
             <table className="w-full min-w-[640px] text-left text-[12px]">
               <thead>
                 <tr className="bg-surface">
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("pricing.capability", "Capability")}</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("common.free", "Free")}</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("common.pro", "Pro")}</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-primary-bright">{t("nav.dealer", "Dealer")}</th>
-                  <th className="px-4 py-3 font-bold uppercase tracking-[0.08em] text-muted-foreground">{t("pricing.val.custom", "Custom")}</th>
+                  <th className="px-4 py-3 font-semibold tracking-tight text-muted-foreground">{t("pricing.capability", "Capability")}</th>
+                  <th className="px-4 py-3 font-semibold tracking-tight text-muted-foreground">{t("common.free", "Free")}</th>
+                  <th className="px-4 py-3 font-semibold tracking-tight text-muted-foreground">{t("common.pro", "Pro")}</th>
+                  <th className="px-4 py-3 font-semibold tracking-tight text-primary-bright">{t("nav.dealer", "Dealer")}</th>
+                  <th className="px-4 py-3 font-semibold tracking-tight text-muted-foreground">{t("pricing.val.custom", "Custom")}</th>
                 </tr>
               </thead>
               <tbody>

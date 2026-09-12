@@ -53,7 +53,7 @@ export function FairPriceIndicator({
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className={cn("inline-flex items-center gap-1.5 cursor-help transition-all duration-200 hover:opacity-80 active:scale-[0.98]", size === "sm" ? "font-semibold uppercase rounded" : "uppercase font-bold", badgeClasses, className)}>
+          <span className={cn("inline-flex items-center gap-1.5 cursor-help transition-all duration-200 hover:opacity-80 active:scale-[0.98]", size === "sm" ? "font-semibold rounded" : "font-semibold", badgeClasses, className)}>
             <Icon className={cn("opacity-70", size === "sm" ? "h-3 w-3" : "h-6 w-6 ml-2")} aria-hidden />
             {label}
             {rsDelta && size === "sm" && (
@@ -70,7 +70,7 @@ export function FairPriceIndicator({
           className="max-w-[280px] bg-popover border border-border p-4 shadow-soft-xl rounded-xl z-50"
         >
           <div className="space-y-3">
-            <h4 className="text-xs uppercase tracking-widest text-primary-bright font-bold border-b border-border pb-2 mb-2">Dynamic Value Methodology</h4>
+            <h4 className="text-xs font-semibold tracking-tight text-primary-bright border-b border-border pb-2 mb-2">Dynamic Value Methodology</h4>
             <p className="text-sm text-foreground leading-relaxed font-medium">
               We calculate <span className="text-foreground font-semibold">Fair Price</span> using a proprietary multi-factor algorithm against thousands of active Sri Lankan listings.
             </p>

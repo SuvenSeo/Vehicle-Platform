@@ -152,7 +152,7 @@ export default function Estimate() {
                 <Gauge className="h-4 w-4 text-primary" aria-hidden />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("estimate.step01", "Step 01")}</p>
+                <p className="text-[12px] font-semibold text-muted-foreground">{t("estimate.step01", "Step 01")}</p>
                 <h2 className="text-sm font-bold text-foreground">{t("estimate.vehicleProfile", "Vehicle profile")}</h2>
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function Estimate() {
             <div className="space-y-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label htmlFor="est-make" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("common.make", "Make")}</label>
+                  <label htmlFor="est-make" className="text-[12px] font-semibold text-muted-foreground">{t("common.make", "Make")}</label>
                   <Select value={form.make} onValueChange={(v) => update({ make: v, model: "" })}>
                     <SelectTrigger id="est-make" className={selectClass}><SelectValue placeholder={t("common.selectMake", "Select make")} /></SelectTrigger>
                     <SelectContent className="border-border bg-popover text-popover-foreground">
@@ -169,7 +169,7 @@ export default function Estimate() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-model" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("common.model", "Model")}</label>
+                  <label htmlFor="est-model" className="text-[12px] font-semibold text-muted-foreground">{t("common.model", "Model")}</label>
                   <Select value={form.model} onValueChange={(v) => update({ model: v })} disabled={!form.make || !modelsList.length}>
                     <SelectTrigger id="est-model" className={`${selectClass} disabled:opacity-50`}><SelectValue placeholder={t("common.selectModel", "Select model")} /></SelectTrigger>
                     <SelectContent className="border-border bg-popover text-popover-foreground">
@@ -178,11 +178,11 @@ export default function Estimate() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-year" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("valuation.field.year", "Year")}</label>
+                  <label htmlFor="est-year" className="text-[12px] font-semibold text-muted-foreground">{t("valuation.field.year", "Year")}</label>
                   <Input id="est-year" type="number" min={1990} max={new Date().getFullYear() + 1} value={form.year} onChange={(e) => update({ year: Number(e.target.value) || 0 })} className={inputClass} />
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-cond" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("valuation.field.condition", "Condition")}</label>
+                  <label htmlFor="est-cond" className="text-[12px] font-semibold text-muted-foreground">{t("valuation.field.condition", "Condition")}</label>
                   <Select value={form.condition} onValueChange={(v: EstimateForm["condition"]) => update({ condition: v })}>
                     <SelectTrigger id="est-cond" className={selectClass}><SelectValue /></SelectTrigger>
                     <SelectContent className="border-border bg-popover text-popover-foreground">
@@ -193,7 +193,7 @@ export default function Estimate() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-trans" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("valuation.field.transmission", "Transmission")}</label>
+                  <label htmlFor="est-trans" className="text-[12px] font-semibold text-muted-foreground">{t("valuation.field.transmission", "Transmission")}</label>
                   <Select value={form.transmission} onValueChange={(v: EstimateForm["transmission"]) => update({ transmission: v })}>
                     <SelectTrigger id="est-trans" className={selectClass}><SelectValue /></SelectTrigger>
                     <SelectContent className="border-border bg-popover text-popover-foreground">
@@ -205,7 +205,7 @@ export default function Estimate() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-fuel" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("valuation.field.fuel", "Fuel Type")}</label>
+                  <label htmlFor="est-fuel" className="text-[12px] font-semibold text-muted-foreground">{t("valuation.field.fuel", "Fuel Type")}</label>
                   <Select value={form.fuel_type} onValueChange={(v: EstimateForm["fuel_type"]) => update({ fuel_type: v })}>
                     <SelectTrigger id="est-fuel" className={selectClass}><SelectValue /></SelectTrigger>
                     <SelectContent className="border-border bg-popover text-popover-foreground">
@@ -218,11 +218,11 @@ export default function Estimate() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-km" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("valuation.field.mileage", "Mileage (KM)")}</label>
+                  <label htmlFor="est-km" className="text-[12px] font-semibold text-muted-foreground">{t("valuation.field.mileage", "Mileage (KM)")}</label>
                   <Input id="est-km" type="number" min={0} max={500000} value={form.mileage_km} onChange={(e) => update({ mileage_km: Number(e.target.value) || 0 })} className={inputClass} />
                 </div>
                 <div className="space-y-1.5">
-                  <label htmlFor="est-dist" className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("valuation.field.district", "District")}</label>
+                  <label htmlFor="est-dist" className="text-[12px] font-semibold text-muted-foreground">{t("valuation.field.district", "District")}</label>
                   <Select value={form.district} onValueChange={(v) => update({ district: v })}>
                     <SelectTrigger id="est-dist" className={selectClass}><SelectValue /></SelectTrigger>
                     <SelectContent className="border-border bg-popover text-popover-foreground">
@@ -234,7 +234,7 @@ export default function Estimate() {
 
               <div className="border-t border-border pt-5">
                 <button type="button" onClick={handleEstimate} disabled={!form.make || !form.model || loading}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground shadow-soft transition-transform hover:bg-primary/95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-semibold text-primary-foreground shadow-soft transition-transform hover:bg-primary/95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40"
                 >
                   <Gauge className="h-3.5 w-3.5" aria-hidden />
                   {loading ? t("estimate.running", "Running...") : t("estimate.run", "Run valuation")}
@@ -257,12 +257,12 @@ export default function Estimate() {
                   <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("estimate.step02", "Step 02")}</p>
+                  <p className="text-[12px] font-semibold text-muted-foreground">{t("estimate.step02", "Step 02")}</p>
                   <h2 className="text-sm font-bold text-foreground">{t("estimate.marketOutput", "Market output")}</h2>
                 </div>
               </div>
               {result && (
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright">
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[12px] font-semibold text-primary-bright">
                   {result.confidence}
                 </span>
               )}
@@ -289,7 +289,7 @@ export default function Estimate() {
               <motion.div initial="hidden" animate="show" variants={revealContainer} className="space-y-4">
                 {/* Median — featured hero of the output: larger, primary-tinted */}
                 <motion.div variants={revealItem} aria-live="polite" className="rounded-2xl border border-primary/20 bg-surface p-5 shadow-soft">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("estimate.fairMarketRange", "Fair market range")}</p>
+                  <p className="text-[12px] font-semibold text-muted-foreground">{t("estimate.fairMarketRange", "Fair market range")}</p>
                   <p className="num mt-2 text-4xl font-bold leading-none tracking-tight text-foreground sm:text-[2.75rem]">
                     {formatPrice(result.low)} – {formatPrice(result.high)}
                   </p>
@@ -313,7 +313,7 @@ export default function Estimate() {
 
                 {/* Range */}
                 <motion.div variants={revealItem} className="rounded-xl border border-border bg-surface p-4">
-                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+                  <div className="flex items-center justify-between text-[12px] font-semibold text-muted-foreground">
                     <span>{t("common.low", "Low")}</span><span>{t("common.high", "High")}</span>
                   </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -340,7 +340,7 @@ export default function Estimate() {
 
                 {/* Trajectory */}
                 <motion.div variants={revealItem} className="rounded-xl border border-border bg-surface p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("estimate.trajectory", "Trajectory")}</p>
+                  <p className="text-[12px] font-semibold text-muted-foreground">{t("estimate.trajectory", "Trajectory")}</p>
                   {fullAccess ? (
                     projection ? (
                       <div className="mt-3 space-y-3">
@@ -406,7 +406,7 @@ export default function Estimate() {
 
                 {/* Methodology */}
                 <motion.div variants={revealItem} className="rounded-xl border border-border bg-surface p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("estimate.methodology", "Methodology")}</p>
+                  <p className="text-[12px] font-semibold text-muted-foreground">{t("estimate.methodology", "Methodology")}</p>
                   <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground font-medium">{result.methodology}</p>
                 </motion.div>
               </motion.div>

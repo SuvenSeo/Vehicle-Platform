@@ -55,7 +55,7 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
     return (
       <div className="mx-auto flex min-h-[50vh] max-w-lg items-center px-5 py-16 sm:px-6">
         <div className="w-full rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Page error</p>
+          <p className="text-[12px] font-medium text-muted-foreground">Page error</p>
           <h1 className="mt-3 font-display text-xl font-semibold text-foreground">This page failed to load.</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             A fresh deploy may have left an old tab cached. Reload to pull the latest app bundle.
@@ -72,13 +72,13 @@ class RouteErrorBoundaryInner extends Component<RouteErrorBoundaryProps, RouteEr
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
               transition={springSnappy}
-              className="h-9 rounded-2xl bg-primary px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
+              className="h-9 rounded-2xl bg-primary px-5 text-[12px] font-semibold text-white"
             >
               Reload page
             </motion.button>
             <Link
               to="/"
-              className="h-9 rounded-2xl border border-border px-5 text-[10px] font-bold uppercase tracking-[0.08em] text-foreground no-underline inline-flex items-center"
+              className="h-9 rounded-2xl border border-border px-5 text-[12px] font-semibold text-foreground no-underline inline-flex items-center"
             >
               Back home
             </Link>

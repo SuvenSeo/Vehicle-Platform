@@ -50,7 +50,7 @@ export function NhtsaModelsCard({ make, model, compact = false }: NhtsaModelsCar
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <BookOpen aria-hidden className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground truncate">
+          <span className="text-[12px] font-semibold text-muted-foreground truncate">
             {label}
           </span>
         </div>

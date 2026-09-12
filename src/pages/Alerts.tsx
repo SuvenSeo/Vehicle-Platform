@@ -46,7 +46,7 @@ function ChannelCenterSection({ alertCount }: { alertCount: number }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-[12px] font-medium text-muted-foreground">
             {t("alerts.channelCenter", "Channel center")}
           </p>
           <p className="mt-1 text-[12px] text-muted-foreground">
@@ -117,7 +117,7 @@ function AlertMatchSection({ token }: { token: string }) {
     <section aria-labelledby="match-results-heading">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
-          <p className="mb-2 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+          <p className="mb-2 inline-flex items-center gap-2 text-[0.6875rem] font-medium tracking-tight text-primary">
             <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
             {t("alerts.liveResults", "Live results")}
           </p>
@@ -347,7 +347,7 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
       aria-label={t("alerts.formAria", "Create alert form")}
       className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-soft"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("alerts.newAlert", "New alert")}</p>
+      <p className="text-[12px] font-medium text-muted-foreground">{t("alerts.newAlert", "New alert")}</p>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label htmlFor="alert-make" className="mb-1 block text-[11px] font-semibold text-muted-foreground">{t("common.make", "Make")}</label>
@@ -374,7 +374,7 @@ function CreateAlertForm({ onCreated, onCreate, alertCount, fullAccess }: Create
         </div>
         {fullAccess ? (
           <div className="col-span-2 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[12px] font-medium text-muted-foreground">
               {t("alerts.notifyChannels", "Notify me via (Pro)")}
             </p>
             <div className="flex flex-wrap gap-3">
@@ -639,7 +639,7 @@ function AlertRow({
         </div>
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5" aria-label={t("alerts.perAlertChannels", "Channels")}>
-        <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        <span className="mr-1 text-[12px] font-medium text-muted-foreground">
           {t("alerts.perAlertChannels", "Channels")}
         </span>
         {ALL_CHANNELS.map((channel) => {
@@ -740,7 +740,7 @@ export default function Alerts() {
       <motion.section variants={itemVariants} aria-labelledby="active-alerts-heading" className="relative z-10 mb-16">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <p className="mb-2 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+            <p className="mb-2 inline-flex items-center gap-2 text-[0.6875rem] font-medium tracking-tight text-primary">
               <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
               {t("alerts.yourWatchlist", "Your watchlist")}
             </p>
@@ -788,7 +788,7 @@ export default function Alerts() {
 
         {showFallback && (
           <div className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-soft">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mb-3 text-[12px] font-medium text-muted-foreground">
               {t("alerts.localSaved", "Locally saved (offline)")}
             </p>
             <div className="space-y-1.5">

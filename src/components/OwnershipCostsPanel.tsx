@@ -95,7 +95,7 @@ export function OwnershipCostsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+          <label className="text-[12px] font-medium text-muted-foreground/80">
             Vehicle class
           </label>
           <div className="grid grid-cols-2 gap-1.5">
@@ -118,7 +118,7 @@ export function OwnershipCostsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+          <label className="text-[12px] font-medium text-muted-foreground/80">
             Fuel
           </label>
           <div className="grid grid-cols-4 gap-1.5">
@@ -142,7 +142,7 @@ export function OwnershipCostsPanel({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label htmlFor="own-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-cc" className="text-[12px] font-medium text-muted-foreground/80">
               Engine CC
             </label>
             <Input
@@ -154,7 +154,7 @@ export function OwnershipCostsPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="own-kg" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-kg" className="text-[12px] font-medium text-muted-foreground/80">
               Unladen kg (optional)
             </label>
             <Input
@@ -170,7 +170,7 @@ export function OwnershipCostsPanel({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label htmlFor="own-year" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-year" className="text-[12px] font-medium text-muted-foreground/80">
               Model year (import check)
             </label>
             <Input
@@ -182,7 +182,7 @@ export function OwnershipCostsPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="own-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-price" className="text-[12px] font-medium text-muted-foreground/80">
               Transfer consideration (LKR)
             </label>
             <Input
@@ -257,7 +257,7 @@ export function OwnershipCostsPanel({
               aria-live="polite"
               className="rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center shadow-soft"
             >
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">
+              <span className="text-[12px] font-semibold text-primary-bright">
                 Statutory cash this year
               </span>
               <p className="display-1 num mt-2 text-foreground">

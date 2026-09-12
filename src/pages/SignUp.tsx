@@ -237,7 +237,7 @@ export default function SignUp() {
 
             <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1">
               <ShieldCheck className="h-3 w-3 text-primary" aria-hidden />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">
+              <span className="text-[12px] font-semibold text-primary-bright">
                 {selfServeEnabled && !token
                   ? t("signup.freeTrial", `${selfServeTrialDays}-day free trial`)
                   : t("signup.inviteOnly", "Invite only")}
@@ -326,7 +326,7 @@ export default function SignUp() {
                   disabled={loading}
                   whileTap={{ scale: 0.98 }}
                   transition={springSoft}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-soft disabled:opacity-50"
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-semibold tracking-tight text-primary-foreground shadow-soft disabled:opacity-50"
                 >
                   {loading ? t("signup.creating", "Creating account…") : (
                     <>
@@ -352,10 +352,10 @@ export default function SignUp() {
                       <Mail className="h-4 w-4 text-primary" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("signup.invitedAs", "Invited as")}</p>
+                      <p className="text-[12px] font-semibold text-muted-foreground">{t("signup.invitedAs", "Invited as")}</p>
                       <p className="truncate text-[14px] font-semibold text-foreground">{invite.email}</p>
                     </div>
-                    <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-primary-bright">
+                    <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary-bright">
                       {invite.plan}
                     </span>
                   </div>
@@ -407,7 +407,7 @@ export default function SignUp() {
                     disabled={loading}
                     whileTap={{ scale: 0.98 }}
                     transition={springSoft}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-soft disabled:opacity-50"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-semibold tracking-tight text-primary-foreground shadow-soft disabled:opacity-50"
                   >
                     {loading ? t("signup.creating", "Creating account…") : (
                       <>

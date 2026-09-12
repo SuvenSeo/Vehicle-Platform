@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Flame, Radar, Sparkles, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { ArrowUpRight, Flame, TrendingDown, TrendingUp, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCountUp } from "@/hooks/useCountUp";
 import { prefersReducedMotion, springSoft } from "@/lib/motion";
@@ -104,7 +104,6 @@ export function HeroSideSignals({
   hotDeal,
   priceDrop,
   newListings24h = 0,
-  goodDealsCount = 0,
   onTrendingClick,
   onBrowseNewest,
 }: Props) {
@@ -131,7 +130,7 @@ export function HeroSideSignals({
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-bright">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary-bright">
                     <TrendingUp className="h-3 w-3" />
                     Trending now
                   </p>
@@ -163,7 +162,7 @@ export function HeroSideSignals({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                     <TrendingDown className="h-3 w-3" />
                     Fresh price cut
                   </p>
@@ -187,7 +186,7 @@ export function HeroSideSignals({
                 onClick={onBrowseNewest}
                 className="flex w-full flex-col text-left outline-none transition-transform duration-300 group-hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                   <Zap className="h-3 w-3" />
                   New today
                 </p>
@@ -219,7 +218,7 @@ export function HeroSideSignals({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
                     <Flame className="h-3 w-3" />
                     Top deal
                   </p>
@@ -235,41 +234,6 @@ export function HeroSideSignals({
               </Link>
             </FloatingSignalCard>
           ) : null}
-
-          <FloatingSignalCard delay={0.26} accent="violet" float="b" slant="d">
-            <Link
-              to="/best-picks"
-              className="group/radar block no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                <Radar className="h-3 w-3" />
-                Deal radar
-              </p>
-              <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
-                <MetricValue value={goodDealsCount} fallback="—" />
-              </p>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">scored 8+ on the market right now</p>
-            </Link>
-          </FloatingSignalCard>
-
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.34, ...springSoft }}
-            className={cn(
-              "hero-signal-chip-wrap hero-signal-chip-wrap--slant-e",
-              !reduced && "hero-signal-chip-wrap--animate",
-            )}
-          >
-            <Link
-              to="/best-picks"
-              className="hero-signal-chip inline-flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
-            >
-              <Sparkles className="h-3 w-3 text-primary-bright" />
-              Best picks
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </motion.div>
         </div>
       </div>
     </>

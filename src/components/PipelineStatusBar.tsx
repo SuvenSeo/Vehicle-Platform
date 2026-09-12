@@ -183,7 +183,7 @@ export const PipelineStatusBar = memo(function PipelineStatusBar({
                       : "never synced"}
                   </span>
                   {stale ? (
-                    <span className="rounded border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright">
+                    <span className="rounded border border-primary/25 bg-primary/10 px-1.5 py-0.5 text-[12px] font-medium text-primary-bright">
                       stale
                     </span>
                   ) : null}

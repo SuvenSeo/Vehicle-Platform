@@ -117,7 +117,7 @@ export function ArbitrageTable({ gaps, transport, visibleLimit, trialCtaTo = "/p
                     type="button"
                     onClick={() => toggleSort(header.key as ArbitrageSortKey)}
                     aria-label={`Sort by ${header.label}`}
-                    className="inline-flex items-center gap-1 uppercase tracking-[0.08em] transition-colors hover:text-foreground"
+                    className="inline-flex items-center gap-1 tracking-tight transition-colors hover:text-foreground"
                   >
                     {header.label}
                     <SortIcon active={sortKey === header.key} dir={sortDir} />

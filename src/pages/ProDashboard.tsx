@@ -192,7 +192,7 @@ function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: st
   return (
     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
-        <p className="mb-2.5 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+        <p className="mb-2.5 inline-flex items-center gap-2 text-[0.6875rem] font-medium tracking-tight text-primary">
           <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
           {eyebrow}
         </p>
@@ -207,7 +207,7 @@ function MetricCard({ label, value, detail, icon: Icon }: { label: string; value
   return (
     <div className="metric-tile group rounded-2xl p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+        <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
         <Icon className="h-3.5 w-3.5 text-primary/70" aria-hidden="true" />
       </div>
       <p className="mt-3 text-[1.75rem] font-bold leading-none tracking-tight text-foreground num">{value}</p>
@@ -886,7 +886,7 @@ export default function ProDashboard() {
             <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-full ring-1 ring-border" />
             <div>
               <p className="text-[13px] font-bold text-foreground">Motormila</p>
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
+              <p className="text-[11px] font-medium text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
@@ -907,7 +907,7 @@ export default function ProDashboard() {
         <motion.header variants={itemVariants} className="pt-4 pb-2 md:pt-8">
           <div className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-end">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-medium tracking-tight text-primary-bright">
                 <Lock className="h-3 w-3" aria-hidden="true" /> {t("pro.eyebrow", "Professional intelligence")}
               </span>
               <h1 className="display-hero mt-5 text-foreground">

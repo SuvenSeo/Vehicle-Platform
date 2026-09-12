@@ -13,7 +13,7 @@ export function HeroVariantPicker({
   return (
     <div className="pointer-events-none fixed bottom-4 left-4 right-4 z-[80] flex justify-center sm:left-auto sm:right-4 sm:justify-end">
       <div className="pointer-events-auto max-w-md rounded-2xl border border-border bg-card/95 p-3 shadow-soft-xl backdrop-blur-xl">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-[12px] font-medium text-muted-foreground">
           Hero lab · local only
         </p>
         <p className="mt-1 text-[11px] text-muted-foreground">

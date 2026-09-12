@@ -37,7 +37,7 @@ export function CashToOwnStrip({
       className="rounded-xl border border-border bg-surface/80 p-4"
       aria-label="Cash to own under CBSL LTV"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      <p className="text-[12px] font-medium text-muted-foreground">
         Cash to own · CBSL LTV planning
       </p>
       <p className="mt-1 text-[11px] text-muted-foreground">{result.affordableNote}</p>
@@ -69,7 +69,7 @@ function Metric({
 }) {
   return (
     <div>
-      <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
       <p className={`mt-1 num text-sm font-semibold ${emphasize ? "text-primary" : "text-foreground"}`}>
         {value}
       </p>

@@ -29,7 +29,7 @@ export function DealLadder({ askingPrice, marketMedianLkr, className }: DealLadd
 
   return (
     <div className={cn("mt-4 border-t border-border pt-3", className)}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[12px] font-medium text-muted-foreground">
         Deal ladder
       </p>
       <p className="mt-2 text-[13px] font-semibold text-foreground">
@@ -73,7 +73,7 @@ export function DealLadder({ askingPrice, marketMedianLkr, className }: DealLadd
             <li
               key={rung.band}
               className={cn(
-                "flex items-center justify-between rounded-2xl border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                "flex items-center justify-between rounded-2xl border px-2.5 py-1.5 text-[12px] font-medium",
                 rung.active ? tone.active : tone.idle,
               )}
             >

@@ -43,7 +43,7 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="text-sm font-bold tracking-tight text-foreground">{t("ui.language", "Language")}</h2>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Display labels</p>
+                <p className="text-[12px] font-medium text-muted-foreground">Display labels</p>
               </div>
             </div>
             <div className="space-y-2">
@@ -78,7 +78,7 @@ export default function Settings() {
               </div>
               <div>
                 <h2 className="text-sm font-bold tracking-tight text-foreground">{t("ui.theme", "Theme")}</h2>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Visual style</p>
+                <p className="text-[12px] font-medium text-muted-foreground">Visual style</p>
               </div>
             </div>
 

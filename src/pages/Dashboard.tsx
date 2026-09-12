@@ -629,8 +629,8 @@ export default function Dashboard() {
       : "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden";
   const heroPopularBtnClass =
     heroVariant.tone === "dark"
-      ? "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10"
-      : "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-bold text-foreground transition-colors hover:bg-surface";
+      ? "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-medium text-white/85 transition-colors hover:bg-white/10"
+      : "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-surface";
 
   // ═════════════════════════════════════════════════════════════════
   // RENDER
@@ -693,26 +693,19 @@ export default function Dashboard() {
           ) : null}
 
           <div className={`relative ${heroAlignClass}`}>
-            <motion.p
-              variants={heroItemVariants}
-              className={`brand-wordmark font-display text-5xl font-extrabold italic tracking-[-0.045em] sm:text-6xl lg:text-7xl ${heroCopyTone}`}
-            >
-              Motor<span className="text-primary">mila</span>
-            </motion.p>
-
             <motion.h1
               variants={heroItemVariants}
               className={`display-1 mt-5 max-w-3xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroCopyTone}`}
             >
               {t("hero.title", "Sri Lanka's entire vehicle market,")}
-              <span className="text-sheen"> {t("hero.titleAccent", "decoded.")}</span>
+              <span className="text-primary"> {t("hero.titleAccent", "decoded.")}</span>
             </motion.h1>
 
             <motion.p
               variants={heroItemVariants}
               className={`text-body-lg mt-4 max-w-lg ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroMutedTone}`}
             >
-              <span className={`font-bold num ${heroCopyTone}`}>
+              <span className={`font-semibold num ${heroCopyTone}`}>
                 {marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}
               </span>{" "}
               {t(
@@ -786,14 +779,14 @@ export default function Dashboard() {
                       enterKeyHint="search"
                       className={heroInputClass}
                     />
-                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-full bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
+                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-full bg-primary px-6 text-[13px] font-semibold tracking-[-0.005em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
                       {t("common.search", "Search")}
                     </button>
                   </div>
 
                   {showHeroPopular ? (
                     <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-border bg-card/95 p-1 shadow-soft-xl backdrop-blur-xl">
-                      <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      <p className="px-3 py-2 text-[11px] font-semibold text-muted-foreground">
                         {t("home.popular", "Popular")}
                       </p>
                       {HERO_POPULAR_SCANS.map((item, idx) => (
@@ -831,8 +824,8 @@ export default function Dashboard() {
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
                               className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
                             >
-                              <span className="text-[13px] font-bold text-foreground">{s.make} {s.model} {s.year}</span>
-                              <span className="text-[12px] font-bold text-primary-bright num">
+                              <span className="text-[13px] font-medium text-foreground">{s.make} {s.model} {s.year}</span>
+                              <span className="text-[12px] font-semibold text-primary-bright num">
                                 {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
                               </span>
                             </button>
@@ -862,33 +855,29 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Categories + trust — one visual job each, outside hero */}
-      <section className="border-b border-border bg-surface">
-        <div className="mx-auto grid max-w-[1560px] gap-4 px-5 py-8 sm:px-6 lg:grid-cols-[1.4fr_1fr] lg:py-10">
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-            <AtmosphericImage
-              src={visuals.categoriesLineup.src}
-              srcSm={visuals.categoriesLineup.srcSm}
-              className="h-36 w-full object-cover object-center sm:h-40"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Vehicle types</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">Browse cars, vans, and SUVs across the live index.</p>
+      {/* ── Market trust bar — three real numbers, no photos ─────── */}
+      <section className="border-b border-border bg-background">
+        <div className="mx-auto max-w-[1560px] px-5 py-8 sm:px-6">
+          <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+            <div>
+              <dt className="text-[13px] font-medium text-muted-foreground">Vehicle types covered</dt>
+              <dd className="mt-1 text-[15px] font-semibold text-foreground">
+                Cars, vans, SUVs, bikes and more
+              </dd>
             </div>
-          </div>
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-            <AtmosphericImage
-              src={visuals.trustVerification.src}
-              srcSm={visuals.trustVerification.srcSm}
-              className="h-36 w-full object-cover object-[center_30%] sm:h-40"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Verified signals</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">Deal scores and seller trust baked into every listing.</p>
+            <div>
+              <dt className="text-[13px] font-medium text-muted-foreground">Verified signals</dt>
+              <dd className="mt-1 text-[15px] font-semibold text-foreground">
+                Deal scores and seller trust on every listing
+              </dd>
             </div>
-          </div>
+            <div>
+              <dt className="text-[13px] font-medium text-muted-foreground">Data freshness</dt>
+              <dd className="mt-1 text-[15px] font-semibold text-foreground">
+                Re-scanned across sources every few hours
+              </dd>
+            </div>
+          </dl>
         </div>
       </section>
 
@@ -902,8 +891,8 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground">{t("home.trendingModels", "Trending models")}</h3>
-                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
-                  All trends <ArrowUpRight className="h-3 w-3" />
+                <Link to="/trends" className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright">
+                  All trends <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
               {trendingModels.length ? (
@@ -935,8 +924,8 @@ export default function Dashboard() {
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
                   <Flame className="h-4 w-4 text-primary/70" /> Best deals
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
-                  All picks <ArrowUpRight className="h-3 w-3" />
+                <Link to="/best-picks" className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright">
+                  All picks <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
               {hotDeals.length ? (
@@ -967,10 +956,10 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-emerald-400/80" /> Price cuts &middot; 7d
+                  <TrendingDown className="h-4 w-4 text-emerald-500" /> Price cuts &middot; 7d
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
-                  All cuts <ArrowUpRight className="h-3 w-3" />
+                <Link to="/best-picks" className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright">
+                  All cuts <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
               {(dropsQuery.data || []).length ? (
@@ -1010,7 +999,7 @@ export default function Dashboard() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:gap-2.5">
               <div className="flex items-baseline gap-2.5">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
                   {isPriceUnavailableMode ? t("common.unpricedInventory", "Unpriced inventory") : t("common.inventory", "Inventory")}
                 </h2>
                 {loadingListings ? (
@@ -1035,13 +1024,13 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => setShowSavedListings(true)}
-                className="rounded-full border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+                className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
               >{watchlistIds.length} {t("common.saved", "saved")}</button>
               <button type="button" onClick={saveCurrentMarketAlert}
-                className="rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright transition-colors hover:bg-primary/10"
+                className="rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[12px] font-medium text-primary-bright transition-colors hover:bg-primary/10"
               >{t("common.saveAlert", "Save alert")}</button>
               <button type="button" onClick={() => setShowMarketAlerts(true)}
-                className="rounded-full border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >{marketAlerts.length} {t("common.alerts", "alerts")}</button>
               <div className="hidden items-center gap-0.5 md:flex">
                 <button type="button" onClick={() => setMarketView("grid")} aria-label={t("home.gridView", "Grid view")} aria-pressed={marketView === "grid"}
@@ -1058,10 +1047,10 @@ export default function Dashboard() {
           {activeFilterLabels.length > 0 && (
             <div className="mb-5 flex flex-wrap items-center gap-1.5">
               {activeFilterLabels.map((label) => (
-                <span key={label} className="rounded-full border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
+                <span key={label} className="rounded-full border border-border bg-foreground/[0.03] px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{label}</span>
               ))}
               <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
-                className="rounded-full px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >Clear all</button>
             </div>
           )}
@@ -1070,7 +1059,7 @@ export default function Dashboard() {
             <div className="mb-5 flex items-center justify-between rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5">
               <span className="text-[12px] font-semibold text-primary-bright">New listings available</span>
               <button type="button" onClick={() => { setFilters((p) => ({ ...p, sort: "newest", page: 1 })); setNewLiveListingsAvailable(false); }}
-                className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright transition-colors hover:text-primary-bright"
+                className="text-[12px] font-semibold text-primary-bright transition-colors hover:text-primary-bright"
               >Refresh</button>
             </div>
           )}
@@ -1103,7 +1092,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={retryListings}
-                    className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+                    className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
                   >
                     Retry
                   </button>
@@ -1116,7 +1105,7 @@ export default function Dashboard() {
                     className="mb-5 h-28 w-auto max-w-[220px] object-contain opacity-90"
                     sizes="220px"
                   />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("home.noResults", "No results")}</p>
+                  <p className="text-[13px] font-semibold text-foreground">{t("home.noResults", "No results")}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
                     className="mt-4 rounded-2xl border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
@@ -1231,14 +1220,14 @@ export default function Dashboard() {
             <ProFeatureLock label="District demand velocity">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-bright">Demand velocity</p>
+                <p className="text-[13px] font-medium text-primary">Demand velocity</p>
                 <h3 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
                   Regional listing momentum — last 7 days
                 </h3>
               </div>
               <Link
                 to="/#market"
-                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright"
+                className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright"
               >
                 Market feed <ArrowUpRight className="h-3 w-3" />
               </Link>
@@ -1270,7 +1259,7 @@ export default function Dashboard() {
 
           {/* Tool links */}
           <div className="mt-12 border-t border-border pt-8">
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Intelligence tools</p>
+            <p className="mb-4 text-[13px] font-medium text-muted-foreground">Intelligence tools</p>
             <div className="flex flex-wrap gap-2">
             {[
               { label: "Valuation", to: "/estimate" },
@@ -1378,11 +1367,11 @@ export default function Dashboard() {
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Market alerts</DialogTitle>
           </DialogHeader>
           <div className="rounded-2xl border border-border bg-surface p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current lane</p>
+            <p className="text-[11px] font-medium text-muted-foreground">Current lane</p>
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
               <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-2xl border-border bg-transparent text-base md:text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-full bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Save</button>
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-full bg-primary px-4 text-[12px] font-semibold text-white hover:bg-primary/95">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (
@@ -1391,7 +1380,7 @@ export default function Dashboard() {
                 <div key={alert.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{alert.label}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : t("home.newListingsAvailable", "New listings available")}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : t("home.newListingsAvailable", "New listings available")}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}

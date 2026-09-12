@@ -93,7 +93,7 @@ export default function PriceIndexPage() {
 
       <motion.section variants={itemVariants} className="border-b border-border bg-surface/40 backdrop-blur-md relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-bright">{t("index.eyebrow", "Market benchmark")}</p>
+          <p className="text-[12px] font-semibold text-primary-bright">{t("index.eyebrow", "Market benchmark")}</p>
           <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
             {t("index.title", "SL Used Vehicle Price Index.")}
           </h1>
@@ -120,14 +120,14 @@ export default function PriceIndexPage() {
             {/* Headline stats */}
             <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("index.current", "Current index")}</p>
+                <p className="text-[12px] font-semibold text-muted-foreground">{t("index.current", "Current index")}</p>
                 <p className="num mt-2 text-3xl font-bold text-white">{latest?.index_value.toFixed(1)}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">
                   {t("index.baseEquals100", "base {period} = 100", { period: data.base_period ? formatPeriod(data.base_period) : "—" })}
                 </p>
               </div>
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("index.sinceBase", "Since base")}</p>
+                <p className="text-[12px] font-semibold text-muted-foreground">{t("index.sinceBase", "Since base")}</p>
                 <p className={`num mt-2 flex items-center gap-1.5 text-3xl font-bold ${up ? "text-emerald-400" : "text-rose-400"}`}>
                   {up ? <ArrowUpRight className="h-6 w-6" /> : <ArrowDownRight className="h-6 w-6" />}
                   {formatPct(totalChange)}
@@ -135,7 +135,7 @@ export default function PriceIndexPage() {
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">{t("index.wholeWindow", "whole tracked window")}</p>
               </div>
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{t("index.mom", "Month-on-month")}</p>
+                <p className="text-[12px] font-semibold text-muted-foreground">{t("index.mom", "Month-on-month")}</p>
                 <p className="num mt-2 text-3xl font-bold text-white">{formatPct(latest?.mom_change_pct ?? null)}</p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">
                   latest: {latest ? formatPeriod(latest.period) : "—"}
@@ -158,7 +158,7 @@ export default function PriceIndexPage() {
                       }}
                       aria-pressed={activeSegment === seg}
                       title={locked ? freePlanCopy.indexBody : undefined}
-                      className={`rounded-2xl border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] transition-all ${
+                      className={`rounded-2xl border px-3.5 py-1.5 text-[12px] font-semibold transition-all ${
                         activeSegment === seg
                           ? "border-primary/30 bg-primary/10 text-primary-bright"
                           : locked

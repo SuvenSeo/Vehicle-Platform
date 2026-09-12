@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { CarListing } from "@/types/car";
 import { formatPrice, getListing } from "@/services/api";
-import { Gauge, MapPin, ArrowRight, Heart, Check, Plus, Lock } from "lucide-react";
+import { Gauge, MapPin, ArrowRight, Heart, Check, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
@@ -104,7 +104,6 @@ export const ListingCard = memo(function ListingCard({
         void getListing(listing.id);
       }}
     >
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" />
       <Link
         to={`/listing/${listing.id}`}
         aria-label={t("listingCard.openAria", "Open {title}", { title: listingTitle || "vehicle listing" })}
@@ -175,20 +174,15 @@ export const ListingCard = memo(function ListingCard({
               />
             )}
             {hasDealScore && (
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
+              <span className={`rounded-full border px-2 py-0.5 text-[12px] font-semibold num ${getDealBadgeClasses(dealLabel)}`}>
                 {t("listingCard.deal", "{score} deal", { score: `${dealScore >= 0 ? "+" : ""}${dealScore.toFixed(0)}` })}
               </span>
             )}
-            {!fullAccess && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white/85 backdrop-blur-md">
-                <Lock className="h-2.5 w-2.5" aria-hidden />
-                {t("listingCard.proScore", "Pro score")}
-              </span>
-            )}          </div>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="flex flex-1 flex-col p-4 space-y-3">
+        <div className="flex flex-1 flex-col gap-4 p-5">
           <div className="flex items-start justify-between gap-3">
             <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary truncate">
               {listingTitle}
@@ -215,13 +209,13 @@ export const ListingCard = memo(function ListingCard({
           <MileageTrustChip
             mileageKm={listing.mileage_km}
             year={listing.year}
-            className="self-start !px-1.5 !py-0.5 !text-[9px]"
+            className="self-start !px-2 !py-0.5 !text-[10px]"
           />
 
           {/* Market position bar */}
-          <div className="rounded-2xl border border-white/30 bg-white/40 p-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+          <div className="rounded-2xl border border-border bg-surface/70 p-3 backdrop-blur-xl">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <p className="text-[12px] font-medium text-muted-foreground">
                 {t("listingCard.fmv", "Fair market value")}
               </p>
               <p className={`text-[11px] font-semibold num ${
@@ -258,7 +252,7 @@ export const ListingCard = memo(function ListingCard({
           </div>
 
           {/* Footer */}
-          <div className="mt-auto flex items-center justify-between pt-3 border-t border-border">
+          <div className="mt-auto flex items-center justify-between pt-3.5 border-t border-border">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />

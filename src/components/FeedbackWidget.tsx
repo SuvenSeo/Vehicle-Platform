@@ -137,7 +137,7 @@ export function FeedbackWidget() {
               <Button
                 disabled={!canSubmit}
                 onClick={submit}
-              className="h-10 rounded-full bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-transform duration-200 hover:bg-primary active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+              className="h-10 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition-transform duration-200 hover:bg-primary active:scale-95 disabled:opacity-50 disabled:active:scale-100"
               >
                 <Send className="mr-2 h-3.5 w-3.5" />
                 {submitting ? t("feedback.sending", "Sending") : t("feedback.send", "Send")}

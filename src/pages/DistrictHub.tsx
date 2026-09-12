@@ -115,7 +115,7 @@ export default function DistrictHub() {
               },
             ].map((card) => (
               <div key={card.label} className="bg-card p-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[12px] font-semibold text-muted-foreground">
                   {card.label}
                 </p>
                 <p className="num mt-2.5 text-3xl font-bold tracking-tight text-foreground">{card.value}</p>

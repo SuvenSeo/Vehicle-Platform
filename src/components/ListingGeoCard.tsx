@@ -39,7 +39,7 @@ export function ListingGeoCard({ geo, isLoading = false }: ListingGeoCardProps) 
       <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
         <div className="mb-2 flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground" aria-hidden />
-          <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          <h2 className="text-[12px] font-semibold text-muted-foreground">
             {t("geo.title", "Ad location")}
           </h2>
         </div>
@@ -55,7 +55,7 @@ export function ListingGeoCard({ geo, isLoading = false }: ListingGeoCardProps) 
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="mb-2 flex items-center gap-2">
         <MapPin className="h-4 w-4 text-primary" aria-hidden />
-        <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        <h2 className="text-[12px] font-semibold text-muted-foreground">
           {t("geo.title", "Ad location")}
         </h2>
       </div>
@@ -70,7 +70,7 @@ export function ListingGeoCard({ geo, isLoading = false }: ListingGeoCardProps) 
         href={osmUrl(lat as number, lng as number)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-primary no-underline hover:underline"
+        className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary no-underline hover:underline"
       >
         {t("geo.openMap", "Open in OpenStreetMap")}
         <ExternalLink className="h-3 w-3" aria-hidden />

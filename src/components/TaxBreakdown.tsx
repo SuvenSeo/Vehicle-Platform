@@ -49,7 +49,7 @@ function HybridTaxAdvantageCallout({ engineCapacity, fuelType }: { engineCapacit
         {!onCalculator && (
           <Link
             to={`/calculator?tab=landed-cost&fuel=${fuelType}&cc=${engineCapacity}`}
-            className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-300 no-underline transition-colors hover:text-emerald-200"
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-300 no-underline transition-colors hover:text-emerald-200"
           >
             Model import duty in calculator
             <ArrowRight className="h-3 w-3" aria-hidden="true" />
@@ -151,7 +151,7 @@ export function TaxBreakdown({
         </div>
 
         <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/10 p-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-primary-bright">Estimated landed cost</span>
+          <span className="text-xs font-semibold text-primary-bright">Estimated landed cost</span>
           <span className="text-lg font-bold tracking-tight text-foreground num">{formatPrice(result.totalOnRoad)}</span>
         </div>
       </div>

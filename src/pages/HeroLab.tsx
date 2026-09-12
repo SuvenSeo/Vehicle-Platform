@@ -49,7 +49,7 @@ export default function HeroLab() {
       <header className="sticky top-0 z-40 border-b border-border bg-card/90 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-[12px] font-semibold text-muted-foreground">
               Local hero lab
             </p>
             <p className="text-sm font-semibold">
@@ -109,7 +109,7 @@ export default function HeroLab() {
               {BRAND.name}
             </p>
             <p
-              className={`mt-4 inline-flex rounded-full border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] backdrop-blur-md ${
+              className={`mt-4 inline-flex rounded-full border px-3.5 py-1.5 text-[12px] font-semibold tracking-tight backdrop-blur-md ${
                 variant.tone === "dark"
                   ? "border-white/15 bg-white/10 text-white/80"
                   : "border-border/80 bg-card/90 text-foreground/85"
@@ -133,7 +133,7 @@ export default function HeroLab() {
               }`}
             >
               <span className="text-[13px] opacity-60">Search vehicles…</span>
-              <span className="ml-auto rounded-2xl bg-primary px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white">
+              <span className="ml-auto rounded-2xl bg-primary px-4 py-2 text-[12px] font-medium text-white">
                 Search
               </span>
             </div>

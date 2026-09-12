@@ -3,7 +3,7 @@ import { scrollBehavior } from "@/lib/motion";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { motion } from "framer-motion";
-import { Crown, ExternalLink, LogOut, Menu, MoreHorizontal, Shield, UserCircle2, X } from "lucide-react";
+import { Crown, LogOut, Menu, MoreHorizontal, Shield, UserCircle2, X } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SignInPortalModal } from "@/components/SignInPortalModal";
@@ -35,7 +35,6 @@ type NavSection = {
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
-  const [stars, setStars] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState("overview");
   const { user, logout, isAuthenticated, isAdmin, hasProAccess } = useAuth();
   const pipelineStatus = usePipelineStatus();
@@ -75,26 +74,6 @@ export function Navbar() {
     ],
     [isAuthenticated, isAdmin, t],
   );
-
-  useEffect(() => {
-    const CACHE_KEY = "autolens_gh_stars";
-    const cached = sessionStorage.getItem(CACHE_KEY);
-
-    if (cached !== null) {
-      setStars(Number(cached));
-      return;
-    }
-
-    fetch(`https://api.github.com/repos/${GITHUB_REPO}`)
-      .then((response) => response.json())
-      .then((data) => {
-        if (typeof data.stargazers_count === "number") {
-          setStars(data.stargazers_count);
-          sessionStorage.setItem(CACHE_KEY, String(data.stargazers_count));
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (pathname === "/" && hash) {
@@ -261,7 +240,7 @@ export function Navbar() {
                       onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                       aria-current={active ? "page" : undefined}
                       data-active={active}
-                      className={`relative whitespace-nowrap rounded-full px-2 py-1.5 text-[11px] font-medium tracking-tight no-underline outline-none transition-all duration-200 ease-apple active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 xl:px-2.5 xl:text-[12px] 2xl:px-3.5 ${
+                      className={`relative whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium tracking-tight no-underline outline-none transition-all duration-200 ease-apple active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 2xl:px-3.5 ${
                         active
                           ? "text-foreground"
                           : "text-muted-foreground hover:text-foreground"
@@ -290,33 +269,33 @@ export function Navbar() {
                   <button
                     type="button"
                     className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 md:inline-flex"
-                    aria-label={t("nav.moreWorkspaces", "More workspaces")}
+                    aria-label={t("nav.more", "More")}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
-                    <span className="text-[12px] font-medium tracking-tight">{t("nav.more", "More")}</span>
+                    <span className="text-[13px] font-medium tracking-tight">{t("nav.more", "More")}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-60 rounded-3xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
+                  className="w-56 rounded-2xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
                 >
-                  <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {t("nav.workspaces", "Workspaces")}
-                  </p>
-                  <DropdownMenuSeparator className="bg-border" />
                   {moreSections.map((section) => (
                     <DropdownMenuItem
                       key={section.href}
                       onPointerEnter={() => prefetchRoute(section.href)}
                       onSelect={() => navigate(section.href)}
-                      className="rounded-2xl px-3 py-2 text-foreground/80 focus:bg-accent focus:text-foreground"
+                      className="rounded-xl px-3 py-2.5 text-[13px] font-medium text-foreground/85 focus:bg-accent focus:text-foreground"
                     >
-                      <div>
-                        <p className="text-[13px] font-semibold">{section.label}</p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{section.detail}</p>
-                      </div>
+                      {section.label}
                     </DropdownMenuItem>
                   ))}
+                  <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem
+                    onSelect={() => window.open(GITHUB_URL, "_blank", "noopener,noreferrer")}
+                    className="rounded-xl px-3 py-2.5 text-[13px] font-medium text-muted-foreground focus:bg-accent focus:text-foreground"
+                  >
+                    {t("nav.github", "GitHub")}
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -329,19 +308,19 @@ export function Navbar() {
               <NotificationBell />
 
               {/* Live status pill */}
-              <div className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex">
+              <div
+                className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex"
+                title={liveFreshnessLabel}
+              >
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
-                <div className="leading-none">
-                  <p className="text-[11px] font-medium tracking-tight text-foreground">{liveLabel}</p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">{liveFreshnessLabel}</p>
-                </div>
+                <span className="text-[12px] font-medium tracking-tight text-foreground">{liveLabel}</span>
               </div>
 
               {/* Auth actions */}
               {isAuthenticated && user ? (
                 <div className="hidden items-center gap-1 sm:flex">
                   <span
-                    className={`inline-flex h-8 items-center rounded-full border px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] ${
+                    className={`inline-flex h-8 items-center rounded-full border px-2.5 text-[11px] font-semibold tracking-[-0.005em] ${
                       hasProAccess
                         ? "border-primary/25 bg-primary/10 text-primary-bright"
                         : "border-border bg-foreground/[0.03] text-muted-foreground"
@@ -356,7 +335,7 @@ export function Navbar() {
                       className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-foreground outline-none transition-colors hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       <Shield className="h-3 w-3" />
-                      <span className="text-[12px] font-medium tracking-tight">{t("nav.admin", "Admin")}</span>
+                      <span className="text-[13px] font-medium tracking-tight">{t("nav.admin", "Admin")}</span>
                     </button>
                   ) : null}
                   <button
@@ -365,7 +344,7 @@ export function Navbar() {
                     className="inline-flex h-8 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Crown className="h-3 w-3" />
-                    <span className="text-[12px] font-medium tracking-tight">
+                    <span className="text-[13px] font-medium tracking-tight">
                       {hasProAccess ? t("common.pro", "Pro") : t("nav.upgrade", "Upgrade")}
                     </span>
                   </button>
@@ -386,22 +365,9 @@ export function Navbar() {
                   className="hidden h-8 gap-1.5 rounded-full border-border bg-transparent px-4 text-foreground/80 hover:bg-foreground/[0.04] hover:text-foreground sm:inline-flex"
                 >
                   <UserCircle2 className="h-3 w-3" />
-                  <span className="text-[12px] font-medium tracking-tight">{t("nav.signIn", "Sign In")}</span>
+                  <span className="text-[13px] font-medium tracking-tight">{t("nav.signIn", "Sign In")}</span>
                 </Button>
               )}
-
-              {/* GitHub */}
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("nav.openRepoAria", "Open Motormila repository")}
-                className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:inline-flex"
-              >
-                <ExternalLink className="h-3 w-3" />
-                <span className="text-[12px] font-medium tracking-tight">{t("nav.github", "GitHub")}</span>
-                {stars !== null && <span className="text-[11px] font-semibold text-muted-foreground num">{stars.toLocaleString()}</span>}
-              </a>
 
               {/* Mobile toggle */}
               <button
@@ -431,8 +397,8 @@ export function Navbar() {
           <div className="overflow-hidden rounded-3xl border border-border bg-popover/95 p-3.5 shadow-soft-lg backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{t("nav.platform", "Platform")}</p>
-                <p className="mt-0.5 text-[11px] font-semibold text-foreground">Motormila</p>
+                <p className="text-[13px] font-semibold tracking-tight text-foreground">Motormila</p>
+                <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">{t("nav.platform", "Platform")}</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1">
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
@@ -450,7 +416,7 @@ export function Navbar() {
                     onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
-                    className={`rounded-2xl border px-3 py-2.5 text-center text-[11px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                    className={`rounded-2xl border px-3 py-3 text-center text-[13px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       active
                         ? "border-primary/20 bg-primary/10 text-primary-bright"
                         : "border-border text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
@@ -470,7 +436,7 @@ export function Navbar() {
                     onClick={() => { navigate("/pro"); setMobileOpen(false); }}
                     className="col-span-2 flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2.5 text-primary-bright outline-none transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
-                    <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
+                    <span className="inline-flex items-center gap-2 text-[13px] font-medium tracking-tight">
                       <Crown className="h-3 w-3" />
                       {t("nav.proDashboard", "Pro Dashboard")}
                     </span>
@@ -482,7 +448,7 @@ export function Navbar() {
                     className="col-span-2 flex items-center gap-2 rounded-2xl border border-border px-3 py-2.5 text-muted-foreground outline-none transition-colors hover:border-destructive/30 hover:text-destructive focus-visible:ring-2 focus-visible:ring-destructive/40"
                   >
                     <LogOut className="h-3 w-3" />
-                    <span className="text-[12px] font-medium tracking-tight">{t("nav.signOut", "Sign out")}</span>
+                    <span className="text-[13px] font-medium tracking-tight">{t("nav.signOut", "Sign out")}</span>
                   </button>
                 </>
               ) : (
@@ -491,26 +457,13 @@ export function Navbar() {
                   onClick={openSignIn}
                   className="col-span-2 flex items-center justify-between rounded-2xl border border-border px-3 py-2.5 text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
+                  <span className="inline-flex items-center gap-2 text-[13px] font-medium tracking-tight">
                     <UserCircle2 className="h-3 w-3" />
                     {t("nav.signIn", "Sign In")}
                   </span>
                 </button>
               )}
             </div>
-
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 flex items-center justify-between rounded-2xl border border-border px-3 py-2.5 text-muted-foreground no-underline outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <span className="inline-flex items-center gap-2 text-[12px] font-medium tracking-tight">
-                <ExternalLink className="h-3 w-3" />
-                {t("nav.repository", "Repository")}
-              </span>
-              {stars !== null && <span className="text-[11px] font-semibold text-muted-foreground num">{stars.toLocaleString()}</span>}
-            </a>
           </div>
         </div>
       )}

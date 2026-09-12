@@ -65,7 +65,7 @@ export const MarketPredictor = memo(function MarketPredictor({ trendData, listin
           <p className="tech-label font-bold text-muted-foreground">Market pulse</p>
           <h3 className="text-2xl font-bold tracking-tight text-foreground">Buy timing signal</h3>
         </div>
-        <div className={`inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] ${band.toneClass}`}>
+        <div className={`inline-flex items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-1.5 text-xs font-semibold tracking-tight ${band.toneClass}`}>
           <span className={`h-2 w-2 rounded-full ${band.dotClass}`} />
           <ToneIcon className="h-3.5 w-3.5" />
           Sentiment: {band.label}

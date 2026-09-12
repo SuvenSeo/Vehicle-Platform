@@ -21,7 +21,7 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
       <article>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
+            <p className="text-[12px] font-medium text-primary/70">
               {labelPulseSource(signal.source)} · {signal.signal_type.replace(/_/g, " ")}
             </p>
             <h3 className="mt-2 text-sm font-semibold text-foreground">{title}</h3>
@@ -60,7 +60,7 @@ export function MarketSignalsStrip() {
         <div className="flex items-center gap-2">
           <Landmark className="h-4 w-4 text-primary/80" />
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Official pulse</p>
+            <p className="text-[12px] font-medium text-muted-foreground">Official pulse</p>
             <h2 className="text-sm font-semibold text-foreground">Government & import market signals</h2>
           </div>
         </div>
