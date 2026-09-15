@@ -754,8 +754,8 @@ export default function Dashboard() {
             <motion.p
               variants={heroItemVariants}
               className={cn(
-                "text-body-lg mt-5 max-w-lg text-pretty",
-                heroCentered && "mx-auto",
+                "text-body-lg mt-5 text-pretty",
+                heroCentered ? "mx-auto max-w-xl text-balance" : "max-w-lg",
                 heroMutedTone,
               )}
             >
