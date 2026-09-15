@@ -4,6 +4,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.secondArg
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -218,7 +219,9 @@ class AdminViewModelTest {
             feedbackOpen = 3,
             dealersVerified = 2,
         )
-        coEvery { admin.users(any(), any(), any()) } returns listOf(user())
+        coEvery { admin.users(any(), any(), any()) } answers {
+            listOf(user(plan = secondArg<String?>() ?: "free"))
+        }
         coEvery { admin.invites(any(), any()) } returns listOf(
             invite(id = 1, status = "pending"),
             invite(id = 2, status = "accepted", email = "old@motormila.lk"),
