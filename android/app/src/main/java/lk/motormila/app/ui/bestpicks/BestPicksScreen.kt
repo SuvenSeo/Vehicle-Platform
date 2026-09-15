@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,13 +18,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -65,18 +58,18 @@ import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.ListingCard
 import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaGood
-import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -236,23 +229,13 @@ fun BestPicksScreen(
                     }
                     item {
                         val seeAll = stringResource(R.string.hub_picks_see_all)
-                        Button(
+                        MotormilaPrimaryButton(
+                            label = seeAll,
                             onClick = {
                                 if (!reducedMotion) haptics.tick()
                                 onSeeAllSearch()
                             },
-                            shape = androidx.compose.foundation.shape.CircleShape,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MotormilaPrimary,
-                                contentColor = MotormilaOnPrimary,
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .semantics { contentDescription = seeAll },
-                        ) {
-                            Text(seeAll, fontWeight = FontWeight.SemiBold)
-                        }
+                        )
                     }
                     item { Spacer(Modifier.height(24.dp)) }
                 }
@@ -366,40 +349,33 @@ private fun CutsSection(
     onListingClick: (Int) -> Unit,
     onHaptic: () -> Unit,
 ) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = MotormilaGood)
-                Column {
-                    Text(
-                        stringResource(R.string.hub_picks_cuts_title),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    )
-                    Text(
-                        stringResource(R.string.hub_picks_cuts_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MotormilaSecondaryText,
-                    )
-                }
-            }
-            if (drops.isEmpty()) {
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = MotormilaGood)
+            Column {
                 Text(
-                    stringResource(R.string.hub_picks_cuts_empty),
-                    style = MaterialTheme.typography.bodySmall,
+                    stringResource(R.string.hub_picks_cuts_title),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                )
+                Text(
+                    stringResource(R.string.hub_picks_cuts_subtitle),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MotormilaSecondaryText,
                 )
-            } else {
-                drops.forEach { drop ->
-                    CutRow(drop = drop, onClick = {
-                        onHaptic()
-                        onListingClick(drop.listing.id)
-                    })
-                }
+            }
+        }
+        if (drops.isEmpty()) {
+            Text(
+                stringResource(R.string.hub_picks_cuts_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MotormilaSecondaryText,
+            )
+        } else {
+            drops.forEach { drop ->
+                CutRow(drop = drop, onClick = {
+                    onHaptic()
+                    onListingClick(drop.listing.id)
+                })
             }
         }
     }
@@ -409,52 +385,50 @@ private fun CutsSection(
 private fun CutRow(drop: PriceDrop, onClick: () -> Unit) {
     val pct = formatPct(drop.dropPct, 0).trimStart('+')
     val cd = stringResource(R.string.hub_picks_cd_drop, drop.listing.displayName, pct)
-    Surface(
+    MotormilaSurface(
         onClick = onClick,
-        shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = cd },
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .semantics { contentDescription = cd },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(12.dp).heightIn(min = 48.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    drop.listing.displayName,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    stringResource(R.string.hub_picks_cuts_drop, pct),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MotormilaGood,
-                        fontFamily = FontFamily.Monospace,
-                    ),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    LkrFormat.price(drop.previousPriceLkr),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = MotormilaSecondaryText,
-                        textDecoration = TextDecoration.LineThrough,
-                        fontFamily = FontFamily.Monospace,
-                    ),
-                )
-                Text(
-                    LkrFormat.price(drop.newPriceLkr),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                    ),
-                )
-            }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                drop.listing.displayName,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                stringResource(R.string.hub_picks_cuts_drop, pct),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MotormilaGood,
+                    fontFamily = FontFamily.Monospace,
+                ),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                LkrFormat.price(drop.previousPriceLkr),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = MotormilaSecondaryText,
+                    textDecoration = TextDecoration.LineThrough,
+                    fontFamily = FontFamily.Monospace,
+                ),
+            )
+            Text(
+                LkrFormat.price(drop.newPriceLkr),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                ),
+            )
         }
     }
 }
@@ -476,23 +450,19 @@ private fun PickCard(
 
 @Composable
 private fun PicksUpgradeStrip() {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
-        modifier = Modifier.fillMaxWidth(),
+    MotormilaSurface(
+        highlighted = true,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                stringResource(R.string.hub_picks_upgrade_title),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright),
-            )
-            Text(
-                stringResource(R.string.hub_picks_upgrade_body),
-                style = MaterialTheme.typography.bodySmall,
-                color = MotormilaSecondaryText,
-            )
-        }
+        Text(
+            stringResource(R.string.hub_picks_upgrade_title),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright),
+        )
+        Text(
+            stringResource(R.string.hub_picks_upgrade_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MotormilaSecondaryText,
+        )
     }
 }
 

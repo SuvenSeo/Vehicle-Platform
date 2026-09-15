@@ -16,15 +16,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -51,7 +48,10 @@ import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaMetricTile
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.domain.model.ArbitrageGap
 import lk.motormila.app.domain.model.ProDistrict
 import lk.motormila.app.domain.model.VehicleLane
@@ -228,54 +228,52 @@ private fun ProContent(
                 val laneName = "${lane.make} ${lane.model}".trim().ifBlank { "Lane" }
                 val key = "${lane.make}|${lane.model}"
                 val expanded = state.selectedLaneKey == key && !blurred
-                Card(
+                MotormilaSurface(
                     onClick = { if (!blurred) onSelectLane(lane.make, lane.model) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
                         .then(if (blurred) Modifier.blur(10.dp) else Modifier)
                         .semantics { contentDescription = "Vehicle lane $laneName" },
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(laneName, style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "${lane.listingCount} listings · median ${formatLkr(lane.medianPriceLkr)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(laneName, style = MaterialTheme.typography.titleSmall)
                             Text(
-                                lane.avgDealScore?.let { "★ %.1f".format(it) }
-                                    ?: (lane.topDistrict ?: ""),
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                "${lane.listingCount} listings · median ${formatLkr(lane.medianPriceLkr)}",
+                                style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        if (expanded) {
-                            when {
-                                state.loadingDetail -> Text(
-                                    "Loading lane detail…",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                state.laneDetail != null -> {
-                                    val d = state.laneDetail!!
-                                    Spacer(Modifier.height(8.dp))
-                                    LaneDetailRow("Range", "${formatLkr(d.minPriceLkr)} – ${formatLkr(d.maxPriceLkr)}")
-                                    LaneDetailRow("Districts / sources", "${d.districtCount} / ${d.sourceCount}")
-                                    LaneDetailRow(
-                                        "Top district / source",
-                                        "${d.topDistrict ?: "—"} / ${d.topSource ?: "—"}",
-                                    )
-                                }
-                                state.detailError != null -> Text(
-                                    state.detailError ?: "Couldn't load lane detail.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
+                        Text(
+                            lane.avgDealScore?.let { "★ %.1f".format(it) }
+                                ?: (lane.topDistrict ?: ""),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (expanded) {
+                        when {
+                            state.loadingDetail -> Text(
+                                "Loading lane detail…",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            state.laneDetail != null -> {
+                                val d = state.laneDetail!!
+                                Spacer(Modifier.height(8.dp))
+                                LaneDetailRow("Range", "${formatLkr(d.minPriceLkr)} – ${formatLkr(d.maxPriceLkr)}")
+                                LaneDetailRow("Districts / sources", "${d.districtCount} / ${d.sourceCount}")
+                                LaneDetailRow(
+                                    "Top district / source",
+                                    "${d.topDistrict ?: "—"} / ${d.topSource ?: "—"}",
                                 )
                             }
+                            state.detailError != null -> Text(
+                                state.detailError ?: "Couldn't load lane detail.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                 }
@@ -288,57 +286,54 @@ private fun ProContent(
         } else {
             items(districts.ifEmpty { if (blurred) previewDistricts() else emptyList() }) { d ->
                 val expanded = state.districtDetailKey == d.district && !blurred
-                Card(
+                MotormilaSurface(
                     onClick = { onOpenDistrict(d.district) },
-                    modifier = Modifier.fillMaxWidth().then(if (blurred) Modifier.blur(10.dp) else Modifier)
+                    modifier = Modifier
+                        .then(if (blurred) Modifier.blur(10.dp) else Modifier)
                         .semantics { contentDescription = "District ${d.district}, deep-dive in Insights" },
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(d.district, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "${d.listingCount} · median ${formatLkr(d.medianPriceLkr)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    if (!blurred) {
                         Row(
-                            Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
                         ) {
-                            Text(d.district, style = MaterialTheme.typography.bodyLarge)
-                            Text(
-                                "${d.listingCount} · median ${formatLkr(d.medianPriceLkr)}",
-                                style = MaterialTheme.typography.bodyMedium,
+                            MotormilaGhostButton(
+                                label = if (expanded) "Hide detail" else "Inspect",
+                                fillMaxWidth = false,
+                                onClick = { onToggleDistrict(d.district) },
                             )
                         }
-                        if (!blurred) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End,
-                            ) {
-                                TextButton(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                    onClick = { onToggleDistrict(d.district) },
-                                    modifier = Modifier.heightIn(min = 48.dp),
-                                ) {
-                                    Text(if (expanded) "Hide detail" else "Inspect")
-                                }
-                            }
-                            if (expanded) {
-                                when {
-                                    state.loadingDetail -> Text(
-                                        "Loading district detail…",
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                    state.districtDetail != null -> {
-                                        val dd = state.districtDetail!!
-                                        LaneDetailRow("Average", formatLkr(dd.avgPriceLkr))
-                                        LaneDetailRow("Sources", dd.sourceCount.toString())
-                                        LaneDetailRow(
-                                            "Top make / model",
-                                            "${dd.topMake ?: "—"} / ${dd.topModel ?: "—"}",
-                                        )
-                                    }
-                                    state.detailError != null -> Text(
-                                        state.detailError ?: "Couldn't load district detail.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error,
+                        if (expanded) {
+                            when {
+                                state.loadingDetail -> Text(
+                                    "Loading district detail…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                state.districtDetail != null -> {
+                                    val dd = state.districtDetail!!
+                                    LaneDetailRow("Average", formatLkr(dd.avgPriceLkr))
+                                    LaneDetailRow("Sources", dd.sourceCount.toString())
+                                    LaneDetailRow(
+                                        "Top make / model",
+                                        "${dd.topMake ?: "—"} / ${dd.topModel ?: "—"}",
                                     )
                                 }
+                                state.detailError != null -> Text(
+                                    state.detailError ?: "Couldn't load district detail.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
                             }
                         }
                     }
@@ -368,40 +363,43 @@ private fun ProContent(
         } else {
             items(arb.ifEmpty { if (blurred) previewArb() else emptyList() }) { a ->
                 val hot = a.gapPct >= state.arbitrageThresholdPct
-                Card(
-                    Modifier.fillMaxWidth().then(if (blurred) Modifier.blur(10.dp) else Modifier)
+                MotormilaSurface(
+                    highlighted = hot && !blurred,
+                    modifier = Modifier
+                        .then(if (blurred) Modifier.blur(10.dp) else Modifier)
                         .semantics {
                             contentDescription =
                                 "Arbitrage buy ${a.buyDistrict} sell ${a.sellDistrict}, gap ${formatPct(a.gapPct)}"
                         },
                 ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                "Buy ${a.buyDistrict} → sell ${a.sellDistrict}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f),
-                            )
-                            if (hot && !blurred) {
-                                AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("GAP ${formatPct(a.gapPct)}") })
-                            }
-                        }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Text(
-                            "Spread ${formatLkr(a.sellMedianLkr - a.buyMedianLkr)} · ${formatPct(a.gapPct)}",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
+                            "Buy ${a.buyDistrict} → sell ${a.sellDistrict}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
                         )
-                        if (!blurred) {
-                            Text(
-                                "${a.buyListingCount} buys · ${a.sellListingCount} sells",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        if (hot && !blurred) {
+                            MotormilaMetricTile(
+                                label = "GAP",
+                                value = formatPct(a.gapPct),
                             )
                         }
+                    }
+                    Text(
+                        "Spread ${formatLkr(a.sellMedianLkr - a.buyMedianLkr)} · ${formatPct(a.gapPct)}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    if (!blurred) {
+                        Text(
+                            "${a.buyListingCount} buys · ${a.sellListingCount} sells",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -411,9 +409,9 @@ private fun ProContent(
             // Static blurred placeholders: per-lane source mix has no ProRepository
             // surface in this build, so free-tier users see locked preview cards.
             items(previewSourceLabels()) { label ->
-                Card(Modifier.fillMaxWidth().blur(10.dp)) {
+                MotormilaSurface(modifier = Modifier.blur(10.dp)) {
                     Row(
-                        Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -456,17 +454,19 @@ private fun LaneDetailRow(label: String, value: String) {
 
 @Composable
 private fun BlurredPreview() {
-    Card(Modifier.fillMaxWidth().blur(8.dp).semantics { contentDescription = "Locked Pro preview" }) {
-        Column(Modifier.padding(16.dp)) {
-            Text("DEAL RADAR · ▓▓▓▓", style = MaterialTheme.typography.titleSmall)
-            Text("Spread ▓▓▓▓ · ▓▓ district", style = MaterialTheme.typography.bodyMedium)
-        }
+    MotormilaSurface(
+        modifier = Modifier
+            .blur(8.dp)
+            .semantics { contentDescription = "Locked Pro preview" },
+    ) {
+        Text("DEAL RADAR · ▓▓▓▓", style = MaterialTheme.typography.titleSmall)
+        Text("Spread ▓▓▓▓ · ▓▓ district", style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
 private fun KpiChip(label: String, value: String) {
-    AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("$label: $value") })
+    MotormilaMetricTile(label = label, value = value)
 }
 
 private fun previewLanes() = listOf(
