@@ -557,6 +557,26 @@
     text-wrap: balance;
   }
 
+  /* Centered home-hero lockup — even line lengths, accent on its own row. */
+  .display-hero--lockup {
+    font-size: clamp(2.55rem, 5.6vw + 0.45rem, 5.15rem);
+    line-height: 0.98;
+    max-width: 8.7em;
+    margin-inline: auto;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .display-hero--lockup .display-hero__lead {
+    display: block;
+    text-wrap: balance;
+  }
+
+  .display-hero--lockup .display-hero__accent {
+    display: block;
+    margin-top: 0.08em;
+  }
+
   .display-1 {
     font-family: var(--font-display);
     font-weight: 600;
@@ -838,6 +858,16 @@
     justify-content: flex-end;
   }
 
+  .hero-cinematic--centered {
+    justify-content: stretch;
+  }
+
+  .hero-cinematic--centered .hero-cinematic__vignette {
+    background:
+      radial-gradient(ellipse 70% 62% at 50% 46%, rgba(6, 4, 3, 0.36) 0%, transparent 58%),
+      linear-gradient(180deg, rgba(6, 4, 3, 0.34) 0%, transparent 26%, rgba(6, 4, 3, 0.76) 100%);
+  }
+
   .hero-cinematic__media {
     transform-origin: 62% 42%;
     will-change: transform;
@@ -880,6 +910,12 @@
     background:
       radial-gradient(ellipse 78% 68% at 58% 42%, transparent 28%, rgba(255, 248, 240, 0.18) 100%),
       linear-gradient(180deg, rgba(255, 248, 240, 0.35) 0%, transparent 30%, hsl(var(--background) / 0.92) 100%);
+  }
+
+  .theme-light .hero-cinematic--centered .hero-cinematic__vignette {
+    background:
+      radial-gradient(ellipse 70% 62% at 50% 46%, transparent 22%, rgba(255, 248, 240, 0.2) 100%),
+      linear-gradient(180deg, rgba(255, 248, 240, 0.38) 0%, transparent 30%, hsl(var(--background) / 0.92) 100%);
   }
 
   .theme-light .hero-cinematic__grain { opacity: 0.025; }

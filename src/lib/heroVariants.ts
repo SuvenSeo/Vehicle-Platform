@@ -64,17 +64,17 @@ export const HERO_VARIANTS: HeroVariant[] = [
   {
     id: "expressway-dusk",
     label: "3 · Expressway dusk",
-    blurb: "Lotus Tower + light-trail expressway — SUV right, brand left.",
+    blurb: "Lotus Tower + light-trail expressway — centered lockup, SUV on the right.",
     image: visuals.pageHomeHeroDusk,
-    // Bias right so the blue SUV stays in frame; left sky stays open for type
-    objectPosition: "68% 42%",
+    // Keep the SUV in the right third so the centered type sits over the darker road
+    objectPosition: "62% 42%",
     imageOpacity: "opacity-[0.88]",
-    align: "left",
+    align: "center",
     tone: "dark",
     hideSideSignals: false,
     scrims: [
-      "bg-gradient-to-r from-background/92 via-background/55 to-background/10 sm:to-transparent",
-      "bg-gradient-to-b from-background/45 via-transparent to-background/90",
+      "bg-gradient-to-b from-background/55 via-background/22 to-background/88",
+      "bg-gradient-to-t from-background/70 via-transparent to-background/35",
     ],
   },
   {
