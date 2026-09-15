@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Scale, Share2, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -5,18 +5,21 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-soft hover:bg-primary/92 hover:shadow-soft-lg",
-        destructive: "bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90",
-        outline: "border border-white/40 bg-white/45 text-foreground/85 backdrop-blur-xl hover:bg-white/70 hover:text-foreground hover:shadow-soft dark:border-white/12 dark:bg-white/8",
-        secondary: "bg-secondary/80 text-secondary-foreground backdrop-blur-md hover:bg-secondary/80",
-        ghost: "text-foreground/80 hover:bg-accent/80 hover:text-foreground",
+        default: "bg-primary text-primary-foreground shadow-soft hover:bg-primary/90 hover:shadow-soft-lg active:scale-[0.97]",
+        destructive: "bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90 active:scale-[0.97]",
+        outline: "border border-border bg-card/60 text-foreground backdrop-blur-xl hover:bg-card/90 hover:border-primary/30 hover:shadow-soft dark:border-white/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] active:scale-[0.97]",
+        secondary: "bg-secondary text-secondary-foreground backdrop-blur-md hover:bg-secondary/80 hover:shadow-soft active:scale-[0.97]",
+        ghost: "text-foreground/80 hover:bg-accent/80 hover:text-foreground active:scale-[0.97]",
         link: "text-primary underline-offset-4 hover:underline",
+        glass: "border border-white/15 bg-white/10 text-foreground backdrop-blur-2xl shadow-soft hover:bg-white/15 hover:border-white/25 active:scale-[0.97] dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.10]",
       },
       size: {
         default: "h-10 px-5 py-2",
-        sm: "h-9 px-4 text-[0.8125rem]",
+        xs: "h-7 px-3 text-[11px]",
+        sm: "h-8 px-3.5 text-[0.8125rem]",
         lg: "h-12 px-8 text-[0.9375rem]",
         icon: "h-10 w-10",
+        "icon-sm": "h-8 w-8",
       },
     },
     defaultVariants: {

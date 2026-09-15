@@ -34,7 +34,7 @@ export function CashToOwnStrip({
 
   return (
     <section
-      className="rounded-xl border border-border bg-surface/80 p-4"
+      className="rounded-2xl border border-border/80 bg-surface/80 p-4 shadow-xs"
       aria-label="Cash to own under CBSL LTV"
     >
       <p className="text-[12px] font-medium text-muted-foreground">

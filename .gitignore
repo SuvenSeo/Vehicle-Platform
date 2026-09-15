@@ -39,6 +39,8 @@ backend/__pycache__
 
 # Local databases & caches
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 .pytest_cache/
 .mypy_cache/

@@ -216,7 +216,7 @@ export default function EVHub() {
         <motion.section variants={revealItem}>
           <div className="surface--glass rounded-2xl p-6 sm:p-8">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10">
                 <TrendingDown className="h-5 w-5 text-primary" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
@@ -273,7 +273,7 @@ export default function EVHub() {
               return (
                 <div key={m.title} className="data-card p-6 transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg">
                   <div className="flex items-center justify-between">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-surface">
                       <Icon className="h-5 w-5 text-primary" aria-hidden />
                     </div>
                     <span className="num text-[11px] font-bold text-primary-bright">{m.step}</span>
@@ -303,7 +303,7 @@ export default function EVHub() {
           </div>
 
           <div className="data-card flex flex-col p-6 sm:p-8">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-surface">
               <Car className="h-5 w-5 text-primary" aria-hidden />
             </div>
             <p className="mt-5 text-[12px] font-semibold text-muted-foreground/80">{t("ev.marketAction", "Market action")}</p>

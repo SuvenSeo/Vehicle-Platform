@@ -360,7 +360,7 @@
 @layer components {
   .surface {
     @apply relative overflow-hidden;
-    border-radius: var(--radius);
+    border-radius: 1.5rem;
     border: 1px solid var(--glass-edge);
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -377,6 +377,7 @@
 
   .surface--glass {
     border-color: var(--glass-border);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
@@ -386,7 +387,7 @@
   .liquid-panel {
     @apply relative overflow-hidden;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 10px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
@@ -404,7 +405,7 @@
   .premium-surface {
     @apply relative overflow-hidden;
     border: 1px solid hsl(var(--primary) / 0.22);
-    border-radius: calc(var(--radius) + 8px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -419,7 +420,7 @@
   .page-panel {
     @apply relative overflow-hidden;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 8px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -429,7 +430,7 @@
   .data-card {
     @apply relative overflow-hidden;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 10px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -448,7 +449,7 @@
   .metric-tile {
     @apply relative overflow-hidden px-4 py-3;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: 1.25rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
@@ -459,7 +460,7 @@
 
   .index-board-card {
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 6px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
@@ -790,7 +791,7 @@
   .auto-action:active { transform: scale(0.97); }
 
   .control-dark {
-    @apply h-11 rounded-2xl text-foreground shadow-none;
+    @apply h-11 rounded-full text-foreground shadow-none;
     border-color: hsl(var(--input));
     background: hsl(var(--card));
   }
@@ -831,11 +832,11 @@
 
   .hero-search-panel {
     border: 1px solid var(--glass-border);
-    border-radius: 18px;
+    border-radius: 999px;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-top);
     transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
   }
 
