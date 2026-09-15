@@ -185,8 +185,15 @@ fun MotormilaScaffold(
         floatingActionButton = {
             if (showBottomBar) {
                 Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .liquidGlass(
+                            RoundedCornerShape(28.dp),
+                            fill = MotormilaGlassFillStrong,
+                            border = Color(0x330A7AFF),
+                        )
+                        .padding(8.dp),
                 ) {
                     val aiInteraction = remember { MutableInteractionSource() }
                     FloatingActionButton(
@@ -202,11 +209,6 @@ fun MotormilaScaffold(
                         modifier = Modifier
                             .size(48.dp)
                             .applePress(aiInteraction, pressedScale = 0.92f)
-                            .liquidGlass(
-                                CircleShape,
-                                fill = MotormilaGlassFillStrong,
-                                border = Color(0xFF0A7AFF),
-                            )
                             .semantics { contentDescription = "Open Motormila AI Intelligence Assistant" },
                     ) {
                         Icon(
@@ -223,8 +225,8 @@ fun MotormilaScaffold(
                         containerColor = MotormilaPrimary,
                         contentColor = Color.White,
                         elevation = FloatingActionButtonDefaults.elevation(
-                            defaultElevation = 6.dp,
-                            pressedElevation = 10.dp,
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp,
                         ),
                         interactionSource = scanInteraction,
                         shape = CircleShape,

@@ -28,6 +28,8 @@ fun HomeScreen(
     onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> }, // -> MakeModelHub
     onDistrictClick: (district: String) -> Unit = {}, // -> DistrictHub
     onCalculatorClick: () -> Unit = {}, // -> Calculator
+    onPriceIndexClick: () -> Unit = {}, // -> PriceIndex
+    onPermitsClick: () -> Unit = {},    // -> Permits
     viewModel: HomeViewModel = hiltViewModel(),
 )
 
@@ -59,6 +61,9 @@ fun InsightsScreen(
     onOpenPulseDetail: (signalId: String) -> Unit, // -> OfficialPulseDetail(id)
     onDrillDistrict: (district: String) -> Unit,  // -> Search(district=district)
     onSearchModels: (query: String) -> Unit,      // -> Search(q=query)
+    onChargersClick: () -> Unit = {},             // -> EvChargers
+    onUpgrade: () -> Unit = {},                   // -> Pro
+    initialTab: Int = 0,
     viewModel: InsightsViewModel = hiltViewModel(),
 )
 
@@ -136,6 +141,8 @@ fun SettingsScreen(
     onLoggedOut: () -> Unit,
     onOpenUrl: (url: String) -> Unit,
     onBiometricVerify: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
+    onPrivacyClick: () -> Unit = {},    // -> Privacy
+    onTermsClick: () -> Unit = {},      // -> Terms
     viewModel: SettingsViewModel = hiltViewModel(),
 )
 
@@ -154,9 +161,14 @@ fun ProfileScreen(
     onCalculatorClick: () -> Unit = {}, // -> Calculator
     onCompareClick: () -> Unit = {},     // -> Compare
     onTrendsClick: () -> Unit = {},     // -> Insights
-    onDocsClick: () -> Unit = {},       // web /docs
-    onPricingClick: () -> Unit = {},     // web /pricing
-    onPermitsClick: () -> Unit = {},    // -> OfficialPulse
+    onPriceIndexClick: () -> Unit = {}, // -> PriceIndex
+    onDocsClick: () -> Unit = {},       // -> Docs
+    onPricingClick: () -> Unit = {},     // -> Pricing
+    onPermitsClick: () -> Unit = {},    // -> Permits
+    onAdminClick: () -> Unit = {},      // -> Admin
+    onEvChargersClick: () -> Unit = {}, // -> EvChargers
+    onPrivacyClick: () -> Unit = {},    // -> Privacy
+    onTermsClick: () -> Unit = {},      // -> Terms
     viewModel: ProfileViewModel = hiltViewModel(),
 )
 
@@ -188,6 +200,7 @@ fun EvHubScreen(
     onBack: () -> Unit,                 // popBackStack
     onSearchModels: (String) -> Unit,   // -> Search(q=)
     onOpenListing: (Int) -> Unit,       // -> ListingDetail(id)
+    onChargersClick: () -> Unit = {},   // -> EvChargers
     viewModel: EvHubViewModel = hiltViewModel(),
 )
 
@@ -205,7 +218,7 @@ fun OfficialPulseScreen(
 fun OfficialPulseDetailScreen(
     onBack: () -> Unit,
     onOpenUrl: (String) -> Unit,
-    onOpenGuide: () -> Unit,
+    onOpenGuide: (String) -> Unit,
     viewModel: OfficialPulseDetailViewModel = hiltViewModel(),
 )
 
@@ -257,6 +270,74 @@ fun CalculatorScreen(
     onUpgrade: () -> Unit,              // -> Pro
     viewModel: CalculatorViewModel = hiltViewModel(),
 )
+
+// lk.motormila.app.ui.pricing — PricingScreen.kt
+@Composable
+fun PricingScreen(
+    onBack: () -> Unit,
+    onSignUp: () -> Unit,               // -> Login
+    onOpenPro: () -> Unit,              // -> Pro
+    onOpenDealer: () -> Unit,           // -> Dealer
+    onOpenHome: () -> Unit,             // -> Home
+    onOpenUrl: (String) -> Unit,
+    viewModel: PricingViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.docs — DocsScreen.kt
+@Composable
+fun DocsScreen(
+    onBack: () -> Unit,
+    initialSectionId: String? = null,
+)
+
+// lk.motormila.app.ui.pulse — PulseGuideScreen.kt
+@Composable
+fun PulseGuideScreen(
+    guideKey: String,
+    onBack: () -> Unit,
+    onOpenPulse: () -> Unit,            // -> OfficialPulse
+    onOpenCalculator: () -> Unit,       // -> Calculator
+)
+
+// lk.motormila.app.ui.admin — AdminScreen.kt
+@Composable
+fun AdminScreen(
+    onBack: () -> Unit,
+    onLoginClick: () -> Unit,           // -> Login
+    viewModel: AdminViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.ev — EvChargersScreen.kt
+@Composable
+fun EvChargersScreen(
+    onBack: () -> Unit,
+    onOpenUrl: (String) -> Unit,
+    viewModel: EvChargersViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.legal — LegalScreen.kt
+@Composable
+fun LegalScreen(
+    documentId: String,                 // "privacy" | "terms"
+    onBack: () -> Unit,
+    onOpenOther: () -> Unit,            // Privacy <-> Terms
+)
+
+// lk.motormila.app.ui.permits — PermitsScreen.kt
+@Composable
+fun PermitsScreen(
+    onBack: () -> Unit,
+    onOpenCalculator: () -> Unit,       // -> Calculator
+    viewModel: PermitsViewModel = hiltViewModel(),
+)
+
+// lk.motormila.app.ui.insights — PriceIndexScreen.kt
+@Composable
+fun PriceIndexScreen(
+    onBack: () -> Unit,
+    onOpenPro: () -> Unit,              // -> Pro
+    viewModel: PriceIndexViewModel = hiltViewModel(),
+)
 ```
 
 ## 2. Missing — none (retired)
@@ -284,7 +365,9 @@ New screens: add the destination to `Routes.kt`, wire it in
 @Serializable data object Notifications / Pro / Dealer / Settings / PlateScan
 @Serializable data class ShareImport(val url: String? = null)
 @Serializable data object EvHub / OfficialPulse / BestPicks / Calculator
+@Serializable data object Pricing / Docs / Admin / EvChargers / Privacy / Terms / Permits / PriceIndex
 @Serializable data class OfficialPulseDetail(val id: Int)
+@Serializable data class PulseGuide(val key: String)
 @Serializable data class MakeHub(val make: String)
 @Serializable data class MakeModelHub(val make: String, val model: String)
 @Serializable data class DistrictHub(val district: String)
@@ -329,12 +412,25 @@ Compose, so MainActivity parses VIEW URIs and navigates after splash):
 | `motormila://home` (no dealOfDay) | `Home` |
 | `motormila://pro?deal=day` | `BestPicks` (legacy) |
 | `motormila://calculator` | `Calculator` |
+| `motormila://pricing` | `Pricing` |
+| `motormila://docs` | `Docs` |
+| `motormila://admin` | `Admin` |
+| `motormila://chargers` | `EvChargers` |
+| `motormila://privacy` | `Privacy` |
+| `motormila://terms` | `Terms` |
+| `motormila://permits` | `Permits` |
+| `motormila://price-index` | `PriceIndex` |
+| `motormila://guide/{key}` | `PulseGuide` |
 | `motormila://cars/{make}` / `motormila://make/{make}` | `MakeHub` |
 | `motormila://cars/{make}/{model}` | `MakeModelHub` |
 | `motormila://locations/{district}` | `DistrictHub` |
 | `https://motormila.vercel.app/cars/{make}[/{model}]` | `MakeHub` / `MakeModelHub` |
 | `https://motormila.vercel.app/locations/{district}` | `DistrictHub` |
 | `https://motormila.vercel.app/calculator` | `Calculator` |
+| `https://motormila.vercel.app/privacy` | `Privacy` |
+| `https://motormila.vercel.app/terms` | `Terms` |
+| `https://motormila.vercel.app/permits` | `Permits` |
+| `https://motormila.vercel.app/price-index` | `PriceIndex` |
 
 Splash always runs on a cold start (unless ACTION_SEND → ShareImport). After
 splash the deep-link target is used instead of always Home. `onNewIntent`

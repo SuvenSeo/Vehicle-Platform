@@ -87,6 +87,33 @@ data class DistrictHub(val district: String)
 @Serializable
 data object Calculator
 
+@Serializable
+data object Pricing
+
+@Serializable
+data object Docs
+
+@Serializable
+data class PulseGuide(val key: String)
+
+@Serializable
+data object Admin
+
+@Serializable
+data object EvChargers
+
+@Serializable
+data object Privacy
+
+@Serializable
+data object Terms
+
+@Serializable
+data object Permits
+
+@Serializable
+data object PriceIndex
+
 /** Routes that show the bottom NavigationBar. */
 val BOTTOM_BAR_ROUTES: Set<String> = setOf(
     Home::class.qualifiedName!!,
@@ -163,10 +190,25 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             return DistrictHub(segments[1])
         }
         if (segments.size >= 2 && segments[0] == "official-pulse") {
-            if (segments[1] == "guide") return OfficialPulse
+            if (segments[1] == "guide") {
+                val key = segments.getOrNull(2)?.takeIf { it.isNotBlank() } ?: return OfficialPulse
+                return PulseGuide(key)
+            }
             return segments[1].toIntOrNull()?.let { OfficialPulseDetail(it) }
         }
         if (segments.firstOrNull() == "calculator") return Calculator
+        if (segments.firstOrNull() == "pricing") return Pricing
+        if (segments.firstOrNull() == "docs") return Docs
+        if (segments.firstOrNull() == "admin") return Admin
+        if (segments.firstOrNull() == "privacy") return Privacy
+        if (segments.firstOrNull() == "terms") return Terms
+        if (segments.firstOrNull() == "permits") return Permits
+        if (segments.firstOrNull() == "price-index" || segments.firstOrNull() == "trends") {
+            return if (segments.firstOrNull() == "price-index") PriceIndex else Insights
+        }
+        if (segments.firstOrNull() == "ev-chargers" || segments.firstOrNull() == "ev-hub") {
+            return if (segments.firstOrNull() == "ev-chargers") EvChargers else EvHub
+        }
         return null
     }
     if (scheme != "motormila") return null
@@ -188,10 +230,20 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             val id = segments.firstOrNull()?.toIntOrNull()
             if (id != null) OfficialPulseDetail(id) else OfficialPulse
         }
+        "guide" -> segments.firstOrNull()?.takeIf { it.isNotBlank() }?.let { PulseGuide(it) } ?: OfficialPulse
         "scan" -> PlateScan
         "listing" -> segments.firstOrNull()?.toIntOrNull()?.let { ListingDetail(it) }
         "pro" -> if (parsed.queryOrNull("deal") == "day") BestPicks else Pro
         "calculator" -> Calculator
+        "pricing" -> Pricing
+        "docs" -> Docs
+        "admin" -> Admin
+        "chargers", "ev-chargers" -> EvChargers
+        "privacy" -> Privacy
+        "terms" -> Terms
+        "permits" -> Permits
+        "price-index" -> PriceIndex
+        "trends" -> Insights
         "make" -> segments.firstOrNull()?.takeIf { it.isNotBlank() }?.let { MakeHub(it) }
         "cars" -> {
             val make = segments.getOrNull(0)?.takeIf { it.isNotBlank() } ?: return null

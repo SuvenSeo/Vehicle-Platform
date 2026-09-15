@@ -31,13 +31,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +59,7 @@ import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.Alert
 import lk.motormila.app.domain.model.AlertMatch
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -101,28 +99,14 @@ fun AlertsScreen(
     }
     // Consume the confetti burst after it plays.
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Price alerts")
-                        if (state.unreadCount > 0) {
-                            Badge(
-                                modifier = Modifier.padding(start = 8.dp)
-                                    .semantics { contentDescription = "${state.unreadCount} unread notifications" },
-                            ) { Text(state.unreadCount.toString()) }
-                        }
-                    }
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    MotormilaPage(
+        title = if (state.unreadCount > 0) "Price alerts (${state.unreadCount})" else "Price alerts",
+        snackbarHostState = snacks,
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(AlertsUiEvent.Refresh) },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading -> SkeletonList()

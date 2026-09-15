@@ -17,12 +17,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +38,7 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -68,14 +66,11 @@ fun DealerScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Dealer tools") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    MotormilaPage(title = "Dealer tools", snackbarHostState = snacks) {
         PullToRefreshBox(
             isRefreshing = state.refreshing,
             onRefresh = { viewModel.onEvent(DealerUiEvent.RefreshClaim) },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 else -> LazyColumn(

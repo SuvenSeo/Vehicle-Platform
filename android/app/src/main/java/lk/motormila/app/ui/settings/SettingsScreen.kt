@@ -20,13 +20,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +42,9 @@ import lk.motormila.app.R
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.ui.components.MotormilaGroup
+import lk.motormila.app.ui.components.MotormilaGroupRow
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -55,6 +55,8 @@ fun SettingsScreen(
     onOpenUrl: (url: String) -> Unit,
     /** Host wires BiometricPrompt; on success the toggle persists, on failure show message. */
     onBiometricVerify: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
+    onPrivacyClick: () -> Unit = {},
+    onTermsClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -95,12 +97,9 @@ fun SettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Settings") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    MotormilaPage(title = "Settings", snackbarHostState = snacks) {
         LazyColumn(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { OfflineBanner(visible = state.offline) }
@@ -240,17 +239,18 @@ fun SettingsScreen(
             }
             item {
                 SectionTitle("Legal")
-                Row {
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = { onOpenUrl("https://motormila.vercel.app/privacy") },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Privacy") }
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = { onOpenUrl("https://motormila.vercel.app/terms") },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Terms") }
+                MotormilaGroup {
+                    MotormilaGroupRow(
+                        title = "Privacy Policy",
+                        subtitle = "How we collect and protect data",
+                        onClick = onPrivacyClick,
+                    )
+                    MotormilaGroupRow(
+                        title = "Terms of Service",
+                        subtitle = "Rules that govern the platform",
+                        onClick = onTermsClick,
+                        showDivider = false,
+                    )
                 }
             }
             item {

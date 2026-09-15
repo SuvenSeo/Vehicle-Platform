@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -24,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import lk.motormila.app.R
 import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.PrimaryAction
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.domain.repository.ListingQuery
 
 /**
@@ -54,9 +53,9 @@ fun ShareImportScreen(
         }
     }
 
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.share_title)) }) }) { padding ->
+    MotormilaPage(title = stringResource(R.string.share_title)) {
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(24.dp),
+            Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

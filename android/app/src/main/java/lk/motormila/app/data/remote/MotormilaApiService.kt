@@ -86,9 +86,19 @@ import lk.motormila.app.data.remote.dto.UrlBenchmarkResultDto
 import lk.motormila.app.data.remote.dto.VehicleNewsItemDto
 import lk.motormila.app.data.remote.dto.VehicleSafetyDto
 import lk.motormila.app.data.remote.dto.VehicleLaneDto
+import lk.motormila.app.data.remote.dto.AdminInviteCreateDto
+import lk.motormila.app.data.remote.dto.AdminInviteDto
+import lk.motormila.app.data.remote.dto.AdminInvitesResponseDto
+import lk.motormila.app.data.remote.dto.AdminOverviewDto
+import lk.motormila.app.data.remote.dto.AdminUserDto
+import lk.motormila.app.data.remote.dto.AdminUserUpdateDto
+import lk.motormila.app.data.remote.dto.AdminUsersResponseDto
+import lk.motormila.app.data.remote.dto.SelfSignupRequestDto
+import lk.motormila.app.data.remote.dto.SelfSignupStatusDto
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -114,6 +124,12 @@ interface MotormilaApiService {
 
     @GET("auth/invite/{token}")
     suspend fun invitePreview(@Path("token") token: String): InvitePreviewDto
+
+    @GET("auth/self-signup/status")
+    suspend fun selfSignupStatus(): SelfSignupStatusDto
+
+    @POST("auth/self-signup")
+    suspend fun selfSignup(@Body body: SelfSignupRequestDto): TokenResponse
 
     @POST("auth/logout")
     suspend fun logout(): OkResponse
@@ -408,6 +424,36 @@ interface MotormilaApiService {
     // ---------------------------------------------------------------- billing
     @POST("billing/checkout-intent")
     suspend fun checkoutIntent(@Body body: CheckoutIntentRequestDto): CheckoutIntentResponseDto
+
+    // ------------------------------------------------------------------ admin
+    @GET("admin/overview")
+    suspend fun adminOverview(): AdminOverviewDto
+
+    @GET("admin/users")
+    suspend fun adminUsers(
+        @Query("q") q: String? = null,
+        @Query("plan") plan: String? = null,
+        @Query("limit") limit: Int = 80,
+        @Query("offset") offset: Int = 0,
+    ): AdminUsersResponseDto
+
+    @PATCH("admin/users/{id}")
+    suspend fun updateAdminUser(
+        @Path("id") id: Int,
+        @Body body: AdminUserUpdateDto,
+    ): AdminUserDto
+
+    @GET("admin/invites")
+    suspend fun adminInvites(
+        @Query("status") status: String? = null,
+        @Query("limit") limit: Int = 80,
+    ): AdminInvitesResponseDto
+
+    @POST("admin/invites")
+    suspend fun createAdminInvite(@Body body: AdminInviteCreateDto): AdminInviteDto
+
+    @DELETE("admin/invites/{id}")
+    suspend fun revokeAdminInvite(@Path("id") id: Int): OkResponse
 
     // ----------------------------------------------------------------- events
     @POST("events")

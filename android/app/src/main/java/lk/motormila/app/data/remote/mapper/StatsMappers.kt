@@ -13,6 +13,7 @@ import lk.motormila.app.data.remote.dto.InsightsDto
 import lk.motormila.app.data.remote.dto.MarketSignalDto
 import lk.motormila.app.data.remote.dto.PriceDropItemDto
 import lk.motormila.app.data.remote.dto.PriceIndexDto
+import lk.motormila.app.data.remote.dto.PriceIndexPointDto
 import lk.motormila.app.data.remote.dto.SegmentPerformanceDto
 import lk.motormila.app.data.remote.dto.StatsSummaryDto
 import lk.motormila.app.data.remote.dto.TrendPointDto
@@ -36,6 +37,13 @@ import lk.motormila.app.domain.model.StatsSummary
 import lk.motormila.app.domain.model.TrendPoint
 import lk.motormila.app.domain.model.TrendSeries
 import lk.motormila.app.domain.model.TrendingModel
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 /** Stats/market mappings. Backend months may arrive as "YYYY-MM" period strings. */
 fun StatsSummaryDto.toDomain(): StatsSummary = StatsSummary(
@@ -87,18 +95,49 @@ fun TrendPointDto.toDomain(): TrendPoint {
 fun TrendSeriesDto.toDomain(): TrendSeries =
     TrendSeries(points = points.map { it.toDomain() }, coverageScope = coverageScope, coverageNote = coverageNote)
 
-fun PriceIndexDto.toDomain(): PriceIndex = PriceIndex(
-    basePeriod = basePeriod,
-    latestPeriod = latestPeriod,
-    points = points.map {
-        PriceIndexPoint(
-            period = it.period, indexValue = it.indexValue,
-            medianPriceLkr = it.medianPriceLkr, listingCount = it.listingCount,
-            momChangePct = it.momChangePct,
-        )
-    },
-    methodology = methodology,
+fun PriceIndexPointDto.toDomain(): PriceIndexPoint = PriceIndexPoint(
+    period = period,
+    indexValue = indexValue,
+    medianPriceLkr = medianPriceLkr,
+    listingCount = listingCount,
+    momChangePct = momChangePct,
 )
+
+fun PriceIndexDto.toDomain(): PriceIndex {
+    val overall = points.map { it.toDomain() }
+    val parsedSegments = LinkedHashMap<String, List<PriceIndexPoint>>()
+    segments.forEach { (key, element) ->
+        val arr = element as? JsonArray ?: return@forEach
+        val pts = arr.mapNotNull { item ->
+            val obj = item as? JsonObject ?: return@mapNotNull null
+            val period = obj.string("period") ?: return@mapNotNull null
+            PriceIndexPoint(
+                period = period,
+                indexValue = obj.double("index_value") ?: 0.0,
+                medianPriceLkr = obj.double("median_price_lkr") ?: 0.0,
+                listingCount = obj.int("listing_count") ?: 0,
+                momChangePct = obj.double("mom_change_pct"),
+            )
+        }
+        if (pts.isNotEmpty()) parsedSegments[key] = pts
+    }
+    return PriceIndex(
+        basePeriod = basePeriod,
+        latestPeriod = latestPeriod,
+        points = overall,
+        segments = parsedSegments,
+        methodology = methodology,
+    )
+}
+
+private fun JsonObject.string(key: String): String? =
+    this[key]?.takeUnless { it is JsonNull }?.jsonPrimitive?.contentOrNull
+
+private fun JsonObject.double(key: String): Double? =
+    this[key]?.takeUnless { it is JsonNull }?.jsonPrimitive?.doubleOrNull
+
+private fun JsonObject.int(key: String): Int? =
+    this[key]?.takeUnless { it is JsonNull }?.jsonPrimitive?.intOrNull
 
 fun SegmentPerformanceDto.toDomain(): SegmentPerformance = SegmentPerformance(
     segment = segment, listingCount = listingCount,

@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -106,7 +107,7 @@ fun ListingCard(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MotormilaGlassFillStrong),
         border = androidx.compose.foundation.BorderStroke(0.5.dp, MotormilaGlassBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
         onClick = onClick,
         interactionSource = interaction,
     ) {
@@ -121,6 +122,17 @@ fun ListingCard(
                         .aspectRatio(16f / 10f)
                         .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                         .then(heroShared),
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.55f to Color.Transparent,
+                                1f to Color(0xCC09090B),
+                            ),
+                        ),
                 )
                 if (!listing.source.isNullOrBlank()) {
                     Text(

@@ -29,11 +29,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +62,7 @@ import lk.motormila.app.R
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.theme.rememberHaptics
 
 /**
@@ -134,11 +132,11 @@ fun PlateScanScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.scan_title)) }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+    MotormilaPage(
+        title = stringResource(R.string.scan_title),
+        snackbarHostState = snacks,
+    ) {
+        Column(Modifier.fillMaxSize().padding(16.dp)) {
             if (state.permissionGranted && state.cameraAvailable) {
                 CameraPreview(
                     onOcrText = { text, boxes ->

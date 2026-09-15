@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Speed
@@ -32,19 +31,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,10 +59,9 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.domain.repository.CostLine
 import lk.motormila.app.domain.repository.LandedCost
 import lk.motormila.app.domain.repository.Tco
-import lk.motormila.app.ui.components.BrandLogo
-import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPillTabs
 import lk.motormila.app.ui.components.OfflineBanner
-import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
@@ -103,46 +94,15 @@ fun CalculatorScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.calc_title), fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = stringResource(R.string.calc_title),
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
+        snackbarHostState = snacks,
+    ) {
+        Column(Modifier.fillMaxSize()) {
             OfflineBanner(visible = state.offline)
             CalculatorTabs(
                 selected = state.tab,
@@ -204,7 +164,6 @@ fun CalculatorScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CalculatorTabs(
     selected: CalculatorTab,
@@ -213,38 +172,19 @@ private fun CalculatorTabs(
 ) {
     val tabs = listOf(
         CalculatorTab.LANDED to stringResource(R.string.calc_tab_landed),
-        CalculatorTab.TCO to stringResource(R.string.calc_tab_tco),
+        CalculatorTab.TCO to if (unlocked) {
+            stringResource(R.string.calc_tab_tco)
+        } else {
+            stringResource(R.string.calc_tab_tco) + " · Pro"
+        },
     )
     val selectedIndex = tabs.indexOfFirst { it.first == selected }.coerceAtLeast(0)
-    PrimaryTabRow(
-        selectedTabIndex = selectedIndex,
-        containerColor = MotormilaBg,
-        contentColor = MotormilaOnSurface,
-    ) {
-        tabs.forEachIndexed { index, (tab, title) ->
-            val locked = tab == CalculatorTab.TCO && !unlocked
-            val cd = if (locked) stringResource(R.string.calc_cd_tab_locked, title) else title
-            Tab(
-                selected = selectedIndex == index,
-                onClick = { onSelect(tab) },
-                text = { Text(title) },
-                icon = if (locked) {
-                    {
-                        Icon(
-                            Icons.Filled.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                } else {
-                    null
-                },
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = cd },
-            )
-        }
-    }
+    MotormilaPillTabs(
+        tabs = tabs.map { it.second },
+        selected = selectedIndex,
+        onSelect = { onSelect(tabs[it].first) },
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 @Composable

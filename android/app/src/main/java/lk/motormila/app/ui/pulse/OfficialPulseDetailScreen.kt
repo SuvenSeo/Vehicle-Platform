@@ -23,10 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,6 +44,7 @@ import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
@@ -58,7 +56,7 @@ import lk.motormila.app.ui.theme.rememberHaptics
 fun OfficialPulseDetailScreen(
     onBack: () -> Unit,
     onOpenUrl: (String) -> Unit,
-    onOpenGuide: () -> Unit,
+    onOpenGuide: (String) -> Unit,
     viewModel: OfficialPulseDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -66,44 +64,21 @@ fun OfficialPulseDetailScreen(
     val haptics = rememberHaptics()
     val backCd = stringResource(R.string.hub_back)
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(size = BrandLogoSize.COMPACT, showWordmark = false, showTagline = false)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.hub_pulse_detail_title), fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = stringResource(R.string.hub_pulse_detail_title),
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-    ) { padding ->
+    ) {
         when {
-            state.isLoading -> Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+            state.isLoading -> Column(Modifier.fillMaxSize().padding(16.dp)) {
                 LoadingSkeletonCard()
             }
             state.error != null || state.signal == null -> ErrorState(
                 message = state.error ?: stringResource(R.string.hub_pulse_detail_missing),
                 onRetry = { viewModel.refresh() },
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier.fillMaxSize(),
             )
             else -> {
                 val signal = state.signal!!
@@ -111,7 +86,6 @@ fun OfficialPulseDetailScreen(
                 Column(
                     Modifier
                         .fillMaxSize()
-                        .padding(padding)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -149,7 +123,10 @@ fun OfficialPulseDetailScreen(
                         shape = androidx.compose.foundation.shape.CircleShape,
                         onClick = {
                             if (!reducedMotion) haptics.tick()
-                            onOpenGuide()
+                            onOpenGuide(
+                                PulseGuides.match(signal.source, signal.signalType)?.key
+                                    ?: "dmt_registrations",
+                            )
                         },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {

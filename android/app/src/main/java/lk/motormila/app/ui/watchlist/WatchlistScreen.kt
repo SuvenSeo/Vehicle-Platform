@@ -30,13 +30,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -65,6 +62,8 @@ import lk.motormila.app.core.ui.HealthRing
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.core.ui.SteeringWheelGraphic
 import lk.motormila.app.domain.model.WatchItem
+import lk.motormila.app.ui.components.MotormilaIconAction
+import lk.motormila.app.ui.components.MotormilaPage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,45 +83,28 @@ fun WatchlistScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        if (state.items.isEmpty()) "Watchlist"
-                        else "Watchlist (${state.items.size})",
-                    )
-                },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.onEvent(WatchlistUiEvent.RefreshPrices) },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .semantics { contentDescription = "Refresh watched prices" },
-                    ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh prices")
-                    }
-                    if (state.items.isNotEmpty()) {
-                        IconButton(
-                            onClick = { viewModel.onEvent(WatchlistUiEvent.ClearAll) },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .semantics { contentDescription = "Clear entire watchlist" },
-                        ) {
-                            Icon(Icons.Filled.ClearAll, contentDescription = "Clear watchlist")
-                        }
-                    }
-                },
+    MotormilaPage(
+        title = if (state.items.isEmpty()) "Watchlist" else "Watchlist (${state.items.size})",
+        snackbarHostState = snacks,
+        actions = {
+            MotormilaIconAction(
+                icon = Icons.Filled.Refresh,
+                contentDescription = "Refresh watched prices",
+                onClick = { viewModel.onEvent(WatchlistUiEvent.RefreshPrices) },
             )
+            if (state.items.isNotEmpty()) {
+                MotormilaIconAction(
+                    icon = Icons.Filled.ClearAll,
+                    contentDescription = "Clear entire watchlist",
+                    onClick = { viewModel.onEvent(WatchlistUiEvent.ClearAll) },
+                )
+            }
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(WatchlistUiEvent.Refresh) },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading -> SkeletonList()

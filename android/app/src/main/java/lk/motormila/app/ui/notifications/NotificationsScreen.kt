@@ -14,12 +14,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +35,7 @@ import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.AppNotification
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -60,36 +58,22 @@ fun NotificationsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Inbox")
-                        if (state.unreadCount > 0) {
-                            Badge(
-                                modifier = Modifier.padding(start = 8.dp)
-                                    .semantics { contentDescription = "${state.unreadCount} unread" },
-                            ) { Text(state.unreadCount.toString()) }
-                        }
-                    }
-                },
-                actions = {
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = { viewModel.onEvent(NotificationsUiEvent.MarkAllRead) },
-                        enabled = state.unreadCount > 0,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Mark all read") }
-                },
-            )
+    MotormilaPage(
+        title = if (state.unreadCount > 0) "Inbox (${state.unreadCount})" else "Inbox",
+        snackbarHostState = snacks,
+        actions = {
+            TextButton(
+                shape = androidx.compose.foundation.shape.CircleShape,
+                onClick = { viewModel.onEvent(NotificationsUiEvent.MarkAllRead) },
+                enabled = state.unreadCount > 0,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text("Mark all read") }
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(NotificationsUiEvent.Refresh) },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading -> SkeletonList()

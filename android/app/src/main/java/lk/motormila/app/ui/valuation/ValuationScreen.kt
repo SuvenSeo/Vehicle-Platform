@@ -46,14 +46,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,6 +74,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.ui.components.MotormilaChipTabs
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.theme.MotormilaBad
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaGoodText
@@ -111,21 +108,14 @@ fun ValuationScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Valuation & calculators") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = tab) {
-                calcTabs.forEachIndexed { i, t ->
-                    Tab(
-                        selected = tab == i,
-                        onClick = { tab = i },
-                        text = { Text(t) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-            }
+    MotormilaPage(title = "Valuation", snackbarHostState = snacks) {
+        Column(Modifier.fillMaxSize()) {
+            MotormilaChipTabs(
+                tabs = calcTabs,
+                selected = tab,
+                onSelect = { tab = it },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
             when (tab) {
                 0 -> ValuationWorkbenchTab(state, viewModel, onOpenListing)
                 1 -> LandedTab(state, viewModel)

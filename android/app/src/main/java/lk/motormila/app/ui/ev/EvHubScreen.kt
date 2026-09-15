@@ -36,13 +36,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,6 +65,7 @@ import lk.motormila.app.domain.model.ChargingStation
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LoadingSkeletonCard
@@ -95,6 +92,7 @@ fun EvHubScreen(
     onBack: () -> Unit,
     onSearchModels: (query: String) -> Unit,
     onOpenListing: (Int) -> Unit,
+    onChargersClick: () -> Unit = {},
     viewModel: EvHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -112,47 +110,19 @@ fun EvHubScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.hub_ev_title), fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = stringResource(R.string.hub_ev_title),
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+        snackbarHostState = snacks,
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(EvHubUiEvent.Refresh) },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .semantics { contentDescription = refreshCd },
         ) {
             when {
@@ -177,6 +147,7 @@ fun EvHubScreen(
                     onSearchModels = onSearchModels,
                     onRadius = { viewModel.onEvent(EvHubUiEvent.ChargerRadiusChanged(it)) },
                     onHaptic = { if (!reducedMotion) haptics.tick() },
+                    onChargersClick = onChargersClick,
                 )
             }
         }
@@ -204,6 +175,7 @@ private fun EvHubBody(
     onSearchModels: (String) -> Unit,
     onRadius: (Int) -> Unit,
     onHaptic: () -> Unit,
+    onChargersClick: () -> Unit,
 ) {
     val ev = state.ev
     LazyColumn(
@@ -244,6 +216,10 @@ private fun EvHubBody(
                 onRadius = { km ->
                     onHaptic()
                     onRadius(km)
+                },
+                onSeeAll = {
+                    onHaptic()
+                    onChargersClick()
                 },
             )
         }
@@ -661,6 +637,7 @@ private fun ChargersSection(
     chargers: List<ChargingStation>,
     radiusKm: Int,
     onRadius: (Int) -> Unit,
+    onSeeAll: () -> Unit = {},
 ) {
     Card(
         shape = RoundedCornerShape(28.dp),
@@ -719,6 +696,17 @@ private fun ChargersSection(
                 chargers.forEach { station ->
                     ChargerRow(station)
                 }
+            }
+            Button(
+                onClick = onSeeAll,
+                shape = androidx.compose.foundation.shape.CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MotormilaPrimary,
+                    contentColor = MotormilaOnPrimary,
+                ),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) {
+                Text("Open charger map")
             }
         }
     }

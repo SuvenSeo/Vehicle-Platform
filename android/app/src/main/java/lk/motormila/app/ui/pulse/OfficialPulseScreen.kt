@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.CellTower
@@ -28,17 +27,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,13 +53,12 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.domain.model.MarketSignal
 import lk.motormila.app.domain.model.Permit
 import lk.motormila.app.domain.model.VehicleNews
-import lk.motormila.app.ui.components.BrandLogo
-import lk.motormila.app.ui.components.BrandLogoSize
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPillTabs
 import lk.motormila.app.ui.components.OfflineBanner
-import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
@@ -99,42 +90,15 @@ fun OfficialPulseScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.hub_pulse_title), fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = stringResource(R.string.hub_pulse_title),
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        snackbarHostState = snacks,
+    ) {
+        Column(Modifier.fillMaxSize()) {
             PulseTabs(
                 selected = state.section,
                 onSelect = { section ->
@@ -177,7 +141,6 @@ fun OfficialPulseScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PulseTabs(selected: PulseSection, onSelect: (PulseSection) -> Unit) {
     val tabs = listOf(
@@ -186,16 +149,12 @@ private fun PulseTabs(selected: PulseSection, onSelect: (PulseSection) -> Unit) 
         PulseSection.PERMITS to stringResource(R.string.hub_pulse_tab_permits),
     )
     val selectedIndex = tabs.indexOfFirst { it.first == selected }.coerceAtLeast(0)
-    PrimaryTabRow(selectedTabIndex = selectedIndex) {
-        tabs.forEachIndexed { index, (section, title) ->
-            Tab(
-                selected = selectedIndex == index,
-                onClick = { onSelect(section) },
-                text = { Text(title) },
-                modifier = Modifier.heightIn(min = 48.dp),
-            )
-        }
-    }
+    MotormilaPillTabs(
+        tabs = tabs.map { it.second },
+        selected = selectedIndex,
+        onSelect = { onSelect(tabs[it].first) },
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 @Composable

@@ -21,11 +21,14 @@ import lk.motormila.app.domain.usecase.LoginUseCase
 import lk.motormila.app.domain.usecase.ObserveSessionUseCase
 
 data class AuthUiState(
+    val name: String = "",
     val email: String = "",
     val password: String = "",
     val inviteToken: String = "",
     val isSignupTab: Boolean = false,
     val loading: Boolean = false,
+    val selfSignupEnabled: Boolean = false,
+    val selfSignupTrialDays: Int = 7,
     /** Increments on each failed attempt to retrigger the shake animation. */
     val shakeToken: Int = 0,
     val error: String? = null,
@@ -42,6 +45,7 @@ data class AuthUiState(
 )
 
 sealed interface AuthUiEvent {
+    data class NameChanged(val value: String) : AuthUiEvent
     data class EmailChanged(val value: String) : AuthUiEvent
     data class PasswordChanged(val value: String) : AuthUiEvent
     data class InviteTokenChanged(val value: String) : AuthUiEvent
@@ -79,6 +83,17 @@ class AuthViewModel @Inject constructor(
             _state.update { it.copy(restoring = false) }
         }
         viewModelScope.launch {
+            runCatching { authRepository.selfSignupStatus() }
+                .onSuccess { status ->
+                    _state.update {
+                        it.copy(
+                            selfSignupEnabled = status.enabled,
+                            selfSignupTrialDays = status.trialDays,
+                        )
+                    }
+                }
+        }
+        viewModelScope.launch {
             observeSession().collect { session ->
                 val expired = session?.expiresAt?.let { iso ->
                     runCatching { Instant.parse(iso).isBefore(Instant.now()) }.getOrDefault(false)
@@ -96,6 +111,7 @@ class AuthViewModel @Inject constructor(
 
     fun onEvent(event: AuthUiEvent) {
         when (event) {
+            is AuthUiEvent.NameChanged -> _state.update { it.copy(name = event.value, error = null, offline = false) }
             is AuthUiEvent.EmailChanged -> _state.update { it.copy(email = event.value, error = null, offline = false) }
             is AuthUiEvent.PasswordChanged -> _state.update { it.copy(password = event.value, error = null, offline = false) }
             is AuthUiEvent.InviteTokenChanged -> _state.update { it.copy(inviteToken = event.value, error = null, offline = false) }
@@ -126,21 +142,32 @@ class AuthViewModel @Inject constructor(
             fail(AppError.Validation("Enter your email and password."))
             return
         }
-        if (s.isSignupTab && s.inviteToken.isBlank()) {
+        if (s.isSignupTab && s.inviteToken.isBlank() && !s.selfSignupEnabled) {
             fail(AppError.Validation("Invite token is required — Motormila access is invite-only."))
+            return
+        }
+        if (s.isSignupTab && s.password.length < 8) {
+            fail(AppError.Validation("Password must be at least 8 characters."))
             return
         }
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null, offline = false) }
-            // Signup has no use-case wrapper yet (see follow-ups); login goes via LoginUseCase.
             runCatching {
                 if (s.isSignupTab) {
-                    authRepository.signup(
-                        name = s.email.trim().substringBefore("@").ifBlank { "Driver" },
-                        email = s.email.trim(),
-                        password = s.password,
-                        inviteToken = s.inviteToken.trim().ifBlank { null },
-                    )
+                    if (s.inviteToken.isBlank() && s.selfSignupEnabled) {
+                        authRepository.selfSignup(
+                            name = s.name.trim().ifBlank { s.email.trim().substringBefore("@") },
+                            email = s.email.trim(),
+                            password = s.password,
+                        )
+                    } else {
+                        authRepository.signup(
+                            name = s.name.trim().ifBlank { s.email.trim().substringBefore("@").ifBlank { "Driver" } },
+                            email = s.email.trim(),
+                            password = s.password,
+                            inviteToken = s.inviteToken.trim().ifBlank { null },
+                        )
+                    }
                 } else {
                     login(s.email.trim(), s.password)
                 }

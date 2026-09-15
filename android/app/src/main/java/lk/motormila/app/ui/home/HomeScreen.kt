@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,6 +80,7 @@ import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LivePulse
 import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.rememberReducedMotion
 import lk.motormila.app.ui.theme.MotormilaGlassBorder
@@ -127,6 +129,8 @@ fun HomeScreen(
     onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> },
     onDistrictClick: (district: String) -> Unit = {},
     onCalculatorClick: () -> Unit = {},
+    onPriceIndexClick: () -> Unit = {},
+    onPermitsClick: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -201,6 +205,8 @@ fun HomeScreen(
                     onPulseClick = onPulseClick,
                     onBestPicksClick = onBestPicksClick,
                     onCalculatorClick = onCalculatorClick,
+                    onPriceIndexClick = onPriceIndexClick,
+                    onPermitsClick = onPermitsClick,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -515,7 +521,7 @@ private fun CinematicHeroHeader(
         Spacer(Modifier.height(10.dp))
 
         // Subtitle with live listings count
-        val countText = if (total > 0) LkrFormat.count(total) else "207,786"
+        val countText = if (total > 0) LkrFormat.count(total) else "Live feed"
         Text(
             text = "$countText live listings across 13 sources — pricing, deal scores, and market intel in one place.",
             color = MotormilaSecondaryText,
@@ -662,7 +668,7 @@ private fun HeroStatsCard(
 
             // Bold count (207,786 or dynamic)
             Text(
-                text = if (total > 0) LkrFormat.count(animatedTotal) else "207,786",
+                text = if (total > 0) LkrFormat.count(animatedTotal) else "—",
                 fontSize = 38.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-0.03).em,
@@ -673,7 +679,7 @@ private fun HeroStatsCard(
 
             // Sub-label
             Text(
-                text = "208,884 total indexed · 1,098 awaiting price",
+                text = if (total > 0) "Live indexed inventory across Sri Lanka" else "Connect to the market feed to load listings",
                 fontSize = 12.sp,
                 color = MotormilaSecondaryText,
             )
@@ -687,17 +693,17 @@ private fun HeroStatsCard(
             ) {
                 MetricMiniCell(
                     label = "AVG PRICE",
-                    value = avgPrice ?: "Rs. 8.63M",
+                    value = avgPrice ?: "—",
                     modifier = Modifier.weight(1f),
                 )
                 MetricMiniCell(
                     label = "NEW 24H",
-                    value = if (new24h > 0) LkrFormat.count(new24h) else "5,649",
+                    value = if (new24h > 0) LkrFormat.count(new24h) else "—",
                     modifier = Modifier.weight(1f),
                 )
                 MetricMiniCell(
                     label = "GOOD DEALS",
-                    value = if (goodDeals > 0) LkrFormat.count(goodDeals) else "2,184",
+                    value = if (goodDeals > 0) LkrFormat.count(goodDeals) else "—",
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -874,6 +880,8 @@ private fun HubShortcutsRow(
     onPulseClick: () -> Unit,
     onBestPicksClick: () -> Unit,
     onCalculatorClick: () -> Unit,
+    onPriceIndexClick: () -> Unit,
+    onPermitsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -920,6 +928,24 @@ private fun HubShortcutsRow(
                 modifier = Modifier.weight(1f),
             )
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_index_title),
+                hint = stringResource(R.string.hub_home_index_hint),
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
+                contentDescription = stringResource(R.string.hub_open_index),
+                onClick = onPriceIndexClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_permits_title),
+                hint = stringResource(R.string.hub_home_permits_hint),
+                icon = Icons.Filled.Verified,
+                contentDescription = stringResource(R.string.hub_open_permits),
+                onClick = onPermitsClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -933,45 +959,36 @@ private fun HubShortcutCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interaction = remember { MutableInteractionSource() }
-    Card(
+    MotormilaSurface(
         onClick = onClick,
-        interactionSource = interaction,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
         modifier = modifier
             .heightIn(min = 96.dp)
-            .applePress(interaction)
             .semantics { this.contentDescription = contentDescription },
+        contentPadding = PaddingValues(12.dp),
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MotormilaPrimaryBright,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = title,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = MotormilaOnSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = hint,
-                fontSize = 10.sp,
-                color = MotormilaSecondaryText,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MotormilaPrimaryBright,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MotormilaOnSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = hint,
+            fontSize = 10.sp,
+            color = MotormilaSecondaryText,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

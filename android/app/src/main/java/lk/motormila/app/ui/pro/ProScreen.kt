@@ -23,12 +23,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -54,6 +51,7 @@ import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.domain.model.ArbitrageGap
 import lk.motormila.app.domain.model.ProDistrict
 import lk.motormila.app.domain.model.VehicleLane
@@ -106,14 +104,11 @@ fun ProScreen(
         if (!state.isLoading && !state.isPro) paywallOpen = true
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Pro intelligence") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    MotormilaPage(title = "Pro intelligence", snackbarHostState = snacks) {
         PullToRefreshBox(
             isRefreshing = false,
             onRefresh = { viewModel.onEvent(ProUiEvent.Refresh) },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading -> SkeletonList()

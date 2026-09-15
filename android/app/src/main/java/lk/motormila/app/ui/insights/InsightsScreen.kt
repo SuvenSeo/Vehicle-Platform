@@ -1,6 +1,11 @@
 package lk.motormila.app.ui.insights
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,7 +34,6 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ElectricCar
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
@@ -48,14 +52,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -90,10 +89,18 @@ import lk.motormila.app.domain.model.DistrictStat
 import lk.motormila.app.domain.model.DistrictVelocity
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.domain.model.PriceDrop
-import lk.motormila.app.domain.model.PriceIndexPoint
 import lk.motormila.app.domain.model.TrendPoint
 import lk.motormila.app.ui.components.LivePulse
+import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaChipTabs
+import lk.motormila.app.ui.components.MotormilaEyebrow
+import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.components.SriLankaHeatMap
+import lk.motormila.app.ui.components.toMapPoint
+import lk.motormila.app.ui.theme.AppleEasing
 import lk.motormila.app.ui.theme.MotormilaGood
 import lk.motormila.app.ui.theme.MotormilaGoodText
 import lk.motormila.app.ui.theme.MotormilaOnPrimary
@@ -102,7 +109,7 @@ import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
+import lk.motormila.app.ui.theme.MotormilaSurface as MotormilaSurfaceColor
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaWarn
 import lk.motormila.app.ui.theme.rememberHaptics
@@ -115,6 +122,9 @@ fun InsightsScreen(
     onOpenPulseDetail: (signalId: String) -> Unit,
     onDrillDistrict: (district: String) -> Unit,
     onSearchModels: (query: String) -> Unit,
+    onChargersClick: () -> Unit = {},
+    onUpgrade: () -> Unit = {},
+    initialTab: Int = 0,
     viewModel: InsightsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -122,7 +132,7 @@ fun InsightsScreen(
     val snacks = remember { SnackbarHostState() }
     val reducedMotion = rememberReducedMotion()
     val haptics = rememberHaptics()
-    var tab by remember { mutableIntStateOf(0) }
+    var tab by remember { mutableIntStateOf(initialTab.coerceIn(0, tabs.lastIndex)) }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -131,24 +141,17 @@ fun InsightsScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Market insights") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = tab) {
-                tabs.forEachIndexed { i, title ->
-                    Tab(
-                        selected = tab == i,
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            tab = i
-                        },
-                        text = { Text(title) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-            }
+    MotormilaPage(title = "Insights", snackbarHostState = snacks) {
+        Column(Modifier.fillMaxSize()) {
+            MotormilaChipTabs(
+                tabs = tabs,
+                selected = tab,
+                onSelect = {
+                    if (!reducedMotion) haptics.tick()
+                    tab = it
+                },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.onEvent(InsightsUiEvent.Refresh) },
@@ -158,13 +161,21 @@ fun InsightsScreen(
                     state.isLoading -> SkeletonList()
                     state.error != null && state.trends.isEmpty() && state.index.isEmpty() ->
                         ErrorRetry(state.error ?: "Error", onRetry = { viewModel.onEvent(InsightsUiEvent.Refresh) })
-
-                    else -> when (tab) {
-                        0 -> TrendsTab(state, viewModel, onSearchModels)
-                        1 -> EvTab(state, viewModel)
-                        2 -> IndexTab(state)
-                        3 -> DistrictsTab(state, onDrillDistrict)
-                        else -> PulseTab(state, live, onOpenPulseDetail)
+                    else -> AnimatedContent(
+                        targetState = tab,
+                        transitionSpec = {
+                            fadeIn(tween(220, easing = AppleEasing)) togetherWith
+                                fadeOut(tween(160, easing = AppleEasing))
+                        },
+                        label = "insights-tab",
+                    ) { current ->
+                        when (current) {
+                            0 -> TrendsTab(state, viewModel, onSearchModels)
+                            1 -> EvTab(state, viewModel, onChargersClick)
+                            2 -> IndexTab(state, onUpgrade)
+                            3 -> DistrictsTab(state, onDrillDistrict)
+                            else -> PulseTab(state, live, onOpenPulseDetail)
+                        }
                     }
                 }
             }
@@ -199,21 +210,7 @@ private fun TrendsTab(
         // Hero Header: Eyebrow Pill, Headline with negative letter spacing, Subtitle
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MotormilaSurfaceHigh,
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                ) {
-                    Text(
-                        text = "• TREND STUDIO",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MotormilaPrimaryBright,
-                        ),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
-                }
+                MotormilaEyebrow("TREND STUDIO")
 
                 Text(
                     text = "Price trends.",
@@ -300,25 +297,14 @@ private fun TrendsTab(
                     // Quick Make Chips
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         popularMakes.forEach { makeName ->
-                            FilterChip(
-                                shape = androidx.compose.foundation.shape.CircleShape,
+                            MotormilaChoiceChip(
+                                label = makeName,
                                 selected = s.make.equals(makeName, ignoreCase = true),
+                                compact = true,
                                 onClick = {
                                     val nextMake = if (s.make.equals(makeName, ignoreCase = true)) "" else makeName
                                     viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(make = nextMake)))
                                 },
-                                label = { Text(makeName, fontSize = 11.sp) },
-                                modifier = Modifier.heightIn(min = 32.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                    selectedLabelColor = MotormilaPrimaryBright,
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = s.make.equals(makeName, ignoreCase = true),
-                                    borderColor = MotormilaOutline,
-                                    selectedBorderColor = MotormilaPrimary,
-                                ),
                             )
                         }
                     }
@@ -336,24 +322,13 @@ private fun TrendsTab(
                     // Quick District Chips
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("All districts", "Colombo", "Kandy", "Gampaha", "Kurunegala").forEach { dist ->
-                            FilterChip(
-                                shape = androidx.compose.foundation.shape.CircleShape,
+                            MotormilaChoiceChip(
+                                label = dist,
                                 selected = s.district.equals(dist, ignoreCase = true),
+                                compact = true,
                                 onClick = {
                                     viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(district = dist)))
                                 },
-                                label = { Text(dist, fontSize = 11.sp) },
-                                modifier = Modifier.heightIn(min = 32.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                    selectedLabelColor = MotormilaPrimaryBright,
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = s.district.equals(dist, ignoreCase = true),
-                                    borderColor = MotormilaOutline,
-                                    selectedBorderColor = MotormilaPrimary,
-                                ),
                             )
                         }
                     }
@@ -444,7 +419,7 @@ private fun TrendsTab(
                     state.trendCoverageNote?.let {
                         Surface(
                             shape = RoundedCornerShape(28.dp),
-                            color = MotormilaSurface,
+                            color = MotormilaSurfaceColor,
                             border = BorderStroke(1.dp, MotormilaOutline),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -500,8 +475,8 @@ private fun InsightTextField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
             unfocusedBorderColor = MotormilaOutline,
-            focusedContainerColor = MotormilaSurface,
-            unfocusedContainerColor = MotormilaSurface,
+            focusedContainerColor = MotormilaSurfaceColor,
+            unfocusedContainerColor = MotormilaSurfaceColor,
             focusedTextColor = MotormilaOnSurface,
             unfocusedTextColor = MotormilaOnSurface,
             focusedLabelColor = MotormilaPrimaryBright,
@@ -604,7 +579,7 @@ private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
             Box(
                 Modifier.fillMaxWidth().height(8.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(MotormilaSurface),
+                    .background(MotormilaSurfaceColor),
             ) {
                 Box(
                     Modifier.fillMaxWidth(frac).height(8.dp)
@@ -713,7 +688,11 @@ private fun LiveTicker(live: List<Listing>) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
+private fun EvTab(
+    state: InsightsUiState,
+    viewModel: InsightsViewModel,
+    onChargersClick: () -> Unit,
+) {
     val ev = state.ev
 
     LazyColumn(
@@ -786,7 +765,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = (ev?.count ?: 599).toString(),
+                                text = ev?.count?.takeIf { it > 0 }?.toString() ?: "—",
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace,
@@ -824,7 +803,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = ev?.let { "%.1f%%".format(it.sharePct) } ?: "0.3%",
+                                text = ev?.let { "%.1f%%".format(it.sharePct) } ?: "—",
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace,
@@ -1039,7 +1018,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                             border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.4f)),
                         ) {
                             Text(
-                                text = "ONLINE • 48 HUBS",
+                                text = if (state.chargers.isEmpty()) "MAP" else "${state.chargers.size} NEARBY",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
@@ -1051,7 +1030,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                     }
 
                     Text(
-                        text = "Real-time coverage along Southern Expressway (E01: Welipenna, Kottawa), Central Expressway (E02: Mirigama), and Colombo-Kandy (A1) highway.",
+                        text = "Open Charge Map points cached for Sri Lanka. Confirm status before you travel.",
                         style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
                     )
 
@@ -1063,7 +1042,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                         listOf("CCS2 (50-120kW)", "CHAdeMO (50kW)", "Type 2 (22kW)").forEach { connector ->
                             Surface(
                                 shape = RoundedCornerShape(28.dp),
-                                color = MotormilaSurface,
+                                color = MotormilaSurfaceColor,
                                 border = BorderStroke(1.dp, MotormilaOutline),
                                 modifier = Modifier.weight(1f),
                             ) {
@@ -1112,40 +1091,37 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 
                     // Active Chargers List
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val activeChargers = if (state.chargers.isNotEmpty()) {
-                            state.chargers
-                        } else {
-                            listOf(
-                                "Welipenna Service Area · Southern Expressway E01 · 60kW CCS2",
-                                "Kottawa Interchange Hub · Makumbura MMC · 50kW Dual",
-                                "Mirigama Rest Point · Central Expressway E02 · 120kW Ultra-Fast",
-                                "Peradeniya Gateway · Kandy A1 Corridor · 50kW DC",
+                        if (state.chargers.isEmpty()) {
+                            Text(
+                                "No cached chargers in this radius yet.",
+                                style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
                             )
-                        }
-
-                        activeChargers.forEach { c ->
-                            Surface(
-                                shape = RoundedCornerShape(28.dp),
-                                color = MotormilaSurface,
-                                border = BorderStroke(1.dp, MotormilaOutline),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        } else {
+                            state.chargers.take(6).forEach { c ->
+                                Surface(
+                                    shape = RoundedCornerShape(28.dp),
+                                    color = MotormilaSurfaceColor,
+                                    border = BorderStroke(1.dp, MotormilaOutline),
+                                    modifier = Modifier.fillMaxWidth(),
                                 ) {
-                                    Icon(Icons.Filled.Bolt, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(16.dp))
-                                    Text(
-                                        text = c,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 12.sp,
-                                            color = MotormilaOnSurface,
-                                        ),
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        Icon(Icons.Filled.Bolt, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(16.dp))
+                                        Text(
+                                            text = c,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontSize = 12.sp,
+                                                color = MotormilaOnSurface,
+                                            ),
+                                        )
+                                    }
                                 }
                             }
                         }
+                        MotormilaGhostButton("Open charger map", onClick = onChargersClick)
                     }
                 }
             }
@@ -1156,95 +1132,16 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 // ---------- 3. Index Tab ----------
 
 @Composable
-private fun IndexTab(state: InsightsUiState) {
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        "MOTOROMILA PRICE INDEX",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MotormilaSecondaryText,
-                        ),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    AreaChart(
-                        state.index,
-                        Modifier.fillMaxWidth().height(200.dp)
-                            .semantics { contentDescription = "Price index area chart" },
-                    )
-                }
-            }
-        }
-        item {
-            SectionTitle("Month on month movement")
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                state.index.takeLast(6).forEach { p ->
-                    val mom = p.momChangePct ?: 0.0
-                    AssistChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = {},
-                        label = { Text("${p.period.takeLast(7)}: ${if (mom >= 0) "+" else ""}${formatPct(mom)}") },
-                        modifier = Modifier.heightIn(min = 44.dp),
-                    )
-                }
-            }
-        }
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Index Methodology", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                    Text(
-                        "Hedonic median of verified Sri Lanka listings, district-weighted and rebased monthly. " +
-                            "Low-sample vehicle variants are flagged and isolated to prevent distortion.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MotormilaSecondaryText,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AreaChart(points: List<PriceIndexPoint>, modifier: Modifier = Modifier) {
-    val line = MotormilaPrimary
-    val fill = MotormilaPrimary.copy(alpha = 0.2f)
-    Canvas(modifier) {
-        if (points.size < 2) return@Canvas
-        val vals = points.map { it.indexValue.toFloat() }
-        val min = vals.minOrNull() ?: 0f
-        val max = vals.maxOrNull() ?: 1f
-        val span = (max - min).takeIf { it > 0 } ?: 1f
-        fun x(i: Int) = size.width * i / (points.size - 1)
-        fun y(v: Float) = size.height - ((v - min) / span) * size.height
-        val path = Path().apply {
-            moveTo(0f, y(vals.first()))
-            vals.forEachIndexed { i, v -> lineTo(x(i), y(v)) }
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
-        drawPath(path, fill)
-        vals.forEachIndexed { i, v ->
-            if (i > 0) drawLine(line, Offset(x(i - 1), y(vals[i - 1])), Offset(x(i), y(v)), strokeWidth = 4.5f)
-        }
-    }
+private fun IndexTab(state: InsightsUiState, onUpgrade: () -> Unit) {
+    PriceIndexPane(
+        index = if (state.priceIndex.points.isNotEmpty() || state.priceIndex.methodology.isNotBlank()) {
+            state.priceIndex
+        } else {
+            lk.motormila.app.domain.model.PriceIndex(points = state.index)
+        },
+        onOpenPro = onUpgrade,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
 }
 
 // ---------- 4. Districts Tab ----------
@@ -1254,22 +1151,22 @@ private fun DistrictsTab(state: InsightsUiState, onDrillDistrict: (String) -> Un
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { OfflineBanner(visible = state.offline) }
         item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "District map placeholder" },
-            ) {
-                Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.Map, contentDescription = null, tint = MotormilaPrimary, modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.height(8.dp))
-                    Text("District Heat Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    Text(
-                        "District price velocity and inventory concentration across Sri Lanka.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MotormilaSecondaryText,
-                    )
-                }
+            MotormilaSurface {
+                Text(
+                    "District heat map",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MotormilaOnSurface,
+                )
+                Text(
+                    "Tap a district to open its hub. Dot size is live listing weight.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MotormilaSecondaryText,
+                )
+                Spacer(Modifier.height(8.dp))
+                SriLankaHeatMap(
+                    points = state.districts.map { it.toMapPoint() },
+                    onDistrictClick = onDrillDistrict,
+                )
             }
         }
         item { SectionTitle("Velocity (median days to sell)") }

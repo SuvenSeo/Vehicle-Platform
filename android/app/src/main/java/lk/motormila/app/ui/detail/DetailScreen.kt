@@ -56,12 +56,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,6 +101,8 @@ import lk.motormila.app.ui.components.FmvGauge
 import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.LoadingSkeletonChart
 import lk.motormila.app.ui.components.LockedValue
+import lk.motormila.app.ui.components.MotormilaIconAction
+import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.PriceChart
 import lk.motormila.app.ui.navigation.LocalNavAnimatedVisibilityScope
@@ -161,44 +161,27 @@ fun ListingDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(state.listing?.displayName ?: "Listing", maxLines = 1, fontSize = 16.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.toggleWatch() },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(
-                            if (state.isWatched) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (state.isWatched) "Remove from watchlist" else "Save to watchlist",
-                            tint = if (state.isWatched) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            state.listing?.let { shareListing(context, it, state.fmv) }
-                        },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share listing")
-                    }
-                },
+    MotormilaPage(
+        title = state.listing?.displayName ?: "Listing",
+        onBack = onBack,
+        actions = {
+            MotormilaIconAction(
+                icon = if (state.isWatched) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = if (state.isWatched) "Remove from watchlist" else "Save to watchlist",
+                onClick = { viewModel.toggleWatch() },
+                tint = if (state.isWatched) MaterialTheme.colorScheme.error else MotormilaOnSurface,
+            )
+            MotormilaIconAction(
+                icon = Icons.Filled.Share,
+                contentDescription = "Share listing",
+                onClick = { state.listing?.let { shareListing(context, it, state.fmv) } },
             )
         },
-    ) { padding ->
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isLoading,
             onRefresh = viewModel::retry,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading && state.listing == null -> {
@@ -315,8 +298,8 @@ fun ListingDetailScreen(
                         item {
                             DeepLinksRow(
                                 onEstimate = onEstimate,
-                                onTax = { openUrl(context, "https://motormila.vercel.app/calculators") },
-                                onLease = { openUrl(context, "https://motormila.vercel.app/calculators#lease") },
+                                onTax = onEstimate,
+                                onLease = onEstimate,
                                 onMap = {
                                     val q = "${listing.district ?: ""} ${listing.city ?: ""}".trim()
                                     openUrl(context, "https://www.openstreetmap.org/search?query=${q.ifBlank { "Sri Lanka" }}")
