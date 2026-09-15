@@ -1,7 +1,9 @@
 package lk.motormila.app.ui.auth
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
@@ -19,6 +21,7 @@ import lk.motormila.app.data.local.datastore.SettingsStore
 import lk.motormila.app.domain.repository.AuthRepository
 import lk.motormila.app.domain.usecase.LoginUseCase
 import lk.motormila.app.domain.usecase.ObserveSessionUseCase
+import lk.motormila.app.ui.navigation.Login as LoginRoute
 
 data class AuthUiState(
     val name: String = "",
@@ -61,6 +64,7 @@ sealed interface AuthUiEvent {
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val authRepository: AuthRepository,
     private val login: LoginUseCase,
     observeSession: ObserveSessionUseCase,
@@ -75,6 +79,17 @@ class AuthViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
+        runCatching { savedStateHandle.toRoute<LoginRoute>() }.getOrNull()?.let { route ->
+            val token = route.token?.trim().orEmpty()
+            if (token.isNotEmpty() || route.signup) {
+                _state.update {
+                    it.copy(
+                        inviteToken = token,
+                        isSignupTab = route.signup || token.isNotEmpty(),
+                    )
+                }
+            }
+        }
         // Re-hydrate the interceptor token after process death so the first
         // post-restart request already carries auth (foundation 401 -> Login
         // is still the backstop via AuthEventBus in the nav graph).

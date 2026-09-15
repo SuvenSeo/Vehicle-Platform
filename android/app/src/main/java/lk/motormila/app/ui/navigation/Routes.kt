@@ -8,7 +8,10 @@ import kotlinx.serialization.Serializable
 data object Splash
 
 @Serializable
-data object Login
+data class Login(
+    val token: String? = null,
+    val signup: Boolean = false,
+)
 
 @Serializable
 data object Home
@@ -225,8 +228,8 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             "dealer" -> Dealer
             "settings" -> Settings
             "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
-            "sign-in" -> Login
-            "sign-up" -> Login
+            "sign-in" -> loginDestination(parsed, signup = false)
+            "sign-up" -> loginDestination(parsed, signup = true)
             "pro", "pro-preview" -> Pro
             else -> null
         }
@@ -285,10 +288,19 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
         "dealer" -> Dealer
         "settings" -> Settings
         "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
-        "login", "sign-in", "sign-up" -> Login
+        "login", "sign-in" -> loginDestination(parsed, signup = parsed.flagQuery("signup"))
+        "sign-up" -> loginDestination(parsed, signup = true)
         "best-picks" -> BestPicks
         else -> null
     }
+}
+
+private fun loginDestination(parsed: ParsedDeepLink, signup: Boolean): Login {
+    val token = parsed.queryOrNull("token")
+    return Login(
+        token = token,
+        signup = signup || !token.isNullOrBlank(),
+    )
 }
 
 private fun ParsedDeepLink.queryOrNull(key: String): String? =

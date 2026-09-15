@@ -5,9 +5,9 @@ the **REAL signatures the graph compiles against**. Destinations live in
 `ui.navigation.Routes.kt` (`@Serializable`, type-safe). Keep ViewModels behind
 a `viewModel = hiltViewModel()` default so the graph never names VM types.
 
-Search and Valuation are **data classes with query args** — screens still take
+Search, Valuation, and Login are **data classes with query args** — screens still take
 the same composable parameters; ViewModels read args via
-`SavedStateHandle.toRoute<Search>()` / `toRoute<Valuation>()`.
+`SavedStateHandle.toRoute<Search>()` / `toRoute<Valuation>()` / `toRoute<Login>()`.
 
 ## 1. Landed — graph matches these exactly
 
@@ -21,7 +21,7 @@ fun HomeScreen(
     onSeeAll: (String) -> Unit,      // keys: "drops"|"deals" -> BestPicks
                                      //       "districts" -> Insights
                                      //       "feed"|"trends"|else -> Search()
-    onLoginClick: () -> Unit = {},   // -> Login
+    onLoginClick: () -> Unit = {},   // -> Login()
     onEvHubClick: () -> Unit = {},   // -> EvHub
     onBestPicksClick: () -> Unit = {}, // -> BestPicks
     onPulseClick: () -> Unit = {},   // -> OfficialPulse
@@ -149,7 +149,7 @@ fun SettingsScreen(
 // lk.motormila.app.ui.profile — ProfileScreen.kt
 @Composable
 fun ProfileScreen(
-    onLoginClick: () -> Unit,        // -> Login
+    onLoginClick: () -> Unit,        // -> Login()
     onSettingsClick: () -> Unit,     // -> Settings
     onProClick: () -> Unit,          // -> Pro
     onDealerClick: () -> Unit,       // -> Dealer
@@ -438,7 +438,8 @@ Compose, so MainActivity parses VIEW URIs and navigates after splash):
 | `https://motormila.vercel.app/dealer` | `Dealer` |
 | `https://motormila.vercel.app/settings` | `Settings` |
 | `https://motormila.vercel.app/alerts` | `Alerts` |
-| `https://motormila.vercel.app/sign-in` / `/sign-up` | `Login` |
+| `https://motormila.vercel.app/sign-in` | `Login()` |
+| `https://motormila.vercel.app/sign-up?token=` | `Login(token, signup=true)` |
 | `https://motormila.vercel.app/pro` | `Pro` |
 | `https://motormila.vercel.app/official-pulse` | `OfficialPulse` |
 | `https://motormila.vercel.app/pricing` `/docs` `/admin` `/ev-hub` `/ev-chargers` | matching screens |

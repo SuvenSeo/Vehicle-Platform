@@ -421,14 +421,14 @@ fun MotormilaChipTabs(
             )
             Box(
                 modifier = Modifier
-            .heightIn(min = 48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .applePress(interaction, pressedScale = 0.96f)
-            .clip(CircleShape)
-            .background(fill)
+                    .heightIn(min = 48.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                    .applePress(interaction, pressedScale = 0.96f)
+                    .clip(CircleShape)
+                    .background(fill)
                     .border(0.5.dp, border, CircleShape)
                     .clickable(
                         interactionSource = interaction,

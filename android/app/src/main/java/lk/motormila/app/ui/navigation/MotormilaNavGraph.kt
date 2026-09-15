@@ -114,7 +114,7 @@ fun MotormilaNavGraph(
     LaunchedEffect(Unit) {
         viewModel.authEventBus.events.collect { event ->
             if (event is AuthEvent.Unauthorized) {
-                navController.navigate(Login) {
+                navController.navigate(Login()) {
                     launchSingleTop = true
                 }
             }
@@ -214,12 +214,12 @@ fun MotormilaNavGraph(
                         LoginScreen(
                             onLoggedIn = {
                                 navController.navigate(Home) {
-                                    popUpTo(Login) { inclusive = true }
+                                    popUpTo<Login> { inclusive = true }
                                 }
                             },
                             onBrowse = {
                                 navController.navigate(Home) {
-                                    popUpTo(Login) { inclusive = true }
+                                    popUpTo<Login> { inclusive = true }
                                 }
                             },
                             onBiometricAuth = biometricLogin,
@@ -237,7 +237,7 @@ fun MotormilaNavGraph(
                                     else -> navController.navigate(Search())
                                 }
                             },
-                            onLoginClick = { navController.navigate(Login) },
+                            onLoginClick = { navController.navigate(Login()) },
                             onEvHubClick = { navController.navigate(EvHub) },
                             onBestPicksClick = { navController.navigate(BestPicks) },
                             onPulseClick = { navController.navigate(OfficialPulse) },
@@ -298,7 +298,7 @@ fun MotormilaNavGraph(
                     }
                     motormilaComposable<Profile> {
                         ProfileScreen(
-                            onLoginClick = { navController.navigate(Login) },
+                            onLoginClick = { navController.navigate(Login()) },
                             onSettingsClick = { navController.navigate(Settings) },
                             onProClick = { navController.navigate(Pro) },
                             onDealerClick = { navController.navigate(Dealer) },
@@ -377,7 +377,7 @@ fun MotormilaNavGraph(
                     motormilaComposable<Settings> {
                         SettingsScreen(
                             onLoggedOut = {
-                                navController.navigate(Login) {
+                                navController.navigate(Login()) {
                                     popUpTo(Home) { inclusive = true }
                                 }
                             },
@@ -558,7 +558,7 @@ fun MotormilaNavGraph(
                     ) {
                         PricingScreen(
                             onBack = { navController.popBackStack() },
-                            onSignUp = { navController.navigate(Login) },
+                            onSignUp = { navController.navigate(Login(signup = true)) },
                             onOpenPro = { navController.navigate(Pro) },
                             onOpenDealer = { navController.navigate(Dealer) },
                             onOpenHome = { navController.navigate(Home) },
@@ -595,7 +595,7 @@ fun MotormilaNavGraph(
                     ) {
                         AdminScreen(
                             onBack = { navController.popBackStack() },
-                            onLoginClick = { navController.navigate(Login) },
+                            onLoginClick = { navController.navigate(Login()) },
                         )
                     }
                     motormilaComposable<EvChargers>(

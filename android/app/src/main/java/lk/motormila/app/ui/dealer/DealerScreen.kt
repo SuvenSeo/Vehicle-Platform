@@ -72,29 +72,27 @@ fun DealerScreen(
             onRefresh = { viewModel.onEvent(DealerUiEvent.RefreshClaim) },
             modifier = Modifier.fillMaxSize(),
         ) {
-            when {
-                else -> LazyColumn(
-                    Modifier.fillMaxSize().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item { OfflineBanner(visible = state.offline) }
-                    if (state.claimToken == null) {
-                        item { ClaimForm(state, viewModel) }
-                        if (state.error != null) {
-                            // Inline retry (the snackbar also fires via LaunchedEffect above).
-                            item {
-                                ErrorRetry(
-                                    state.error ?: "Error",
-                                    onRetry = { viewModel.onEvent(DealerUiEvent.Claim) },
-                                )
-                            }
+            LazyColumn(
+                Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item { OfflineBanner(visible = state.offline) }
+                if (state.claimToken == null) {
+                    item { ClaimForm(state, viewModel) }
+                    if (state.error != null) {
+                        // Inline retry (the snackbar also fires via LaunchedEffect above).
+                        item {
+                            ErrorRetry(
+                                state.error ?: "Error",
+                                onRetry = { viewModel.onEvent(DealerUiEvent.Claim) },
+                            )
                         }
-                    } else {
-                        item { ProfileCard(state, viewModel, onContactSupport) }
-                        item { ClaimStatusCard(state) }
-                        item { BenchmarkCard(state, viewModel) }
-                        item { PlaybookCard() }
                     }
+                } else {
+                    item { ProfileCard(state, viewModel, onContactSupport) }
+                    item { ClaimStatusCard(state) }
+                    item { BenchmarkCard(state, viewModel) }
+                    item { PlaybookCard() }
                 }
             }
         }
