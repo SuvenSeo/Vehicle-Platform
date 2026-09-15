@@ -317,4 +317,81 @@ describe("snapshot-only mode", () => {
     expect(result.listings[0].source).toBe("riyasewana");
     expect(result.total).toBe(2);
   });
+
+  it("falls through to the live listings API when the snapshot catalog is empty", async () => {
+    vi.stubEnv("VITE_SNAPSHOT_BASE_URL", "https://cdn.example/latest");
+    vi.stubEnv("VITE_SNAPSHOT_ONLY", "false");
+
+    const liveRow = {
+      id: 7,
+      title: "Toyota Aqua 2018 Hybrid",
+      make: "Toyota",
+      model: "Aqua",
+      year: 2018,
+      price_lkr: 6_450_000,
+      mileage: 42000,
+      district: "Colombo",
+      source: "ikman",
+      url: "https://example.com/7",
+    };
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/listing-catalog.json")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+        };
+      }
+      if (url.includes("/api/v1/listings")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [liveRow], total: 1 }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api = await import("@/services/api");
+    const result = await api.getListings({
+      page: 1,
+      sort: "newest",
+      vehicle_category: "cars",
+    });
+
+    expect(result.total).toBe(1);
+    expect(result.listings[0]?.id).toBe(7);
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes("/api/v1/listings"))).toBe(true);
+  });
+
+  it("does not call the live listings API for an empty catalog in snapshot-only mode", async () => {
+    vi.stubEnv("VITE_SNAPSHOT_BASE_URL", "https://cdn.example/latest");
+    vi.stubEnv("VITE_SNAPSHOT_ONLY", "true");
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/listing-catalog.json")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ items: [] }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api = await import("@/services/api");
+    const result = await api.getListings({
+      page: 1,
+      sort: "newest",
+      vehicle_category: "cars",
+    });
+
+    expect(result).toEqual({ listings: [], total: 0 });
+    expect(fetchMock.mock.calls.every((call) => String(call[0]).includes("cdn.example"))).toBe(true);
+  });
 });
