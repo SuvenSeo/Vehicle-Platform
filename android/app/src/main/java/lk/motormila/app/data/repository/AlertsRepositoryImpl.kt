@@ -92,6 +92,7 @@ class AlertsRepositoryImpl @Inject constructor(
         runCatching { api.deleteAlert(id) }
         db.alertDao().delete(id)
         deliveryExtras.remove(id)
+        Unit
     }
 
     override suspend fun setActive(id: Int, active: Boolean): Alert = withContext(io) {

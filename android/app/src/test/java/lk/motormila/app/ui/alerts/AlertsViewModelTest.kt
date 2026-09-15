@@ -35,7 +35,7 @@ class AlertsViewModelTest {
     fun setup() {
         Dispatchers.setMain(dispatcher)
         every { repository.observeAlerts() } returns flowOf(emptyList())
-        every { repository.unreadCount() } returns flowOf(0)
+        coEvery { repository.unreadCount() } returns flowOf(0)
         every { auth.session() } returns flowOf(proSession())
     }
 
