@@ -408,7 +408,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
   return (
     <div className="space-y-3 px-3 py-3 text-sm">
-      <div className="sticky top-0 z-10 space-y-3 rounded-xl border border-border bg-card/85 px-3.5 py-3 backdrop-blur-xl">
+      <div className="sticky top-0 z-10 space-y-3 rounded-3xl border border-border bg-card/85 px-3.5 py-3 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-foreground">{t("filter.title", "Filters")}</p>
           {activeChips.length > 0 ? (
@@ -847,7 +847,7 @@ export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersCha
   const { t } = useAppPreferences();
   return (
     <>
-      <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-xl lg:block">
+      <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] lg:block">
         <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
       </aside>
 

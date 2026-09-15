@@ -16,7 +16,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        display: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        display: ['"Fraunces"', "Iowan Old Style", "Palatino Linotype", "Georgia", "serif"],
         body: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
         mono: ['"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
         numeric: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
@@ -131,6 +131,10 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "ken-burns": {
+          from: { transform: "scale(1) translate3d(0, 0, 0)" },
+          to: { transform: "scale(1.08) translate3d(-1.4%, -0.8%, 0)" },
+        },
         "motion-rise": {
           from: { opacity: "0", transform: "translateY(16px)" },
           to: { opacity: "1", transform: "translateY(0)" },
@@ -159,6 +163,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "ken-burns": "ken-burns 28s cubic-bezier(0.33, 1, 0.68, 1) infinite alternate",
         "motion-rise": "motion-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both",
         "motion-fade": "motion-fade 0.5s ease both",
         "fade-up": "fade-up var(--duration-slow) var(--ease-out) both",

@@ -102,7 +102,7 @@ export function PageHero({
             <AtmosphericImage
               src={photoSrc}
               srcSm={photoSm}
-              className="page-hero__media"
+              className="page-hero__media hero-cinematic__media"
               style={{ objectPosition: mediaPosition }}
               priority
               sizes="100vw"
@@ -110,7 +110,6 @@ export function PageHero({
             <div className="page-hero__media-veil" />
           </>
         ) : null}
-        <div className="page-hero__grid" />
         <div className="page-hero__orb page-hero__orb--a" />
         <div className="page-hero__orb page-hero__orb--b" />
         {WatermarkIcon ? (

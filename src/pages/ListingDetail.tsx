@@ -194,8 +194,8 @@ export default function ListingDetail() {
           <div className="skeleton-shimmer h-4 w-28 rounded" />
           <div className="skeleton-shimmer h-10 w-2/3 rounded" />
           <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-            <div className="skeleton-shimmer h-[320px] rounded-xl" />
-            <div className="skeleton-shimmer h-[320px] rounded-xl" />
+            <div className="skeleton-shimmer h-[320px] rounded-[2rem]" />
+            <div className="skeleton-shimmer h-[320px] rounded-[2rem]" />
           </div>
         </div>
       </div>
@@ -302,7 +302,7 @@ export default function ListingDetail() {
           </div>
 
           {listing.is_active === false && (
-            <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-400/[0.06] p-3.5 max-w-2xl">
+            <div className="mb-5 flex items-start gap-2.5 rounded-3xl border border-amber-500/25 bg-amber-400/[0.06] p-3.5 max-w-2xl">
               <AlertTriangle aria-hidden className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{t("listing.possiblySold", "Possibly sold or delisted")}</p>
@@ -368,8 +368,8 @@ export default function ListingDetail() {
           <div className="space-y-6">
 
             {/* Image — the car is the hero; overlays stay dark (they sit on the photo) */}
-            <motion.div variants={revealItem} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-              <div className="relative aspect-[16/10] min-h-[220px] bg-black/40 overflow-hidden group">
+            <motion.div variants={revealItem} className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-soft">
+              <div className="relative aspect-[16/10] min-h-[220px] overflow-hidden bg-black/40 group">
                 {heroImage ? (
                   <VehicleThumbnail src={heroImage} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" placeholderClassName="flex h-full w-full items-center justify-center bg-black/40" />
                 ) : (
@@ -398,7 +398,7 @@ export default function ListingDetail() {
                     key={s.label}
                     whileHover={{ scale: 1.02, y: -3 }}
                     transition={springSnappy}
-                    className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30 relative overflow-hidden group shadow-soft"
+                    className="rounded-[1.6rem] border border-border bg-card p-4 transition-colors hover:border-primary/30 relative overflow-hidden group shadow-soft"
                   >
                     <div aria-hidden className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <s.icon aria-hidden className="mb-2 h-4 w-4 text-primary" />
@@ -422,7 +422,7 @@ export default function ListingDetail() {
             {listing.id != null && <ListingHistoryReport listingId={listing.id} />}
 
             {/* Description */}
-            <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <motion.div variants={revealItem} className="rounded-[1.75rem] border border-border bg-card p-5 shadow-soft">
               <h2 className="mb-3.5 text-[12px] font-semibold text-muted-foreground">{t("listing.description", "Description")}</h2>
               <p className="whitespace-pre-wrap text-[13px] leading-[1.8] text-muted-foreground font-medium">
                 {listing.description || 'No description provided. Market intelligence indicates this vehicle is priced within the range of comparable models.'}
@@ -463,7 +463,7 @@ export default function ListingDetail() {
                       initialFuelType={importFuelType}
                     />
                   ) : (
-                    <div className="page-panel flex flex-col justify-between gap-3 rounded-xl p-6">
+                    <div className="page-panel flex flex-col justify-between gap-3 rounded-[1.75rem] p-6">
                       <div>
                         <h2 className="field-label text-foreground">{t("listing.importDutyTax", "Import duty and tax")}</h2>
                         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -492,7 +492,7 @@ export default function ListingDetail() {
             {/* Price — the money hero: the number towers, verdict reads in signal colour */}
             <motion.div
               variants={revealItem}
-              className="rounded-2xl border border-border bg-card p-5 relative overflow-hidden shadow-soft-lg"
+              className="rounded-[1.75rem] border border-border bg-card p-5 relative overflow-hidden shadow-soft-lg"
               style={{ backgroundImage: 'radial-gradient(circle at 100% 0%, hsl(var(--primary) / 0.06) 0%, transparent 60%)' }}
             >
               <div aria-hidden className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary to-transparent" />
@@ -538,7 +538,7 @@ export default function ListingDetail() {
               )}
 
               {fmvSummary && (
-                <div className="mt-3 rounded-xl border border-border bg-surface px-3.5 py-3">
+                <div className="mt-3 rounded-3xl border border-border bg-surface px-3.5 py-3">
                   <p className="text-[12px] font-semibold text-muted-foreground">
                     {t("listing.fmv", "Fair market value")}
                   </p>
@@ -594,7 +594,7 @@ export default function ListingDetail() {
             </motion.div>
 
             {/* Seller */}
-            <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <motion.div variants={revealItem} className="rounded-[1.75rem] border border-border bg-card p-5 shadow-soft">
               <div className="mb-3.5 flex items-center gap-2 border-b border-border pb-2.5">
                 <ShieldCheck aria-hidden className="h-4 w-4 text-primary" />
                 <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.sellerInfo", "Seller information")}</h2>
@@ -642,7 +642,7 @@ export default function ListingDetail() {
             </motion.div>
 
             {/* Peers */}
-            <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <motion.div variants={revealItem} className="rounded-[1.75rem] border border-border bg-card p-5 shadow-soft">
               <div className="mb-3.5 flex items-center justify-between border-b border-border pb-2.5">
                 <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.marketPeers", "Market peers")}</h2>
                 <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />

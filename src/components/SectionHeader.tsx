@@ -23,7 +23,7 @@ export function SectionHeader({
       <div className="max-w-2xl animate-fade-up">
         {eyebrow ? (
           <p className="mb-3 inline-flex items-center gap-2 text-[13px] font-medium text-primary">
-            <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary" />
             {eyebrow}
           </p>
         ) : null}
