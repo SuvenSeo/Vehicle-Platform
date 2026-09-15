@@ -86,10 +86,25 @@ import lk.motormila.app.data.remote.dto.UrlBenchmarkResultDto
 import lk.motormila.app.data.remote.dto.VehicleNewsItemDto
 import lk.motormila.app.data.remote.dto.VehicleSafetyDto
 import lk.motormila.app.data.remote.dto.VehicleLaneDto
+import lk.motormila.app.data.remote.dto.AdminAnalyticsDto
+import lk.motormila.app.data.remote.dto.AdminCacheClearDto
+import lk.motormila.app.data.remote.dto.AdminDealerDto
+import lk.motormila.app.data.remote.dto.AdminDealersResponseDto
+import lk.motormila.app.data.remote.dto.AdminFeedbackDto
+import lk.motormila.app.data.remote.dto.AdminFeedbackResponseDto
+import lk.motormila.app.data.remote.dto.AdminFeedbackUpdateDto
 import lk.motormila.app.data.remote.dto.AdminInviteCreateDto
 import lk.motormila.app.data.remote.dto.AdminInviteDto
 import lk.motormila.app.data.remote.dto.AdminInvitesResponseDto
 import lk.motormila.app.data.remote.dto.AdminOverviewDto
+import lk.motormila.app.data.remote.dto.AdminPermitDto
+import lk.motormila.app.data.remote.dto.AdminPermitUpsertDto
+import lk.motormila.app.data.remote.dto.AdminPermitsResponseDto
+import lk.motormila.app.data.remote.dto.AdminPipelineResponseDto
+import lk.motormila.app.data.remote.dto.AdminPipelineTriggerDto
+import lk.motormila.app.data.remote.dto.AdminPipelineTriggerRequestDto
+import lk.motormila.app.data.remote.dto.AdminRevcarPilotDto
+import lk.motormila.app.data.remote.dto.AdminSystemDto
 import lk.motormila.app.data.remote.dto.AdminUserDto
 import lk.motormila.app.data.remote.dto.AdminUserUpdateDto
 import lk.motormila.app.data.remote.dto.AdminUsersResponseDto
@@ -461,6 +476,51 @@ interface MotormilaApiService {
 
     @DELETE("admin/invites/{id}")
     suspend fun revokeAdminInvite(@Path("id") id: Int): OkResponse
+
+    @GET("admin/pipeline")
+    suspend fun adminPipeline(@Query("limit") limit: Int = 50): AdminPipelineResponseDto
+
+    @POST("admin/pipeline/trigger")
+    suspend fun triggerAdminPipeline(@Body body: AdminPipelineTriggerRequestDto): AdminPipelineTriggerDto
+
+    @GET("admin/analytics")
+    suspend fun adminAnalytics(): AdminAnalyticsDto
+
+    @GET("admin/feedback")
+    suspend fun adminFeedback(
+        @Query("limit") limit: Int = 100,
+        @Query("status") status: String? = null,
+    ): AdminFeedbackResponseDto
+
+    @PATCH("admin/feedback/{id}")
+    suspend fun updateAdminFeedback(
+        @Path("id") id: Int,
+        @Body body: AdminFeedbackUpdateDto,
+    ): AdminFeedbackDto
+
+    @GET("admin/dealers")
+    suspend fun adminDealers(
+        @Query("limit") limit: Int = 100,
+        @Query("status") status: String? = null,
+    ): AdminDealersResponseDto
+
+    @POST("admin/dealers/{id}/verify")
+    suspend fun verifyAdminDealer(@Path("id") id: Int): AdminDealerDto
+
+    @GET("admin/permits")
+    suspend fun adminPermits(): AdminPermitsResponseDto
+
+    @POST("admin/permits")
+    suspend fun upsertAdminPermit(@Body body: AdminPermitUpsertDto): AdminPermitDto
+
+    @GET("admin/system")
+    suspend fun adminSystem(): AdminSystemDto
+
+    @DELETE("admin/cache")
+    suspend fun clearAdminCache(@Query("key") key: String? = null): AdminCacheClearDto
+
+    @POST("admin/enrichment/revcardata")
+    suspend fun runRevcarDataPilot(): AdminRevcarPilotDto
 
     // ----------------------------------------------------------------- events
     @POST("events")
