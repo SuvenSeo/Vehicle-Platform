@@ -39,8 +39,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -75,6 +73,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.ui.components.MotormilaChipTabs
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.theme.MotormilaBad
 import lk.motormila.app.ui.theme.MotormilaGood
@@ -422,22 +421,11 @@ private fun Step01VehicleProfile(
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     popularMakes.forEach { m ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = m,
                             selected = f.make.equals(m, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(make = m))) },
-                            label = { Text(m, fontSize = 11.sp) },
-                            modifier = Modifier.heightIn(min = 32.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.make.equals(m, ignoreCase = true),
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -452,22 +440,11 @@ private fun Step01VehicleProfile(
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     popularModels.forEach { m ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = m,
                             selected = f.model.equals(m, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(model = m))) },
-                            label = { Text(m, fontSize = 11.sp) },
-                            modifier = Modifier.heightIn(min = 32.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.model.equals(m, ignoreCase = true),
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -483,22 +460,11 @@ private fun Step01VehicleProfile(
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     years.forEach { y ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = y,
                             selected = f.year == y,
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(year = y))) },
-                            label = { Text(y, fontSize = 11.sp) },
-                            modifier = Modifier.heightIn(min = 32.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.year == y,
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -509,22 +475,11 @@ private fun Step01VehicleProfile(
                 Text("Transmission", style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Automatic", "Manual", "CVT", "Tiptronic").forEach { t ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = t,
                             selected = f.transmission.equals(t, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(transmission = t))) },
-                            label = { Text(t, fontSize = 12.sp) },
-                            modifier = Modifier.heightIn(min = 36.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.transmission.equals(t, ignoreCase = true),
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -535,22 +490,11 @@ private fun Step01VehicleProfile(
                 Text("Fuel type", style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Petrol", "Diesel", "Hybrid", "Electric", "Plug-in Hybrid").forEach { fuel ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = fuel,
                             selected = f.fuel.equals(fuel, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(fuel = fuel))) },
-                            label = { Text(fuel, fontSize = 12.sp) },
-                            modifier = Modifier.heightIn(min = 36.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.fuel.equals(fuel, ignoreCase = true),
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -561,22 +505,11 @@ private fun Step01VehicleProfile(
                 Text("Target district", style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf("Colombo", "Gampaha", "Kandy", "Kurunegala", "Kalutara", "Galle").forEach { d ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = d,
                             selected = f.district.equals(d, ignoreCase = true),
                             onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(district = d))) },
-                            label = { Text(d, fontSize = 12.sp) },
-                            modifier = Modifier.heightIn(min = 36.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.district.equals(d, ignoreCase = true),
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -699,24 +632,13 @@ private fun Step02MileageCondition(
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     mileagePresets.forEach { km ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = "$km km",
                             selected = f.mileageKm == km.replace(",", ""),
                             onClick = {
                                 viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(mileageKm = km.replace(",", ""))))
                             },
-                            label = { Text("$km km", fontSize = 11.sp) },
-                            modifier = Modifier.heightIn(min = 32.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = f.mileageKm == km.replace(",", ""),
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
                         )
                     }
                 }
@@ -1573,12 +1495,10 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Petrol", "Diesel", "Hybrid", "Electric").forEach { fuel ->
-                    FilterChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaChoiceChip(
+                        label = fuel,
                         selected = i.fuel == fuel,
                         onClick = { viewModel.onEvent(ValuationUiEvent.LandedChanged(i.copy(fuel = fuel))) },
-                        label = { Text(fuel) },
-                        modifier = Modifier.heightIn(min = 48.dp),
                     )
                 }
             }
@@ -1749,24 +1669,20 @@ private fun BundleTab(state: ValuationUiState, viewModel: ValuationViewModel) {
             SectionTitle("Ownership bundle — statutory total")
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 classes.forEach { c ->
-                    FilterChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaChoiceChip(
+                        label = c,
                         selected = state.bundleClass == c,
                         onClick = { viewModel.onEvent(ValuationUiEvent.BundleChanged(c, state.bundleFuel)) },
-                        label = { Text(c) },
-                        modifier = Modifier.heightIn(min = 48.dp),
                     )
                 }
             }
             Spacer(Modifier.height(8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Petrol", "Diesel").forEach { f ->
-                    FilterChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaChoiceChip(
+                        label = f,
                         selected = state.bundleFuel == f,
                         onClick = { viewModel.onEvent(ValuationUiEvent.BundleChanged(state.bundleClass, f)) },
-                        label = { Text(f) },
-                        modifier = Modifier.heightIn(min = 48.dp),
                     )
                 }
             }

@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,12 +35,9 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -80,6 +76,8 @@ import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LivePulse
 import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaGlass
+import lk.motormila.app.ui.components.MotormilaMetricTile
 import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.rememberReducedMotion
@@ -89,7 +87,6 @@ import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.applePress
 
 /** Data representation for Trending Models rail. */
 data class TrendingModelItem(
@@ -430,7 +427,7 @@ private fun TopBrandBar(onAlertsClick: () -> Unit) {
             Icon(
                 Icons.Filled.Notifications,
                 contentDescription = "Price alerts",
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = MotormilaOnSurface,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -606,12 +603,9 @@ private fun HeroStatsCard(
         label = "hero-stat-count",
     )
 
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+    MotormilaGlass(
+        modifier = modifier.fillMaxWidth(),
+        specular = true,
     ) {
         Column(
             modifier = Modifier
@@ -691,17 +685,17 @@ private fun HeroStatsCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                MetricMiniCell(
+                MotormilaMetricTile(
                     label = "AVG PRICE",
                     value = avgPrice ?: "—",
                     modifier = Modifier.weight(1f),
                 )
-                MetricMiniCell(
+                MotormilaMetricTile(
                     label = "NEW 24H",
                     value = if (new24h > 0) LkrFormat.count(new24h) else "—",
                     modifier = Modifier.weight(1f),
                 )
-                MetricMiniCell(
+                MotormilaMetricTile(
                     label = "GOOD DEALS",
                     value = if (goodDeals > 0) LkrFormat.count(goodDeals) else "—",
                     modifier = Modifier.weight(1f),
@@ -711,46 +705,11 @@ private fun HeroStatsCard(
     }
 }
 
-@Composable
-private fun MetricMiniCell(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF131318)),
-        modifier = modifier.border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
-        ) {
-            Text(
-                text = label,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                color = MotormilaSecondaryText,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
 /**
  * Bento highlight cards matching web:
  * - VEHICLE TYPES ("Browse cars, vans, and SUVs across the live index.")
  * - VERIFIED SIGNALS ("Deal scores and seller trust baked into every listing.")
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FeatureBannersRow(
     onVehicleTypesClick: () -> Unit,
@@ -760,18 +719,12 @@ private fun FeatureBannersRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        // Card 1: VEHICLE TYPES
-        val typesInteraction = remember { MutableInteractionSource() }
-        Card(
+        MotormilaGlass(
             onClick = onVehicleTypesClick,
-            interactionSource = typesInteraction,
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
+            specular = true,
             modifier = Modifier
                 .weight(1f)
-                .height(115.dp)
-                .applePress(typesInteraction)
-                .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+                .height(115.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -818,14 +771,11 @@ private fun FeatureBannersRow(
             }
         }
 
-        // Card 2: VERIFIED SIGNALS
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
+        MotormilaGlass(
+            specular = true,
             modifier = Modifier
                 .weight(1f)
-                .height(115.dp)
-                .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+                .height(115.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -949,7 +899,6 @@ private fun HubShortcutsRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HubShortcutCard(
     title: String,
@@ -1001,12 +950,9 @@ private fun LiveIncomingFeedTicker(
     onItemClick: (LiveFeedItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+    MotormilaGlass(
+        modifier = modifier.fillMaxWidth(),
+        specular = true,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Header Row: Pulse icon + LIVE INCOMING FEED + ((•)) SYNCED 2H
@@ -1168,23 +1114,15 @@ private fun TrendingModelsRail(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TrendingModelCard(
     item: TrendingModelItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interaction = remember { MutableInteractionSource() }
-    Card(
+    MotormilaGlass(
         onClick = onClick,
-        interactionSource = interaction,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F13)),
-        modifier = modifier
-            .width(260.dp)
-            .applePress(interaction)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+        modifier = modifier.width(260.dp),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -1262,7 +1200,7 @@ private fun SectionRow(title: String, onSeeAll: (() -> Unit)?) {
                 "See all",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = MotormilaPrimaryBright,
                 modifier = Modifier
                     .heightIn(min = 48.dp)
                     .clickable(onClick = onSeeAll)
@@ -1274,16 +1212,9 @@ private fun SectionRow(title: String, onSeeAll: (() -> Unit)?) {
 
 @Composable
 private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dropPct: Double, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    Card(
+    MotormilaGlass(
         onClick = onClick,
-        interactionSource = interaction,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier
-            .width(220.dp)
-            .applePress(interaction)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+        modifier = Modifier.width(220.dp),
     ) {
         Column {
             AsyncImage(
@@ -1317,16 +1248,9 @@ private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dr
 
 @Composable
 private fun HotDealCard(title: String, imageUrl: String?, price: String, score: Double, isPro: Boolean, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    Card(
+    MotormilaGlass(
         onClick = onClick,
-        interactionSource = interaction,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier
-            .width(220.dp)
-            .applePress(interaction)
-            .border(1.dp, MotormilaOutline, RoundedCornerShape(28.dp)),
+        modifier = Modifier.width(220.dp),
     ) {
         Column {
             AsyncImage(
@@ -1362,25 +1286,24 @@ private fun HotDealCard(title: String, imageUrl: String?, price: String, score: 
 private fun FuelMixRow(buckets: List<lk.motormila.app.domain.model.FuelMixBucket>, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         buckets.take(5).forEach { b ->
-            Card(Modifier.weight(1f)) {
-                Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(b.fuelType.replaceFirstChar(Char::uppercase), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                    Text("${b.pct}%", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            MotormilaMetricTile(
+                label = b.fuelType.replaceFirstChar(Char::uppercase),
+                value = "${b.pct}%",
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
 
 @Composable
 private fun DistrictChip(district: String, count: Int, median: String, onClick: () -> Unit) {
-    Card(
+    MotormilaSurface(
         onClick = onClick,
+        fillMaxWidth = false,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
         modifier = Modifier.heightIn(min = 48.dp),
     ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(district, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-            Text("$count · $median", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(district, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MotormilaOnSurface)
+        Text("$count · $median", fontSize = 11.sp, color = MotormilaSecondaryText)
     }
 }

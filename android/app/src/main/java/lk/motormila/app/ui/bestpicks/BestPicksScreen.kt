@@ -25,8 +25,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +63,7 @@ import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.ListingCard
 import lk.motormila.app.ui.components.LoadingSkeletonCard
@@ -353,29 +352,11 @@ private fun SortChip(
     locked: Boolean,
     onClick: () -> Unit,
 ) {
-    FilterChip(
-        shape = androidx.compose.foundation.shape.CircleShape,
+    MotormilaChoiceChip(
+        label = label,
         selected = selected,
         onClick = onClick,
-        label = { Text(label) },
-        leadingIcon = if (locked) {
-            {
-                Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
-            }
-        } else {
-            null
-        },
-        modifier = Modifier.heightIn(min = 48.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-            selectedLabelColor = MotormilaPrimaryBright,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = MotormilaOutline,
-            selectedBorderColor = MotormilaPrimary,
-        ),
+        leadingIcon = if (locked) Icons.Filled.Lock else null,
     )
 }
 

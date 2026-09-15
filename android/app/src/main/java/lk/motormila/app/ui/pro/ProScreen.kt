@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -51,6 +50,7 @@ import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.domain.model.ArbitrageGap
 import lk.motormila.app.domain.model.ProDistrict
@@ -351,13 +351,13 @@ private fun ProContent(
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(3.0, 5.0, 8.0).forEach { pct ->
-                    FilterChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaChoiceChip(
+                        label = "≥ ${"%.0f".format(pct)}%",
                         selected = state.arbitrageThresholdPct == pct,
                         onClick = { onThreshold(pct) },
-                        label = { Text("≥ ${"%.0f".format(pct)}%") },
-                        modifier = Modifier.heightIn(min = 48.dp)
-                            .semantics { contentDescription = "Arbitrage threshold ${"%.0f".format(pct)} percent" },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Arbitrage threshold ${"%.0f".format(pct)} percent"
+                        },
                     )
                 }
             }

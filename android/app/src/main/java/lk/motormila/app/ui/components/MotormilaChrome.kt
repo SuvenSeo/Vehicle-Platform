@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -215,7 +216,10 @@ fun MotormilaSurface(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     highlighted: Boolean = false,
+    fillMaxWidth: Boolean = true,
+    specular: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(16.dp),
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -231,12 +235,39 @@ fun MotormilaSurface(
     }
     Column(
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
             .then(clickMod)
-            .clip(shape)
-            .background(fill, shape)
-            .border(0.5.dp, border, shape)
+            .liquidGlass(shape, fill = fill, border = border, specular = specular)
             .padding(contentPadding),
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
+}
+
+/** Flush glass plate for image-led cards (listing tiles, banners). No inner padding. */
+@Composable
+fun MotormilaGlass(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    highlighted: Boolean = false,
+    specular: Boolean = false,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val shape = MotormilaCardShape
+    val fill = if (highlighted) Color(0x1A0A7AFF) else MotormilaGlassFillStrong
+    val border = if (highlighted) Color(0x550A7AFF) else MotormilaGlassBorder
+    val clickMod = if (onClick != null) {
+        Modifier
+            .applePress(interaction)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+    } else {
+        Modifier
+    }
+    Box(
+        modifier = modifier
+            .then(clickMod)
+            .liquidGlass(shape, fill = fill, border = border, specular = specular),
         content = content,
     )
 }
@@ -428,6 +459,7 @@ fun MotormilaChoiceChip(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     compact: Boolean = false,
+    leadingIcon: ImageVector? = null,
 ) {
     val interaction = remember(label) { MutableInteractionSource() }
     val fill by animateColorAsState(
@@ -448,9 +480,18 @@ fun MotormilaChoiceChip(
         animationSpec = appleTween(200),
         label = "choice-label",
     )
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.98f,
+        animationSpec = fluidSpring(),
+        label = "choice-scale",
+    )
     Box(
-        modifier = modifier
-            .heightIn(min = if (compact) 40.dp else 48.dp)
+        modifier = Modifier
+            .heightIn(min = if (compact) 36.dp else 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .applePress(interaction, pressedScale = 0.96f)
             .clip(CircleShape)
             .background(if (enabled) fill else fill.copy(alpha = 0.45f))
@@ -462,17 +503,29 @@ fun MotormilaChoiceChip(
                 onClick = onClick,
             )
             .padding(horizontal = if (compact) 12.dp else 14.dp)
-            .semantics { contentDescription = label },
+            .semantics { contentDescription = label }
+            .then(modifier),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            fontSize = if (compact) 12.sp else 13.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            color = labelColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (leadingIcon != null) {
+                Icon(
+                    leadingIcon,
+                    contentDescription = null,
+                    tint = labelColor,
+                    modifier = Modifier.size(if (compact) 14.dp else 16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = label,
+                fontSize = if (compact) 12.sp else 13.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color = labelColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

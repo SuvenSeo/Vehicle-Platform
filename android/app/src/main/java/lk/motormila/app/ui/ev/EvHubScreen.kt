@@ -31,8 +31,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -65,6 +63,7 @@ import lk.motormila.app.domain.model.ChargingStation
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
@@ -667,22 +666,10 @@ private fun ChargersSection(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RadiusOptionsKm.forEach { km ->
-                    FilterChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaChoiceChip(
+                        label = stringResource(R.string.hub_ev_radius_km, km),
                         selected = radiusKm == km,
                         onClick = { onRadius(km) },
-                        label = { Text(stringResource(R.string.hub_ev_radius_km, km)) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                            selectedLabelColor = MotormilaPrimaryBright,
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = radiusKm == km,
-                            borderColor = MotormilaOutline,
-                            selectedBorderColor = MotormilaPrimary,
-                        ),
                     )
                 }
             }

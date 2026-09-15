@@ -6,8 +6,6 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,15 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,9 +48,9 @@ import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.navigation.LocalNavAnimatedVisibilityScope
 import lk.motormila.app.ui.navigation.LocalSharedTransitionScope
 import lk.motormila.app.ui.navigation.listingHeroKey
-import lk.motormila.app.ui.theme.MotormilaGlassBorder
-import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
-import lk.motormila.app.ui.theme.applePress
+import lk.motormila.app.ui.theme.MotormilaBad
+import lk.motormila.app.ui.theme.MotormilaOnSurface
+import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.fluidSpring
 
 /**
@@ -76,7 +70,6 @@ fun ListingCard(
     showDeal: Boolean = true,
     sharedElementModifier: Modifier = Modifier,
 ) {
-    val interaction = remember { MutableInteractionSource() }
     val reducedMotion = rememberReducedMotion()
     val haptics = LocalHapticFeedback.current
     val watchScale by animateFloatAsState(
@@ -99,17 +92,11 @@ fun ListingCard(
         sharedElementModifier
     }
 
-    Card(
+    MotormilaGlass(
+        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .applePress(interaction)
             .semantics { contentDescription = "${listing.displayName}, ${listing.formattedPrice()}" },
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaGlassFillStrong),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MotormilaGlassBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
-        onClick = onClick,
-        interactionSource = interaction,
     ) {
         Column {
             Box {
@@ -164,7 +151,7 @@ fun ListingCard(
                     Icon(
                         imageVector = if (isWatched) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = null,
-                        tint = if (isWatched) MaterialTheme.colorScheme.error else Color.White,
+                        tint = if (isWatched) MotormilaBad else Color.White,
                         modifier = Modifier.graphicsLayer {
                             val s = if (reducedMotion) 1f else watchScale
                             scaleX = s
@@ -196,7 +183,7 @@ fun ListingCard(
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MotormilaOnSurface,
                     )
                     if (delta != null && band != DealBand.LOCKED) {
                         Spacer(Modifier.size(8.dp))
@@ -211,7 +198,7 @@ fun ListingCard(
                 Text(
                     text = metaLine(listing),
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MotormilaSecondaryText,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

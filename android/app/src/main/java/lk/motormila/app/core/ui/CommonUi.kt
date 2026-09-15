@@ -4,21 +4,18 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -29,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 
 /** Standard 48dp-minimum primary action. */
 @Composable
@@ -129,17 +127,11 @@ fun SkeletonList(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(rows) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                ),
-            ) {
+            MotormilaSurface(contentPadding = PaddingValues(0.dp)) {
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .height(84.dp)
-                        .clip(RoundedCornerShape(28.dp)),
+                        .height(84.dp),
                 )
             }
         }

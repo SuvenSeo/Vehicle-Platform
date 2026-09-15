@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +25,7 @@ import lk.motormila.app.core.geo.SriLankaDistricts
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.ChargingStation
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaEyebrow
 import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaSurface
@@ -80,10 +80,11 @@ fun EvChargersScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             SriLankaDistricts.names.forEach { name ->
-                                FilterChip(
+                                MotormilaChoiceChip(
+                                    label = name,
                                     selected = state.district == name,
                                     onClick = { viewModel.onEvent(EvChargersUiEvent.DistrictChanged(name)) },
-                                    label = { Text(name) },
+                                    compact = true,
                                 )
                             }
                         }
@@ -93,10 +94,11 @@ fun EvChargersScreen(
                         Spacer(Modifier.height(6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             RadiusKm.forEach { km ->
-                                FilterChip(
+                                MotormilaChoiceChip(
+                                    label = "${km} km",
                                     selected = state.radiusKm == km,
                                     onClick = { viewModel.onEvent(EvChargersUiEvent.RadiusChanged(km)) },
-                                    label = { Text("${km} km") },
+                                    compact = true,
                                 )
                             }
                         }

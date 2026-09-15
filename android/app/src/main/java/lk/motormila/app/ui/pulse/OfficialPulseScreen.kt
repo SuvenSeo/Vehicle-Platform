@@ -21,11 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.CellTower
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -56,8 +53,10 @@ import lk.motormila.app.domain.model.VehicleNews
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.MotormilaPillTabs
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
@@ -311,22 +310,11 @@ private fun SignalsPane(
 
 @Composable
 private fun SourceChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(
-        shape = androidx.compose.foundation.shape.CircleShape,
+    MotormilaChoiceChip(
+        label = label,
         selected = selected,
         onClick = onClick,
-        label = { Text(label) },
-        modifier = Modifier.heightIn(min = 48.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-            selectedLabelColor = MotormilaPrimaryBright,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = selected,
-            borderColor = MotormilaOutline,
-            selectedBorderColor = MotormilaPrimary,
-        ),
+        compact = true,
     )
 }
 
@@ -340,17 +328,14 @@ private fun SignalCard(
     val url = signal.sourceUrl
     val cardCd = stringResource(R.string.hub_pulse_cd_signal, title)
     val openCd = stringResource(R.string.hub_pulse_cd_open_url, title)
-    Card(
+    MotormilaSurface(
         onClick = {
             onHaptic()
             onOpenSignal(signal.id)
         },
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = cardCd },
+        modifier = Modifier.semantics { contentDescription = cardCd },
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = "${pulseSourceLabel(signal.source)} · ${signal.signalType.replace('_', ' ')}",
                 style = MaterialTheme.typography.labelSmall.copy(
@@ -393,7 +378,6 @@ private fun SignalCard(
                     )
                 }
             }
-        }
     }
 }
 
@@ -440,20 +424,18 @@ private fun NewsCard(
 ) {
     val url = item.url
     val newsCd = stringResource(R.string.hub_pulse_cd_news, item.title)
-    Card(
-        onClick = {
-            if (!url.isNullOrBlank()) {
+    MotormilaSurface(
+        onClick = if (!url.isNullOrBlank()) {
+            {
                 onHaptic()
                 onOpenUrl(url)
             }
+        } else {
+            null
         },
-        enabled = !url.isNullOrBlank(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = newsCd },
+        modifier = Modifier.semantics { contentDescription = newsCd },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = item.source.ifBlank { stringResource(R.string.hub_pulse_news_source_fallback) }.uppercase(),
                 style = MaterialTheme.typography.labelSmall.copy(
@@ -484,7 +466,6 @@ private fun NewsCard(
                     )
                 }
             }
-        }
     }
 }
 
@@ -521,14 +502,9 @@ private fun PermitsPane(state: OfficialPulseUiState) {
 private fun PermitCard(permit: Permit) {
     val price = LkrFormat.full(permit.marketPriceLkr)
     val cd = stringResource(R.string.hub_pulse_cd_permit, permit.name, price)
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = cd },
-    ) {
+    MotormilaSurface(modifier = Modifier.semantics { contentDescription = cd }) {
         Row(
-            Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -555,13 +531,10 @@ private fun PermitCard(permit: Permit) {
 
 @Composable
 private fun PulseUpgradeStrip() {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
-        modifier = Modifier.fillMaxWidth(),
+    MotormilaSurface(
+        highlighted = true,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 stringResource(R.string.hub_pulse_upgrade_title),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright),
@@ -571,7 +544,6 @@ private fun PulseUpgradeStrip() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MotormilaSecondaryText,
             )
-        }
     }
 }
 

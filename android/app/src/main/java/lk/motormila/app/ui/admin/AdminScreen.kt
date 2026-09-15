@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaEyebrow
 import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaMetricTile
@@ -158,10 +158,11 @@ private fun InvitesPane(
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("free", "pro", "dealer").forEach { plan ->
-                        FilterChip(
+                        MotormilaChoiceChip(
+                            label = plan.uppercase(),
                             selected = state.invitePlan == plan,
                             onClick = { viewModel.onEvent(AdminUiEvent.InvitePlanChanged(plan)) },
-                            label = { Text(plan.uppercase()) },
+                            compact = true,
                         )
                     }
                 }
@@ -215,10 +216,11 @@ private fun UsersPane(state: AdminUiState, viewModel: AdminViewModel) {
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("free", "pro", "dealer").forEach { plan ->
-                        FilterChip(
+                        MotormilaChoiceChip(
+                            label = plan.uppercase(),
                             selected = user.plan.equals(plan, true),
                             onClick = { viewModel.onEvent(AdminUiEvent.SetUserPlan(user.id, plan)) },
-                            label = { Text(plan.uppercase()) },
+                            compact = true,
                         )
                     }
                 }

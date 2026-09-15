@@ -26,7 +26,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
@@ -62,6 +61,7 @@ import lk.motormila.app.R
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -180,15 +180,13 @@ fun PlateScanScreen(
                 Text(stringResource(R.string.scan_tap_plate), style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.ocrCandidates.forEach { plate ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = plate,
                             selected = state.selectedPlate == plate,
                             onClick = {
                                 if (!reducedMotion) runCatching { haptics.confirm() }
                                 viewModel.onEvent(PlateScanUiEvent.CandidateSelected(plate))
                             },
-                            label = { Text(plate) },
-                            modifier = Modifier.heightIn(min = 48.dp),
                         )
                     }
                 }

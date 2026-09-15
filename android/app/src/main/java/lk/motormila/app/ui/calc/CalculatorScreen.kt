@@ -22,14 +22,8 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -59,8 +53,11 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.domain.repository.CostLine
 import lk.motormila.app.domain.repository.LandedCost
 import lk.motormila.app.domain.repository.Tco
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.MotormilaPillTabs
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface as MotormilaPane
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
@@ -245,31 +242,12 @@ private fun ProUpsellChips(onUpgrade: () -> Unit) {
                 R.string.calc_tab_permits,
                 R.string.calc_tab_depreciation,
             ).forEach { labelRes ->
-                FilterChip(
-                    shape = androidx.compose.foundation.shape.CircleShape,
+                MotormilaChoiceChip(
+                    label = stringResource(labelRes),
                     selected = false,
                     onClick = onUpgrade,
-                    label = { Text(stringResource(labelRes)) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Filled.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    },
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = upgradeCd },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                        selectedLabelColor = MotormilaPrimaryBright,
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = false,
-                        borderColor = MotormilaOutline,
-                        selectedBorderColor = MotormilaPrimary,
-                    ),
+                    leadingIcon = Icons.Filled.Lock,
+                    modifier = Modifier.semantics { contentDescription = upgradeCd },
                 )
             }
         }
@@ -286,16 +264,7 @@ private fun LandedPane(
     val form = state.landedForm
     val calculateCd = stringResource(R.string.calc_cd_calculate_landed)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-            border = BorderStroke(1.dp, MotormilaOutline),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -360,24 +329,12 @@ private fun LandedPane(
                     CalculatorFuelType.entries.forEach { fuel ->
                         val label = fuelLabel(fuel)
                         val fuelCd = stringResource(R.string.calc_cd_fuel, label)
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = label,
                             selected = form.fuelType == fuel,
                             onClick = { onForm(form.copy(fuelType = fuel)) },
-                            label = { Text(label) },
-                            modifier = Modifier
-                                .heightIn(min = 48.dp)
-                                .semantics { contentDescription = fuelCd },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = form.fuelType == fuel,
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
+                            modifier = Modifier.semantics { contentDescription = fuelCd },
                         )
                     }
                 }
@@ -392,32 +349,17 @@ private fun LandedPane(
                     style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
                 )
                 ValidationText(state.validation)
-                Button(
+                MotormilaPrimaryButton(
+                    label = if (state.calculatingLanded) {
+                        stringResource(R.string.calc_calculating)
+                    } else {
+                        stringResource(R.string.calc_calculate_landed)
+                    },
                     onClick = onCalculate,
                     enabled = !state.calculatingLanded,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotormilaPrimary,
-                        contentColor = MotormilaOnPrimary,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = calculateCd },
-                ) {
-                    if (state.calculatingLanded) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            color = MotormilaOnPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.calc_calculating), fontWeight = FontWeight.SemiBold)
-                    } else {
-                        Text(stringResource(R.string.calc_calculate_landed), fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+                    loading = state.calculatingLanded,
+                    modifier = Modifier.semantics { contentDescription = calculateCd },
+                )
         }
         LandedResultCard(result = state.landed, calculating = state.calculatingLanded)
     }
@@ -432,16 +374,7 @@ private fun TcoPane(
     val form = state.tcoForm
     val calculateCd = stringResource(R.string.calc_cd_calculate_tco)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-            border = BorderStroke(1.dp, MotormilaOutline),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -484,32 +417,17 @@ private fun TcoPane(
                     onChange = { onForm(form.copy(years = it)) },
                 )
                 ValidationText(state.validation)
-                Button(
+                MotormilaPrimaryButton(
+                    label = if (state.calculatingTco) {
+                        stringResource(R.string.calc_calculating)
+                    } else {
+                        stringResource(R.string.calc_calculate_tco)
+                    },
                     onClick = onCalculate,
                     enabled = !state.calculatingTco,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotormilaPrimary,
-                        contentColor = MotormilaOnPrimary,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = calculateCd },
-                ) {
-                    if (state.calculatingTco) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            color = MotormilaOnPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.calc_calculating), fontWeight = FontWeight.SemiBold)
-                    } else {
-                        Text(stringResource(R.string.calc_calculate_tco), fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+                    loading = state.calculatingTco,
+                    modifier = Modifier.semantics { contentDescription = calculateCd },
+                )
         }
         TcoResultCard(result = state.tco, calculating = state.calculatingTco)
     }
@@ -518,16 +436,10 @@ private fun TcoPane(
 @Composable
 private fun TcoLockedCard(onUpgrade: () -> Unit) {
     val upgradeCd = stringResource(R.string.calc_cd_upgrade)
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
-        modifier = Modifier.fillMaxWidth(),
+    MotormilaPane(
+        highlighted = true,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -546,36 +458,17 @@ private fun TcoLockedCard(onUpgrade: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MotormilaSecondaryText,
             )
-            Button(
+            MotormilaPrimaryButton(
+                label = stringResource(R.string.calc_upgrade),
                 onClick = onUpgrade,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MotormilaPrimary,
-                    contentColor = MotormilaOnPrimary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = upgradeCd },
-            ) {
-                Text(stringResource(R.string.calc_upgrade), fontWeight = FontWeight.SemiBold)
-            }
-        }
+                modifier = Modifier.semantics { contentDescription = upgradeCd },
+            )
     }
 }
 
 @Composable
 private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    MotormilaPane(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 stringResource(R.string.calc_breakdown),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -660,22 +553,12 @@ private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
                     )
                 }
             }
-        }
     }
 }
 
 @Composable
 private fun TcoResultCard(result: Tco?, calculating: Boolean) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    MotormilaPane(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 stringResource(R.string.calc_tco_breakdown),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -757,7 +640,6 @@ private fun TcoResultCard(result: Tco?, calculating: Boolean) {
                     )
                 }
             }
-        }
     }
 }
 

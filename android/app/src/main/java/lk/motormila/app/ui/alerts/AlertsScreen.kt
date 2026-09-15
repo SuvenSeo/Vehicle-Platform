@@ -26,7 +26,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +58,7 @@ import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.Alert
 import lk.motormila.app.domain.model.AlertMatch
+import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
@@ -206,17 +206,15 @@ private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgra
                 )
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    shape = androidx.compose.foundation.shape.CircleShape,
+                MotormilaChoiceChip(
+                    label = "Push",
                     selected = f.push,
                     onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(push = !f.push))) },
-                    label = { Text("Push") }, modifier = Modifier.heightIn(min = 48.dp),
                 )
-                FilterChip(
-                    shape = androidx.compose.foundation.shape.CircleShape,
+                MotormilaChoiceChip(
+                    label = "Email",
                     selected = f.email,
                     onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(email = !f.email))) },
-                    label = { Text("Email") }, modifier = Modifier.heightIn(min = 48.dp),
                 )
             }
             if (state.freeCapReached && !editing) {
