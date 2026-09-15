@@ -684,7 +684,7 @@ export default function Dashboard() {
           initial="hidden"
           animate="show"
           variants={heroContainerVariants}
-          className="relative z-10 mx-auto flex w-full max-w-[1560px] flex-1 flex-col justify-end px-5 pb-14 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:pb-20 lg:pt-32"
+          className="relative z-10 mx-auto flex w-full max-w-[1560px] flex-1 flex-col justify-end px-5 pb-28 pt-24 sm:px-6 sm:pb-24 sm:pt-28 lg:pb-28 lg:pt-32"
         >
           {!heroVariant.hideSideSignals ? (
             <HeroSideSignals
@@ -803,7 +803,7 @@ export default function Dashboard() {
                   </div>
 
                   {showHeroPopular ? (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-[1.75rem] border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 bottom-full z-50 mb-2 overflow-hidden rounded-[1.75rem] border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
                       <p className="px-3 py-2 text-[11px] font-semibold text-muted-foreground">
                         {t("home.popular", "Popular")}
                       </p>
@@ -829,7 +829,7 @@ export default function Dashboard() {
                   ) : null}
 
                   {showHeroSuggestions && (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-[1.75rem] border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 bottom-full z-50 mb-2 overflow-hidden rounded-[1.75rem] border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
                       {heroSuggestionsLoading ? (
                         <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("common.searching", "Searching...")}</p>
                       ) : heroSuggestions.length ? (
