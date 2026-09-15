@@ -28,7 +28,7 @@ export function ImportEraPublicSection() {
   }, []);
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5 sm:p-6" aria-labelledby="import-era-heading">
+    <section className="rounded-3xl border border-border/80 bg-card/85 p-5 sm:p-6 shadow-soft backdrop-blur-xl" aria-labelledby="import-era-heading">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[12px] font-medium text-primary/70">Post-freeze market</p>
@@ -45,7 +45,7 @@ export function ImportEraPublicSection() {
       {loading ? (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-surface" />
+            <div key={i} className="h-24 animate-pulse rounded-2xl border border-border/80 bg-surface/70" />
           ))}
         </div>
       ) : error ? (
@@ -60,19 +60,19 @@ export function ImportEraPublicSection() {
             const premium =
               pre && post && pre > 0 ? Math.round(((post - pre) / pre) * 1000) / 10 : null;
             return (
-              <article key={row.make} className="rounded-2xl border border-border bg-surface p-4">
+              <article key={row.make} className="rounded-2xl border border-border/80 bg-surface/70 p-4 shadow-xs">
                 <p className="text-sm font-semibold text-foreground">{row.make}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                   <div>
                     <p className="text-muted-foreground">Pre-freeze</p>
-                    <p className="mt-0.5 font-semibold num text-amber-200/90">
+                    <p className="mt-0.5 font-semibold num text-amber-700 dark:text-amber-300">
                       {pre != null ? formatPrice(pre) : "—"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">{row.pre_freeze.count} listings</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Post-freeze</p>
-                    <p className="mt-0.5 font-semibold num text-sky-300/90">
+                    <p className="mt-0.5 font-semibold num text-sky-700 dark:text-sky-300">
                       {post != null ? formatPrice(post) : "—"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">{row.post_freeze.count} listings</p>

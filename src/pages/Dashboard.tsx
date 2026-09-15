@@ -48,6 +48,7 @@ import { useAppPreferences } from "@/lib/appPreferences";
 import { loadWatchlistIds, saveWatchlistIds, toggleWatchlistId } from "@/lib/watchlist";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
+import { cn } from "@/lib/utils";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
@@ -608,9 +609,15 @@ export default function Dashboard() {
   const heroFilmTone = heroVariant.tone === "light" ? "light" : "cinematic";
   const heroAlignClass =
     heroVariant.align === "left"
-      ? "mr-auto max-w-xl text-left lg:max-w-2xl"
+      ? cn(
+          "mr-auto max-w-xl text-left lg:max-w-2xl",
+          !heroVariant.hideSideSignals && "xl:ml-[min(22vw,292px)] xl:max-w-[36rem]",
+        )
       : heroVariant.align === "right"
-        ? "ml-auto max-w-xl text-left lg:max-w-2xl"
+        ? cn(
+            "ml-auto max-w-xl text-left lg:max-w-2xl",
+            !heroVariant.hideSideSignals && "xl:mr-[min(22vw,292px)] xl:max-w-[36rem]",
+          )
         : "mx-auto max-w-3xl text-center";
   const heroCopyTone =
     heroFilmTone === "cinematic"
@@ -651,7 +658,7 @@ export default function Dashboard() {
       {/* ── HERO — cinematic showroom ─────────────────────────────── */}
       <section
         id="overview"
-        className={`hero-cinematic relative -mt-16 overflow-hidden border-b border-border pt-16 ${
+        className={`hero-cinematic relative -mt-[var(--nav-offset)] overflow-hidden border-b border-border pt-[var(--nav-offset)] ${
           heroFilmTone === "cinematic" ? "bg-[#070605]" : "bg-surface"
         }`}
       >
@@ -669,6 +676,7 @@ export default function Dashboard() {
           ))}
           <div className="hero-cinematic__vignette" />
           <div className="hero-cinematic__grain" />
+          <div className="hero-cinematic__letterbox" />
         </div>
 
         <motion.div
@@ -1309,7 +1317,7 @@ export default function Dashboard() {
 
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,720px)] -translate-x-1/2">
+        <div className="fixed bottom-24 left-1/2 z-[1200] w-[min(94vw,720px)] -translate-x-1/2 md:bottom-4">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-3 py-2.5 shadow-soft-xl backdrop-blur-xl md:px-4">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex -space-x-2">

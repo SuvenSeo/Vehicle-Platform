@@ -46,6 +46,7 @@
     --ring: 213 100% 52%;
 
     --radius: 32px;
+    --nav-offset: 4.75rem;
 
     /* ── Semantic signals ─────────────────────────────────────────────── */
     --signal-green: 145 63% 38%;
@@ -361,7 +362,7 @@
 @layer components {
   .surface {
     @apply relative overflow-hidden;
-    border-radius: var(--radius);
+    border-radius: 1.5rem;
     border: 1px solid var(--glass-edge);
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -378,6 +379,7 @@
 
   .surface--glass {
     border-color: var(--glass-border);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
@@ -387,7 +389,7 @@
   .liquid-panel {
     @apply relative overflow-hidden;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 10px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.9);
@@ -405,7 +407,7 @@
   .premium-surface {
     @apply relative overflow-hidden;
     border: 1px solid hsl(var(--primary) / 0.22);
-    border-radius: calc(var(--radius) + 8px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -420,7 +422,7 @@
   .page-panel {
     @apply relative overflow-hidden;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 8px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -430,7 +432,7 @@
   .data-card {
     @apply relative overflow-hidden;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 10px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.85);
@@ -450,7 +452,7 @@
   .metric-tile {
     @apply relative overflow-hidden px-4 py-3;
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) - 2px);
+    border-radius: 1.25rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.7);
@@ -461,7 +463,7 @@
 
   .index-board-card {
     border: 1px solid var(--glass-border);
-    border-radius: calc(var(--radius) + 6px);
+    border-radius: 2rem;
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
@@ -802,7 +804,7 @@
   .auto-action:active { transform: scale(0.97); }
 
   .control-dark {
-    @apply h-11 rounded-2xl text-foreground shadow-none;
+    @apply h-11 rounded-full text-foreground shadow-none;
     border-color: hsl(var(--input));
     background: hsl(var(--card));
   }
@@ -864,6 +866,15 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 
+  .hero-cinematic__letterbox {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow:
+      inset 0 72px 64px -36px rgba(6, 4, 3, 0.72),
+      inset 0 -88px 80px -28px rgba(6, 4, 3, 0.82);
+  }
+
   .theme-light .hero-cinematic__vignette {
     background:
       radial-gradient(ellipse 78% 68% at 58% 42%, transparent 28%, rgba(255, 248, 240, 0.18) 100%),
@@ -894,7 +905,7 @@
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-top);
     transition: border-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out);
   }
 
@@ -948,66 +959,26 @@
     --page-accent: var(--primary);
     --page-accent-soft: hsl(var(--primary) / 0.12);
     --page-accent-glow: hsl(var(--primary) / 0.22);
-    margin-top: -4rem;
-    padding-top: 4rem;
+    margin-top: calc(var(--nav-offset) * -1);
+    padding-top: var(--nav-offset);
     background:
       linear-gradient(135deg, var(--page-accent-soft) 0%, transparent 46%),
       linear-gradient(180deg, hsl(var(--surface) / 0.42) 0%, hsl(var(--background)) 92%);
   }
 
-  .page-hero--trends {
-    --page-accent: 258 78% 62%;
-    --page-accent-soft: hsl(258 78% 62% / 0.1);
-    --page-accent-glow: hsl(258 78% 62% / 0.2);
-  }
-
-  .page-hero--valuation {
-    --page-accent: 152 68% 42%;
-    --page-accent-soft: hsl(152 68% 42% / 0.1);
-    --page-accent-glow: hsl(152 68% 42% / 0.2);
-  }
-
-  .page-hero--ev {
-    --page-accent: 174 72% 42%;
-    --page-accent-soft: hsl(174 72% 42% / 0.1);
-    --page-accent-glow: hsl(174 72% 42% / 0.2);
-  }
-
-  .page-hero--deals {
-    --page-accent: 38 92% 55%;
-    --page-accent-soft: hsl(38 92% 55% / 0.1);
-    --page-accent-glow: hsl(38 92% 55% / 0.2);
-  }
-
-  .page-hero--calculator {
-    --page-accent: 214 88% 56%;
-    --page-accent-soft: hsl(214 88% 56% / 0.1);
-    --page-accent-glow: hsl(214 88% 56% / 0.2);
-  }
-
-  .page-hero--official {
-    --page-accent: 220 14% 46%;
-    --page-accent-soft: hsl(220 14% 46% / 0.1);
-    --page-accent-glow: hsl(220 14% 46% / 0.18);
-  }
-
-  .page-hero--dealer {
-    --page-accent: 24 90% 56%;
-    --page-accent-soft: hsl(24 90% 56% / 0.1);
-    --page-accent-glow: hsl(24 90% 56% / 0.2);
-  }
-
-  .page-hero--alerts {
-    --page-accent: 346 77% 58%;
-    --page-accent-soft: hsl(346 77% 58% / 0.1);
-    --page-accent-glow: hsl(346 77% 58% / 0.2);
-  }
-
+  .page-hero--trends,
+  .page-hero--valuation,
+  .page-hero--ev,
+  .page-hero--deals,
+  .page-hero--calculator,
+  .page-hero--official,
+  .page-hero--dealer,
+  .page-hero--alerts,
   .page-hero--docs,
   .page-hero--settings {
     --page-accent: var(--primary);
     --page-accent-soft: hsl(var(--primary) / 0.1);
-    --page-accent-glow: hsl(var(--primary) / 0.2);
+    --page-accent-glow: hsl(var(--primary) / 0.18);
   }
 
   .page-hero__atmosphere {
@@ -1122,7 +1093,7 @@
     z-index: 1;
     display: grid;
     gap: 2rem;
-    padding-top: 2.5rem;
+    padding-top: 3.25rem;
     padding-bottom: 3.5rem;
   }
 
@@ -1298,7 +1269,7 @@
     z-index: 25;
     pointer-events: none;
     border-radius: inherit;
-    background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 42%);
+    background: linear-gradient(135deg, rgba(255,244,230,0.18) 0%, transparent 46%);
     opacity: 0;
     transition: opacity var(--duration-slow) var(--ease-out);
   }

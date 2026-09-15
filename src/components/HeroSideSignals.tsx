@@ -107,13 +107,11 @@ export function HeroSideSignals({
   onTrendingClick,
   onBrowseNewest,
 }: Props) {
-  const reduced = prefersReducedMotion();
-
   return (
     <>
-      {/* Left rail */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[min(18vw,248px)] xl:block">
-        <div className="pointer-events-auto sticky top-28 flex flex-col gap-4 pt-6">
+      {/* Left rail — sits with the masthead, not over it */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[min(20vw,268px)] xl:flex xl:flex-col xl:justify-end">
+        <div className="pointer-events-auto mb-16 flex flex-col gap-4 px-1 pb-4">
           {trending ? (
             <FloatingSignalCard delay={0.1} accent="primary" float="a" slant="a">
               <button
@@ -201,8 +199,8 @@ export function HeroSideSignals({
       </div>
 
       {/* Right rail */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[min(18vw,248px)] xl:block">
-        <div className="pointer-events-auto sticky top-32 flex flex-col gap-4 pt-10">
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[min(20vw,268px)] xl:flex xl:flex-col xl:justify-end">
+        <div className="pointer-events-auto mb-24 flex flex-col gap-4 px-1 pb-4">
           {hotDeal ? (
             <FloatingSignalCard delay={0.14} accent="amber" float="c" slant="c">
               <Link

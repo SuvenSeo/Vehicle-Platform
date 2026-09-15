@@ -113,10 +113,10 @@ function PillButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl border px-2.5 py-1.5 text-caption font-medium transition-colors active:scale-[0.97] ${
+      className={`rounded-full border px-3 py-1 text-caption font-medium transition-all duration-150 active:scale-[0.97] ${
         active
-          ? "border-primary/35 bg-primary/12 text-primary"
-          : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
+          ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
+          : "border-border/80 bg-surface/70 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-surface"
       }`}
     >
       {children}
@@ -125,11 +125,11 @@ function PillButton({
 }
 
 function selectTriggerClass() {
-  return "h-9 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
+  return "h-9 rounded-full border-border/80 bg-surface/70 px-3.5 text-sm text-foreground transition-all duration-150 hover:border-primary/40 focus:ring-2 focus:ring-primary/20";
 }
 
 function selectContentClass() {
-  return "max-h-64 border-border bg-popover text-foreground";
+  return "max-h-64 rounded-2xl border-border/80 bg-popover/95 text-foreground backdrop-blur-2xl shadow-soft-xl";
 }
 
 function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
@@ -408,9 +408,9 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
   return (
     <div className="space-y-3 px-3 py-3 text-sm">
-      <div className="sticky top-0 z-10 space-y-3 rounded-3xl border border-border bg-card/85 px-3.5 py-3 backdrop-blur-xl">
+      <div className="sticky top-0 z-10 space-y-3 rounded-[1.75rem] border border-border/70 bg-card/85 px-3.5 py-3 shadow-soft backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-foreground">{t("filter.title", "Filters")}</p>
+          <p className="text-sm font-semibold tracking-tight text-foreground">{t("filter.title", "Filters")}</p>
           {activeChips.length > 0 ? (
             <button
               type="button"
@@ -429,7 +429,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 key={chip.key}
                 type="button"
                 onClick={chip.onRemove}
-                className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-caption text-primary-bright"
+                className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-caption font-medium text-primary-bright"
               >
                 <span className="truncate">{chip.label}</span>
                 <X className="h-3 w-3 shrink-0 opacity-70" />
@@ -438,12 +438,12 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           </div>
         ) : null}
 
-        <div className="flex gap-1 rounded-2xl border border-border bg-surface p-1">
+        <div className="flex gap-1 rounded-full border border-border/80 bg-surface/80 p-1">
           <button
             type="button"
             onClick={() => setInventoryMode("priced")}
-            className={`flex-1 rounded-full px-2 py-1.5 text-caption font-medium transition-colors ${
-              priceAvailability === "priced" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
+            className={`flex-1 rounded-full px-2.5 py-1 text-caption font-medium transition-all ${
+              priceAvailability === "priced" ? "bg-primary/15 text-primary-bright shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {t("filter.withPrice", "With price")}
@@ -451,8 +451,8 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           <button
             type="button"
             onClick={() => setInventoryMode("unavailable")}
-            className={`flex-1 rounded-full px-2 py-1.5 text-caption font-medium transition-colors ${
-              priceAvailability === "unavailable" ? "bg-primary/15 text-primary-bright" : "text-muted-foreground hover:text-foreground"
+            className={`flex-1 rounded-full px-2.5 py-1 text-caption font-medium transition-all ${
+              priceAvailability === "unavailable" ? "bg-primary/15 text-primary-bright shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {t("filter.noPrice", "No price")}
@@ -469,7 +469,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               saveSavedSearch(String(label), filters);
               setSavedTick((n) => n + 1);
             }}
-            className="w-full rounded-2xl border border-border bg-surface px-2.5 py-1.5 text-caption font-medium text-foreground transition-colors hover:border-primary/40"
+            className="w-full rounded-full border border-border/80 bg-surface/70 px-3 py-1.5 text-caption font-medium text-foreground transition-all hover:border-primary/40 hover:bg-surface"
           >
             {t("filter.saveCurrentSearch", "Save current search")}
           </button>
@@ -494,7 +494,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                       setSavedTick((n) => n + 1);
                     }}
                     aria-label={`Delete ${saved.name}`}
-                    className="rounded p-1 text-muted-foreground hover:text-foreground"
+                    className="rounded-full p-1 text-muted-foreground transition-all hover:bg-surface hover:text-foreground active:scale-[0.97]"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -532,7 +532,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           }}
           placeholder={t("filter.searchPlaceholder", "Make, model, year…")}
           aria-label={t("filter.searchAria", "Search listings")}
-          className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
+          className="h-9 rounded-full border-border/80 bg-surface/70 text-sm text-foreground"
         />
       </FilterGroup>
 
@@ -571,7 +571,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 onChange={(event) => setModelSearchQuery(event.target.value)}
                 placeholder={t("filter.findModel", "Find model…")}
                 aria-label={t("common.model", "Model")}
-                className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
+                className="h-9 rounded-full border-border/80 bg-surface/70 text-sm text-foreground"
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
@@ -635,7 +635,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder={t("filter.minLkr", "Min LKR")}
                 aria-label={t("filter.minPriceAria", "Minimum price")}
-                className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
+                className="h-9 rounded-full border-border/80 bg-surface/70 text-sm text-foreground"
               />
               <Input
                 value={priceMaxInput}
@@ -650,7 +650,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder={t("filter.maxLkr", "Max LKR")}
                 aria-label={t("filter.maxPriceAria", "Maximum price")}
-                className="h-9 rounded-2xl border-border bg-surface text-sm text-foreground"
+                className="h-9 rounded-full border-border/80 bg-surface/70 text-sm text-foreground"
               />
             </div>
             <Slider
@@ -772,7 +772,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               inputMode="numeric"
               placeholder={t("filter.maxKm", "Max km")}
               aria-label={t("filter.maxMileageAria", "Maximum mileage")}
-              className="h-9 flex-1 rounded-2xl border-border bg-surface text-sm text-foreground"
+              className="h-9 flex-1 rounded-full border-border/80 bg-surface/70 text-sm text-foreground"
             />
             <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue === MAX_MILEAGE ? undefined : mileageValue, t("filter.anyMileage", "Any"))}</span>
           </div>
@@ -847,21 +847,21 @@ export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersCha
   const { t } = useAppPreferences();
   return (
     <>
-      <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] lg:block">
+      <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] border border-border/80 shadow-soft lg:block">
         <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
       </aside>
 
       <div className="sticky bottom-4 z-40 mt-3 flex justify-end lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-foreground transition-colors hover:bg-foreground/[0.05] active:scale-[0.97]">
+            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-foreground transition-all hover:bg-foreground/[0.05] active:scale-[0.97] shadow-soft">
               <SlidersHorizontal className="h-4 w-4" />
               {t("filter.title", "Filters")}
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="command-surface w-[min(100vw-2rem,320px)] overflow-y-auto p-0">
+          <SheetContent side="left" className="command-surface w-[min(100vw-2rem,320px)] overflow-y-auto p-0 rounded-r-3xl border-r border-border/80">
             <SheetHeader className="px-4 pt-4 pb-0">
-              <SheetTitle className="text-base text-foreground">{t("filter.title", "Filters")}</SheetTitle>
+              <SheetTitle className="text-base font-semibold tracking-tight text-foreground">{t("filter.title", "Filters")}</SheetTitle>
             </SheetHeader>
             <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
           </SheetContent>

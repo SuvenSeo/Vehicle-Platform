@@ -5,6 +5,31 @@ const PLACEHOLDER_IMAGE_HOSTS = new Set([
   "placekitten.com",
 ]);
 
+/** Motormila-hosted thumbs. Never resolve these against a listing source URL. */
+const FIRST_PARTY_IMAGE_PREFIXES = ["/demo/", "/brand/", "/hero/", "/assets/", "/logo"];
+
+const MARKETPLACE_HOST_RE =
+  /(riyasewana|ikman|patpat|autolanka|hitad|cartivate|autodirect)\./i;
+
+function isFirstPartyImagePath(value: string): boolean {
+  if (!value.startsWith("/")) return false;
+  return FIRST_PARTY_IMAGE_PREFIXES.some(
+    (prefix) => value === prefix || value.startsWith(prefix),
+  );
+}
+
+function prefersAppOrigin(path: string, baseCandidates: string[]): boolean {
+  if (isFirstPartyImagePath(path)) return true;
+  if (!path.startsWith("/")) return false;
+  return baseCandidates.every((base) => {
+    try {
+      return !MARKETPLACE_HOST_RE.test(new URL(base).hostname);
+    } catch {
+      return true;
+    }
+  });
+}
+
 function isAbsoluteUrl(value: string): boolean {
   return /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(value);
 }
@@ -54,10 +79,16 @@ export function normalizeVehicleImageUrlWithBase(value: unknown, baseUrls: Array
   } else if (isAbsoluteUrl(trimmed)) {
     parseCandidates.push(trimmed);
   } else {
+    const preferOrigin = prefersAppOrigin(trimmed, baseCandidates);
+    if (preferOrigin) {
+      parseCandidates.push(new URL(trimmed, getBaseOrigin()).toString());
+    }
     for (const base of baseCandidates) {
       parseCandidates.push(new URL(trimmed, base).toString());
     }
-    parseCandidates.push(new URL(trimmed, getBaseOrigin()).toString());
+    if (!preferOrigin) {
+      parseCandidates.push(new URL(trimmed, getBaseOrigin()).toString());
+    }
   }
 
   for (const candidate of parseCandidates) {

@@ -54,13 +54,13 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
       variants={revealItem}
       whileHover={{ y: -2 }}
       transition={springSoft}
-      className="group flex flex-col rounded-2xl border border-border bg-card p-5 shadow-soft transition-colors hover:border-primary/30"
+      className="group flex flex-col rounded-3xl border border-border/80 bg-card/85 p-6 shadow-soft backdrop-blur-xl transition-all hover:border-primary/30 hover:shadow-soft-lg"
     >
       <Link to={`/official-pulse/${signal.id}`} className="flex flex-1 flex-col no-underline">
         <p className="text-[12px] font-medium text-primary/70">
           {labelPulseSource(signal.source)} · {signal.signal_type.replace(/_/g, " ")}
         </p>
-        <h3 className="mt-2 text-sm font-semibold text-foreground group-hover:text-primary">
+        <h3 className="mt-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
           {title}
         </h3>
         <p className="num mt-4 text-2xl font-bold tracking-tight text-foreground">{value}</p>
@@ -184,12 +184,12 @@ export default function OfficialPulse() {
               <motion.div key={guide.key} variants={revealItem}>
                 <Link
                   to={`/official-pulse/guide/${guide.key}`}
-                  className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-soft no-underline transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft-lg"
+                  className="group flex h-full flex-col rounded-3xl border border-border/80 bg-card/85 p-6 shadow-soft backdrop-blur-xl no-underline transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg"
                 >
                   <p className="text-[12px] font-medium text-primary/70">
                     {labelPulseSource(guide.source)}
                   </p>
-                  <h3 className="mt-2 font-display text-[15px] font-bold text-foreground group-hover:text-primary">
+                  <h3 className="mt-2 font-display text-[15px] font-bold text-foreground group-hover:text-primary transition-colors">
                     {guide.title}
                   </h3>
                   <p className="mt-3 flex-1 text-[12px] font-medium leading-relaxed text-muted-foreground">
@@ -231,10 +231,10 @@ export default function OfficialPulse() {
                 type="button"
                 onClick={() => setSourceFilter("all")}
                 className={cn(
-                  "rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
+                  "rounded-full border px-4 py-2 text-[11px] font-semibold transition-all active:scale-[0.97]",
                   sourceFilter === "all"
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-border bg-surface text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                    ? "border-primary/40 bg-primary/10 text-primary shadow-soft"
+                    : "border-border/80 bg-surface/70 text-muted-foreground hover:border-primary/30 hover:text-foreground",
                 )}
               >
                 {t("pulse.allSources", "All sources")}
@@ -245,10 +245,10 @@ export default function OfficialPulse() {
                   type="button"
                   onClick={() => setSourceFilter(source)}
                   className={cn(
-                    "rounded-full border px-3.5 py-1.5 text-[11px] font-semibold transition-colors",
+                    "rounded-full border px-4 py-2 text-[11px] font-semibold transition-all active:scale-[0.97]",
                     sourceFilter === source
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border bg-surface text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                      ? "border-primary/40 bg-primary/10 text-primary shadow-soft"
+                      : "border-border/80 bg-surface/70 text-muted-foreground hover:border-primary/30 hover:text-foreground",
                   )}
                 >
                   {labelPulseSource(source)}
@@ -262,12 +262,12 @@ export default function OfficialPulse() {
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-40 animate-pulse rounded-2xl border border-border bg-card"
+                  className="h-40 animate-pulse rounded-3xl border border-border/80 bg-card/85 backdrop-blur-xl"
                 />
               ))}
             </div>
           ) : signalsQuery.isError ? (
-            <div className="flex flex-col items-start gap-3 rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6">
+            <div className="flex flex-col items-start gap-3 rounded-3xl border border-rose-500/25 bg-rose-500/5 p-6 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <Loader2 aria-hidden className="h-4 w-4 text-rose-500" />
                 <p className="text-[13px] font-semibold text-foreground">{t("pulse.loadError", "Could not load live signals")}</p>
@@ -278,14 +278,14 @@ export default function OfficialPulse() {
               <button
                 type="button"
                 onClick={() => void signalsQuery.refetch()}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-[11px] font-bold text-foreground transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.97]"
+                className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/85 px-5 py-2 text-[11px] font-bold text-foreground transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.97]"
               >
                 <RefreshCw aria-hidden className="h-3.5 w-3.5" />
                 {t("common.retry", "Retry")}
               </button>
             </div>
           ) : filteredSignals.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-card/60 px-6 py-14 text-center">
+            <div className="rounded-3xl border border-dashed border-border/80 bg-card/60 px-6 py-14 text-center backdrop-blur-xl">
               <Landmark aria-hidden className="mx-auto h-6 w-6 text-muted-foreground" />
               <p className="mt-3 text-[14px] font-semibold text-foreground">{t("pulse.empty", "No signals yet")}</p>
               <p className="mx-auto mt-2 max-w-md text-[12px] text-muted-foreground">
@@ -337,7 +337,7 @@ export default function OfficialPulse() {
               {newsItems.map((item, index) => (
                 <li
                   key={item.id || `${item.title}-${index}`}
-                  className="rounded-2xl border border-border bg-card p-4 shadow-soft"
+                  className="rounded-3xl border border-border/80 bg-card/85 p-5 shadow-soft backdrop-blur-xl"
                 >
                   <p className="text-[12px] font-medium text-primary/70">
                     Helakuru Esana

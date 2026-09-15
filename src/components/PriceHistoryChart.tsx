@@ -85,7 +85,7 @@ export function PriceHistoryChart({
   const trendTone = changePct === null ? "Awaiting signal" : changePositive ? "Market heating" : "Price cooling";
 
   return (
-    <div className="asset-surface w-full rounded-xl p-4 sm:p-6 md:p-7">
+    <div className="asset-surface w-full rounded-3xl p-4 sm:p-6 md:p-7">
       <div className="grid gap-5 lg:grid-cols-[0.78fr_1.32fr]">
         <aside className="data-card p-5">
           <div className="headline-kicker text-muted-foreground">

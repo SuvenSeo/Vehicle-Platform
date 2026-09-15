@@ -36,9 +36,9 @@ export default function Settings() {
       <PageBody narrow>
         <div className="grid gap-6 lg:grid-cols-12">
           {/* Language — featured, primary preference */}
-          <motion.div variants={revealItem} className="surface lg:col-span-7 p-6 sm:p-7">
+          <motion.div variants={revealItem} className="rounded-3xl border border-border/80 bg-card/85 p-6 shadow-soft backdrop-blur-xl sm:p-8 lg:col-span-7">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/80 bg-surface/80">
                 <Globe className="h-4 w-4 text-primary" />
               </div>
               <div>
@@ -46,15 +46,15 @@ export default function Settings() {
                 <p className="text-[12px] font-medium text-muted-foreground">Display labels</p>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {LANGS.map((o) => {
                 const active = language === o.value;
                 return (
                   <button key={o.value} type="button" onClick={() => setLanguage(o.value)} aria-pressed={active}
-                    className={cn("flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all active:scale-[0.99]",
+                    className={cn("flex w-full items-center justify-between rounded-2xl border px-4.5 py-3.5 text-left transition-all active:scale-[0.98]",
                       active
-                        ? "border-primary/30 bg-primary/10 text-foreground shadow-soft"
-                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-surface"
+                        ? "border-primary/35 bg-primary/10 text-foreground shadow-soft"
+                        : "border-border/80 bg-surface/70 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-surface"
                     )}
                   >
                     <span>
@@ -71,9 +71,9 @@ export default function Settings() {
           </motion.div>
 
           {/* Theme */}
-          <motion.div variants={revealItem} className="surface lg:col-span-5 p-6 sm:p-7">
+          <motion.div variants={revealItem} className="rounded-3xl border border-border/80 bg-card/85 p-6 shadow-soft backdrop-blur-xl sm:p-8 lg:col-span-5">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border/80 bg-surface/80">
                 <Monitor className="h-4 w-4 text-primary" />
               </div>
               <div>
@@ -83,7 +83,7 @@ export default function Settings() {
             </div>
 
             {/* Decorative theme preview */}
-            <div aria-hidden className="mb-4 flex h-24 items-end gap-2 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/12 via-card to-background p-3">
+            <div aria-hidden className="mb-4 flex h-24 items-end gap-2 overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-primary/12 via-card to-background p-3.5">
               <div className="h-2.5 w-14 rounded-full bg-foreground/20" />
               <div className="ml-auto flex h-full flex-col justify-between">
                 <MoonStar className="h-4 w-4 text-primary-bright" />
@@ -94,7 +94,7 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 shadow-soft">
+            <div className="flex items-center justify-between rounded-2xl border border-primary/30 bg-primary/10 px-4.5 py-3.5 shadow-soft">
               <span className="flex items-center gap-2.5">
                 <MoonStar className="h-4 w-4 text-primary" />
                 <span>

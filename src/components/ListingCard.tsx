@@ -98,7 +98,7 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
-      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-white/40 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-1.5 hover:border-primary/30 hover:shadow-soft-lg active:scale-[0.985] active:shadow-soft dark:border-white/12"
+      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-white/40 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft dark:border-white/12"
       onPointerEnter={() => {
         prefetchRoute(`/listing/${listing.id}`);
         void getListing(listing.id);
@@ -117,7 +117,7 @@ export const ListingCard = memo(function ListingCard({
             listingId={listing.id}
             alt={`${listing.make} ${listing.model}`}
             priority={priority}
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
+            className="h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
 
@@ -262,7 +262,7 @@ export const ListingCard = memo(function ListingCard({
               </p>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
             </div>
           </div>
         </div>
