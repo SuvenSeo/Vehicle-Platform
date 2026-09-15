@@ -421,14 +421,14 @@ fun MotormilaChipTabs(
             )
             Box(
                 modifier = Modifier
-                    .heightIn(min = 40.dp)
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    }
-                    .applePress(interaction, pressedScale = 0.96f)
-                    .clip(CircleShape)
-                    .background(fill)
+            .heightIn(min = 48.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .applePress(interaction, pressedScale = 0.96f)
+            .clip(CircleShape)
+            .background(fill)
                     .border(0.5.dp, border, CircleShape)
                     .clickable(
                         interactionSource = interaction,
@@ -487,7 +487,7 @@ fun MotormilaChoiceChip(
     )
     Box(
         modifier = Modifier
-            .heightIn(min = if (compact) 36.dp else 48.dp)
+            .heightIn(min = 48.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -536,6 +536,7 @@ fun MotormilaPrimaryButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     fillMaxWidth: Boolean = true,
+    leadingIcon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -560,6 +561,14 @@ fun MotormilaPrimaryButton(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(10.dp))
+            } else if (leadingIcon != null) {
+                Icon(
+                    leadingIcon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
             }
             Text(
                 text = label,
@@ -575,12 +584,14 @@ fun MotormilaPrimaryButton(
 fun MotormilaGhostButton(
     label: String,
     modifier: Modifier = Modifier,
+    fillMaxWidth: Boolean = true,
+    leadingIcon: ImageVector? = null,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (fillMaxWidth) Modifier.fillMaxWidth() else Modifier)
             .heightIn(min = 48.dp)
             .applePress(interaction, pressedScale = 0.97f)
             .clip(CircleShape)
@@ -589,12 +600,23 @@ fun MotormilaGhostButton(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            color = MotormilaOnSurface,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (leadingIcon != null) {
+                Icon(
+                    leadingIcon,
+                    contentDescription = null,
+                    tint = MotormilaOnSurface,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = label,
+                color = MotormilaOnSurface,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            )
+        }
     }
 }
 

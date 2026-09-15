@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="shortcut_scan">எண் ஸ்கேன்</string>
+  <string name="shortcut_scan_long">வாகன எண் தகட்டை ஸ்கேன் செய்யவும்</string>
+  <string name="shortcut_voice">குரல் தேடல்</string>
+  <string name="shortcut_voice_long">உங்கள் குரலால் தேடுங்கள்</string>
+  <string name="shortcut_deal">இன்றைய ஒப்பந்தம்</string>
+  <string name="shortcut_deal_long">இன்றைய சிறந்த ஒப்பந்தம்</string>
+  <string name="shortcut_watchlist">கண்காணிப்பு பட்டியல்</string>
+  <string name="tile_scan">எண் தகட்டை ஸ்கேன் செய்</string>
+</resources>

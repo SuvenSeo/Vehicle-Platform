@@ -77,43 +77,56 @@
                 <data android:scheme="motormila" android:host="cars" />
                 <data android:scheme="motormila" android:host="make" />
                 <data android:scheme="motormila" android:host="locations" />
-            </intent-filter>
-            <!-- Optional https app links: listing, cars, locations, calculator. -->
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="motormila.vercel.app"
-                    android:pathPrefix="/listing" />
-            </intent-filter>
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="motormila.vercel.app"
-                    android:pathPrefix="/cars" />
-            </intent-filter>
-            <intent-filter android:autoVerify="false">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="motormila.vercel.app"
-                    android:pathPrefix="/locations" />
+                <data android:scheme="motormila" android:host="pricing" />
+                <data android:scheme="motormila" android:host="docs" />
+                <data android:scheme="motormila" android:host="admin" />
+                <data android:scheme="motormila" android:host="chargers" />
+                <data android:scheme="motormila" android:host="ev-chargers" />
+                <data android:scheme="motormila" android:host="privacy" />
+                <data android:scheme="motormila" android:host="terms" />
+                <data android:scheme="motormila" android:host="permits" />
+                <data android:scheme="motormila" android:host="price-index" />
+                <data android:scheme="motormila" android:host="trends" />
+                <data android:scheme="motormila" android:host="guide" />
+                <data android:scheme="motormila" android:host="pro" />
+                <data android:scheme="motormila" android:host="estimate" />
+                <data android:scheme="motormila" android:host="compare" />
+                <data android:scheme="motormila" android:host="dealer" />
+                <data android:scheme="motormila" android:host="settings" />
+                <data android:scheme="motormila" android:host="alerts" />
+                <data android:scheme="motormila" android:host="login" />
+                <data android:scheme="motormila" android:host="sign-in" />
+                <data android:scheme="motormila" android:host="sign-up" />
+                <data android:scheme="motormila" android:host="best-picks" />
             </intent-filter>
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="https"
-                    android:host="motormila.vercel.app"
-                    android:pathPrefix="/calculator" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/listing" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/cars" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/locations" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/calculator" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/estimate" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/best-picks" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/compare" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/dealer" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/settings" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/alerts" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/sign-in" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/sign-up" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/pro" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/official-pulse" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/pricing" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/docs" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/admin" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/privacy" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/terms" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/permits" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/price-index" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/trends" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/ev-chargers" />
+                <data android:scheme="https" android:host="motormila.vercel.app" android:pathPrefix="/ev-hub" />
             </intent-filter>
             <meta-data
                 android:name="android.app.shortcuts"

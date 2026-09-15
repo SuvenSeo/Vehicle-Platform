@@ -55,6 +55,8 @@ class SearchRouteArgsTest {
         assertTrue(isBottomBarRoute(Home::class.qualifiedName))
         assertTrue(isBottomBarRoute(Search::class.qualifiedName))
         assertTrue(isBottomBarRoute(Watchlist::class.qualifiedName))
+        assertTrue(isBottomBarRoute(Insights::class.qualifiedName))
+        assertTrue(isBottomBarRoute(Profile::class.qualifiedName))
         assertFalse(isBottomBarRoute(ListingDetail::class.qualifiedName))
         assertFalse(isBottomBarRoute(null))
     }
@@ -101,6 +103,21 @@ class SearchRouteArgsTest {
         assertTrue(
             resolveMotormilaDeepLink("https://motormila.vercel.app/cars/toyota/aqua") is MakeModelHub,
         )
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/") is Home)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/estimate") is Valuation)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/best-picks") is BestPicks)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/dealer") is Dealer)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/settings") is Settings)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/alerts") is Alerts)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/sign-in") is Login)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/sign-up") is Login)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/pro") is Pro)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/official-pulse") is OfficialPulse)
+        val compare = resolveMotormilaDeepLink("https://motormila.vercel.app/compare?ids=1,2,9")
+        assertTrue(compare is Compare)
+        assertEquals(listOf(1, 2, 9), (compare as Compare).ids)
+        assertTrue(resolveMotormilaDeepLink("motormila://estimate") is Valuation)
+        assertTrue(resolveMotormilaDeepLink("motormila://compare?ids=4,5") is Compare)
     }
 
     @Test

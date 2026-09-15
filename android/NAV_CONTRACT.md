@@ -59,8 +59,8 @@ fun WatchlistScreen(
 @Composable
 fun InsightsScreen(
     onOpenPulseDetail: (signalId: String) -> Unit, // -> OfficialPulseDetail(id)
-    onDrillDistrict: (district: String) -> Unit,  // -> Search(district=district)
-    onSearchModels: (query: String) -> Unit,      // -> Search(q=query)
+    onDrillDistrict: (district: String) -> Unit,  // -> DistrictHub(district)
+    onSearchModels: (query: String) -> Unit,      // two tokens -> MakeModelHub, else Search(q=)
     onChargersClick: () -> Unit = {},             // -> EvChargers
     onUpgrade: () -> Unit = {},                   // -> Pro
     initialTab: Int = 0,
@@ -115,7 +115,7 @@ fun NotificationsScreen(
 @Composable
 fun ProScreen(
     onOpenCheckout: (url: String) -> Unit,   // LocalUriHandler
-    onOpenDistrict: (district: String) -> Unit, // -> Insights
+    onOpenDistrict: (district: String) -> Unit, // -> DistrictHub(district)
     viewModel: ProViewModel = hiltViewModel(),
 )
 
@@ -198,7 +198,7 @@ fun ShareImportScreen(
 @Composable
 fun EvHubScreen(
     onBack: () -> Unit,                 // popBackStack
-    onSearchModels: (String) -> Unit,   // -> Search(q=)
+    onSearchModels: (String) -> Unit,   // two tokens -> MakeModelHub, else Search(q=)
     onOpenListing: (Int) -> Unit,       // -> ListingDetail(id)
     onChargersClick: () -> Unit = {},   // -> EvChargers
     viewModel: EvHubViewModel = hiltViewModel(),
@@ -431,6 +431,18 @@ Compose, so MainActivity parses VIEW URIs and navigates after splash):
 | `https://motormila.vercel.app/terms` | `Terms` |
 | `https://motormila.vercel.app/permits` | `Permits` |
 | `https://motormila.vercel.app/price-index` | `PriceIndex` |
+| `https://motormila.vercel.app/trends` | `Insights` |
+| `https://motormila.vercel.app/estimate` | `Valuation` |
+| `https://motormila.vercel.app/best-picks` | `BestPicks` |
+| `https://motormila.vercel.app/compare?ids=` | `Compare` |
+| `https://motormila.vercel.app/dealer` | `Dealer` |
+| `https://motormila.vercel.app/settings` | `Settings` |
+| `https://motormila.vercel.app/alerts` | `Alerts` |
+| `https://motormila.vercel.app/sign-in` / `/sign-up` | `Login` |
+| `https://motormila.vercel.app/pro` | `Pro` |
+| `https://motormila.vercel.app/official-pulse` | `OfficialPulse` |
+| `https://motormila.vercel.app/pricing` `/docs` `/admin` `/ev-hub` `/ev-chargers` | matching screens |
+| `https://motormila.vercel.app/` | `Home` |
 
 Splash always runs on a cold start (unless ACTION_SEND → ShareImport). After
 splash the deep-link target is used instead of always Home. `onNewIntent`

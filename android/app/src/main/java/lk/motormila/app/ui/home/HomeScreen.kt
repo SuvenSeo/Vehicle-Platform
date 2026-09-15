@@ -420,7 +420,7 @@ private fun TopBrandBar(onAlertsClick: () -> Unit) {
         IconButton(
             onClick = onAlertsClick,
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .border(1.dp, MotormilaOutline, CircleShape),
         ) {

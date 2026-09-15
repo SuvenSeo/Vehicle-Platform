@@ -93,6 +93,7 @@ import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaChipTabs
 import lk.motormila.app.ui.components.MotormilaEyebrow
 import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaMetricTile
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
@@ -537,13 +538,16 @@ private fun BandChart(points: List<TrendPoint>, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.totalListings} live") })
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("Avg ${formatLkrCompact(summary.avgPriceLkr)}") })
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.goodDealsCount} good deals") })
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.listingsThisWeek} new / 7d") })
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        MotormilaMetricTile(label = "Live", value = summary.totalListings.toString())
+        MotormilaMetricTile(label = "Avg price", value = formatLkrCompact(summary.avgPriceLkr))
+        MotormilaMetricTile(label = "Good deals", value = summary.goodDealsCount.toString())
+        MotormilaMetricTile(label = "New / 7d", value = summary.listingsThisWeek.toString())
         summary.priceChangeMom?.let {
-            AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("MoM ${formatPct(it)}") })
+            MotormilaMetricTile(label = "MoM", value = formatPct(it))
         }
     }
 }
@@ -552,17 +556,13 @@ private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) 
 @Composable
 private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
     val frac = if (maxScore > 0) (v.velocityScore / maxScore).toFloat().coerceIn(0f, 1f) else 0f
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth()
-            .semantics {
-                contentDescription =
-                    "${v.district} velocity ${"%.1f".format(v.velocityScore)}, ${v.new7dCount} new in 7 days"
-            },
+    MotormilaSurface(
+        modifier = Modifier.semantics {
+            contentDescription =
+                "${v.district} velocity ${"%.1f".format(v.velocityScore)}, ${v.new7dCount} new in 7 days"
+        },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -589,7 +589,6 @@ private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
                 "Velocity ${"%.1f".format(v.velocityScore)} · ${v.listingCount} listings",
                 style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
             )
-        }
     }
 }
 

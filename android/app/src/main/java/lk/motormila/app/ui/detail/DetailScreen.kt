@@ -101,8 +101,10 @@ import lk.motormila.app.ui.components.FmvGauge
 import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.LoadingSkeletonChart
 import lk.motormila.app.ui.components.LockedValue
+import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaIconAction
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.PriceChart
 import lk.motormila.app.ui.navigation.LocalNavAnimatedVisibilityScope
@@ -331,11 +333,11 @@ fun ListingDetailScreen(
                                         )
                                     }
                                 }
-                                OutlinedButton(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                MotormilaGhostButton(
+                                    label = "Compare with similar",
                                     onClick = { onCompare(listOf(listingId) + state.similar.take(2).map { it.id }) },
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                ) { Text("Compare with similar") }
+                                )
                             }
                         }
                         item {
@@ -345,47 +347,23 @@ fun ListingDetailScreen(
                                     .padding(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Button(
+                                MotormilaPrimaryButton(
+                                    label = "VIEW ON ${listing.source?.uppercase()?.ifBlank { "SOURCE" } ?: "IKMAN"}",
                                     onClick = {
                                         val url = listing.externalUrl ?: listing.detailUrl
                                         if (url != null) openUrl(context, url)
                                     },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MotormilaPrimary,
-                                        contentColor = Color.White,
-                                    ),
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    fillMaxWidth = false,
+                                    leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
                                     modifier = Modifier.weight(1f),
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        "VIEW ON ${listing.source?.uppercase()?.ifBlank { "SOURCE" } ?: "IKMAN"}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                    )
-                                }
-                                OutlinedButton(
+                                )
+                                MotormilaGhostButton(
+                                    label = "SHARE ON WHATSAPP",
                                     onClick = { shareWhatsApp(context, listing, state.fmv) },
-                                    border = BorderStroke(1.2.dp, MotormilaGood),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = MotormilaGoodContainer,
-                                        contentColor = MotormilaGoodText,
-                                    ),
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    fillMaxWidth = false,
+                                    leadingIcon = Icons.AutoMirrored.Filled.Chat,
                                     modifier = Modifier.weight(1f),
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        "SHARE ON WHATSAPP",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MotormilaGoodText,
-                                        maxLines = 1,
-                                    )
-                                }
+                                )
                             }
                         }
                     }

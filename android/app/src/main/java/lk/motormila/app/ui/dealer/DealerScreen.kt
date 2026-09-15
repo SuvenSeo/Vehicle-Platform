@@ -220,15 +220,15 @@ private fun BenchmarkCard(state: DealerUiState, viewModel: DealerViewModel) {
                 b.avgDealScore?.let { score ->
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Deal score ${formatPct(score, 1)} — per-URL breakdown arrives with yard-tools v2.",
+                        "Deal score ${formatPct(score, 1)} — included in the yard average above.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } ?: Text(
                     if (urlCount > 0) {
-                        "Aggregated across $urlCount pasted URL${if (urlCount == 1) "" else "s"} — per-URL rows arrive with yard-tools v2."
+                        "Aggregated across $urlCount pasted URL${if (urlCount == 1) "" else "s"}."
                     } else {
-                        "URL-level breakdown arrives with yard-tools v2 — paste URLs above to queue them."
+                        "Paste listing URLs above to include them in the yard average."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

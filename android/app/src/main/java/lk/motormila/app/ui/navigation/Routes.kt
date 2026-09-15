@@ -162,9 +162,9 @@ internal fun parseDeepLink(raw: String): ParsedDeepLink? {
 }
 
 /**
- * Maps a `motormila://` (or https listing) VIEW URI to a type-safe destination.
- * Used after splash and on [android.content.Intent.ACTION_VIEW] so optional query
- * params still land even when NavHost deep-link matching is picky.
+ * Maps a `motormila://` or `https://motormila.vercel.app/…` VIEW URI to a
+ * type-safe destination. Used after splash and on ACTION_VIEW so query params
+ * still land even when NavHost deep-link matching is picky.
  */
 fun resolveMotormilaDeepLink(uri: Uri): Any? = resolveMotormilaDeepLink(uri.toString())
 
@@ -178,6 +178,7 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
     val host = parsed.host
     val segments = parsed.pathSegments
     if (scheme == "https" && host == HTTPS_APP_HOST) {
+        if (segments.isEmpty()) return Home
         if (segments.size >= 2 && segments[0] == "listing") {
             return segments[1].toIntOrNull()?.let { ListingDetail(it) }
         }
@@ -189,27 +190,46 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
         if (segments.size >= 2 && segments[0] == "locations") {
             return DistrictHub(segments[1])
         }
-        if (segments.size >= 2 && segments[0] == "official-pulse") {
+        if (segments.firstOrNull() == "official-pulse") {
+            if (segments.size == 1) return OfficialPulse
             if (segments[1] == "guide") {
                 val key = segments.getOrNull(2)?.takeIf { it.isNotBlank() } ?: return OfficialPulse
                 return PulseGuide(key)
             }
             return segments[1].toIntOrNull()?.let { OfficialPulseDetail(it) }
         }
-        if (segments.firstOrNull() == "calculator") return Calculator
-        if (segments.firstOrNull() == "pricing") return Pricing
-        if (segments.firstOrNull() == "docs") return Docs
-        if (segments.firstOrNull() == "admin") return Admin
-        if (segments.firstOrNull() == "privacy") return Privacy
-        if (segments.firstOrNull() == "terms") return Terms
-        if (segments.firstOrNull() == "permits") return Permits
-        if (segments.firstOrNull() == "price-index" || segments.firstOrNull() == "trends") {
-            return if (segments.firstOrNull() == "price-index") PriceIndex else Insights
+        if (segments.firstOrNull() == "compare") {
+            val ids = parsed.query["ids"]
+                ?.split(',')
+                ?.mapNotNull { it.trim().toIntOrNull() }
+                .orEmpty()
+            return Compare(ids)
         }
-        if (segments.firstOrNull() == "ev-chargers" || segments.firstOrNull() == "ev-hub") {
-            return if (segments.firstOrNull() == "ev-chargers") EvChargers else EvHub
+        return when (segments.firstOrNull()) {
+            "calculator" -> Calculator
+            "pricing" -> Pricing
+            "docs" -> Docs
+            "admin" -> Admin
+            "privacy" -> Privacy
+            "terms" -> Terms
+            "permits" -> Permits
+            "price-index" -> PriceIndex
+            "trends" -> Insights
+            "ev-chargers" -> EvChargers
+            "ev-hub" -> EvHub
+            "estimate" -> Valuation(
+                make = parsed.queryOrNull("make"),
+                model = parsed.queryOrNull("model"),
+            )
+            "best-picks" -> BestPicks
+            "dealer" -> Dealer
+            "settings" -> Settings
+            "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
+            "sign-in" -> Login
+            "sign-up" -> Login
+            "pro", "pro-preview" -> Pro
+            else -> null
         }
-        return null
     }
     if (scheme != "motormila") return null
     return when (host) {
@@ -251,6 +271,22 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             if (model == null) MakeHub(make) else MakeModelHub(make, model)
         }
         "locations" -> segments.firstOrNull()?.takeIf { it.isNotBlank() }?.let { DistrictHub(it) }
+        "estimate" -> Valuation(
+            make = parsed.queryOrNull("make"),
+            model = parsed.queryOrNull("model"),
+        )
+        "compare" -> {
+            val ids = parsed.query["ids"]
+                ?.split(',')
+                ?.mapNotNull { it.trim().toIntOrNull() }
+                .orEmpty()
+            Compare(ids)
+        }
+        "dealer" -> Dealer
+        "settings" -> Settings
+        "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
+        "login", "sign-in", "sign-up" -> Login
+        "best-picks" -> BestPicks
         else -> null
     }
 }
