@@ -37,8 +37,27 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licenses
+        working-directory: .
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          SDKMANAGER=""
+          for candidate in \
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "$ANDROID_HOME/cmdline-tools/bin/sdkmanager"; do
+            if [[ -x "$candidate" ]]; then
+              SDKMANAGER="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$SDKMANAGER" ]]; then
+            echo "No sdkmanager found under $ANDROID_HOME; relying on runner defaults"
+            exit 0
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
