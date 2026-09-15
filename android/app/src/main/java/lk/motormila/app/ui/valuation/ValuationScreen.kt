@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,17 +32,10 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
@@ -74,23 +68,24 @@ import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.ui.components.MotormilaChipTabs
 import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaMetricTile
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.theme.MotormilaBad
 import lk.motormila.app.ui.theme.MotormilaGood
-import lk.motormila.app.ui.theme.MotormilaGoodText
-import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
+import lk.motormila.app.ui.theme.MotormilaSurface as MotormilaSurfaceColor
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaWarn
 
 private val calcTabs = listOf("Workbench", "Landed", "Lease", "TCO", "Bundle", "Permits", "Deprec.")
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ValuationScreen(
     onOpenListing: (id: Int) -> Unit,
@@ -194,12 +189,7 @@ private fun ValuationWorkbenchTab(
 
         // Multi-step appraisal wizard indicator
         item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+            MotormilaSurface(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
                 AppraisalWizardStepIndicator(
                     currentStep = step,
                     onStepClick = { targetStep ->
@@ -214,7 +204,6 @@ private fun ValuationWorkbenchTab(
                             step = 3
                         }
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 )
             }
         }
@@ -313,7 +302,7 @@ private fun AppraisalWizardStepIndicator(
                         .background(
                             if (isActive) MotormilaPrimary
                             else if (isCompleted) MotormilaGood.copy(alpha = 0.2f)
-                            else MotormilaSurface,
+                            else MotormilaSurfaceColor,
                         )
                         .border(1.dp, statusColor, CircleShape),
                     contentAlignment = Alignment.Center,
@@ -381,16 +370,7 @@ private fun Step01VehicleProfile(
     }
     val years = listOf("2024", "2022", "2020", "2018", "2015", "2012")
 
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // Step header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -519,29 +499,17 @@ private fun Step01VehicleProfile(
 
             // Step 1 Next Button
             val isReady = f.make.isNotBlank() && f.model.isNotBlank() && f.year.isNotBlank()
-            Button(
-                onClick = onNext,
+            MotormilaPrimaryButton(
+                label = "Continue to Mileage & Condition",
                 enabled = isReady,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp),
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MotormilaPrimary,
-                    contentColor = MotormilaOnPrimary,
-                ),
-            ) {
-                Text("Continue to Mileage & Condition", fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
+                leadingIcon = Icons.Filled.ArrowForward,
+            ) { onNext() }
             if (!isReady) {
                 Text(
                     text = "Please enter make, model, and year to continue.",
                     style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
                 )
             }
-        }
     }
 }
 
@@ -558,16 +526,7 @@ private fun Step02MileageCondition(
     val f = state.form
     val mileagePresets = listOf("20,000", "45,000", "70,000", "100,000", "140,000")
 
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             // Step header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -592,7 +551,7 @@ private fun Step02MileageCondition(
             // Summary of vehicle selected
             Surface(
                 shape = RoundedCornerShape(28.dp),
-                color = MotormilaSurface,
+                color = MotormilaSurfaceColor,
                 border = BorderStroke(1.dp, MotormilaOutline),
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -614,10 +573,11 @@ private fun Step02MileageCondition(
                             style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
                         )
                     }
-                    AssistChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaChoiceChip(
+                        label = "Edit profile",
+                        selected = false,
                         onClick = onBack,
-                        label = { Text("Edit profile") },
+                        compact = true,
                     )
                 }
             }
@@ -674,20 +634,12 @@ private fun Step02MileageCondition(
 
                 conditions.forEach { (condKey, condLabel, condDesc) ->
                     val isSelected = f.condition.equals(condKey, ignoreCase = true)
-                    Card(
+                    MotormilaSurface(
                         onClick = { viewModel.onEvent(ValuationUiEvent.FormChanged(f.copy(condition = condKey))) },
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) MotormilaPrimary.copy(alpha = 0.12f) else MotormilaSurface,
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) MotormilaPrimary else MotormilaOutline,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
+                        highlighted = isSelected,
+                        contentPadding = PaddingValues(12.dp),
                     ) {
                         Row(
-                            modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -747,47 +699,22 @@ private fun Step02MileageCondition(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlinedButton(
-                    onClick = onBack,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier
-                        .weight(0.8f)
-                        .heightIn(min = 48.dp),
-                ) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Back")
-                }
+                MotormilaGhostButton(
+                    label = "Back",
+                    fillMaxWidth = false,
+                    leadingIcon = Icons.Filled.ArrowBack,
+                    modifier = Modifier.weight(0.8f),
+                ) { onBack() }
 
-                Button(
-                    onClick = onEstimate,
+                MotormilaPrimaryButton(
+                    label = if (state.estimating) "Appraising..." else "Calculate Valuation",
                     enabled = f.mileageKm.isNotBlank() && !state.estimating,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotormilaPrimary,
-                        contentColor = MotormilaOnPrimary,
-                    ),
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .heightIn(min = 48.dp),
-                ) {
-                    if (state.estimating) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            color = Color.White,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Appraising...")
-                    } else {
-                        Text("Calculate Valuation", fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.width(6.dp))
-                        Icon(Icons.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                }
+                    loading = state.estimating,
+                    fillMaxWidth = false,
+                    leadingIcon = Icons.Filled.ArrowForward,
+                    modifier = Modifier.weight(1.2f),
+                ) { onEstimate() }
             }
-        }
     }
 }
 
@@ -827,55 +754,44 @@ private fun Step03ValuationGuidance(
                     style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
                 )
             }
-            AssistChip(
-                shape = androidx.compose.foundation.shape.CircleShape,
+            MotormilaChoiceChip(
+                label = "Edit inputs",
+                selected = false,
                 onClick = onModify,
-                label = { Text("Edit inputs") },
+                compact = true,
             )
         }
 
         // When estimating / loading
         if (state.estimating) {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
+            MotormilaSurface(
+                contentPadding = PaddingValues(32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    CircularProgressIndicator(color = MotormilaPrimary)
-                    Text(
-                        text = "Calibrating live Sri Lanka inventory...",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    )
-                    Text(
-                        text = "Synthesizing district asking prices, mileage adjustments, and hedonic regression curves.",
-                        style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
-                    )
-                }
+                CircularProgressIndicator(
+                    color = MotormilaPrimary,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    text = "Calibrating live Sri Lanka inventory...",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    text = "Synthesizing district asking prices, mileage adjustments, and hedonic regression curves.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
             }
         } else if (r != null) {
             // 1. Fair Market Value Hero Card
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics {
-                        contentDescription = "Valuation ${formatLkr(r.medianLkr)}, confidence ${r.confidence}"
-                    },
+            MotormilaSurface(
+                contentPadding = PaddingValues(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.semantics {
+                    contentDescription = "Valuation ${formatLkr(r.medianLkr)}, confidence ${r.confidence}"
+                },
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -931,20 +847,10 @@ private fun Step03ValuationGuidance(
                         text = "Estimated median based on ${r.comparableCount} comparable listings in Sri Lanka.",
                         style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
                     )
-                }
             }
 
             // 2. FMV Range Bar Card
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "FMV RANGE & CONFIDENCE INTERVAL",
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -1000,7 +906,7 @@ private fun Step03ValuationGuidance(
                             .fillMaxWidth()
                             .height(10.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .background(MotormilaSurface)
+                            .background(MotormilaSurfaceColor)
                             .border(1.dp, MotormilaOutline, RoundedCornerShape(999.dp)),
                     ) {
                         Box(
@@ -1036,20 +942,10 @@ private fun Step03ValuationGuidance(
                             style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
                         )
                     }
-                }
             }
 
             // 3. Strategic Negotiation Angle
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1076,57 +972,18 @@ private fun Step03ValuationGuidance(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(28.dp),
-                            colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
-                            border = BorderStroke(1.dp, MotormilaOutline),
+                        MotormilaMetricTile(
+                            label = "Opening bid",
+                            value = formatLkr((r.medianLkr * 0.90).toLong().toDouble()),
+                            note = "-10% under median",
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text(
-                                    text = "OPENING BID",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText),
-                                )
-                                Text(
-                                    text = formatLkr((r.medianLkr * 0.90).toLong().toDouble()),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MotormilaGood,
-                                    ),
-                                )
-                                Text(
-                                    text = "-10% under median",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText),
-                                )
-                            }
-                        }
-
-                        Card(
-                            shape = RoundedCornerShape(28.dp),
-                            colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
-                            border = BorderStroke(1.dp, MotormilaOutline),
+                        )
+                        MotormilaMetricTile(
+                            label = "Target close",
+                            value = formatLkr((r.medianLkr * 0.95).toLong().toDouble()),
+                            note = "-5% fair settlement",
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text(
-                                    text = "TARGET CLOSE",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText),
-                                )
-                                Text(
-                                    text = formatLkr((r.medianLkr * 0.95).toLong().toDouble()),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MotormilaOnSurface,
-                                    ),
-                                )
-                                Text(
-                                    text = "-5% fair settlement",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText),
-                                )
-                            }
-                        }
+                        )
                     }
 
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1143,20 +1000,10 @@ private fun Step03ValuationGuidance(
                             style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, fontSize = 11.sp),
                         )
                     }
-                }
             }
 
             // 4. Private Seller Fair Ask Guidance
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1180,70 +1027,31 @@ private fun Step03ValuationGuidance(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(28.dp),
-                            colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
-                            border = BorderStroke(1.dp, MotormilaOutline),
+                        MotormilaMetricTile(
+                            label = "Suggested ask",
+                            value = formatLkr((r.medianLkr * 1.04).toLong().toDouble()),
+                            note = "+4% negotiation cushion",
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text("SUGGESTED ASK", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
-                                Text(
-                                    text = formatLkr((r.medianLkr * 1.04).toLong().toDouble()),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MotormilaPrimaryBright,
-                                    ),
-                                )
-                                Text("+4% negotiation cushion", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, color = MotormilaSecondaryText))
-                            }
-                        }
-
-                        Card(
-                            shape = RoundedCornerShape(28.dp),
-                            colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
-                            border = BorderStroke(1.dp, MotormilaOutline),
+                        )
+                        MotormilaMetricTile(
+                            label = "Walkaway floor",
+                            value = formatLkr((r.medianLkr * 0.92).toLong().toDouble()),
+                            note = "-8% firm bottom",
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text("WALKAWAY FLOOR", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
-                                Text(
-                                    text = formatLkr((r.medianLkr * 0.92).toLong().toDouble()),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MotormilaWarn,
-                                    ),
-                                )
-                                Text("-8% firm bottom", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, color = MotormilaSecondaryText))
-                            }
-                        }
-
-                        Card(
-                            shape = RoundedCornerShape(28.dp),
-                            colors = CardDefaults.cardColors(containerColor = MotormilaSurface),
-                            border = BorderStroke(1.dp, MotormilaOutline),
+                        )
+                        MotormilaMetricTile(
+                            label = "Dealer offer",
+                            value = formatLkr((r.medianLkr * 0.85).toLong().toDouble()),
+                            note = "Instant trade-in",
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Column(Modifier.padding(10.dp)) {
-                                Text("DEALER OFFER", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
-                                Text(
-                                    text = formatLkr((r.medianLkr * 0.85).toLong().toDouble()),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MotormilaSecondaryText,
-                                    ),
-                                )
-                                Text("Instant trade-in", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, color = MotormilaSecondaryText))
-                            }
-                        }
+                        )
                     }
 
                     // Copy WhatsApp Pitch
-                    Button(
-                        onClick = {
+                    MotormilaPrimaryButton(
+                        label = if (copiedWhatsApp) "Copied WhatsApp Report!" else "Copy WhatsApp Negotiation Summary",
+                        leadingIcon = if (copiedWhatsApp) Icons.Filled.Check else Icons.Filled.ContentCopy,
+                    ) {
                             val text = "🚗 *Motormila Sri Lanka — Valuation Summary*\n" +
                                 "• Vehicle: ${f.year} ${f.make} ${f.model}\n" +
                                 "• Condition: ${f.condition} | Mileage: ${f.mileageKm} km\n" +
@@ -1255,43 +1063,12 @@ private fun Step03ValuationGuidance(
                                 "Generated via Motormila Live Market Intelligence."
                             clipboard.setText(AnnotatedString(text))
                             copiedWhatsApp = true
-                        },
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MotormilaGood.copy(alpha = 0.15f),
-                            contentColor = MotormilaGoodText,
-                        ),
-                        border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.35f)),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 44.dp),
-                    ) {
-                        Icon(
-                            if (copiedWhatsApp) Icons.Filled.Check else Icons.Filled.ContentCopy,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = if (copiedWhatsApp) "Copied WhatsApp Report!" else "Copy WhatsApp Negotiation Summary",
-                            fontWeight = FontWeight.SemiBold,
-                        )
                     }
-                }
             }
 
             // 5. Comparables
             if (r.comparables.isNotEmpty()) {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
+                MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             text = "LIVE MARKET COMPARABLES",
                             style = MaterialTheme.typography.labelSmall.copy(
@@ -1322,28 +1099,19 @@ private fun Step03ValuationGuidance(
                                         ),
                                     )
                                 }
-                                AssistChip(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                MotormilaChoiceChip(
+                                    label = "View",
+                                    selected = false,
                                     onClick = { onOpenListing(c.id) },
-                                    label = { Text("View") },
+                                    compact = true,
                                 )
                             }
                         }
-                    }
                 }
             }
 
             // Methodology (how the median/range above is derived).
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = "METHODOLOGY",
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -1363,7 +1131,6 @@ private fun Step03ValuationGuidance(
                             lineHeight = 16.sp,
                         ),
                     )
-                }
             }
 
             // Reset & Appraise another
@@ -1371,64 +1138,34 @@ private fun Step03ValuationGuidance(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                OutlinedButton(
-                    onClick = onModify,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp),
-                ) {
-                    Text("Adjust Inputs")
-                }
+                MotormilaGhostButton(
+                    label = "Adjust Inputs",
+                    fillMaxWidth = false,
+                    modifier = Modifier.weight(1f),
+                ) { onModify() }
 
-                Button(
-                    onClick = onReset,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotormilaPrimary,
-                        contentColor = MotormilaOnPrimary,
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp),
-                ) {
-                    Text("Appraise Another")
-                }
+                MotormilaPrimaryButton(
+                    label = "Appraise Another",
+                    fillMaxWidth = false,
+                    modifier = Modifier.weight(1f),
+                ) { onReset() }
             }
         } else {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
+            MotormilaSurface(
+                contentPadding = PaddingValues(24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
                     Text(
                         text = "No valuation active",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
                     )
                     Text(
                         text = "Complete vehicle specifications in Step 1 and Step 2 to generate an appraisal.",
                         style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
                     )
-                    Button(
-                        onClick = onReset,
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MotormilaPrimary,
-                            contentColor = MotormilaOnPrimary,
-                        ),
-                    ) {
-                        Text("Start Appraisal Wizard")
-                    }
-                }
+                    MotormilaPrimaryButton("Start Appraisal Wizard") { onReset() }
             }
         }
     }
@@ -1454,8 +1191,8 @@ private fun GlassTextField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
             unfocusedBorderColor = MotormilaOutline,
-            focusedContainerColor = MotormilaSurface,
-            unfocusedContainerColor = MotormilaSurface,
+            focusedContainerColor = MotormilaSurfaceColor,
+            unfocusedContainerColor = MotormilaSurfaceColor,
             focusedTextColor = MotormilaOnSurface,
             unfocusedTextColor = MotormilaOnSurface,
             focusedLabelColor = MotormilaPrimaryBright,
@@ -1509,24 +1246,13 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                 viewModel.onEvent(ValuationUiEvent.LandedChanged(i.copy(includeRegistration = it)))
             }
             Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = { viewModel.onEvent(ValuationUiEvent.CalcLanded) },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = MotormilaPrimary, contentColor = MotormilaOnPrimary),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) {
-                Text("Calculate landed cost", fontWeight = FontWeight.SemiBold)
+            MotormilaPrimaryButton("Calculate landed cost") {
+                viewModel.onEvent(ValuationUiEvent.CalcLanded)
             }
         }
         state.landed?.let { l ->
             item {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MotormilaSurface(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Breakdown("CIF", l.cifLkr)
                         Breakdown("Excise", l.exciseLkr)
                         Breakdown("VAT 18%", l.vatLkr)
@@ -1542,7 +1268,6 @@ private fun LandedTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                             style = MaterialTheme.typography.labelSmall,
                             color = MotormilaSecondaryText,
                         )
-                    }
                 }
             }
         }
@@ -1592,13 +1317,7 @@ private fun LeaseTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         "Monthly ${formatLkr(viewModel.leaseMonthly().toLong())}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
@@ -1610,7 +1329,6 @@ private fun LeaseTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
-                }
             }
         }
     }
@@ -1643,18 +1361,11 @@ private fun TcoTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp)) {
+            MotormilaSurface {
                     Text(
                         "Monthly ${formatLkr(viewModel.tcoMonthly().toLong())}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
                     )
-                }
             }
         }
     }
@@ -1687,13 +1398,7 @@ private fun BundleTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         "Statutory total ${formatLkr(viewModel.ownershipTotal().toLong())}",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace),
@@ -1702,7 +1407,6 @@ private fun BundleTab(state: ValuationUiState, viewModel: ValuationViewModel) {
                         "Revenue licence + emission + registration renewal (indicative).",
                         style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
                     )
-                }
             }
         }
     }
@@ -1720,19 +1424,19 @@ private fun PermitsTab() {
         item { SectionTitle("Permits & renewals") }
         rows.forEach { (name, cadence) ->
             item {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+                MotormilaSurface {
                     Row(
-                        Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(name, style = MaterialTheme.typography.bodyLarge.copy(color = MotormilaOnSurface))
-                        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text(cadence) })
+                        Text(name, style = MaterialTheme.typography.bodyLarge.copy(color = MotormilaOnSurface), modifier = Modifier.weight(1f))
+                        MotormilaChoiceChip(
+                            label = cadence,
+                            selected = false,
+                            onClick = {},
+                            compact = true,
+                        )
                     }
                 }
             }
@@ -1747,14 +1451,9 @@ private fun DeprecationTab(state: ValuationUiState, viewModel: ValuationViewMode
         item { SectionTitle("Depreciation — written-down value") }
         viewModel.depreciationSchedule(base).forEach { (label, value) ->
             item {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+                MotormilaSurface {
                     Row(
-                        Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
