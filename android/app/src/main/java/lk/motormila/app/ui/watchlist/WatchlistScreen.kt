@@ -1,10 +1,7 @@
 package lk.motormila.app.ui.watchlist
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +21,6 @@ import androidx.compose.material.icons.filled.AddAlert
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,7 +50,6 @@ import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatLkrDelta
 import lk.motormila.app.core.format.formatPct
-import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.HealthRing
@@ -64,6 +58,7 @@ import lk.motormila.app.core.ui.SteeringWheelGraphic
 import lk.motormila.app.domain.model.WatchItem
 import lk.motormila.app.ui.components.MotormilaIconAction
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,14 +142,6 @@ private fun WatchRow(
     onAlert: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    val reducedMotion = rememberReducedMotion()
-    // Price-drop flash: warm tint that settles; static tint under reduced motion.
-    val flashTarget = if (flash) Color(0xFFFFF3C4) else MaterialTheme.colorScheme.surfaceContainerLow
-    val bg by animateColorAsState(
-        targetValue = flashTarget,
-        animationSpec = tween(if (reducedMotion) 0 else 900),
-        label = "priceDropFlash",
-    )
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
@@ -214,18 +201,16 @@ private fun WatchRow(
             }
         },
         content = {
-            Card(
+            MotormilaSurface(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .semantics { contentDescription = "Watched ${item.title} at ${formatLkr(item.priceLkr)}" },
-                colors = CardDefaults.cardColors(containerColor = bg),
                 onClick = onOpen,
+                highlighted = flash,
             ) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(12.dp)
                         .heightIn(min = 48.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
