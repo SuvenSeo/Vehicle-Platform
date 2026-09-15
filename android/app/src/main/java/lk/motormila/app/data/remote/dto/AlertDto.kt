@@ -18,6 +18,8 @@ data class AlertDto(
     @SerialName("notify_email") val notifyEmail: String? = null,
     @SerialName("notify_telegram_chat_id") val notifyTelegramChatId: String? = null,
     @SerialName("notify_channels") val notifyChannels: String? = null,
+    @SerialName("delivery_mode") val deliveryMode: String? = null,
+    @SerialName("quiet_hours_enabled") val quietHoursEnabled: Boolean? = null,
     val active: Boolean = true,
     @SerialName("created_at") val createdAt: String? = null,
 )
@@ -32,6 +34,15 @@ data class CreateAlertRequestDto(
     @SerialName("notify_email") val notifyEmail: String? = null,
     @SerialName("notify_telegram_chat_id") val notifyTelegramChatId: String? = null,
     @SerialName("notify_channels") val notifyChannels: String? = null,
+    @SerialName("delivery_mode") val deliveryMode: String? = null,
+    @SerialName("quiet_hours_enabled") val quietHoursEnabled: Boolean? = null,
+)
+
+@Serializable
+data class AlertChannelsUpdateDto(
+    val channels: List<String>? = null,
+    @SerialName("delivery_mode") val deliveryMode: String? = null,
+    @SerialName("quiet_hours_enabled") val quietHoursEnabled: Boolean? = null,
 )
 
 @Serializable

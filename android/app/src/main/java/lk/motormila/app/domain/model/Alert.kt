@@ -14,6 +14,8 @@ data class Alert(
     val notifyEmail: String?,
     val notifyTelegramChatId: String?,
     val notifyChannels: String?,
+    val deliveryMode: String? = "instant",
+    val quietHoursEnabled: Boolean? = true,
     val active: Boolean = true,
     val createdAt: String?,
 ) {
@@ -31,6 +33,8 @@ data class AlertInput(
     val notifyEmail: String? = null,
     val notifyTelegramChatId: String? = null,
     val notifyChannels: String? = null,
+    val deliveryMode: String? = "instant",
+    val quietHoursEnabled: Boolean? = true,
 )
 
 /** One alert -> matching listings result. Mirrors `AlertMatchResult`. */

@@ -107,13 +107,13 @@ class DealerViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _state.update { it.copy(claiming = true, error = null, offline = false) }
-            // DealerRepository.claim carries dealerName/contactEmail/contactPhone only;
-            // the pattern/URL fields stay form-local (yard-tools v2 wires claimed_url).
             runCatching {
                 repository.claim(
                     dealerName = f.displayName.trim(),
                     contactEmail = f.email.trim(),
                     contactPhone = f.phone.trim().ifBlank { null },
+                    sellerNamePattern = f.pattern.trim().ifBlank { null },
+                    claimedUrl = f.url.trim().ifBlank { null },
                 )
             }.onSuccess { res ->
                 // Token persisted centrally by the impl; re-read it for the UI.

@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,10 +35,11 @@ import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatPct
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.ErrorRetry
-import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.domain.model.UrlBenchmarkResult
 import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
@@ -119,6 +121,10 @@ private fun ClaimStatusCard(state: DealerUiState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            status.displayName?.takeIf { it.isNotBlank() }?.let { BenchmarkRow("Yard", it) }
+            status.matchedListings?.let { BenchmarkRow("Matched listings", it.toString()) }
+            status.sellerNamePattern?.takeIf { it.isNotBlank() }?.let { BenchmarkRow("Pattern", it) }
+            status.claimedUrl?.takeIf { it.isNotBlank() }?.let { BenchmarkRow("Claimed URL", it) }
         } else {
             Text(
                 "Claim saved on this device — pull to refresh to verify with the server.",
@@ -152,7 +158,11 @@ private fun ClaimForm(state: DealerUiState, viewModel: DealerViewModel) {
             viewModel.onEvent(DealerUiEvent.FormChanged(f.copy(url = it)))
         }
         Spacer(Modifier.height(8.dp))
-        PrimaryAction("Claim dealership", onClick = { viewModel.onEvent(DealerUiEvent.Claim) }, loading = state.claiming)
+        MotormilaPrimaryButton(
+            label = "Claim dealership",
+            loading = state.claiming,
+            onClick = { viewModel.onEvent(DealerUiEvent.Claim) },
+        )
     }
 }
 
@@ -202,7 +212,11 @@ private fun BenchmarkCard(state: DealerUiState, viewModel: DealerViewModel) {
                 .semantics { contentDescription = "Benchmark listing URLs, one per line" },
         )
         Spacer(Modifier.height(8.dp))
-        PrimaryAction("Run benchmark", onClick = { viewModel.onEvent(DealerUiEvent.RunBenchmark) }, loading = state.benchmarking)
+        MotormilaPrimaryButton(
+            label = "Run benchmark",
+            loading = state.benchmarking,
+            onClick = { viewModel.onEvent(DealerUiEvent.RunBenchmark) },
+        )
         state.benchmark?.let { b ->
             Spacer(Modifier.height(12.dp))
             BenchmarkRow("Dealer", b.dealerName.ifBlank { "Your yard" })
@@ -226,6 +240,11 @@ private fun BenchmarkCard(state: DealerUiState, viewModel: DealerViewModel) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (b.urlResults.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                SectionTitle("Per URL")
+                b.urlResults.forEach { row -> UrlBenchmarkRow(row) }
+            }
         }
     }
 }
@@ -239,6 +258,55 @@ private fun BenchmarkRow(label: String, value: String) {
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(value, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
+@Composable
+private fun UrlBenchmarkRow(row: UrlBenchmarkResult) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .heightIn(min = 48.dp)
+            .semantics { contentDescription = "Benchmark ${row.url}" },
+    ) {
+        Text(
+            row.url,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Price", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatLkr(row.listingPrice), style = MaterialTheme.typography.titleSmall)
+        }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Median", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatLkr(row.marketMedian), style = MaterialTheme.typography.titleSmall)
+        }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Gap", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(formatPct(row.priceGapPct, 1), style = MaterialTheme.typography.titleSmall)
+        }
+        row.error?.takeIf { it.isNotBlank() }?.let { err ->
+            Text(
+                err,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 }
 
