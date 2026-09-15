@@ -19,8 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +49,7 @@ import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.ListingCard
@@ -231,19 +230,13 @@ private fun MakeHubModelRow(
     val make = entry.make.ifBlank { fallbackMake }
     val price = LkrFormat.price(entry.avgPriceLkr)
     val rowCd = stringResource(R.string.make_hub_cd_model, make, entry.model)
-    Card(
+    MotormilaSurface(
         onClick = { onClick(make, entry.model) },
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = rowCd },
+        modifier = Modifier.semantics { contentDescription = rowCd },
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
                 .heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),

@@ -1,6 +1,5 @@
 package lk.motormila.app.ui.make
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,25 +7,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,15 +39,12 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.ListingCard
 import lk.motormila.app.ui.components.OfflineBanner
-import lk.motormila.app.ui.theme.MotormilaBg
-import lk.motormila.app.ui.theme.MotormilaOnSurface
-import lk.motormila.app.ui.theme.MotormilaOutline
-import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -173,15 +162,12 @@ private fun MakeModelHubBody(
                 title = state.vehicleLabel,
                 description = stringResource(R.string.make_model_hub_description, state.vehicleLabel),
                 trailing = {
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
+                    MotormilaGhostButton(
+                        label = allMakeLabel,
+                        fillMaxWidth = false,
+                        modifier = Modifier.semantics { contentDescription = allMakeCd },
                         onClick = onMakeClick,
-                        modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .semantics { contentDescription = allMakeCd },
-                    ) {
-                        Text(allMakeLabel, color = MotormilaPrimary, fontWeight = FontWeight.SemiBold)
-                    }
+                    )
                 },
             )
         }
@@ -242,18 +228,11 @@ private fun MakeModelHubBody(
             MakeHubBrowseButton(label = browseLabel, onClick = onSeeAllSearch)
         }
         item {
-            OutlinedButton(
+            MotormilaGhostButton(
+                label = estimateLabel,
+                modifier = Modifier.semantics { contentDescription = estimateCd },
                 onClick = onEstimate,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MotormilaOnSurface),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = estimateCd },
-            ) {
-                Text(estimateLabel, fontWeight = FontWeight.SemiBold)
-            }
+            )
         }
         item {
             Text(

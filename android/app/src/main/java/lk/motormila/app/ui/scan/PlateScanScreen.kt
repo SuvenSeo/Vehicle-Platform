@@ -22,8 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +61,7 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.theme.rememberHaptics
 
 /**
@@ -156,21 +155,19 @@ fun PlateScanScreen(
                 val noCamera = stringResource(R.string.scan_no_camera)
                 val rationale = stringResource(R.string.scan_rationale)
                 val needPerm = stringResource(R.string.scan_need_permission)
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            when {
-                                !state.cameraAvailable -> noCamera
-                                state.permissionRationaleVisible -> rationale
-                                else -> needPerm
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (!state.cameraAvailable.not() && !state.permissionGranted) {
-                            PrimaryAction(stringResource(R.string.scan_grant_camera), onClick = {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            })
-                        }
+                MotormilaSurface {
+                    Text(
+                        when {
+                            !state.cameraAvailable -> noCamera
+                            state.permissionRationaleVisible -> rationale
+                            else -> needPerm
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (!state.cameraAvailable.not() && !state.permissionGranted) {
+                        PrimaryAction(stringResource(R.string.scan_grant_camera), onClick = {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        })
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -216,34 +213,29 @@ fun PlateScanScreen(
             state.result?.let { r ->
                 Spacer(Modifier.height(12.dp))
                 val resultDesc = stringResource(R.string.scan_result_desc, state.selectedPlate.orEmpty())
-                Card(
-                    Modifier.fillMaxWidth()
-                        .semantics { contentDescription = resultDesc },
+                MotormilaSurface(
+                    modifier = Modifier.semantics { contentDescription = resultDesc },
                 ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(state.selectedPlate.orEmpty(), style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            if (r.listingsFound > 0) stringResource(R.string.scan_matching, r.listingsFound)
-                            else stringResource(R.string.scan_no_match),
-                            style = MaterialTheme.typography.bodyMedium,
+                    Text(state.selectedPlate.orEmpty(), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        if (r.listingsFound > 0) stringResource(R.string.scan_matching, r.listingsFound)
+                        else stringResource(R.string.scan_no_match),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    r.fmvLkr?.let { Text("FMV ${formatLkr(it)}", style = MaterialTheme.typography.titleSmall) }
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MotormilaChoiceChip(
+                            label = stringResource(R.string.scan_search),
+                            selected = false,
+                            onClick = { onSearchPlate(state.selectedPlate.orEmpty()) },
                         )
-                        r.fmvLkr?.let { Text("FMV ${formatLkr(it)}", style = MaterialTheme.typography.titleSmall) }
-                        Spacer(Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AssistChip(
-                                shape = androidx.compose.foundation.shape.CircleShape,
-                                onClick = { onSearchPlate(state.selectedPlate.orEmpty()) },
-                                label = { Text(stringResource(R.string.scan_search)) },
-                                modifier = Modifier.heightIn(min = 48.dp),
+                        r.listingId?.let { id ->
+                            MotormilaChoiceChip(
+                                label = stringResource(R.string.scan_open_fmv),
+                                selected = false,
+                                onClick = { onOpenFmv(id) },
                             )
-                            r.listingId?.let { id ->
-                                AssistChip(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                    onClick = { onOpenFmv(id) },
-                                    label = { Text(stringResource(R.string.scan_open_fmv)) },
-                                    modifier = Modifier.heightIn(min = 48.dp),
-                                )
-                            }
                         }
                     }
                 }

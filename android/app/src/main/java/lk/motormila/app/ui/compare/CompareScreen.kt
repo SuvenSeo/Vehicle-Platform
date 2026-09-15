@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,10 +27,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,16 +60,14 @@ import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.DealBadge
+import lk.motormila.app.ui.components.MotormilaGlass
 import lk.motormila.app.ui.components.MotormilaIconAction
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.theme.MotormilaBg
-import lk.motormila.app.ui.theme.MotormilaOutline
-import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.MotormilaSurface
-import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
-import lk.motormila.app.ui.theme.MotormilaSurfaceHighest
 
 private val BestCellHighlight = Color(0x2E0A7AFF)
 private val BestCellBorder = Color(0x550A7AFF)
@@ -273,30 +266,13 @@ private fun CompareEmptyState(
 
         Spacer(Modifier.height(24.dp))
 
-        Button(
+        MotormilaPrimaryButton(
+            label = "Browse listings",
+            fillMaxWidth = false,
+            leadingIcon = Icons.Filled.Search,
+            modifier = Modifier.semantics { contentDescription = "Browse listings" },
             onClick = onBrowse,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MotormilaPrimary,
-                contentColor = Color.White,
-            ),
-            shape = androidx.compose.foundation.shape.CircleShape,
-            modifier = Modifier
-                .heightIn(min = 48.dp)
-                .semantics { contentDescription = "Browse listings" },
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(18.dp)
-                    .padding(end = 4.dp),
-            )
-            Text(
-                text = "Browse listings",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-            )
-        }
+        )
     }
 }
 
@@ -397,15 +373,12 @@ private fun VehicleMatrixColumn(
             .padding(end = 10.dp),
     ) {
         // Vehicle Header Card (height 180dp)
-        Card(
+        MotormilaGlass(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .clickable { onOpenDetail() }
                 .semantics { contentDescription = "Vehicle ${listing.displayName}" },
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MotormilaOutline),
+            onClick = onOpenDetail,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Photo header
