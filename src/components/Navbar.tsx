@@ -314,7 +314,7 @@ export function Navbar() {
               {/* Live status pill */}
               <div
                 className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex"
-                title={liveFreshnessLabel}
+                title={`${liveLabel} · ${liveFreshnessLabel}`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
                 <span className="text-[12px] font-medium tracking-tight text-foreground">{liveLabel}</span>

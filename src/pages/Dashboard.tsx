@@ -625,7 +625,7 @@ export default function Dashboard() {
       : "text-foreground [text-shadow:0_1px_18px_hsl(var(--background)/0.55)]";
   const heroMutedTone =
     heroFilmTone === "cinematic"
-      ? "text-white/78 [text-shadow:0_10px_28px_rgba(0,0,0,0.4)]"
+      ? "text-white/92 [text-shadow:0_2px_18px_rgba(0,0,0,0.85),0_8px_32px_rgba(0,0,0,0.55)]"
       : "text-foreground/80 [text-shadow:0_1px_14px_hsl(var(--background)/0.45)]";
   const heroSearchShellClass =
     heroFilmTone === "cinematic"
@@ -784,7 +784,7 @@ export default function Dashboard() {
                           else runHeroSearch();
                         }
                       }}
-                      placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
+                      placeholder="Aqua, Vezel, Wagon R…"
                       spellCheck={false}
                       autoCorrect="off"
                       autoCapitalize="none"

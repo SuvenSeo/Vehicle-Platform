@@ -691,6 +691,7 @@
   }
 
   .hero-signal-float-wrap:hover .hero-signal-card {
+    transform: translateY(-3px);
     box-shadow:
       var(--shadow-lg),
       inset 0 1px 0 var(--glass-top),

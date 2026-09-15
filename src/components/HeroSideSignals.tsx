@@ -119,11 +119,13 @@ export function HeroSideSignals({
                 onClick={onTrendingClick}
                 className="flex w-full items-center gap-3 text-left outline-none transition-transform duration-300 group-hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-primary/25 transition-shadow group-hover:ring-primary/45">
+                <div className="hero-signal-thumb h-14 w-20 shrink-0 bg-black/25 ring-1 ring-primary/25 transition-shadow group-hover:ring-primary/45">
                   <VehicleThumbnail
                     src={trending.thumbnail_url}
                     alt={`${trending.make} ${trending.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    priority
+                    sizes="80px"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
                   />
                 </div>
@@ -150,12 +152,14 @@ export function HeroSideSignals({
                 to={`/listing/${priceDrop.id}`}
                 className="group/drop flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-emerald-400/30 transition-shadow group-hover/drop:ring-emerald-400/55">
+                <div className="hero-signal-thumb h-14 w-20 shrink-0 bg-black/25 ring-1 ring-emerald-400/30 transition-shadow group-hover/drop:ring-emerald-400/55">
                   <VehicleThumbnail
                     src={priceDrop.thumbnail_url}
                     listingId={priceDrop.id}
                     alt={`${priceDrop.make} ${priceDrop.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover/drop:scale-105"
+                    priority
+                    sizes="80px"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover/drop:scale-110"
                     placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
                   />
                 </div>
@@ -207,11 +211,13 @@ export function HeroSideSignals({
                 to={`/listing/${hotDeal.id}`}
                 className="group/deal flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-amber-400/30 transition-shadow group-hover/deal:ring-amber-400/55">
+                <div className="hero-signal-thumb h-14 w-20 shrink-0 bg-black/25 ring-1 ring-amber-400/30 transition-shadow group-hover/deal:ring-amber-400/55">
                   <VehicleThumbnail
                     src={hotDeal.thumbnail_url}
                     alt={`${hotDeal.make} ${hotDeal.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover/deal:scale-105"
+                    priority
+                    sizes="80px"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover/deal:scale-110"
                     placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
                   />
                 </div>

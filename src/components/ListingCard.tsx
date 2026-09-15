@@ -119,7 +119,7 @@ export const ListingCard = memo(function ListingCard({
             priority={priority}
             className="h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-transparent" />
 
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
             <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">

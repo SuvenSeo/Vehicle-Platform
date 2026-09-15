@@ -10,6 +10,7 @@ interface VehicleThumbnailProps {
   placeholderClassName?: string;
   /** First-screen images should load eagerly to protect LCP. */
   priority?: boolean;
+  sizes?: string;
 }
 
 function escapeSvgText(value: string): string {
@@ -53,6 +54,7 @@ export const VehicleThumbnail = memo(function VehicleThumbnail({
   className,
   placeholderClassName,
   priority = false,
+  sizes = "(max-width: 768px) 100vw, 33vw",
 }: VehicleThumbnailProps) {
   const fallbackSrc = useMemo(() => createFallbackThumbnailDataUri(alt), [alt]);
   const proxyUrl = useMemo(() => {
@@ -88,7 +90,7 @@ export const VehicleThumbnail = memo(function VehicleThumbnail({
           className={className}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
-          sizes="(max-width: 768px) 100vw, 33vw"
+          sizes={sizes}
           onError={handleError}
         />
       ) : (
