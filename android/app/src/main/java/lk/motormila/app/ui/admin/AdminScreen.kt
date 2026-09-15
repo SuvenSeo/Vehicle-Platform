@@ -174,11 +174,17 @@ private fun InvitesPane(
                 )
                 if (state.lastInviteToken != null) {
                     Spacer(Modifier.height(10.dp))
-                    Text("Invite token copied below — share the sign-up link.", fontSize = 12.sp, color = MotormilaGoodText)
+                    Text("Invite token — copy the token or the sign-up link.", fontSize = 12.sp, color = MotormilaGoodText)
                     Text(state.lastInviteToken, fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = MotormilaPrimaryBright)
                     Spacer(Modifier.height(8.dp))
                     MotormilaGhostButton("Copy token") {
                         clipboard.setText(AnnotatedString(state.lastInviteToken))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    MotormilaGhostButton("Copy sign-up link") {
+                        clipboard.setText(
+                            AnnotatedString("https://motormila.vercel.app/sign-up?token=${state.lastInviteToken}"),
+                        )
                     }
                 }
                 if (state.error != null) {

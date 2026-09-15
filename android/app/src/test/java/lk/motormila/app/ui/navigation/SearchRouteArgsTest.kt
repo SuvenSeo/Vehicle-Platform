@@ -126,6 +126,13 @@ class SearchRouteArgsTest {
         val compare = resolveMotormilaDeepLink("https://motormila.vercel.app/compare?ids=1,2,9")
         assertTrue(compare is Compare)
         assertEquals(listOf(1, 2, 9), (compare as Compare).ids)
+        val compareSlug = resolveMotormilaDeepLink("https://motormila.vercel.app/compare/12-vs-45")
+        assertTrue(compareSlug is Compare)
+        assertEquals(listOf(12, 45), (compareSlug as Compare).ids)
+        assertEquals(
+            listOf(4, 5),
+            (resolveMotormilaDeepLink("motormila://compare/4-vs-5") as Compare).ids,
+        )
         assertTrue(resolveMotormilaDeepLink("motormila://estimate") is Valuation)
         assertTrue(resolveMotormilaDeepLink("motormila://compare?ids=4,5") is Compare)
     }

@@ -435,6 +435,7 @@ Compose, so MainActivity parses VIEW URIs and navigates after splash):
 | `https://motormila.vercel.app/estimate` | `Valuation` |
 | `https://motormila.vercel.app/best-picks` | `BestPicks` |
 | `https://motormila.vercel.app/compare?ids=` | `Compare` |
+| `https://motormila.vercel.app/compare/12-vs-45` | `Compare` |
 | `https://motormila.vercel.app/dealer` | `Dealer` |
 | `https://motormila.vercel.app/settings` | `Settings` |
 | `https://motormila.vercel.app/alerts` | `Alerts` |

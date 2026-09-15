@@ -202,11 +202,7 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             return segments[1].toIntOrNull()?.let { OfficialPulseDetail(it) }
         }
         if (segments.firstOrNull() == "compare") {
-            val ids = parsed.query["ids"]
-                ?.split(',')
-                ?.mapNotNull { it.trim().toIntOrNull() }
-                .orEmpty()
-            return Compare(ids)
+            return Compare(compareIds(parsed, slugSegment = segments.getOrNull(1)))
         }
         return when (segments.firstOrNull()) {
             "calculator" -> Calculator
@@ -278,13 +274,7 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             make = parsed.queryOrNull("make"),
             model = parsed.queryOrNull("model"),
         )
-        "compare" -> {
-            val ids = parsed.query["ids"]
-                ?.split(',')
-                ?.mapNotNull { it.trim().toIntOrNull() }
-                .orEmpty()
-            Compare(ids)
-        }
+        "compare" -> Compare(compareIds(parsed, slugSegment = segments.firstOrNull()))
         "dealer" -> Dealer
         "settings" -> Settings
         "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
@@ -301,6 +291,18 @@ private fun loginDestination(parsed: ParsedDeepLink, signup: Boolean): Login {
         token = token,
         signup = signup || !token.isNullOrBlank(),
     )
+}
+
+private fun compareIds(parsed: ParsedDeepLink, slugSegment: String?): List<Int> {
+    val fromQuery = parsed.query["ids"]
+        ?.split(',')
+        ?.mapNotNull { it.trim().toIntOrNull()?.takeIf { id -> id > 0 } }
+        .orEmpty()
+    val fromSlug = slugSegment
+        ?.split("-vs-")
+        ?.mapNotNull { it.trim().toIntOrNull()?.takeIf { id -> id > 0 } }
+        .orEmpty()
+    return (fromQuery + fromSlug).distinct()
 }
 
 private fun ParsedDeepLink.queryOrNull(key: String): String? =
