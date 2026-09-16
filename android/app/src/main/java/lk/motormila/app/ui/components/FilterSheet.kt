@@ -8,18 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -157,26 +152,23 @@ fun FilterSheet(
             )
             Spacer(Modifier.height(8.dp))
 
-            // Sticky CTA row.
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedButton(
+                MotormilaGhostButton(
+                    label = "Reset",
                     onClick = {
                         draft = FilterDraft()
                         onReset()
                     },
-                    shape = CircleShape,
                     modifier = Modifier.weight(1f),
-                ) { Text("Reset") }
-                Button(
+                )
+                MotormilaPrimaryButton(
+                    label = if (resultCount != null) "Show $resultCount results" else "Apply filters",
                     onClick = { onApply(draft.toQuery(current)) },
-                    shape = CircleShape,
                     modifier = Modifier.weight(2f),
-                ) {
-                    Text(if (resultCount != null) "Show $resultCount results" else "Apply filters")
-                }
+                )
             }
             Spacer(Modifier.height(8.dp))
         }
@@ -207,12 +199,10 @@ private fun ChipFlow(
     ) {
         options.forEach { option ->
             val isSel = selected.equals(option, ignoreCase = true)
-            FilterChip(
+            MotormilaChoiceChip(
+                label = option,
                 selected = isSel,
                 onClick = { onSelect(if (isSel) null else option) },
-                shape = CircleShape,
-                label = { Text(option) },
-                modifier = Modifier.heightIn(min = 48.dp),
             )
         }
     }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,18 +17,14 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -35,9 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import lk.motormila.app.domain.model.Listing
-import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
 import lk.motormila.app.ui.theme.MotormilaPill
-import lk.motormila.app.ui.theme.liquidGlass
+import lk.motormila.app.ui.theme.MotormilaSecondaryText
 
 /**
  * Docked search field + suggestions dropdown + voice slot + recent searches.
@@ -87,14 +83,11 @@ fun SearchBar(
             modifier = Modifier.fillMaxWidth(),
         )
         if (showDropdown && (suggestions.isNotEmpty() || (query.isBlank() && recentSearches.isNotEmpty()))) {
-            Card(
+            MotormilaGlass(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp)
-                    .liquidGlass(RoundedCornerShape(28.dp), fill = MotormilaGlassFillStrong),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                shape = RoundedCornerShape(28.dp),
+                    .padding(top = 6.dp),
+                specular = true,
             ) {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     if (query.isBlank()) {
@@ -102,11 +95,12 @@ fun SearchBar(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
                                     .clickable { onRecentClick(recent) }
                                     .padding(horizontal = 16.dp, vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(Icons.Filled.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Filled.History, contentDescription = null, tint = MotormilaSecondaryText)
                                 Spacer(Modifier.width(12.dp))
                                 Text(recent, fontSize = 14.sp)
                             }
@@ -116,6 +110,7 @@ fun SearchBar(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
                                     .clickable { onSuggestionClick(s) }
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -134,7 +129,7 @@ fun SearchBar(
                                     Text(
                                         s.formattedPrice(),
                                         fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = MotormilaSecondaryText,
                                     )
                                 }
                             }

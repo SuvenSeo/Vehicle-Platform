@@ -55,9 +55,10 @@ data class PriceIndexPoint(
 
 /** Mirrors backend `PriceIndexResponse` (free tier: newest N months, no segments). */
 data class PriceIndex(
-    val basePeriod: String?,
-    val latestPeriod: String?,
+    val basePeriod: String? = null,
+    val latestPeriod: String? = null,
     val points: List<PriceIndexPoint> = emptyList(),
+    val segments: Map<String, List<PriceIndexPoint>> = emptyMap(),
     val methodology: String = "",
 )
 
@@ -146,6 +147,8 @@ data class ChargingStation(
     val distanceKm: Double?,
     val status: String?,
     val connectors: List<String>,
+    val lat: Double? = null,
+    val lng: Double? = null,
 )
 
 /** Vehicle news card. Mirrors backend `VehicleNewsItemDto`. */

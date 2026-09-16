@@ -16,6 +16,7 @@ val MotormilaTypography = Typography(
         fontWeight = FontWeight.SemiBold, // 600
         fontSize = 48.sp,
         lineHeight = 52.sp,
+        letterSpacing = (-1.2).sp,
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.Monospace,
@@ -28,6 +29,7 @@ val MotormilaTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
+        letterSpacing = (-0.4).sp,
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.Default,

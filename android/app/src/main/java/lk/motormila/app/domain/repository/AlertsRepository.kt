@@ -11,6 +11,12 @@ interface AlertsRepository {
     suspend fun refresh(): List<Alert>
     suspend fun create(input: AlertInput): Alert
     suspend fun update(id: Int, input: AlertInput): Alert
+    suspend fun updateChannels(
+        id: Int,
+        channels: List<String>?,
+        deliveryMode: String?,
+        quietHoursEnabled: Boolean?,
+    ): Alert
     suspend fun delete(id: Int)
     suspend fun setActive(id: Int, active: Boolean): Alert
     suspend fun match(id: Int, limit: Int = 10): AlertMatch

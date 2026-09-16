@@ -283,7 +283,7 @@ private fun AIChatHeader(
                 IconButton(
                     onClick = onClose,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(MotormilaSurfaceHigh)
                         .border(0.5.dp, MotormilaOutline, CircleShape),

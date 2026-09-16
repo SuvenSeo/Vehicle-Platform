@@ -47,21 +47,15 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,6 +97,11 @@ import lk.motormila.app.ui.components.FmvGauge
 import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.LoadingSkeletonChart
 import lk.motormila.app.ui.components.LockedValue
+import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaIconAction
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.PriceChart
 import lk.motormila.app.ui.navigation.LocalNavAnimatedVisibilityScope
@@ -118,7 +117,7 @@ import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaPrimaryGlow
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
+import lk.motormila.app.ui.theme.MotormilaSurface as MotormilaSurfaceColor
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaSurfaceHighest
 import lk.motormila.app.ui.theme.MotormilaTeal
@@ -161,44 +160,27 @@ fun ListingDetailScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(state.listing?.displayName ?: "Listing", maxLines = 1, fontSize = 16.sp) },
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.toggleWatch() },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(
-                            if (state.isWatched) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (state.isWatched) "Remove from watchlist" else "Save to watchlist",
-                            tint = if (state.isWatched) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            state.listing?.let { shareListing(context, it, state.fmv) }
-                        },
-                        modifier = Modifier.size(48.dp),
-                    ) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share listing")
-                    }
-                },
+    MotormilaPage(
+        title = state.listing?.displayName ?: "Listing",
+        onBack = onBack,
+        actions = {
+            MotormilaIconAction(
+                icon = if (state.isWatched) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                contentDescription = if (state.isWatched) "Remove from watchlist" else "Save to watchlist",
+                onClick = { viewModel.toggleWatch() },
+                tint = if (state.isWatched) MaterialTheme.colorScheme.error else MotormilaOnSurface,
+            )
+            MotormilaIconAction(
+                icon = Icons.Filled.Share,
+                contentDescription = "Share listing",
+                onClick = { state.listing?.let { shareListing(context, it, state.fmv) } },
             )
         },
-    ) { padding ->
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isLoading,
             onRefresh = viewModel::retry,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading && state.listing == null -> {
@@ -257,13 +239,11 @@ fun ListingDetailScreen(
                         }
                         if (state.fmv != null) {
                             item {
-                                Card(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                                MotormilaSurface(modifier = Modifier.padding(horizontal = 16.dp)) {
                                     FmvGauge(
                                         fmv = state.fmv!!,
                                         onExplainClick = { showFmvExplain = true },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
+                                        modifier = Modifier.fillMaxWidth(),
                                     )
                                 }
                             }
@@ -315,8 +295,8 @@ fun ListingDetailScreen(
                         item {
                             DeepLinksRow(
                                 onEstimate = onEstimate,
-                                onTax = { openUrl(context, "https://motormila.vercel.app/calculators") },
-                                onLease = { openUrl(context, "https://motormila.vercel.app/calculators#lease") },
+                                onTax = onEstimate,
+                                onLease = onEstimate,
                                 onMap = {
                                     val q = "${listing.district ?: ""} ${listing.city ?: ""}".trim()
                                     openUrl(context, "https://www.openstreetmap.org/search?query=${q.ifBlank { "Sri Lanka" }}")
@@ -348,11 +328,11 @@ fun ListingDetailScreen(
                                         )
                                     }
                                 }
-                                OutlinedButton(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                MotormilaGhostButton(
+                                    label = "Compare with similar",
                                     onClick = { onCompare(listOf(listingId) + state.similar.take(2).map { it.id }) },
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                ) { Text("Compare with similar") }
+                                )
                             }
                         }
                         item {
@@ -362,47 +342,23 @@ fun ListingDetailScreen(
                                     .padding(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Button(
+                                MotormilaPrimaryButton(
+                                    label = "VIEW ON ${listing.source?.uppercase()?.ifBlank { "SOURCE" } ?: "IKMAN"}",
                                     onClick = {
                                         val url = listing.externalUrl ?: listing.detailUrl
                                         if (url != null) openUrl(context, url)
                                     },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MotormilaPrimary,
-                                        contentColor = Color.White,
-                                    ),
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    fillMaxWidth = false,
+                                    leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
                                     modifier = Modifier.weight(1f),
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        "VIEW ON ${listing.source?.uppercase()?.ifBlank { "SOURCE" } ?: "IKMAN"}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                    )
-                                }
-                                OutlinedButton(
+                                )
+                                MotormilaGhostButton(
+                                    label = "SHARE ON WHATSAPP",
                                     onClick = { shareWhatsApp(context, listing, state.fmv) },
-                                    border = BorderStroke(1.2.dp, MotormilaGood),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = MotormilaGoodContainer,
-                                        contentColor = MotormilaGoodText,
-                                    ),
-                                    shape = androidx.compose.foundation.shape.CircleShape,
+                                    fillMaxWidth = false,
+                                    leadingIcon = Icons.AutoMirrored.Filled.Chat,
                                     modifier = Modifier.weight(1f),
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        "SHARE ON WHATSAPP",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MotormilaGoodText,
-                                        maxLines = 1,
-                                    )
-                                }
+                                )
                             }
                         }
                     }
@@ -427,7 +383,7 @@ fun ListingDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(16.dp))
-                Button(shape = androidx.compose.foundation.shape.CircleShape, onClick = onEstimate, modifier = Modifier.fillMaxWidth()) { Text("Get full estimate") }
+                MotormilaPrimaryButton(label = "Get full estimate", onClick = onEstimate)
                 Spacer(Modifier.height(12.dp))
             }
         }
@@ -671,95 +627,27 @@ private fun HeroActionsRow(
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        // View on Source Button (e.g. VIEW ON IKMAN in MotormilaPrimary)
-        Button(
+        MotormilaPrimaryButton(
+            label = "VIEW ON $sourceName",
+            fillMaxWidth = false,
+            leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+            modifier = Modifier.weight(1.1f),
             onClick = onViewSource,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MotormilaPrimary,
-                contentColor = Color.White,
-            ),
-            shape = androidx.compose.foundation.shape.CircleShape,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
-            modifier = Modifier
-                .weight(1.1f)
-                .heightIn(min = 48.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = "VIEW ON $sourceName",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                    maxLines = 1,
-                )
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-        }
-
-        // WhatsApp Share Button (SHARE ON WHATSAPP with emerald border/icon)
-        OutlinedButton(
+        )
+        MotormilaGhostButton(
+            label = "SHARE ON WHATSAPP",
+            fillMaxWidth = false,
+            leadingIcon = Icons.AutoMirrored.Filled.Chat,
+            modifier = Modifier.weight(1.2f),
             onClick = onShareWhatsApp,
-            border = BorderStroke(1.2.dp, MotormilaGood),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = MotormilaGoodContainer,
-                contentColor = MotormilaGoodText,
-            ),
-            shape = androidx.compose.foundation.shape.CircleShape,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
-            modifier = Modifier
-                .weight(1.2f)
-                .heightIn(min = 48.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = null,
-                    tint = MotormilaGood,
-                    modifier = Modifier.size(14.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "SHARE ON WHATSAPP",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                    color = MotormilaGoodText,
-                    maxLines = 1,
-                )
-            }
-        }
-
-        // Quick Share Icon Button (48dp target).
-        Surface(
+        )
+        MotormilaIconAction(
+            icon = Icons.Filled.Share,
+            contentDescription = "Share listing",
             onClick = onShare,
-            shape = RoundedCornerShape(28.dp),
-            color = MotormilaSurfaceHigh,
-            border = BorderStroke(1.dp, MotormilaOutline),
-            modifier = Modifier
-                .size(48.dp)
-                .semantics { contentDescription = "Share listing" },
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Filled.Share,
-                    contentDescription = "Share",
-                    tint = MotormilaOnSurface,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
+        )
     }
 }
 
@@ -767,16 +655,14 @@ private fun HeroActionsRow(
 @Composable
 private fun DealLadder(askingLkr: Double?, fmvLkr: Double?, modifier: Modifier = Modifier) {
     if (askingLkr == null || fmvLkr == null || fmvLkr <= 0) return
-    Card(modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp)) {
-            Text("Deal ladder", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(Modifier.height(8.dp))
-            val low = fmvLkr * 0.9
-            val high = fmvLkr * 1.1
-            LadderRung("Great buy", low, askingLkr <= low)
-            LadderRung("Fair (FMV)", fmvLkr, askingLkr in low..high)
-            LadderRung("High", high, askingLkr > high)
-        }
+    MotormilaSurface(modifier = modifier) {
+        Text("Deal ladder", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Spacer(Modifier.height(8.dp))
+        val low = fmvLkr * 0.9
+        val high = fmvLkr * 1.1
+        LadderRung("Great buy", low, askingLkr <= low)
+        LadderRung("Fair (FMV)", fmvLkr, askingLkr in low..high)
+        LadderRung("High", high, askingLkr > high)
     }
 }
 
@@ -888,7 +774,7 @@ private fun BentoCell(item: BentoSpecItem, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
+        color = MotormilaSurfaceColor,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
         Column(
@@ -958,7 +844,7 @@ private fun LeasePaymentCalculator(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
+        color = MotormilaSurfaceColor,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
         Column(
@@ -1305,7 +1191,7 @@ private fun ImportDutyEstimator(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
+        color = MotormilaSurfaceColor,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
         Column(
@@ -1530,54 +1416,52 @@ private fun HistorySection(
     fmvLkr: Double?,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp)) {
-            Text("Price history", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(Modifier.height(8.dp))
-            if (history == null || history.points.size < 2) {
+    MotormilaSurface(modifier = modifier) {
+        Text("Price history", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Spacer(Modifier.height(8.dp))
+        if (history == null || history.points.size < 2) {
+            Text(
+                if (history == null) "Loading price history…" else "Only one price point so far — check back after the next scrape.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            PriceChart(points = history.points, fmvLkr = fmvLkr, modifier = Modifier.fillMaxWidth())
+            val change = history.changePct
+            if (change != null) {
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    if (history == null) "Loading price history…" else "Only one price point so far — check back after the next scrape.",
+                    "Overall ${LkrFormat.deltaPct(change)} · ${history.cutCount} cuts · ${history.raiseCount} rises",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                PriceChart(points = history.points, fmvLkr = fmvLkr, modifier = Modifier.fillMaxWidth())
-                val change = history.changePct
-                if (change != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Overall ${LkrFormat.deltaPct(change)} · ${history.cutCount} cuts · ${history.raiseCount} rises",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
-            val flags = report?.flags.orEmpty()
-            if (flags.isNotEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                Text("Ownership flags", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Spacer(Modifier.height(4.dp))
-                flags.forEach { flag ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 3.dp)
-                            .semantics { contentDescription = "${flag.severity}: ${flag.detail}" },
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Icon(
-                            Icons.Filled.Warning,
-                            contentDescription = null,
-                            tint = if (flag.severity.equals("critical", ignoreCase = true)) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.secondary
-                            },
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(flag.detail, fontSize = 12.sp)
-                    }
+        }
+        val flags = report?.flags.orEmpty()
+        if (flags.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Text("Ownership flags", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Spacer(Modifier.height(4.dp))
+            flags.forEach { flag ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 3.dp)
+                        .semantics { contentDescription = "${flag.severity}: ${flag.detail}" },
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = if (flag.severity.equals("critical", ignoreCase = true)) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.secondary
+                        },
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(flag.detail, fontSize = 12.sp)
                 }
             }
         }
@@ -1595,7 +1479,7 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
+        color = MotormilaSurfaceColor,
         border = BorderStroke(1.dp, MotormilaOutline),
     ) {
         Column(
@@ -1708,35 +1592,24 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
             val whatsapp = seller?.primaryWhatsapp
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(
+                MotormilaGhostButton(
+                    label = "Call",
+                    fillMaxWidth = false,
+                    leadingIcon = Icons.Filled.Call,
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         if (phone != null) context.startActivity(Intent(Intent.ACTION_DIAL, "tel:$phone".toUri()))
                     },
-                    enabled = phone != null,
-                    shape = androidx.compose.foundation.shape.CircleShape,
+                )
+                MotormilaGhostButton(
+                    label = "WhatsApp",
+                    fillMaxWidth = false,
+                    leadingIcon = Icons.AutoMirrored.Filled.Chat,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Call")
-                }
-                OutlinedButton(
                     onClick = {
                         if (whatsapp != null) openUrl(context, "https://wa.me/${whatsapp.filter(Char::isDigit)}")
                     },
-                    enabled = whatsapp != null,
-                    border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.5f)),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = MotormilaGoodContainer,
-                        contentColor = MotormilaGoodText,
-                    ),
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, tint = MotormilaGood, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("WhatsApp", fontWeight = FontWeight.Bold, color = MotormilaGoodText)
-                }
+                )
             }
         }
     }
@@ -1744,8 +1617,8 @@ private fun SellerCard(seller: SellerProfile?, modifier: Modifier = Modifier) {
 
 @Composable
 private fun SafetyCard(modifier: Modifier = Modifier) {
-    Card(modifier.fillMaxWidth()) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+    MotormilaSurface(modifier = modifier) {
+        Row(verticalAlignment = Alignment.Top) {
             Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
             Spacer(Modifier.width(8.dp))
             Text(
@@ -1766,51 +1639,50 @@ private fun DeepLinksRow(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(
-            shape = androidx.compose.foundation.shape.CircleShape,
+        MotormilaGhostButton(
+            label = "Estimate",
+            fillMaxWidth = false,
+            modifier = Modifier.weight(1f),
             onClick = onEstimate,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-        ) { Text("Estimate", fontSize = 12.sp) }
-        OutlinedButton(
-            shape = androidx.compose.foundation.shape.CircleShape,
+        )
+        MotormilaGhostButton(
+            label = "Tax",
+            fillMaxWidth = false,
+            modifier = Modifier.weight(1f),
             onClick = onTax,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-        ) { Text("Tax", fontSize = 12.sp) }
-        OutlinedButton(
-            shape = androidx.compose.foundation.shape.CircleShape,
+        )
+        MotormilaGhostButton(
+            label = "Lease",
+            fillMaxWidth = false,
+            modifier = Modifier.weight(1f),
             onClick = onLease,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-        ) { Text("Lease", fontSize = 12.sp) }
-        OutlinedButton(
-            shape = androidx.compose.foundation.shape.CircleShape,
+        )
+        MotormilaGhostButton(
+            label = "Map",
+            fillMaxWidth = false,
+            modifier = Modifier.weight(1f),
             onClick = onMap,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 48.dp),
-        ) { Text("Map", fontSize = 12.sp) }
+        )
     }
 }
 
 @Composable
 private fun SimilarMiniCard(title: String, imageUrl: String?, price: String, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.width(180.dp)) {
-        Column {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "Photo of $title",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxWidth().height(90.dp),
-            )
-            Column(Modifier.padding(8.dp)) {
-                Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                Text(price, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-            }
+    MotormilaSurface(
+        onClick = onClick,
+        fillMaxWidth = false,
+        modifier = Modifier.width(180.dp),
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Photo of $title",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().height(90.dp),
+        )
+        Column(Modifier.padding(8.dp)) {
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text(price, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
         }
     }
 }

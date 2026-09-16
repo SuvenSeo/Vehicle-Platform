@@ -55,6 +55,8 @@ class SearchRouteArgsTest {
         assertTrue(isBottomBarRoute(Home::class.qualifiedName))
         assertTrue(isBottomBarRoute(Search::class.qualifiedName))
         assertTrue(isBottomBarRoute(Watchlist::class.qualifiedName))
+        assertTrue(isBottomBarRoute(Insights::class.qualifiedName))
+        assertTrue(isBottomBarRoute(Profile::class.qualifiedName))
         assertFalse(isBottomBarRoute(ListingDetail::class.qualifiedName))
         assertFalse(isBottomBarRoute(null))
     }
@@ -75,6 +77,19 @@ class SearchRouteArgsTest {
         assertEquals("Colombo", (district as DistrictHub).district)
 
         assertTrue(resolveMotormilaDeepLink("motormila://calculator") is Calculator)
+        assertTrue(resolveMotormilaDeepLink("motormila://pricing") is Pricing)
+        assertTrue(resolveMotormilaDeepLink("motormila://docs") is Docs)
+        assertTrue(resolveMotormilaDeepLink("motormila://admin") is Admin)
+        assertTrue(resolveMotormilaDeepLink("motormila://chargers") is EvChargers)
+        assertTrue(resolveMotormilaDeepLink("motormila://privacy") is Privacy)
+        assertTrue(resolveMotormilaDeepLink("motormila://terms") is Terms)
+        assertTrue(resolveMotormilaDeepLink("motormila://permits") is Permits)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/price-index") is PriceIndex)
+        assertTrue(resolveMotormilaDeepLink("motormila://price-index") is PriceIndex)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/trends") is Insights)
+        val guide = resolveMotormilaDeepLink("https://motormila.vercel.app/official-pulse/guide/dmt_registrations")
+        assertTrue(guide is PulseGuide)
+        assertEquals("dmt_registrations", (guide as PulseGuide).key)
         assertTrue(resolveMotormilaDeepLink("motormila://pulse/12") is OfficialPulseDetail)
         assertEquals(12, (resolveMotormilaDeepLink("motormila://pulse/12") as OfficialPulseDetail).id)
         assertTrue(
@@ -88,6 +103,38 @@ class SearchRouteArgsTest {
         assertTrue(
             resolveMotormilaDeepLink("https://motormila.vercel.app/cars/toyota/aqua") is MakeModelHub,
         )
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/") is Home)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/estimate") is Valuation)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/best-picks") is BestPicks)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/dealer") is Dealer)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/settings") is Settings)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/alerts") is Alerts)
+        val signIn = resolveMotormilaDeepLink("https://motormila.vercel.app/sign-in")
+        assertTrue(signIn is Login)
+        assertEquals(false, (signIn as Login).signup)
+        assertNull(signIn.token)
+        val signUp = resolveMotormilaDeepLink("https://motormila.vercel.app/sign-up?token=invite-abc")
+        assertTrue(signUp is Login)
+        assertEquals(true, (signUp as Login).signup)
+        assertEquals("invite-abc", signUp.token)
+        val motormilaSignup = resolveMotormilaDeepLink("motormila://sign-up?token=from-app")
+        assertTrue(motormilaSignup is Login)
+        assertEquals("from-app", (motormilaSignup as Login).token)
+        assertTrue(motormilaSignup.signup)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/pro") is Pro)
+        assertTrue(resolveMotormilaDeepLink("https://motormila.vercel.app/official-pulse") is OfficialPulse)
+        val compare = resolveMotormilaDeepLink("https://motormila.vercel.app/compare?ids=1,2,9")
+        assertTrue(compare is Compare)
+        assertEquals(listOf(1, 2, 9), (compare as Compare).ids)
+        val compareSlug = resolveMotormilaDeepLink("https://motormila.vercel.app/compare/12-vs-45")
+        assertTrue(compareSlug is Compare)
+        assertEquals(listOf(12, 45), (compareSlug as Compare).ids)
+        assertEquals(
+            listOf(4, 5),
+            (resolveMotormilaDeepLink("motormila://compare/4-vs-5") as Compare).ids,
+        )
+        assertTrue(resolveMotormilaDeepLink("motormila://estimate") is Valuation)
+        assertTrue(resolveMotormilaDeepLink("motormila://compare?ids=4,5") is Compare)
     }
 
     @Test

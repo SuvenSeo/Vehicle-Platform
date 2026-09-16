@@ -9,8 +9,11 @@ import lk.motormila.app.core.network.AuthInterceptor
 import lk.motormila.app.data.local.datastore.SessionStore
 import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.LoginRequest
+import lk.motormila.app.data.remote.dto.SelfSignupRequestDto
 import lk.motormila.app.data.remote.dto.SignupRequest
+import lk.motormila.app.data.remote.dto.TokenResponse
 import lk.motormila.app.di.IoDispatcher
+import lk.motormila.app.domain.model.SelfSignupStatus
 import lk.motormila.app.domain.model.UserSession
 import lk.motormila.app.domain.repository.AuthRepository
 
@@ -80,6 +83,26 @@ class AuthRepositoryImpl @Inject constructor(
             session
         }
 
+    override suspend fun selfSignupStatus(): SelfSignupStatus = withContext(io) {
+        val dto = api.selfSignupStatus()
+        SelfSignupStatus(enabled = dto.enabled, trialDays = dto.trialDays, plan = dto.plan)
+    }
+
+    override suspend fun selfSignup(name: String, email: String, password: String): UserSession =
+        withContext(io) {
+            persistToken(
+                api.selfSignup(
+                    SelfSignupRequestDto(
+                        email = email.trim(),
+                        name = name.trim().ifBlank { email.substringBefore("@") },
+                        password = password,
+                    ),
+                ),
+                fallbackEmail = email,
+                fallbackName = name,
+            )
+        }
+
     override suspend fun logout() = withContext(io) {
         runCatching { api.logout() }
         sessionStore.clear()
@@ -90,5 +113,24 @@ class AuthRepositoryImpl @Inject constructor(
         val session = sessionStore.rehydrate()
         authInterceptor.updateToken(session?.token)
         session
+    }
+
+    private suspend fun persistToken(
+        res: TokenResponse,
+        fallbackEmail: String,
+        fallbackName: String,
+    ): UserSession {
+        val session = UserSession(
+            email = res.user.email.ifBlank { fallbackEmail },
+            name = res.user.name.ifBlank { fallbackName }.ifBlank { null },
+            plan = res.user.plan.ifBlank { "free" },
+            role = res.user.role.ifBlank { "user" },
+            subscriptionStatus = res.user.subscriptionStatus,
+            token = res.token,
+            expiresAt = SessionStore.epochToIso(res.expiresAt),
+        )
+        sessionStore.saveSession(session)
+        authInterceptor.updateToken(session.token)
+        return session
     }
 }

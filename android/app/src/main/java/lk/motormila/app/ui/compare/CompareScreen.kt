@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,20 +27,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,14 +60,14 @@ import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.DealBadge
+import lk.motormila.app.ui.components.MotormilaGlass
+import lk.motormila.app.ui.components.MotormilaIconAction
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.theme.MotormilaBg
-import lk.motormila.app.ui.theme.MotormilaOutline
-import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.MotormilaSurface
-import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
-import lk.motormila.app.ui.theme.MotormilaSurfaceHighest
 
 private val BestCellHighlight = Color(0x2E0A7AFF)
 private val BestCellBorder = Color(0x550A7AFF)
@@ -112,57 +103,27 @@ fun CompareScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = if (state.items.isEmpty()) "Vehicle Comparison" else "Vehicle Comparison (${state.items.size}/${CompareUiState.MAX_IDS})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBrowse) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                        )
-                    }
-                },
-                actions = {
-                    if (state.items.size < CompareUiState.MAX_IDS) {
-                        IconButton(
-                            onClick = onAddListing,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .semantics { contentDescription = "Add listing to compare" },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Add,
-                                contentDescription = "Add listing",
-                                tint = MotormilaPrimaryBright,
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
-                    actionIconContentColor = MotormilaPrimaryBright,
-                ),
-            )
+    MotormilaPage(
+        title = if (state.items.isEmpty()) "Compare" else "Compare (${state.items.size}/${CompareUiState.MAX_IDS})",
+        onBack = onBrowse,
+        snackbarHostState = snacks,
+        actions = {
+            if (state.items.size < CompareUiState.MAX_IDS) {
+                MotormilaIconAction(
+                    icon = Icons.Filled.Add,
+                    contentDescription = "Add listing to compare",
+                    onClick = onAddListing,
+                    tint = MotormilaPrimaryBright,
+                )
+            }
         },
-        snackbarHost = { SnackbarHost(snacks) },
-        containerColor = MotormilaBg,
-    ) { padding ->
+    ) {
         when {
             state.isLoading -> {
-                Box(Modifier.fillMaxSize().padding(padding)) { SkeletonList() }
+                Box(Modifier.fillMaxSize()) { SkeletonList() }
             }
             state.error != null && state.items.isEmpty() -> {
-                Box(Modifier.fillMaxSize().padding(padding)) {
+                Box(Modifier.fillMaxSize()) {
                     ErrorRetry(
                         message = state.error ?: "Error loading comparison",
                         onRetry = { viewModel.onEvent(CompareUiEvent.Refresh) },
@@ -171,9 +132,7 @@ fun CompareScreen(
             }
             state.items.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     CompareEmptyState(onBrowse = onBrowse)
@@ -183,7 +142,6 @@ fun CompareScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
                         .verticalScroll(rememberScrollState()),
                 ) {
                     // Eyebrow & Header section matching web platform
@@ -308,30 +266,13 @@ private fun CompareEmptyState(
 
         Spacer(Modifier.height(24.dp))
 
-        Button(
+        MotormilaPrimaryButton(
+            label = "Browse listings",
+            fillMaxWidth = false,
+            leadingIcon = Icons.Filled.Search,
+            modifier = Modifier.semantics { contentDescription = "Browse listings" },
             onClick = onBrowse,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MotormilaPrimary,
-                contentColor = Color.White,
-            ),
-            shape = androidx.compose.foundation.shape.CircleShape,
-            modifier = Modifier
-                .heightIn(min = 48.dp)
-                .semantics { contentDescription = "Browse listings" },
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(18.dp)
-                    .padding(end = 4.dp),
-            )
-            Text(
-                text = "Browse listings",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-            )
-        }
+        )
     }
 }
 
@@ -432,15 +373,12 @@ private fun VehicleMatrixColumn(
             .padding(end = 10.dp),
     ) {
         // Vehicle Header Card (height 180dp)
-        Card(
+        MotormilaGlass(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .clickable { onOpenDetail() }
                 .semantics { contentDescription = "Vehicle ${listing.displayName}" },
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MotormilaOutline),
+            onClick = onOpenDetail,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 // Photo header

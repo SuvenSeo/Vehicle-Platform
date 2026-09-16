@@ -678,14 +678,19 @@ function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
         ) {
           return null;
         }
-        if (items.length === 0) return null;
-        const catalog = items.map(normalizeListing);
-        return overlayIncomingListings(catalog, await getIncomingSnapshotListings());
+        const catalog = overlayIncomingListings(
+          items.map(normalizeListing),
+          await getIncomingSnapshotListings(),
+        );
+        return catalog.length > 0 ? catalog : null;
       }
 
       if (!Array.isArray(snapshot.items)) return null;
-      const catalog = snapshot.items.map(normalizeListing);
-      return overlayIncomingListings(catalog, await getIncomingSnapshotListings());
+      const catalog = overlayIncomingListings(
+        snapshot.items.map(normalizeListing),
+        await getIncomingSnapshotListings(),
+      );
+      return catalog.length > 0 ? catalog : null;
     });
   }
   return snapshotCatalogPromise;
@@ -1216,7 +1221,7 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
     vehicle_category: filters.vehicle_category || "cars",
   };
   const catalog = await getSnapshotListingCatalog();
-  if (catalog) return filterSnapshotListings(catalog, effectiveFilters);
+  if (catalog?.length) return filterSnapshotListings(catalog, effectiveFilters);
   if (SNAPSHOT_ONLY) {
     const incoming = await getIncomingSnapshotListings();
     if (incoming.length) return filterSnapshotListings(incoming, effectiveFilters);
@@ -1950,7 +1955,7 @@ export const getListingsForExport = async (
 ): Promise<{ listings: CarListing[]; total: number }> => {
   const size = Math.max(1, Math.min(100, Math.floor(maxRows)));
   const catalog = await getSnapshotListingCatalog();
-  if (catalog) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
+  if (catalog?.length) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
   if (SNAPSHOT_ONLY) {
     const incoming = await getIncomingSnapshotListings();
     if (incoming.length) return filterSnapshotListings(incoming, { ...filters, page: 1 }, size);
