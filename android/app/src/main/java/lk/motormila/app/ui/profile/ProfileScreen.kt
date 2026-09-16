@@ -47,6 +47,9 @@ import lk.motormila.app.ui.components.MotormilaMetricTile
 import lk.motormila.app.ui.components.MotormilaPage
 import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.BuildConfig
+import lk.motormila.app.ui.updates.AppUpdateDialog
+import lk.motormila.app.ui.updates.AppUpdateViewModel
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
@@ -78,8 +81,10 @@ fun ProfileScreen(
     onPrivacyClick: () -> Unit = {},
     onTermsClick: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel(),
+    updateViewModel: AppUpdateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val updateState by updateViewModel.state.collectAsStateWithLifecycle()
     val snacks = remember { SnackbarHostState() }
     val reducedMotion = rememberReducedMotion()
     val haptics = rememberHaptics()
@@ -210,6 +215,10 @@ fun ProfileScreen(
                                 MotormilaGroupRow("Dealer tools", onClick = { navTap(onDealerClick) })
                                 MotormilaGroupRow("Price alerts", onClick = { navTap(onAlertsClick) })
                                 MotormilaGroupRow("Notifications", onClick = { navTap(onNotificationsClick) })
+                                MotormilaGroupRow(
+                                    "${stringResource(R.string.profile_app_version)} ${BuildConfig.VERSION_NAME} — ${stringResource(R.string.profile_check_updates)}",
+                                    onClick = { navTap { updateViewModel.manualCheck(BuildConfig.VERSION_CODE) } },
+                                )
                                 if (p.isAdmin) MotormilaGroupRow("Admin console", onClick = { navTap(onAdminClick) })
                                 MotormilaGroupRow("Privacy", onClick = { navTap(onPrivacyClick) })
                                 MotormilaGroupRow("Terms", onClick = { navTap(onTermsClick) }, showDivider = p.loggedIn.not())
@@ -223,5 +232,15 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    // Hosted here so manual "Check for updates" from Profile shows the dialog too.
+    updateState.available?.let { update ->
+        AppUpdateDialog(
+            update = update,
+            downloading = updateState.downloading,
+            onUpdate = { updateViewModel.downloadAndInstall(update) },
+            onDismiss = { updateViewModel.dismiss() },
+        )
     }
 }

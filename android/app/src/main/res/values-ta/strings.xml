@@ -86,4 +86,15 @@
     <string name="language_en_cd">ஆங்கிலம்</string>
     <string name="language_si_cd">சிங்களம்</string>
     <string name="language_ta_cd">தமிழ்</string>
+
+    <!-- In-app update checker (sideload channel) -->
+    <string name="profile_app_version">பயன்பாட்டு பதிப்பு</string>
+    <string name="profile_check_updates">சரிபார்க்க தட்டவும்</string>
+    <string name="update_available_title">புதுப்பிப்பு உள்ளது</string>
+    <string name="update_available_body">Motormila %1$s நிறுவ தயாராக உள்ளது. சில வினாடிகள் மட்டுமே, உங்கள் தரவு அப்படியே இருக்கும்.</string>
+    <string name="update_now">இப்போது புதுப்பிக்கவும்</string>
+    <string name="update_later">பின்னர்</string>
+    <string name="update_downloading">புதுப்பிப்பு பதிவிறக்கப்படுகிறது…</string>
+    <string name="update_download_failed">புதுப்பிப்பை பதிவிறக்க முடியவில்லை. இணைப்பை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.</string>
+    <string name="update_up_to_date">நீங்கள் சமீபத்திய பதிப்பில் இருக்கிறீர்கள்.</string>
 </resources>

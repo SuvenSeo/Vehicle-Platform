@@ -140,7 +140,9 @@ fun HomeScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            // Extra bottom clearance so the last card clears the nav dock
+            // and the floating AI/scan buttons instead of sliding under them.
+            contentPadding = PaddingValues(bottom = 128.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // 1. Top Brand Lockup Bar
@@ -161,6 +163,7 @@ fun HomeScreen(
                 CinematicHeroHeader(
                     total = state.summary.totalListings,
                     onSearchClick = onSearchClick,
+                    summarySourceCount = state.summary.sourceCount,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -481,6 +484,7 @@ private fun CinematicHeroHeader(
     total: Int,
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
+    summarySourceCount: Int = 0,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         ContextCapsuleBadge(
@@ -518,9 +522,10 @@ private fun CinematicHeroHeader(
         Spacer(Modifier.height(10.dp))
 
         // Subtitle with live listings count
-        val countText = if (total > 0) LkrFormat.count(total) else "Live feed"
+        val countText = if (total > 0) "${LkrFormat.count(total)} live listings" else "Sri Lanka's live market"
+        val sourcesText = if (summarySourceCount > 0) "$summarySourceCount sources" else "13 sources"
         Text(
-            text = "$countText live listings across 13 sources — pricing, deal scores, and market intel in one place.",
+            text = "$countText across $sourcesText — pricing, deal scores, and market intel in one place.",
             color = MotormilaSecondaryText,
             fontSize = 14.sp,
             lineHeight = 21.sp,

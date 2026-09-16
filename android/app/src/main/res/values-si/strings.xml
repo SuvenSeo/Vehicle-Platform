@@ -86,4 +86,15 @@
     <string name="language_en_cd">ඉංග්‍රීසි</string>
     <string name="language_si_cd">සිංහල</string>
     <string name="language_ta_cd">දෙමළ</string>
+
+    <!-- In-app update checker (sideload channel) -->
+    <string name="profile_app_version">යෙදුම් අනුවාදය</string>
+    <string name="profile_check_updates">පරීක්ෂා කිරීමට තට්ටු කරන්න</string>
+    <string name="update_available_title">යාවත්කාලීනයක් ඇත</string>
+    <string name="update_available_body">Motormila %1$s ස්ථාපනයට සූදානම්. තත්පර කිහිපයක් පමණක් වන අතර ඔබේ දත්ත එලෙසම පවතී.</string>
+    <string name="update_now">දැන් යාවත්කාලීන කරන්න</string>
+    <string name="update_later">පසුව</string>
+    <string name="update_downloading">යාවත්කාලීනය බාගනිමින්…</string>
+    <string name="update_download_failed">යාවත්කාලීනය බාගත කළ නොහැක. සම්බන්ධතාවය පරීක්ෂා කර නැවත උත්සාහ කරන්න.</string>
+    <string name="update_up_to_date">ඔබ නවතම අනුවාදයේ සිටියි.</string>
 </resources>

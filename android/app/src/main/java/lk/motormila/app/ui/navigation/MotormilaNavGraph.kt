@@ -4,6 +4,7 @@ package lk.motormila.app.ui.navigation
 
 import android.net.Uri
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import lk.motormila.app.BuildConfig
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +34,8 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.network.AuthEvent
 import lk.motormila.app.data.local.datastore.SessionStore
 import lk.motormila.app.ui.MotormilaScaffold
+import lk.motormila.app.ui.updates.AppUpdateDialog
+import lk.motormila.app.ui.updates.AppUpdateViewModel
 import lk.motormila.app.ui.admin.AdminScreen
 import lk.motormila.app.ui.alerts.AlertsScreen
 import lk.motormila.app.ui.auth.LoginScreen
@@ -111,6 +115,20 @@ fun MotormilaNavGraph(
     }
     val reducedMotion = rememberReducedMotion()
 
+    // In-app update check (sideload channel): one passive check per cold
+    // start; the dialog is hosted above the scaffold content.
+    val updateViewModel: AppUpdateViewModel = hiltViewModel()
+    val updateState by updateViewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        updateViewModel.checkOnLaunch(BuildConfig.VERSION_CODE)
+    }
+    LaunchedEffect(updateState.downloadFailedTick) {
+        if (updateState.downloadFailedTick > 0) {
+            // Transient failure toast; consumed state resets the tick.
+            updateViewModel.consumeDownloadFailure()
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.authEventBus.events.collect { event ->
             if (event is AuthEvent.Unauthorized) {
@@ -167,6 +185,14 @@ fun MotormilaNavGraph(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                updateState.available?.let { update ->
+                    AppUpdateDialog(
+                        update = update,
+                        downloading = updateState.downloading,
+                        onUpdate = { updateViewModel.downloadAndInstall(update) },
+                        onDismiss = { updateViewModel.dismiss() },
+                    )
+                }
                 NavHost(
                     navController = navController,
                     startDestination = if (sharedUrl != null) ShareImport(sharedUrl) else Splash,

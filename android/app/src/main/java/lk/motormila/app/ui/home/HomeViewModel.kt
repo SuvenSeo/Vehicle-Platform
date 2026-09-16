@@ -63,6 +63,7 @@ class HomeViewModel @Inject constructor(
     init {
         observePro()
         load()
+        armStuckLoadWatchdog()
     }
 
     private fun observePro() {
@@ -162,6 +163,27 @@ class HomeViewModel @Inject constructor(
 
     fun dismissCachedBadge() {
         _state.value = _state.value.copy(showCachedBadge = false)
+    }
+
+    /**
+     * Stuck-load watchdog: if a cold-started backend (or a dead device radio)
+     * leaves every home request hanging, the skeleton would otherwise sit
+     * forever. After [timeoutMs] with nothing loaded, flip to the error state
+     * so the user gets a retry affordance instead of an eternal spinner.
+     */
+    fun armStuckLoadWatchdog(timeoutMs: Long = 20_000L) {
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(timeoutMs)
+            val s = _state.value
+            if (s.isLoading && s.summary.totalListings == 0 && !s.isRefreshing) {
+                _state.value = s.copy(
+                    isLoading = false,
+                    isOffline = true,
+                    showCachedBadge = true,
+                    error = "Taking too long to reach Motormila",
+                )
+            }
+        }
     }
 
     fun onToggleWatch(listing: Listing) {

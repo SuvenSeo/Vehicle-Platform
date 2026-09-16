@@ -80,4 +80,15 @@
     <string name="widget_deal_desc">Motormila deal of the day widget</string>
     <string name="widget_index_missing">Index —</string>
     <string name="widget_open_deal">Open deal</string>
+
+    <!-- In-app update checker (sideload channel) -->
+    <string name="profile_app_version">App version</string>
+    <string name="profile_check_updates">tap to check</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_body">Motormila %1$s is ready to install. It takes a few seconds and keeps your data.</string>
+    <string name="update_now">Update now</string>
+    <string name="update_later">Later</string>
+    <string name="update_downloading">Downloading update…</string>
+    <string name="update_download_failed">Couldn\'t download the update. Check your connection and try again.</string>
+    <string name="update_up_to_date">You\'re on the latest version.</string>
 </resources>

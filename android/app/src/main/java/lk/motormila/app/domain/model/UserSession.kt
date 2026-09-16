@@ -16,10 +16,13 @@ data class UserSession(
     /** ISO-8601 expiry, null = non-expiring / unknown. */
     val expiresAt: String?,
 ) {
+    /** Mirrors backend PRO_PLANS {pro, enterprise, dealer} (+ legacy aliases). */
     val isPro: Boolean
         get() = plan.equals("pro", ignoreCase = true) ||
             plan.equals("pro_plus", ignoreCase = true) ||
-            plan.equals("business", ignoreCase = true)
+            plan.equals("business", ignoreCase = true) ||
+            plan.equals("enterprise", ignoreCase = true) ||
+            plan.equals("dealer", ignoreCase = true)
 
     val isAdmin: Boolean get() = role.equals("admin", ignoreCase = true)
 }

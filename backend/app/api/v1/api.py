@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session
 
 from db.session import get_db
-from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, events, ev, feedback, listings, market, notifications, pipeline, pro, seo, stats, vehicles
+from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, events, ev, feedback, listings, market, notifications, pipeline, pro, releases, seo, stats, vehicles
 from .endpoints.auth import require_authenticated, require_pro_access
 
 api_router = APIRouter()
@@ -105,3 +105,9 @@ api_router.include_router(events.router, prefix="/events", tags=["events"])
 # SEO hub sitemaps + route manifest: unauthenticated crawler reads (safe GET,
 # aggregate/distinct queries only). No auth gate by design.
 api_router.include_router(seo.router, prefix="/seo", tags=["seo"])
+# Public app-release metadata: backs the Android in-app update checker
+# (read-only GET over env-published release info; no auth, no PII).
+api_router.include_router(releases.router, prefix="/releases", tags=["releases"])
+# Public app-release metadata: backs the Android in-app update checker
+# (read-only GET over env-published release info; no auth, no PII).
+api_router.include_router(releases.router, prefix="/releases", tags=["releases"])

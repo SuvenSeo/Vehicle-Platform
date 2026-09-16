@@ -55,6 +55,7 @@ import lk.motormila.app.ui.home.badgeFor
 import lk.motormila.app.ui.theme.MotormilaGlassFill
 import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
 import lk.motormila.app.ui.theme.MotormilaGood
+import lk.motormila.app.ui.theme.MotormilaPill
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
@@ -123,16 +124,21 @@ fun MotormilaScaffold(
                                 label = "nav-icon-scale",
                             )
 
+                            // The M3 NavigationBarItem indicator is a rounded
+                            // rectangle by default; wrapped in a pill clip it
+                            // matches the dock's fully-round shape language.
                             NavigationBarItem(
                                 selected = isSelected,
                                 onClick = { onNavigate(item.route) },
                                 interactionSource = interaction,
                                 icon = {
                                     Box(
-                                        modifier = Modifier.graphicsLayer {
-                                            scaleX = iconScale
-                                            scaleY = iconScale
-                                        },
+                                        modifier = Modifier
+                                            .clip(MotormilaPill)
+                                            .graphicsLayer {
+                                                scaleX = iconScale
+                                                scaleY = iconScale
+                                            },
                                     ) {
                                         if (count != null && count > 0) {
                                             BadgedBox(
@@ -188,6 +194,7 @@ fun MotormilaScaffold(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
+                        .padding(end = 4.dp, bottom = 88.dp)
                         .liquidGlass(
                             RoundedCornerShape(28.dp),
                             fill = MotormilaGlassFillStrong,

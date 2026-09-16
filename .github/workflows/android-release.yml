@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: android-release-${{ github.ref }}
@@ -142,3 +143,33 @@ jobs:
               --latest=false
           fi
           echo "Published $TAG"
+
+      - name: Commit release manifest (drives the in-app update checker)
+        working-directory: .
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.apk.outputs.version }}"
+          VERSION_CODE="$(grep -oP 'versionCode\s*=\s*\K[0-9]+' android/app/build.gradle.kts | head -1)"
+          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${{ steps.apk.outputs.name }}"
+          PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          mkdir -p android
+          cat > android/latest-release.json <<EOF
+          {
+            "version": "${VERSION}",
+            "version_code": ${VERSION_CODE},
+            "apk_url": "${APK_URL}",
+            "published_at": "${PUBLISHED_AT}",
+            "tag": "${GITHUB_REF_NAME}"
+          }
+          EOF
+          cat android/latest-release.json
+          git config user.name "motormila-release-bot"
+          git config user.email "noreply@motormila.lk"
+          git add android/latest-release.json
+          if git diff --cached --quiet; then
+            echo "Manifest unchanged; nothing to commit"
+          else
+            git commit -m "chore(release): android-v${VERSION} (versionCode ${VERSION_CODE}) [skip ci]"
+            git push origin "HEAD:main"
+            echo "Manifest pushed to main"
+          fi

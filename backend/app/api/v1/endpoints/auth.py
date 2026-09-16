@@ -590,8 +590,6 @@ def login(
     response: Response,
     db: Optional[Session] = Depends(get_db),
 ):
-    _login_rate_limiter(request)
-
     if not auth_is_configured():
         raise HTTPException(status_code=503, detail="Authentication is not configured on this deployment.")
 
@@ -600,14 +598,17 @@ def login(
     record = resolve_user_record(email, session)
     env_record = _configured_users().get(email)
 
-    if record and _verify_password(payload.password, record["password_hash"]):
-        return _issue_login_response(record, response, db)
+    db_ok = bool(record and _verify_password(payload.password, record["password_hash"]))
+    env_ok = bool(env_record and _verify_password(payload.password, env_record["password_hash"]))
 
-    # DB is checked first; a stale platform_users hash (from an older AUTH_USERS
-    # secret) would otherwise permanently shadow a corrected HF secret.
-    if env_record and _verify_password(payload.password, env_record["password_hash"]):
-        return _issue_login_response(env_record, response, db)
+    if db_ok or env_ok:
+        # Successful sign-ins never consume rate-limit budget: only failed
+        # attempts do. Otherwise a burst of bad tries from a shared IP (or an
+        # old app build auto-filling stale demo credentials) locks real
+        # accounts out of a *correct* login.
+        return _issue_login_response(env_record if (env_ok and not db_ok) else record, response, db)
 
+    _login_rate_limiter(request)
     raise HTTPException(status_code=401, detail="Invalid email or password.")
 
 
