@@ -1148,7 +1148,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={retryListings}
-                    className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+                    className="min-h-11 rounded-2xl border border-border bg-card px-5 py-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
                   >
                     Retry
                   </button>
@@ -1164,8 +1164,15 @@ export default function Dashboard() {
                   <p className="text-[13px] font-semibold text-foreground">{t("home.noResults", "No results")}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
-                    className="mt-4 rounded-2xl border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
+                    className="mt-4 min-h-11 rounded-2xl border border-border px-5 py-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03] active:scale-[0.98]"
                   >Reset filters</button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileFilter(true)}
+                    className="mt-2 min-h-11 rounded-2xl bg-primary px-5 py-3 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-primary/95 active:scale-[0.98]"
+                  >
+                    {t("home.adjustFilters", "Adjust filters")}
+                  </button>
                 </div>
               ) : marketView === "grid" ? (
                 <motion.div
