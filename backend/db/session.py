@@ -104,6 +104,25 @@ engine       = hot_engine
 SessionLocal = HotSessionLocal
 
 
+def reattach_engines(url: str) -> None:
+    """Point every sessionmaker at a new DSN without breaking imported aliases.
+
+    `SessionLocal` / `HotSessionLocal` are imported by name in API modules.
+    Reconfiguring the existing sessionmaker objects updates those aliases;
+    replacing the names here would not.
+    """
+    global hot_engine, cold_engine, engine, HOT_URL, COLD_URL
+    url = _validate(_normalise(url), "SQLITE_FAILOVER")
+    new_engine = _make_engine(url)
+    HotSessionLocal.configure(bind=new_engine)
+    ColdSessionLocal.configure(bind=new_engine)
+    hot_engine = new_engine
+    cold_engine = new_engine
+    engine = new_engine
+    HOT_URL = url
+    COLD_URL = url
+
+
 def _apply_statement_timeout(db) -> None:
     """Best-effort per-session statement timeout (pooler-safe)."""
     bind = db.get_bind()

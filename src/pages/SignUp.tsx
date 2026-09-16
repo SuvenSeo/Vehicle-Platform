@@ -219,7 +219,7 @@ export default function SignUp() {
             </p>
             <div className="mt-8 space-y-3">
               {bullets.map((line) => (
-                <div key={line} className="flex items-start gap-3 rounded-xl border border-border bg-card/50 px-4 py-3">
+                <div key={line} className="flex items-start gap-3 rounded-3xl border border-border bg-card/50 px-4 py-3">
                   <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                   <p className="text-[13px] font-medium text-foreground/90">{line}</p>
                 </div>
@@ -229,7 +229,7 @@ export default function SignUp() {
 
           <motion.div variants={revealItem} className="premium-surface mx-auto w-full max-w-md p-7 shadow-soft-lg sm:p-9 lg:mx-0 lg:max-w-none">
             <Link to="/sign-in" className="mb-8 inline-flex items-center gap-2.5 no-underline group">
-              <div className="h-9 w-9 overflow-hidden rounded-xl ring-1 ring-border transition-all group-hover:ring-primary/40">
+              <div className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-border transition-all group-hover:ring-primary/40">
                 <img src="/logo.svg" alt="Motormila" className="h-full w-full object-cover" />
               </div>
               <span className="font-display text-sm font-bold text-foreground">{BRAND.name}</span>
@@ -281,13 +281,13 @@ export default function SignUp() {
                     autoComplete="email"
                     value={selfServeEmail}
                     onChange={(event) => setSelfServeEmail(event.target.value)}
-                    className="h-12 rounded-xl bg-surface"
+                    className="h-12 rounded-full bg-surface"
                   />
                   {selfServeEmailError && <p className="text-[11px] font-semibold text-rose-600">{selfServeEmailError}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="self-name" className="field-label">{t("signup.fullName", "Full name")}</Label>
-                  <Input id="self-name" autoComplete="name" {...register("name")} className="h-12 rounded-xl bg-surface" />
+                  <Input id="self-name" autoComplete="name" {...register("name")} className="h-12 rounded-full bg-surface" />
                   {errors.name && <p className="text-[11px] font-semibold text-rose-600">{errors.name.message}</p>}
                 </div>
                 <div className="space-y-1.5">
@@ -298,7 +298,7 @@ export default function SignUp() {
                       type={showPassword ? "text" : "password"}
                       autoComplete="new-password"
                       {...register("password")}
-                      className="h-12 rounded-xl bg-surface pr-11"
+                      className="h-12 rounded-full bg-surface pr-11"
                     />
                     <button
                       type="button"
@@ -313,7 +313,7 @@ export default function SignUp() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="self-confirm" className="field-label">{t("signup.confirmPassword", "Confirm password")}</Label>
-                  <Input id="self-confirm" type="password" autoComplete="new-password" {...register("confirm")} className="h-12 rounded-xl bg-surface" />
+                  <Input id="self-confirm" type="password" autoComplete="new-password" {...register("confirm")} className="h-12 rounded-full bg-surface" />
                   {errors.confirm && <p className="text-[11px] font-semibold text-rose-600">{errors.confirm.message}</p>}
                 </div>
                 {serverError && (
@@ -368,7 +368,7 @@ export default function SignUp() {
                 <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="field-label">{t("signup.fullName", "Full name")}</Label>
-                    <Input id="name" autoComplete="name" {...register("name")} className="h-12 rounded-xl bg-surface" />
+                    <Input id="name" autoComplete="name" {...register("name")} className="h-12 rounded-full bg-surface" />
                     {errors.name && <p className="text-[11px] font-semibold text-rose-600">{errors.name.message}</p>}
                   </div>
                   <div className="space-y-1.5">
@@ -379,7 +379,7 @@ export default function SignUp() {
                         type={showPassword ? "text" : "password"}
                         autoComplete="new-password"
                         {...register("password")}
-                        className="h-12 rounded-xl bg-surface pr-11"
+                        className="h-12 rounded-full bg-surface pr-11"
                       />
                       <button
                         type="button"
@@ -394,7 +394,7 @@ export default function SignUp() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="confirm" className="field-label">{t("signup.confirmPassword", "Confirm password")}</Label>
-                    <Input id="confirm" type="password" autoComplete="new-password" {...register("confirm")} className="h-12 rounded-xl bg-surface" />
+                    <Input id="confirm" type="password" autoComplete="new-password" {...register("confirm")} className="h-12 rounded-full bg-surface" />
                     {errors.confirm && <p className="text-[11px] font-semibold text-rose-600">{errors.confirm.message}</p>}
                   </div>
                   {serverError && (

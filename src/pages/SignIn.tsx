@@ -72,7 +72,7 @@ export default function SignIn() {
       <div className="relative z-10 flex min-h-screen items-center px-5 py-12 sm:px-8 lg:px-12 xl:px-16">
         <motion.div
           variants={revealItem}
-          className="w-full max-w-[420px] rounded-2xl border border-white/12 bg-white/[0.07] p-6 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.85)] backdrop-blur-xl sm:p-8"
+          className="w-full max-w-[420px] rounded-[2rem] border border-white/12 bg-white/[0.07] p-6 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.85)] backdrop-blur-xl sm:p-8"
         >
           <div>
             <Link to="/" className="mb-8 inline-flex items-center gap-2.5 group">

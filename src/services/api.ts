@@ -71,6 +71,10 @@ function resolveApiBase() {
     return normalizeApiBasePath(configured || "/api/v1");
   }
 
+  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    return normalizeApiBasePath(configured || "/api/v1");
+  }
+
   if (!configured) {
     return normalizeApiBasePath(DEFAULT_PRODUCTION_API);
   }

@@ -68,8 +68,8 @@ function TabItem({ tab }: { tab: NavTab }) {
         />
       </span>
       <span
-        className={`text-[10px] font-medium tracking-tight leading-none transition-colors ${
-          isActive ? "text-primary" : ""
+        className={`whitespace-nowrap text-[10px] font-semibold tracking-tight leading-none ${
+          isActive ? "text-primary" : "text-muted-foreground"
         }`}
       >
         {label}
@@ -87,8 +87,8 @@ export function MobileBottomNav() {
       className="md:hidden fixed inset-x-3 bottom-3 z-[999] pointer-events-auto"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="nav-glass overflow-hidden">
-        <div className="flex h-16 items-stretch px-1">
+      <div className="nav-glass overflow-hidden rounded-full">
+        <div className="flex min-h-16 items-stretch px-1">
           {TABS.map((tab) => (
             <TabItem key={tab.href} tab={tab} />
           ))}

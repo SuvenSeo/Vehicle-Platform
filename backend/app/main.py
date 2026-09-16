@@ -12,7 +12,9 @@ from starlette.middleware.gzip import GZipMiddleware
 
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
 from app.services.digest_flush_scheduler import start_digest_flush_scheduler, stop_digest_flush_scheduler
-from db.session import hot_engine, init_db
+from db import session as db_session
+from db.session import init_db
+from db.sqlite_failover import start_sqlite_failover_background
 
 from .api.v1.api import api_router
 
@@ -75,6 +77,11 @@ async def lifespan(app: FastAPI):
     # Runs in a thread with a hard timeout: init_db() is a blocking sync call,
     # and a stuck DB connection here would otherwise freeze the whole event
     # loop forever, so the app never starts accepting requests.
+    # Neon Free blocks all connections after the transfer quota is exhausted.
+    # Kick a background download of the public merged SQLite dump so listings
+    # recover without blocking uvicorn listen (HF HEALTHCHECK start-period is 10s).
+    start_sqlite_failover_background()
+
     if SKIP_DB_INIT:
         logger.info("db_init_skipped", reason="SKIP_DB_INIT=true")
     else:
@@ -200,7 +207,7 @@ HEALTH_DB_PROBE_TIMEOUT_SECONDS = 5
 
 
 def _probe_db() -> None:
-    with hot_engine.connect() as conn:
+    with db_session.hot_engine.connect() as conn:
         conn.execute(text("SELECT 1"))
 
 

@@ -143,7 +143,7 @@ export default function Trends() {
     return value;
   };
 
-  const selectTriggerClass = "h-11 rounded-xl border-border bg-surface text-sm text-foreground";
+  const selectTriggerClass = "h-11 rounded-full border-border bg-surface text-sm text-foreground";
   const selectContentClass = "border-border bg-popover text-popover-foreground";
   const fieldLabelClass = "text-[12px] font-semibold text-muted-foreground";
 
@@ -202,8 +202,9 @@ export default function Trends() {
                 </Select>
               ) : (
                 <ProFeatureLock
-                  label={freePlanCopy.trendsTitle}
-                  className="min-h-[2.5rem] rounded-2xl"
+                  density="compact"
+                  label={t("pro.lock.short", "Pro")}
+                  className="min-h-[2.75rem] rounded-full"
                 >
                   <div className={`${selectTriggerClass} flex h-10 items-center px-3 text-sm text-muted-foreground`}>
                     {t("common.any", "Any")}
@@ -223,8 +224,9 @@ export default function Trends() {
                 </Select>
               ) : (
                 <ProFeatureLock
-                  label={freePlanCopy.trendsTitle}
-                  className="min-h-[2.5rem] rounded-2xl"
+                  density="compact"
+                  label={t("pro.lock.short", "Pro")}
+                  className="min-h-[2.75rem] rounded-full"
                 >
                   <div className={`${selectTriggerClass} flex h-10 items-center px-3 text-sm text-muted-foreground`}>
                     {t("common.allDistricts", "All districts")}

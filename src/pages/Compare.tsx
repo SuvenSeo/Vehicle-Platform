@@ -130,7 +130,7 @@ export default function Compare() {
 
         {/* Empty state — no ids in URL */}
         {!loading && !error && !hasIds && (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-card/85 py-16 text-center shadow-soft backdrop-blur-xl">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary-bright">
               <Scale className="h-7 w-7" />
             </div>
@@ -142,7 +142,7 @@ export default function Compare() {
             </p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-foreground no-underline transition-colors hover:bg-accent"
+              className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/85 px-5 py-2.5 text-[13px] font-semibold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]"
             >
               <Search className="h-3.5 w-3.5" />
               Browse listings
@@ -152,14 +152,14 @@ export default function Compare() {
 
         {/* Partial — ids provided but couldn't load enough */}
         {!loading && !error && hasIds && !hasEnough && listings.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card/60 px-5 py-6">
+          <div className="rounded-3xl border border-border/80 bg-card/85 px-6 py-6 backdrop-blur-xl">
             <p className="text-sm font-semibold text-foreground">Only {listings.length} listing loaded.</p>
             <p className="mt-1 text-[13px] text-muted-foreground">
               Need at least 2 vehicles to compare. Some IDs may be invalid or inactive.
             </p>
             <Link
               to="/"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-foreground no-underline transition-colors hover:bg-accent"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/85 px-5 py-2.5 text-[13px] font-semibold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]"
             >
               <Search className="h-3.5 w-3.5" />
               Select more vehicles
@@ -178,7 +178,7 @@ export default function Compare() {
                 <button
                   type="button"
                   onClick={handleCopyShareLink}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-[12px] font-semibold text-foreground transition-colors hover:bg-accent"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border/80 bg-card/85 px-4 text-[12px] font-semibold text-foreground transition-all hover:bg-surface active:scale-[0.97]"
                 >
                   <Link2 className="h-3.5 w-3.5" />
                   Share ?ids= link
@@ -186,7 +186,7 @@ export default function Compare() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(true)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-4 text-[12px] font-semibold text-primary-bright transition-colors hover:bg-primary/15"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-4 text-[12px] font-semibold text-primary-bright transition-all hover:bg-primary/15 active:scale-[0.97]"
                 >
                   <Scale className="h-3.5 w-3.5" />
                   Open full compare
@@ -203,7 +203,7 @@ export default function Compare() {
                 return (
                   <div
                     key={listing.id}
-                    className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+                    className="rounded-3xl border border-border/80 bg-card/85 p-5 shadow-soft backdrop-blur-xl transition-all hover:border-primary/30 hover:shadow-soft-lg"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <Link
@@ -216,7 +216,7 @@ export default function Compare() {
                         type="button"
                         onClick={() => handleRemove(Number(listing.id))}
                         aria-label={`Remove ${listing.make} ${listing.model} from compare`}
-                        className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-surface hover:text-foreground"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>

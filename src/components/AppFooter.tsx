@@ -24,7 +24,7 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ label: s
           <li key={link.label}>
             <PrefetchLink
               to={link.to}
-              className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <span>{link.label}</span>
               <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
@@ -119,7 +119,7 @@ export function AppFooter() {
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: EASE }}
-        className="app-footer__panel relative mx-auto max-w-[1680px] overflow-hidden rounded-[30px] border border-white/[0.1] px-5 py-12 shadow-[0_-24px_90px_rgba(8,47,73,0.28)] sm:px-8 md:rounded-[42px] md:px-14 md:py-16 lg:px-20"
+        className="app-footer__panel relative mx-auto max-w-[1680px] overflow-hidden rounded-[36px] border border-white/[0.1] px-5 py-12 shadow-[0_-24px_90px_rgba(8,47,73,0.28)] sm:px-8 md:rounded-[48px] md:px-14 md:py-16 lg:px-20"
       >
         {/* Atmosphere — one quiet brand glow, no noise */}
         <div
@@ -142,7 +142,7 @@ export function AppFooter() {
             </h2>
             <PrefetchLink
               to="/"
-              className="group inline-flex items-center gap-3 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              className="group inline-flex items-center no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               aria-label={t("footer.homeAria", "Go to Motormila home")}
             >
               <img
@@ -196,7 +196,7 @@ export function AppFooter() {
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                      className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       {link.label === githubLabel && <GitHubIcon className="h-3.5 w-3.5" />}
                       <span>{link.label}</span>
@@ -222,11 +222,11 @@ export function AppFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-[11px] border border-white/[0.1] bg-white/[0.04] text-zinc-400 transition-colors duration-200 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.04] text-zinc-400 transition-colors duration-200 hover:border-primary/35 hover:bg-primary/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 whileHover={
                   reduceMotion
                     ? undefined
-                    : { y: -2, borderColor: "rgba(103,232,249,0.35)", backgroundColor: "rgba(34,211,238,0.12)" }
+                    : { y: -2, borderColor: "rgba(10,122,255,0.4)", backgroundColor: "rgba(10,122,255,0.14)" }
                 }
                 whileTap={reduceMotion ? undefined : { scale: 0.97 }}
               >
@@ -236,7 +236,7 @@ export function AppFooter() {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: scrollBehavior() })}
-              className="ml-1 rounded-[11px] border border-white/[0.1] bg-white/[0.04] px-3.5 py-2 text-[12px] font-medium text-zinc-400 transition-colors duration-200 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              className="ml-1 rounded-full border border-white/[0.1] bg-white/[0.04] px-3.5 py-2 text-[12px] font-medium text-zinc-400 transition-colors duration-200 hover:border-primary/35 hover:bg-primary/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               {t("footer.backToTop", "Back to top")}
             </button>

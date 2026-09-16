@@ -107,13 +107,11 @@ export function HeroSideSignals({
   onTrendingClick,
   onBrowseNewest,
 }: Props) {
-  const reduced = prefersReducedMotion();
-
   return (
     <>
-      {/* Left rail */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[min(18vw,248px)] xl:block">
-        <div className="pointer-events-auto sticky top-28 flex flex-col gap-4 pt-6">
+      {/* Left rail — sits with the masthead, not over it */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[min(20vw,268px)] xl:flex xl:flex-col xl:justify-end">
+        <div className="pointer-events-auto mb-28 flex flex-col gap-4 px-1 pb-4">
           {trending ? (
             <FloatingSignalCard delay={0.1} accent="primary" float="a" slant="a">
               <button
@@ -121,11 +119,13 @@ export function HeroSideSignals({
                 onClick={onTrendingClick}
                 className="flex w-full items-center gap-3 text-left outline-none transition-transform duration-300 group-hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-primary/25 transition-shadow group-hover:ring-primary/45">
+                <div className="hero-signal-thumb h-14 w-20 shrink-0 bg-black/25 ring-1 ring-primary/25 transition-shadow group-hover:ring-primary/45">
                   <VehicleThumbnail
                     src={trending.thumbnail_url}
                     alt={`${trending.make} ${trending.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    priority
+                    sizes="80px"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
                   />
                 </div>
@@ -152,12 +152,14 @@ export function HeroSideSignals({
                 to={`/listing/${priceDrop.id}`}
                 className="group/drop flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-emerald-400/30 transition-shadow group-hover/drop:ring-emerald-400/55">
+                <div className="hero-signal-thumb h-14 w-20 shrink-0 bg-black/25 ring-1 ring-emerald-400/30 transition-shadow group-hover/drop:ring-emerald-400/55">
                   <VehicleThumbnail
                     src={priceDrop.thumbnail_url}
                     listingId={priceDrop.id}
                     alt={`${priceDrop.make} ${priceDrop.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover/drop:scale-105"
+                    priority
+                    sizes="80px"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover/drop:scale-110"
                     placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
                   />
                 </div>
@@ -201,19 +203,21 @@ export function HeroSideSignals({
       </div>
 
       {/* Right rail */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[min(18vw,248px)] xl:block">
-        <div className="pointer-events-auto sticky top-32 flex flex-col gap-4 pt-10">
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[min(20vw,268px)] xl:flex xl:flex-col xl:justify-end">
+        <div className="pointer-events-auto mb-36 flex flex-col gap-4 px-1 pb-4">
           {hotDeal ? (
             <FloatingSignalCard delay={0.14} accent="amber" float="c" slant="c">
               <Link
                 to={`/listing/${hotDeal.id}`}
                 className="group/deal flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-amber-400/30 transition-shadow group-hover/deal:ring-amber-400/55">
+                <div className="hero-signal-thumb h-14 w-20 shrink-0 bg-black/25 ring-1 ring-amber-400/30 transition-shadow group-hover/deal:ring-amber-400/55">
                   <VehicleThumbnail
                     src={hotDeal.thumbnail_url}
                     alt={`${hotDeal.make} ${hotDeal.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover/deal:scale-105"
+                    priority
+                    sizes="80px"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover/deal:scale-110"
                     placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
                   />
                 </div>

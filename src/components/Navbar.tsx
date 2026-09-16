@@ -204,7 +204,11 @@ export function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-[1000] pointer-events-none">
-      <div className="flex justify-center px-2 pt-3 sm:px-3">
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background via-background/75 to-transparent"
+      />
+      <div className="relative flex justify-center px-2 pt-3 sm:px-3">
         <nav
           className="nav-glass pointer-events-auto w-[min(1480px,calc(100vw-16px))] overflow-visible rounded-full"
           aria-label={t("nav.primaryNavigation", "Primary navigation")}
@@ -310,7 +314,7 @@ export function Navbar() {
               {/* Live status pill */}
               <div
                 className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex"
-                title={liveFreshnessLabel}
+                title={`${liveLabel} · ${liveFreshnessLabel}`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
                 <span className="text-[12px] font-medium tracking-tight text-foreground">{liveLabel}</span>

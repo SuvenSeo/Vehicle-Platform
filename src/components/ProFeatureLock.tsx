@@ -9,6 +9,8 @@ type ProFeatureLockProps = {
   /** Short label shown on the blur overlay */
   label?: string;
   className?: string;
+  /** Compact lock for inline controls (selects, chips) — no long trial copy. */
+  density?: "default" | "compact";
   /** When true, always show content (e.g. admin preview). Defaults to hasProAccess. */
   unlocked?: boolean;
 };
@@ -21,6 +23,7 @@ export function ProFeatureLock({
   children,
   label = "Pro feature",
   className,
+  density = "default",
   unlocked,
 }: ProFeatureLockProps) {
   const { hasProAccess, isAdmin } = useAuth();
@@ -28,6 +31,23 @@ export function ProFeatureLock({
 
   if (open) {
     return <>{children}</>;
+  }
+
+  if (density === "compact") {
+    return (
+      <div className={cn("relative overflow-hidden rounded-full", className)}>
+        <div className="pointer-events-none select-none blur-[6px] opacity-40 saturate-[0.7]" aria-hidden>
+          {children}
+        </div>
+        <Link
+          to="/pricing"
+          className="absolute inset-0 z-10 inline-flex items-center justify-center gap-1.5 rounded-full bg-background/55 px-3 text-[11px] font-semibold text-foreground no-underline backdrop-blur-[6px] transition-colors hover:bg-background/70"
+        >
+          <Lock className="h-3 w-3 text-primary-bright" aria-hidden />
+          <span className="truncate">{label}</span>
+        </Link>
+      </div>
+    );
   }
 
   return (

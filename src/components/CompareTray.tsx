@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Scale, Share2, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -64,7 +64,7 @@ export function CompareTray({ className }: { className?: string }) {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-4 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-primary/25 bg-card/95 px-4 text-[12px] font-bold text-foreground shadow-soft-xl backdrop-blur transition-all hover:border-primary/40 active:scale-[0.97]",
+          "fixed bottom-24 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full border border-primary/25 bg-card/95 px-4 text-[12px] font-bold text-foreground shadow-soft-xl backdrop-blur transition-all hover:border-primary/40 active:scale-[0.97] md:bottom-4",
           className,
         )}
         aria-label={`Open compare tray, ${pinned.length} pinned`}
