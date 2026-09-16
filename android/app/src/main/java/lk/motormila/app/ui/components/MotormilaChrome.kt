@@ -85,7 +85,7 @@ fun MotormilaEyebrow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .clip(CircleShape)
-            .background(Color(0xFF141419))
+            .background(MotormilaSurface)
             .border(
                 0.5.dp,
                 if (accent) Color(0x440A7AFF) else MotormilaGlassBorder,
@@ -279,39 +279,46 @@ fun MotormilaTopBar(
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
-        if (onBack != null) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .size(48.dp)
-                    .semantics { contentDescription = "Back" },
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = null,
-                    tint = MotormilaOnSurface,
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .liquidGlass(CircleShape, fill = MotormilaGlassFill)
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .semantics { contentDescription = "Back" },
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = MotormilaOnSurface,
+                    )
+                }
+            } else {
+                Spacer(Modifier.width(8.dp))
             }
-        } else {
-            Spacer(Modifier.width(8.dp))
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 17.sp,
+                color = MotormilaOnSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            actions()
         }
-        Text(
-            text = title,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 17.sp,
-            color = MotormilaOnSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        actions()
     }
 }
 
@@ -405,7 +412,7 @@ fun MotormilaChipTabs(
             val isSelected = index == selected
             val interaction = remember(label) { MutableInteractionSource() }
             val fill by animateColorAsState(
-                targetValue = if (isSelected) MotormilaPrimary else Color(0xFF131318),
+                targetValue = if (isSelected) MotormilaPrimary else MotormilaSurface,
                 animationSpec = appleTween(220),
                 label = "chip-fill",
             )
@@ -719,7 +726,7 @@ fun MotormilaMetricTile(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xFF131318))
+            .background(MotormilaSurface)
             .border(0.5.dp, MotormilaOutline, RoundedCornerShape(22.dp))
             .padding(horizontal = 12.dp, vertical = 12.dp),
     ) {
