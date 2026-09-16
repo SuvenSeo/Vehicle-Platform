@@ -92,7 +92,7 @@ export default function Compare() {
         <div className="mb-6 flex items-start gap-4">
           <Link
             to="/"
-            className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
+            className="mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground no-underline transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Back to Dashboard"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -142,7 +142,7 @@ export default function Compare() {
             </p>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/85 px-5 py-2.5 text-[13px] font-semibold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border/80 bg-card/85 px-5 py-3 text-[13px] font-semibold text-foreground no-underline transition-all hover:bg-surface active:scale-[0.97]"
             >
               <Search className="h-3.5 w-3.5" />
               Browse listings
