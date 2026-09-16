@@ -84,10 +84,13 @@ export default function SignIn() {
               </span>
             </Link>
 
-            <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/35 bg-primary/15 px-3 py-1">
-              <Lock className="h-3 w-3 text-primary" aria-hidden />
-              <span className="text-[12px] font-semibold text-[hsl(var(--primary-bright))]">
-                {t("signin.eyebrow", "Invite only")}
+            {/* The auth page is permanently dark, so it uses fixed brand blues
+                rather than theme tokens — `--primary-bright` drops to a dark navy
+                in light theme and disappears against this backdrop. */}
+            <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#3D94FF]/35 bg-[#0A7AFF]/15 px-3 py-1">
+              <Lock className="h-3 w-3 text-[#6CB8FF]" aria-hidden />
+              <span className="text-[12px] font-semibold text-[#6CB8FF]">
+                {t("signin.secureAccess", "Secure access")}
               </span>
             </div>
 
@@ -101,7 +104,7 @@ export default function SignIn() {
 
           {previewAccessEnabled && (
             <div className="mt-7 rounded-xl border border-white/12 bg-white/[0.05] p-4">
-              <p className="text-[11px] font-bold text-[hsl(var(--primary-bright))]">
+              <p className="text-[11px] font-bold text-[#6CB8FF]">
                 {t("signin.previewAvailable", "Preview available")}
               </p>
               <p className="mt-1 text-xs font-medium text-white/55">
@@ -121,7 +124,7 @@ export default function SignIn() {
 
           {DEMO_AUTH_ENABLED && (
             <div className="mt-7 space-y-2 rounded-xl border border-white/12 bg-white/[0.05] p-4">
-              <p className="text-[11px] font-bold text-[hsl(var(--primary-bright))]">
+              <p className="text-[11px] font-bold text-[#6CB8FF]">
                 {t("signin.reviewAccounts", "Review accounts")}
               </p>
               {DEMO_ACCOUNT_SUMMARY.map((acc) => (
@@ -140,7 +143,7 @@ export default function SignIn() {
                   <span
                     className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                       acc.subscriptionStatus === "active"
-                        ? "border-primary/35 bg-primary/15 text-[hsl(var(--primary-bright))]"
+                        ? "border-[#3D94FF]/35 bg-[#0A7AFF]/15 text-[#6CB8FF]"
                         : "border-white/15 text-white/50"
                     }`}
                   >
@@ -207,7 +210,7 @@ export default function SignIn() {
               disabled={loading}
               whileTap={{ scale: 0.98 }}
               transition={springSoft}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary text-[12px] font-semibold text-primary-foreground shadow-[0_12px_40px_-16px_hsl(var(--primary)/0.85)] transition-all hover:bg-primary/95 disabled:opacity-50"
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#0A7AFF] text-[12px] font-semibold text-white shadow-[0_12px_40px_-16px_rgba(10,122,255,0.85)] transition-all hover:bg-[#3D94FF] disabled:opacity-50"
             >
               {loading ? (
                 t("signin.loading", "Signing in...")
@@ -220,14 +223,23 @@ export default function SignIn() {
             </motion.button>
           </form>
 
-          <div className="mt-8 border-t border-white/10 pt-6 text-center">
+          <div className="mt-8 space-y-3 border-t border-white/10 pt-6 text-center">
             <p className="text-[12px] font-medium text-white/50">
               {t("signin.invitePrompt", "Have an invite link?")}{" "}
               <Link
                 to="/sign-up"
-                className="font-semibold text-white underline decoration-primary/40 underline-offset-4 transition-colors hover:text-primary"
+                className="font-semibold text-white underline decoration-[#3D94FF]/50 underline-offset-4 transition-colors hover:text-[#6CB8FF]"
               >
                 {t("signin.completeSignup", "Complete sign-up")}
+              </Link>
+            </p>
+            <p className="text-[12px] font-medium text-white/40">
+              {t("signin.noInvite", "No invite yet?")}{" "}
+              <Link
+                to="/"
+                className="font-semibold text-white/80 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white"
+              >
+                {t("signin.browseAnyway", "Browse the live market instead")}
               </Link>
             </p>
           </div>

@@ -64,10 +64,12 @@ export function AppFooter() {
 
   const moreLinks = useMemo(
     () => [
+      { label: t("nav.mobileApp", "Mobile App"), to: "/mobile-app" },
       { label: t("nav.officialPulse", "Official Pulse"), to: "/official-pulse" },
       { label: t("nav.dealer", "Dealer"), to: "/dealer" },
       { label: t("nav.bestPicks", "Best Picks"), to: "/best-picks" },
       { label: t("nav.priceIndex", "Price Index"), to: "/price-index" },
+      { label: t("nav.compare", "Compare"), to: "/compare" },
       { label: t("nav.proPreview", "Pro Preview"), to: "/pro-preview" },
       { label: t("nav.alerts", "Alerts"), to: "/alerts" },
       { label: t("nav.settings", "Settings"), to: "/settings" },

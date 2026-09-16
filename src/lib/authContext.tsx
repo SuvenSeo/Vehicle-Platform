@@ -28,7 +28,12 @@ interface AuthContextType {
 
 const STORAGE_KEY = "autolens.auth_user";
 const DEMO_USERS_ENV = "VITE_DEMO_USERS";
-const BACKEND_AUTH_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_AUTH === "true";
+/**
+ * When true the API is the source of truth for identity (login, session
+ * restore, Pro gates). When false the app runs in preview mode and the Pro
+ * workspace is readable without a session.
+ */
+export const BACKEND_AUTH_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_AUTH === "true";
 
 /**
  * When true, Pro export actions require an authenticated Pro/Enterprise session.
@@ -120,6 +125,15 @@ function loadUser(): AuthUser | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Read the session that `login`/`signup` stored, without waiting for a context
+ * re-render. Used by the admin gate to verify the `role` of the account it just
+ * authenticated.
+ */
+export function readStoredAuthUser(): AuthUser | null {
+  return loadUser();
 }
 
 function normalizeServerUser(raw: Partial<AuthUser> | undefined, email: string): AuthUser | null {

@@ -35,6 +35,9 @@
 
     <!-- Auth -->
     <string name="login_browse_market">Browse the market</string>
+    <string name="login_invite_hint">Motormila is invite-only. Sign in with the email your admin invited; new seats are issued from the Motormila admin console.</string>
+    <string name="login_forgot_password">Forgot password?</string>
+    <string name="login_forgot_password_message">Password resets are issued by the Motormila team. Ask your admin for a reset invite.</string>
 
     <!-- Generic -->
     <string name="offline_banner">You\'re offline — showing cached data</string>

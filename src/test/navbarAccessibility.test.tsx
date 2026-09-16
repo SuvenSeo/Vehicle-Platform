@@ -45,7 +45,7 @@ describe("Navbar accessibility active-state", () => {
     expect(trendsLinks.some((link) => link.getAttribute("aria-current") === "page")).toBe(true);
   });
 
-  it("opens the sign-in portal shell with both entry actions", async () => {    
+  it("opens the sign-in portal shell with every entry action", async () => {    
     await act(async () => {
       render(
         <AuthProvider>
@@ -62,7 +62,7 @@ describe("Navbar accessibility active-state", () => {
     fireEvent.click(signInButton);
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sign in to pro dashboard/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /guest access/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign in with email and password/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /keep browsing without signing in/i })).toBeInTheDocument();
   });
 });

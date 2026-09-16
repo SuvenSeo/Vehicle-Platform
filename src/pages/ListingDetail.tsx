@@ -379,7 +379,9 @@ export default function ListingDetail() {
 
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
                   <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">{listing.make} {listing.model} · {listing.year || 'N/A'}</span>
-                  <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-primary-bright backdrop-blur-md"><Database aria-hidden className="h-3 w-3" /> {listing.source}</span>
+                  {/* Fixed bright blue: this badge sits on a black photo scrim, where the
+                      light-theme `--primary-bright` token is unreadable. */}
+                  <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-[#6CB8FF] backdrop-blur-md"><Database aria-hidden className="h-3 w-3" /> {listing.source}</span>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3 bg-card">

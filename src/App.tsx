@@ -1,6 +1,6 @@
 import { MotionConfig } from "framer-motion";
 import { Suspense, useState, useEffect } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ScrollRestoration } from "@/components/ScrollRestoration";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
@@ -16,10 +16,10 @@ import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
+import { MobileAppPromo } from "@/components/MobileAppPromo";
 import { AuthProvider, useAuth } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequireAuth } from "@/components/RequireAuth";
-import { RequireAdmin } from "@/components/RequireAdmin";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
@@ -48,7 +48,8 @@ const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
 const SignUp = lazyWithRetry(() => import("./pages/SignUp"));
 const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
 const ProPreview = lazyWithRetry(() => import("./pages/ProPreview"));
-const AdminDashboard = lazyWithRetry(() => import("./pages/AdminDashboard"));
+const AdminConsole = lazyWithRetry(() => import("./pages/AdminConsole"));
+const MobileApp = lazyWithRetry(() => import("./pages/MobileApp"));
 const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
 const MakeHub = lazyWithRetry(() => import("./pages/MakeHub"));
 const DistrictHub = lazyWithRetry(() => import("./pages/DistrictHub"));
@@ -79,6 +80,16 @@ const queryClient = new QueryClient({
 });
 
 const MinimalLoader = () => <RouteFallback />;
+
+/**
+ * Internal hero A/B lab. It is a design tool, not a product surface, so it
+ * stays reachable in dev (or with `?heroLab=1`) and redirects home otherwise.
+ */
+function HeroLabGate() {
+  const { search } = useLocation();
+  const enabled = import.meta.env.DEV || new URLSearchParams(search).get("heroLab") === "1";
+  return enabled ? <HeroLab /> : <Navigate to="/" replace />;
+}
 
 function TrialBannerSlot() {
   const { user } = useAuth();
@@ -119,6 +130,7 @@ function AppShell({ chatMounted }: { chatMounted: boolean }) {
       </main>
       <AppFooter />
       <CompareTray />
+      <MobileAppPromo />
       <MobileBottomNav />
     </div>
   );
@@ -192,20 +204,13 @@ const App = () => {
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/compare" element={<Compare />} />
                   <Route path="/permits" element={<Permits />} />
+                  <Route path="/mobile-app" element={<MobileApp />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
                 <Route element={<ProtectedLayout chatMounted={chatMounted} />}>
                   <Route path="/dealer" element={<DealerDashboard />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/alerts" element={<Alerts />} />
-                  <Route
-                    path="/admin"
-                    element={(
-                      <RequireAdmin>
-                        <AdminDashboard />
-                      </RequireAdmin>
-                    )}
-                  />
                 </Route>
                 <Route path="/sign-in" element={
                   <Suspense fallback={<MinimalLoader />}>
@@ -219,9 +224,21 @@ const App = () => {
                 } />
                 <Route path="/hero-lab" element={
                   <Suspense fallback={<MinimalLoader />}>
-                    <HeroLab />
+                    <HeroLabGate />
                   </Suspense>
                 } />
+                {/**
+                 * Admin console: unlisted, credential-gated, and deliberately
+                 * outside the marketing shell — no navbar, no footer, no links
+                 * from anywhere on the public site.
+                 */}
+                <Route path="/motormila/admin" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <AdminConsole />
+                  </Suspense>
+                } />
+                {/** Legacy path kept as a bare redirect so old bookmarks still land. */}
+                <Route path="/admin" element={<Navigate to="/motormila/admin" replace />} />
                 <Route path="/pro-preview" element={
                   <Suspense fallback={<MinimalLoader />}>
                     <ProPreview />

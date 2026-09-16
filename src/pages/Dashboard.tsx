@@ -559,6 +559,11 @@ export default function Dashboard() {
     scrollToMarket();
   }, [scrollToMarket]);
 
+  const sortByDealScore = useCallback(() => {
+    startTransition(() => { setFilters((prev) => ({ ...prev, sort: "deal_score", page: 1 })); });
+    scrollToMarket();
+  }, [scrollToMarket]);
+
   const browseNewestListings = useCallback(() => {
     startTransition(() => { setFilters((prev) => ({ ...prev, sort: "newest", page: 1, vehicle_category: prev.vehicle_category || "cars" })); });
     scrollToMarket();
@@ -715,11 +720,15 @@ export default function Dashboard() {
               priceDrop={heroPriceDrop}
               newListings24h={heroNewListings24h}
               goodDealsCount={heroGoodDealsCount}
+              avgPriceLkr={stats?.avg_price_lkr ?? null}
+              sourceCount={marketPulseSources}
+              districtCount={Number(stats?.district_count || 0)}
               onTrendingClick={() => {
                 const row = trendingModels[0];
                 if (row) focusModel(row.make, row.model);
               }}
               onBrowseNewest={browseNewestListings}
+              onGoodDealsClick={sortByDealScore}
             />
           ) : null}
 
@@ -759,13 +768,24 @@ export default function Dashboard() {
                 heroMutedTone,
               )}
             >
-              <span className={`font-semibold num ${heroCopyTone}`}>
-                {marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}
-              </span>{" "}
-              {t(
-                "hero.bodyShort",
-                "live listings across {sources} sources — pricing, deal scores, and market intel in one place.",
-              ).replace("{sources}", String(marketPulseSources || 10))}
+              {/* Never invent market size: when the feed has no numbers yet the
+                  hero drops the count instead of printing a marketing figure. */}
+              {marketPulseListings > 0 ? (
+                <>
+                  <span className={`font-semibold num ${heroCopyTone}`}>
+                    {marketPulseListings.toLocaleString()}
+                  </span>{" "}
+                </>
+              ) : null}
+              {marketPulseSources > 0
+                ? t(
+                    "hero.bodyShort",
+                    "live listings across {sources} sources — pricing, deal scores, and market intel in one place.",
+                  ).replace("{sources}", String(marketPulseSources))
+                : t(
+                    "hero.bodyShortNoSources",
+                    "Live market pricing, deal scores, and intel in one place — sourced from Sri Lanka's vehicle marketplaces.",
+                  )}
             </motion.p>
 
             <motion.div
@@ -893,7 +913,17 @@ export default function Dashboard() {
                 </div>
 
                 {heroSearchMessage && (
-                  <p className={cn("mt-2 text-[11px] font-medium text-primary-bright", heroCentered && "text-center")}>{heroSearchMessage}</p>
+                  <p
+                    className={cn(
+                      "mt-2 text-[11px] font-medium",
+                      // Over the cinematic photo the light-theme token is a dark
+                      // navy — use the bright brand blue for small text there.
+                      heroFilmTone === "cinematic" ? "text-[#6CB8FF]" : "text-primary-bright",
+                      heroCentered && "text-center",
+                    )}
+                  >
+                    {heroSearchMessage}
+                  </p>
                 )}
             </motion.div>
           </div>

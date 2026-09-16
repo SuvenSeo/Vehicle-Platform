@@ -35,6 +35,9 @@
 
     <!-- Auth -->
     <string name="login_browse_market">වෙළඳපොළ පිරික්සන්න</string>
+    <string name="login_invite_hint">Motormila ආරාධනා මගින් පමණි. ඔබේ පරිපාලක ආරාධනා කළ විද්‍යුත් තැපෑලෙන් පිවිසෙන්න; නව ආසන Motormila පරිපාලක කොන්සෝලයෙන් නිකුත් වේ.</string>
+    <string name="login_forgot_password">මුරපදය අමතකද?</string>
+    <string name="login_forgot_password_message">මුරපද නැවත සැකසීම Motormila කණ්ඩායම විසින් සිදු කෙරේ. නැවත සැකසීමේ ආරාධනාවක් සඳහා ඔබේ පරිපාලකගෙන් අසන්න.</string>
 
     <!-- Generic -->
     <string name="offline_banner">ඔබ නොබැඳියි — කෑෂ් කළ දත්ත පෙන්වයි</string>

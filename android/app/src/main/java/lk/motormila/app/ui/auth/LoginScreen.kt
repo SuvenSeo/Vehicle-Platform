@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -94,6 +93,7 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val browseMarketLabel = stringResource(R.string.login_browse_market)
+    val forgotPasswordMessage = stringResource(R.string.login_forgot_password_message)
 
     LaunchedEffect(state.loggedIn) {
         if (state.loggedIn) {
@@ -248,34 +248,9 @@ fun LoginScreen(
                     Text(if (state.offline) "Retry when back online" else "Retry")
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            Card(
-                onClick = {
-                    viewModel.onEvent(AuthUiEvent.EmailChanged("mobiletest@motormila.lk"))
-                    viewModel.onEvent(AuthUiEvent.PasswordChanged("motormila2026"))
-                    viewModel.onEvent(AuthUiEvent.Submit)
-                },
-                shape = RoundedCornerShape(28.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color(0x440A7AFF), RoundedCornerShape(28.dp))
-                    .semantics { contentDescription = "Quick sign-in with review account" },
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0x1A0A7AFF),
-                ),
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column {
-                        Text("Quick Demo Sign-In", style = MaterialTheme.typography.labelMedium, color = MotormilaPrimaryBright, fontWeight = FontWeight.Bold)
-                        Text("mobiletest@motormila.lk (Enterprise)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Text("1-Tap Sign In →", style = MaterialTheme.typography.labelSmall, color = MotormilaPrimaryBright, fontWeight = FontWeight.Bold)
-                }
-            }
+            // No credentials are ever baked into the release build: earlier
+            // revisions shipped a one-tap demo sign-in with a hardcoded review
+            // account, which is a live account leak on a store/release APK.
             if (biometricEnabled) {
                 Spacer(Modifier.height(8.dp))
                 Card(
@@ -302,7 +277,7 @@ fun LoginScreen(
             }
             Spacer(Modifier.height(16.dp))
             Text(
-                "Demo: use any invited email — data stays on this device until the backend links your token.",
+                stringResource(R.string.login_invite_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -315,8 +290,16 @@ fun LoginScreen(
             ) {
                 Text(browseMarketLabel)
             }
-            TextButton(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("Forgot password?")
+            // Password resets are issued by the Motormila team (no self-serve
+            // email flow yet), so the previous no-op button now says so.
+            TextButton(
+                shape = androidx.compose.foundation.shape.CircleShape,
+                onClick = {
+                    scope.launch { snacks.showSnackbar(forgotPasswordMessage) }
+                },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text(stringResource(R.string.login_forgot_password))
             }
         }
     }

@@ -17,7 +17,9 @@ const exactLoaders: Record<string, () => Promise<unknown>> = {
   "/alerts": () => import("@/pages/Alerts"),
   "/settings": () => import("@/pages/Settings"),
   "/dealer": () => import("@/pages/DealerDashboard"),
-  "/admin": () => import("@/pages/AdminDashboard"),
+  "/mobile-app": () => import("@/pages/MobileApp"),
+  // The admin console is unlisted and credential-gated, so it is never warmed
+  // from the public shell — only an explicit visit loads it.
   "/pro": () => import("@/pages/ProDashboard"),
   "/pro-preview": () => import("@/pages/ProPreview"),
   "/sign-in": () => import("@/pages/SignIn"),
@@ -87,6 +89,7 @@ export function prefetchAppShellRoutes(): void {
     "/official-pulse",
     "/compare",
     "/docs",
+    "/mobile-app",
     "/listing/0",
     "/alerts",
   ].forEach(prefetchRoute);

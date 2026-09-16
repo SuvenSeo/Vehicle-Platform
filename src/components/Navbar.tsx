@@ -3,7 +3,24 @@ import { scrollBehavior } from "@/lib/motion";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { motion } from "framer-motion";
-import { Crown, LogOut, Menu, MoreHorizontal, Shield, UserCircle2, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  BarChart3,
+  Bell,
+  Crown,
+  LogOut,
+  Menu,
+  MoreHorizontal,
+  Scale,
+  Settings,
+  Smartphone,
+  Sparkles,
+  Star,
+  Store,
+  UserCircle2,
+  X,
+  Zap,
+} from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { SignInPortalModal } from "@/components/SignInPortalModal";
@@ -11,8 +28,6 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePipelineStatus } from "@/hooks/usePipelineStatus";
@@ -32,11 +47,21 @@ type NavSection = {
   activeOn?: string[];
 };
 
+type MoreItem = {
+  label: string;
+  detail: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type MoreGroup = { id: string; label: string; items: MoreItem[] };
+
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
-  const { user, logout, isAuthenticated, isAdmin, hasProAccess } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const { user, logout, isAuthenticated, hasProAccess } = useAuth();
   const pipelineStatus = usePipelineStatus();
   const { t } = useAppPreferences();
   const { hash, pathname } = useLocation();
@@ -51,28 +76,115 @@ export function Navbar() {
       { label: t("nav.evHub", "EV Hub"), href: "/ev-hub", id: "ev-hub", isRoute: true },
       { label: t("nav.valuation", "Valuation"), href: "/estimate", id: "estimate", isRoute: true },
       { label: t("nav.pricing", "Pricing"), href: "/pricing", id: "pricing", isRoute: true },
-      { label: t("nav.docs", "Docs"), href: "/docs", id: "docs", isRoute: true },
     ],
     [t],
   );
 
-  const moreSections = useMemo(
+  /**
+   * Grouped overflow menu. Descriptions are the whole point — a flat list of
+   * link names is what made the old "More" menu feel like an afterthought.
+   */
+  const moreGroups = useMemo<MoreGroup[]>(
     () => [
-      { label: t("nav.bestPicks", "Best Picks"), href: "/best-picks", detail: t("nav.bestPicksDetail", "Strict deal-score shortlist") },
-      { label: t("nav.priceIndex", "Price Index"), href: "/price-index", detail: t("nav.priceIndexDetail", "Mix-adjusted market index") },
-      { label: t("nav.officialPulse", "Official Pulse"), href: "/official-pulse", detail: t("nav.officialPulseDetail", "DMT, Customs & import signals") },
-      { label: t("nav.permits", "Permit Market"), href: "/permits", detail: t("nav.permitsDetail", "Black-market permit price tracker") },
-      { label: t("nav.dealer", "Dealer"), href: "/dealer", detail: t("nav.dealerDetail", "Operator command center") },
-      { label: t("nav.alerts", "Alerts"), href: "/alerts", detail: t("nav.alertsDetail", "Saved listing watches") },
-      { label: t("nav.settings", "Settings"), href: "/settings", detail: t("nav.settingsDetail", "Language and theme") },
-      ...(isAdmin
-        ? [{ label: t("nav.admin", "Admin"), href: "/admin", detail: t("nav.adminDetail", "Owner console · users, ops, analytics") }]
-        : []),
-      isAuthenticated
-        ? { label: t("nav.proDashboard", "Pro Dashboard"), href: "/pro", detail: t("nav.proDetail", "Paid market terminal") }
-        : { label: t("nav.proPreview", "Pro Preview"), href: "/pro-preview", detail: t("nav.proPreviewDetail", "Locked terminal layout") },
+      {
+        id: "market",
+        label: t("nav.groupMarket", "Market intelligence"),
+        items: [
+          {
+            label: t("nav.bestPicks", "Best Picks"),
+            detail: t("nav.bestPicksDetail", "Score-gated shortlist"),
+            href: "/best-picks",
+            icon: Star,
+          },
+          {
+            label: t("nav.priceIndex", "Price Index"),
+            detail: t("nav.priceIndexDetail", "Mix-adjusted market index"),
+            href: "/price-index",
+            icon: BarChart3,
+          },
+          {
+            label: t("nav.officialPulse", "Official Pulse"),
+            detail: t("nav.officialPulseDetail", "DMT, Customs & news signals"),
+            href: "/official-pulse",
+            icon: Sparkles,
+          },
+          {
+            label: t("nav.permits", "Permit Market"),
+            detail: t("nav.permitsDetail", "Import permit price tracker"),
+            href: "/permits",
+            icon: Scale,
+          },
+        ],
+      },
+      {
+        id: "tools",
+        label: t("nav.groupTools", "Tools & workspaces"),
+        items: [
+          {
+            label: t("nav.compare", "Compare"),
+            detail: t("nav.compareDetail", "Put up to three cars side by side"),
+            href: "/compare",
+            icon: Scale,
+          },
+          {
+            label: t("nav.evChargers", "EV Chargers"),
+            detail: t("nav.evChargersDetail", "Charging points across the island"),
+            href: "/ev-chargers",
+            icon: Zap,
+          },
+          {
+            label: t("nav.alerts", "Alerts"),
+            detail: t("nav.alertsDetail", "Watchlists and price-drop pings"),
+            href: "/alerts",
+            icon: Bell,
+          },
+          {
+            label: t("nav.dealer", "Dealer"),
+            detail: t("nav.dealerDetail", "Operator command center"),
+            href: "/dealer",
+            icon: Store,
+          },
+        ],
+      },
+      {
+        id: "account",
+        label: t("nav.groupAccount", "Your account"),
+        items: [
+          isAuthenticated
+            ? {
+                label: t("nav.proDashboard", "Pro Dashboard"),
+                detail: t("nav.proDetail", "Paid market terminal"),
+                href: "/pro",
+                icon: Crown,
+              }
+            : {
+                label: t("nav.proPreview", "Pro Preview"),
+                detail: t("nav.proPreviewDetail", "See the terminal before paying"),
+                href: "/pro-preview",
+                icon: Crown,
+              },
+          {
+            label: t("nav.settings", "Settings"),
+            detail: t("nav.settingsDetail", "Language, theme and preferences"),
+            href: "/settings",
+            icon: Settings,
+          },
+          {
+            label: t("nav.docs", "Docs"),
+            detail: t("nav.docsDetail", "How scoring and data work"),
+            href: "/docs",
+            icon: BarChart3,
+          },
+          {
+            label: t("nav.mobileApp", "Mobile App"),
+            detail: t("nav.mobileAppDetail", "Android APK · releasing soon"),
+            href: "/mobile-app",
+            icon: Smartphone,
+          },
+        ],
+      },
     ],
-    [isAuthenticated, isAdmin, t],
+    [isAuthenticated, t],
   );
 
   useEffect(() => {
@@ -108,12 +220,10 @@ export function Navbar() {
 
   const latestSyncIso = useMemo(() => {
     if (!pipelineStatus?.jobs?.length) return null;
-    return (
-      pipelineStatus.jobs
-        .map((job) => job.last_success || job.last_run)
-        .filter((value): value is string => Boolean(value))
-        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null
-    );
+    return pipelineStatus.jobs
+      .map((job) => job.last_success || job.last_run)
+      .filter((value): value is string => Boolean(value))
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null;
   }, [pipelineStatus]);
 
   // null = still loading / failed — do not pretend the pipeline is actively syncing.
@@ -202,6 +312,14 @@ export function Navbar() {
     setMobileOpen(false);
   };
 
+  const goTo = (href: string) => {
+    setMoreOpen(false);
+    setMobileOpen(false);
+    navigate(href);
+  };
+
+  const mobileAppActive = pathname.startsWith("/mobile-app");
+
   return (
     <header className="fixed inset-x-0 top-0 z-[1000] pointer-events-none">
       <div
@@ -245,9 +363,7 @@ export function Navbar() {
                       aria-current={active ? "page" : undefined}
                       data-active={active}
                       className={`relative whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium tracking-tight no-underline outline-none transition-all duration-200 ease-apple active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 2xl:px-3.5 ${
-                        active
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
+                        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {active && (
@@ -267,12 +383,16 @@ export function Navbar() {
 
             {/* ── Right actions ─────────────────────────── */}
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
-              {/* More dropdown */}
-              <DropdownMenu>
+              {/* More — grouped mega menu */}
+              <DropdownMenu open={moreOpen} onOpenChange={setMoreOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="hidden h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 md:inline-flex"
+                    className={`hidden h-8 items-center gap-1.5 rounded-full border px-3 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 md:inline-flex ${
+                      moreOpen
+                        ? "border-primary/30 bg-primary/10 text-primary-bright"
+                        : "border-border bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+                    }`}
                     aria-label={t("nav.more", "More")}
                   >
                     <MoreHorizontal className="h-3.5 w-3.5" />
@@ -281,25 +401,104 @@ export function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="w-56 rounded-2xl border-border bg-popover/95 p-1.5 text-foreground shadow-soft-lg backdrop-blur-2xl"
+                  sideOffset={10}
+                  className="w-[min(94vw,480px)] overflow-hidden rounded-[1.75rem] border-border bg-popover/96 p-0 text-foreground shadow-soft-xl backdrop-blur-2xl"
                 >
-                  {moreSections.map((section) => (
-                    <DropdownMenuItem
-                      key={section.href}
-                      onPointerEnter={() => prefetchRoute(section.href)}
-                      onSelect={() => navigate(section.href)}
-                      className="rounded-xl px-3 py-2.5 text-[13px] font-medium text-foreground/85 focus:bg-accent focus:text-foreground"
+                  <div className="max-h-[min(74vh,620px)] overflow-y-auto overscroll-contain p-2.5">
+                    {/* Mobile app spotlight */}
+                    <button
+                      type="button"
+                      onClick={() => goTo("/mobile-app")}
+                      onPointerEnter={() => prefetchRoute("/mobile-app")}
+                      className="group/mobile relative w-full overflow-hidden rounded-2xl border border-primary/20 bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.16),transparent_62%)] px-3.5 py-3 text-left outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
-                      {section.label}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onSelect={() => window.open(GITHUB_URL, "_blank", "noopener,noreferrer")}
-                    className="rounded-xl px-3 py-2.5 text-[13px] font-medium text-muted-foreground focus:bg-accent focus:text-foreground"
-                  >
-                    {t("nav.github", "GitHub")}
-                  </DropdownMenuItem>
+                      <span className="flex items-start gap-3">
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12">
+                          <Smartphone className="h-4 w-4 text-primary" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <span className="text-[13px] font-semibold tracking-tight text-foreground">
+                              {t("nav.mobileApp", "Mobile App")}
+                            </span>
+                            <span className="rounded-full border border-amber-400/35 bg-amber-400/12 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-600 dark:text-amber-300">
+                              {t("mobile.releasingSoon", "Releasing soon")}
+                            </span>
+                          </span>
+                          <span className="mt-1 block text-[11.5px] leading-relaxed text-muted-foreground">
+                            {t(
+                              "nav.mobileAppSpotlight",
+                              "Live listings, deal scores, price alerts and plate scanning — the Android APK is in final build.",
+                            )}
+                          </span>
+                        </span>
+                        <ArrowUpRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover/mobile:translate-x-0.5 group-hover/mobile:-translate-y-0.5" aria-hidden />
+                      </span>
+                    </button>
+
+                    {moreGroups.map((group) => (
+                      <div key={group.id} className="mt-2.5">
+                        <p className="px-2 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                          {group.label}
+                        </p>
+                        <div className="grid gap-1 sm:grid-cols-2">
+                          {group.items.map((item) => {
+                            const Icon = item.icon;
+                            const active = pathname === item.href;
+                            return (
+                              <button
+                                key={item.href}
+                                type="button"
+                                onPointerEnter={() => prefetchRoute(item.href)}
+                                onClick={() => goTo(item.href)}
+                                aria-current={active ? "page" : undefined}
+                                className={`group/item flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                                  active ? "bg-primary/10" : "hover:bg-accent"
+                                }`}
+                              >
+                                <span
+                                  className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
+                                    active
+                                      ? "border-primary/30 bg-primary/12 text-primary"
+                                      : "border-border bg-foreground/[0.03] text-muted-foreground group-hover/item:text-foreground"
+                                  }`}
+                                >
+                                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                                </span>
+                                <span className="min-w-0">
+                                  <span className="block truncate text-[12.5px] font-semibold tracking-tight text-foreground">
+                                    {item.label}
+                                  </span>
+                                  <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                    {item.detail}
+                                  </span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 border-t border-border bg-foreground/[0.02] px-3.5 py-2.5">
+                    <a
+                      href={GITHUB_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
+                    >
+                      {t("nav.github", "GitHub")}
+                      <ArrowUpRight className="h-3 w-3" aria-hidden />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => goTo("/pricing")}
+                      className="text-[11.5px] font-semibold text-primary-bright outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/50"
+                    >
+                      {t("nav.comparePlans", "Compare plans")}
+                    </button>
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -332,16 +531,6 @@ export function Navbar() {
                   >
                     {user.plan}
                   </span>
-                  {isAdmin ? (
-                    <button
-                      type="button"
-                      onClick={() => navigate("/admin")}
-                      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] px-3 text-foreground outline-none transition-colors hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-primary/50"
-                    >
-                      <Shield className="h-3 w-3" />
-                      <span className="text-[13px] font-medium tracking-tight">{t("nav.admin", "Admin")}</span>
-                    </button>
-                  ) : null}
                   <button
                     type="button"
                     onClick={() => navigate(hasProAccess ? "/pro" : "/pricing")}
@@ -398,7 +587,7 @@ export function Navbar() {
           aria-label={t("nav.navigationMenu", "Navigation menu")}
           onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
         >
-          <div className="overflow-hidden rounded-3xl border border-border bg-popover/95 p-3.5 shadow-soft-lg backdrop-blur-2xl">
+          <div className="max-h-[min(78vh,720px)] overflow-y-auto overscroll-contain rounded-3xl border border-border bg-popover/96 p-3.5 shadow-soft-lg backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
                 <p className="text-[13px] font-semibold tracking-tight text-foreground">Motormila</p>
@@ -410,9 +599,39 @@ export function Navbar() {
               </div>
             </div>
 
+            {/* Mobile app spotlight */}
+            <a
+              href="/mobile-app"
+              onClick={(event) => handleScroll(event, "/mobile-app", true)}
+              data-active={mobileAppActive}
+              className={`mb-3 flex items-start gap-3 rounded-2xl border px-3.5 py-3 no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                mobileAppActive
+                  ? "border-primary/30 bg-primary/10"
+                  : "border-primary/20 bg-primary/[0.06] hover:border-primary/35"
+              }`}
+            >
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12">
+                <Smartphone className="h-4 w-4 text-primary" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-[13px] font-semibold tracking-tight text-foreground">
+                    {t("nav.mobileApp", "Mobile App")}
+                  </span>
+                  <span className="rounded-full border border-amber-400/35 bg-amber-400/12 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-600 dark:text-amber-300">
+                    {t("mobile.releasingSoon", "Releasing soon")}
+                  </span>
+                </span>
+                <span className="mt-1 block text-[11.5px] leading-relaxed text-muted-foreground">
+                  {t("nav.mobileAppDetail", "Android APK · releasing soon")}
+                </span>
+              </span>
+            </a>
+
+            {/* Primary destinations */}
             <div className="grid grid-cols-2 gap-1.5">
-              {[...sections, ...moreSections.map((section) => ({ ...section, id: section.href, isRoute: true }))].map((section) => {
-                const active = section.isRoute ? pathname === section.href : isSectionActive(section);
+              {sections.map((section) => {
+                const active = isSectionActive(section);
                 return (
                   <a
                     key={`${section.id}-${section.label}`}
@@ -420,9 +639,9 @@ export function Navbar() {
                     onClick={(event) => handleScroll(event, section.href, section.isRoute)}
                     aria-current={active ? "page" : undefined}
                     data-active={active}
-                    className={`rounded-2xl border px-3 py-3 text-center text-[13px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                    className={`rounded-2xl border px-3 py-2.5 text-center text-[13px] font-medium tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
                       active
-                        ? "border-primary/20 bg-primary/10 text-primary-bright"
+                        ? "border-primary/25 bg-primary/10 text-primary-bright"
                         : "border-border text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground"
                     }`}
                   >
@@ -432,7 +651,50 @@ export function Navbar() {
               })}
             </div>
 
-            <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+            {/* Grouped overflow items — same grouping as desktop */}
+            {moreGroups.map((group) => (
+              <div key={group.id} className="mt-3">
+                <p className="px-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                  {group.label}
+                </p>
+                <div className="grid gap-1.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname === item.href;
+                    return (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        onClick={(event) => handleScroll(event, item.href, true)}
+                        aria-current={active ? "page" : undefined}
+                        data-active={active}
+                        className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                          active
+                            ? "border-primary/25 bg-primary/10"
+                            : "border-border hover:bg-foreground/[0.04]"
+                        }`}
+                      >
+                        <span
+                          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
+                            active ? "border-primary/30 bg-primary/12 text-primary" : "border-border text-muted-foreground"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" aria-hidden />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-[12.5px] font-semibold tracking-tight text-foreground">
+                            {item.label}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{item.detail}</span>
+                        </span>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="mt-3 grid grid-cols-2 gap-1.5">
               {isAuthenticated && user ? (
                 <>
                   <button
@@ -467,6 +729,19 @@ export function Navbar() {
                   </span>
                 </button>
               )}
+            </div>
+
+            <div className="mt-2.5 flex items-center justify-between rounded-2xl border border-border px-3 py-2">
+              <LocaleSwitcher compact />
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
+              >
+                {t("nav.github", "GitHub")}
+                <ArrowUpRight className="h-3 w-3" aria-hidden />
+              </a>
             </div>
           </div>
         </div>

@@ -595,6 +595,64 @@ function normalizeListing(raw: JsonRecord): CarListing {
   } as CarListing;
 }
 
+/**
+ * Collapse duplicate rows before they reach the UI.
+ *
+ * Duplicates creep in three ways:
+ *  1. the same row id repeats across snapshot catalog parts (or the incoming
+ *     live overlay re-lists an id that is already in the catalog),
+ *  2. the same source re-publishes one car under two ids — same detail URL,
+ *  3. near-identical scrapes with no URL at all — same source + make + model +
+ *     year + price + district.
+ *
+ * First occurrence wins, so callers that overlay the freshest rows first
+ * (see overlayIncomingListings) keep the newest copy.
+ */
+export function dedupeListings(rows: CarListing[]): CarListing[] {
+  if (!Array.isArray(rows) || rows.length < 2) return Array.isArray(rows) ? rows : [];
+
+  const seenIds = new Set<string>();
+  const seenUrls = new Set<string>();
+  const seenFingerprints = new Set<string>();
+  const out: CarListing[] = [];
+
+  for (const row of rows) {
+    if (!row) continue;
+
+    const id = Number(row.id);
+    const idKey = Number.isFinite(id) && id > 0 ? String(id) : null;
+    if (idKey && seenIds.has(idKey)) continue;
+
+    const source = String(row.source || "").trim().toLowerCase();
+    const url = String(row.detail_url || row.url || row.external_url || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[#?].*$/, "")
+      .replace(/\/+$/, "");
+    if (url) {
+      const urlKey = `${source}|${url}`;
+      if (seenUrls.has(urlKey)) continue;
+      seenUrls.add(urlKey);
+    } else {
+      const fingerprint = [
+        source,
+        String(row.make || "").trim().toLowerCase(),
+        String(row.model || "").trim().toLowerCase(),
+        String(row.year || ""),
+        String(row.price_lkr ?? ""),
+        String(row.district || "").trim().toLowerCase(),
+      ].join("|");
+      if (seenFingerprints.has(fingerprint)) continue;
+      seenFingerprints.add(fingerprint);
+    }
+
+    if (idKey) seenIds.add(idKey);
+    out.push(row);
+  }
+
+  return out;
+}
+
 const snapshotJsonCache = new Map<string, Promise<unknown>>();
 let snapshotCatalogPromise: Promise<CarListing[] | null> | null = null;
 
@@ -638,16 +696,18 @@ async function readSnapshot<T>(fileName: string): Promise<T | null> {
 function overlayIncomingListings(catalog: CarListing[], incoming: CarListing[]): CarListing[] {
   if (!incoming.length) return catalog;
   const incomingIds = new Set(incoming.map((row) => Number(row.id)));
-  return [...incoming, ...catalog.filter((row) => !incomingIds.has(Number(row.id)))];
+  return dedupeListings([...incoming, ...catalog.filter((row) => !incomingIds.has(Number(row.id)))]);
 }
 
 async function getIncomingSnapshotListings(): Promise<CarListing[]> {
   const snapshot = await readSnapshot<JsonRecord>("live-market.json");
   if (!snapshot) return [];
   const rows = Array.isArray(snapshot.latest_listings) ? snapshot.latest_listings : [];
-  return rows
-    .map((item) => normalizeListing(asJsonRecord(item)))
-    .filter((row) => Number(row.id) > 0);
+  return dedupeListings(
+    rows
+      .map((item) => normalizeListing(asJsonRecord(item)))
+      .filter((row) => Number(row.id) > 0),
+  );
 }
 
 function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
@@ -679,12 +739,14 @@ function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
           return null;
         }
         if (items.length === 0) return null;
-        const catalog = items.map(normalizeListing);
+        // Parts can overlap (a re-split catalog, a row that grew past a page
+        // boundary) — dedupe before the overlay so totals stay honest.
+        const catalog = dedupeListings(items.map(normalizeListing));
         return overlayIncomingListings(catalog, await getIncomingSnapshotListings());
       }
 
       if (!Array.isArray(snapshot.items)) return null;
-      const catalog = snapshot.items.map(normalizeListing);
+      const catalog = dedupeListings(snapshot.items.map(normalizeListing));
       return overlayIncomingListings(catalog, await getIncomingSnapshotListings());
     });
   }
@@ -951,7 +1013,7 @@ function filterSnapshotListings(
   filters: FilterState,
   pageSize = LISTINGS_PAGE_SIZE,
 ): { listings: CarListing[]; total: number } {
-  const matched = catalog.filter((listing) => matchesSnapshotFilters(listing, filters));
+  const matched = dedupeListings(catalog.filter((listing) => matchesSnapshotFilters(listing, filters)));
   const sorted = sortSnapshotListings(matched, filters.sort || "newest");
   const page = Math.max(1, Number(filters.page || 1));
   const size = Math.max(1, pageSize);
@@ -1229,7 +1291,7 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
   });
   const items = Array.isArray(data.items) ? data.items : [];
   return {
-    listings: items.map((item) => normalizeListing(asJsonRecord(item))),
+    listings: dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item)))),
     total: Number(data.total) || 0,
   };
 };
