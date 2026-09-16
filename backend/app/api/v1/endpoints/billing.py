@@ -107,7 +107,8 @@ async def billing_webhook(
 # Checkout intent — surface a checkout URL or contact-sales fallback
 # ---------------------------------------------------------------------------
 
-_CONTACT_EMAIL_FALLBACK = "s.seoras@rgu.ac.uk"
+_CONTACT_EMAIL_FALLBACK = "suvenseoras@gmail.com"
+_CONTACT_PHONE_FALLBACK = "0758504424"
 
 
 def _checkout_url() -> Optional[str]:
@@ -135,7 +136,7 @@ def _manual_pay_activation_window() -> str:
 
 
 def _manual_pay_whatsapp() -> str:
-    return os.getenv("BILLING_WHATSAPP", os.getenv("BILLING_WHATSAPP_NUMBER", "")).strip()
+    return os.getenv("BILLING_WHATSAPP", os.getenv("BILLING_WHATSAPP_NUMBER", _CONTACT_PHONE_FALLBACK)).strip()
 
 
 def _manual_pay_bank_details() -> str:

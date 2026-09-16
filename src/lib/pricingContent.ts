@@ -30,6 +30,14 @@ export const TRIAL_OFFER = {
   ctaTo: "/sign-up",
 } as const;
 
+/** Paid plans are in Coming Soon mode: display is hidden, all tier codes/routes/checkout stay intact. */
+export const PRICING_COMING_SOON = true as const;
+
+export const COMING_SOON_COPY = {
+  badge: "Coming soon",
+  note: "Paid plans launch soon — free browse stays open.",
+} as const;
+
 export const ANNUAL_SAVE_NUDGE = {
   pro: "Annual saves 2 months — LKR 9,990/yr vs LKR 999/mo",
   dealer: "Annual saves 2 months — LKR 19,990/yr vs LKR 1,999/mo",
@@ -63,9 +71,10 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    priceLkr: "LKR 999",
-    priceNote: "/mo",
-    annualNote: "LKR 9,990/yr (2 months free) — annual saves 2 months",
+    priceLkr: "Coming soon",
+    priceNote: "launching soon",
+    // Live price (kept in code): LKR 999 /mo, LKR 9,990/yr (2 months free)
+    annualNote: "Coming soon",
     audience: "Brokers, analysts, and serious buyers who need depth",
     features: [
       "Full Pro terminal (/pro)",
@@ -81,9 +90,10 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "dealer",
     name: "Dealer",
-    priceLkr: "LKR 1,999",
-    priceNote: "/mo",
-    annualNote: "LKR 19,990/yr (2 months free) — annual saves 2 months",
+    priceLkr: "Coming soon",
+    priceNote: "launching soon",
+    // Live price (kept in code): LKR 1,999 /mo, LKR 19,990/yr (2 months free)
+    annualNote: "Coming soon",
     audience: "Yards and multi-lot dealers running inventory every day",
     highlight: true,
     features: [
@@ -100,7 +110,7 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "custom",
     name: "Custom",
-    priceLkr: "Custom",
+    priceLkr: "Coming soon",
     priceNote: "message us",
     audience: "Banks, leasing desks, multi-branch importers — priced for your scope",
     features: [
@@ -164,11 +174,12 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is annual billing cheaper?",
-    a: "Yes — annual saves 2 months. Pro is LKR 9,990/yr (vs LKR 999/mo) and Dealer is LKR 19,990/yr (vs LKR 1,999/mo).",
+    // Live answer (kept in code): "Yes — annual saves 2 months. Pro is LKR 9,990/yr (vs LKR 999/mo) and Dealer is LKR 19,990/yr (vs LKR 1,999/mo)."
+    a: "Coming soon — annual pricing will be announced at launch. Free browse stays open meanwhile.",
   },
   {
     q: "How do I pay without a card?",
-    a: "Pay by bank transfer or KOKO, then WhatsApp us your receipt with your account email. We activate Pro / Dealer within 2 hours.",
+    a: "Coming soon — bank transfer / KOKO manual pay will go live with paid plans. Contact suvenseoras@gmail.com or 0758504424 meanwhile.",
   },
   {
     q: "What is Custom?",

@@ -712,4 +712,4 @@ private fun SplashGate(
     }
 }
 
-private const val SUPPORT_MAILTO = "mailto:support@motormila.lk"
+private const val SUPPORT_MAILTO = "mailto:suvenseoras@gmail.com"

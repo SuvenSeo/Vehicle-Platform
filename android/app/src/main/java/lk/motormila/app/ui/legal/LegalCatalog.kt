@@ -17,7 +17,8 @@ data class LegalDocument(
 )
 
 object LegalCatalog {
-    const val CONTACT_EMAIL = "hello@motormila.lk"
+    const val CONTACT_EMAIL = "suvenseoras@gmail.com"
+    const val CONTACT_PHONE = "0758504424"
 
     val privacy = LegalDocument(
         id = "privacy",

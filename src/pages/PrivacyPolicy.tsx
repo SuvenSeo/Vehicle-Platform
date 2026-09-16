@@ -131,6 +131,13 @@ export default function PrivacyPolicy() {
                 className="text-primary-bright underline decoration-primary/40 underline-offset-2"
               >
                 {BRAND.contactEmail}
+              </a>{" "}
+              ·{" "}
+              <a
+                href={BRAND.contactPhoneHref}
+                className="text-primary-bright underline decoration-primary/40 underline-offset-2"
+              >
+                {BRAND.contactPhone}
               </a>
             </p>
           </section>

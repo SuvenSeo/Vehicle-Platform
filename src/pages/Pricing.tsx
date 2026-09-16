@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Check, HelpCircle, Loader2, MessageCircle, Sparkles, Timer, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BRAND } from "@/lib/brand";
-import { ANNUAL_SAVE_NUDGE, ICP_PERSONAS, PRICING_FAQ, PRICING_TIERS, TRIAL_OFFER } from "@/lib/pricingContent";
+import { ANNUAL_SAVE_NUDGE, COMING_SOON_COPY, ICP_PERSONAS, PRICING_COMING_SOON, PRICING_FAQ, PRICING_TIERS, TRIAL_OFFER } from "@/lib/pricingContent";
 import type { PricingTierId } from "@/lib/pricingContent";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
@@ -256,7 +256,7 @@ export default function Pricing() {
         eyebrowIcon={Sparkles}
         watermarkIcon={Users}
         title={<>{t("pricing.title", "Pricing that funds the pipeline")}<span className="text-sheen">.</span></>}
-        description={t("pricing.body", "Free browse stays free. Start a 7-day free Pro trial — then keep Pro with bank, KOKO, or WhatsApp manual pay.")}
+        description={t("pricing.body", PRICING_COMING_SOON ? "Paid plans are coming soon. Free browse stays open — contact us to get notified at launch." : "Free browse stays free. Start a 7-day free Pro trial — then keep Pro with bank, KOKO, or WhatsApp manual pay.")}
         media={visuals.alt2PagePricingBg}
         mediaPosition="center 40%"
         mediaTone="brand"
@@ -294,6 +294,18 @@ export default function Pricing() {
       <PageBody className="space-y-16 lg:space-y-20">
         <TrialCountdownBanner />
 
+        {PRICING_COMING_SOON && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-5 py-4">
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+              <Sparkles aria-hidden className="h-4 w-4 text-primary" />
+              {COMING_SOON_COPY.badge} — {COMING_SOON_COPY.note} Contact{" "}
+              <a href={`mailto:${BRAND.contactEmail}`} className="underline decoration-primary/40 underline-offset-2">{BRAND.contactEmail}</a>
+              {" "}·{" "}
+              <a href={BRAND.contactPhoneHref} className="underline decoration-primary/40 underline-offset-2">{BRAND.contactPhone}</a>
+            </p>
+          </div>
+        )}
+
         <motion.section variants={revealItem} aria-labelledby="icp-heading">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
@@ -329,7 +341,7 @@ export default function Pricing() {
           </h2>
           <p className="mb-8 inline-flex flex-wrap items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-2 text-[12px] font-semibold text-foreground">
             <Sparkles aria-hidden className="h-3.5 w-3.5 text-primary" />
-            {t("pricing.annualNudge", `Annual saves 2 months — ${ANNUAL_SAVE_NUDGE.pro} · ${ANNUAL_SAVE_NUDGE.dealer}`)}
+            {t("pricing.annualNudge", PRICING_COMING_SOON ? `${COMING_SOON_COPY.badge} — ${COMING_SOON_COPY.note}` : `Annual saves 2 months — ${ANNUAL_SAVE_NUDGE.pro} · ${ANNUAL_SAVE_NUDGE.dealer}`)}
           </p>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {PRICING_TIERS.map((tier) => (

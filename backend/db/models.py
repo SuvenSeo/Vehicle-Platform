@@ -94,13 +94,18 @@ class CarListing(Base):
 
 def live_listing_filter():
     """Single boolean expression for "count this listing in market views":
-    not a statistical outlier AND still live at its source.
+    not a statistical outlier AND still live at its source AND not flagged
+    as a cross-source duplicate (canonical row carries the signal).
 
     Composes safely inside filter()/and_()/or_() because it is one expression.
     """
     from sqlalchemy import and_
 
-    return and_(CarListing.is_outlier == False, CarListing.is_active == True)  # noqa: E712
+    return and_(
+        CarListing.is_outlier == False,  # noqa: E712
+        CarListing.is_active == True,  # noqa: E712
+        CarListing.is_duplicate == False,  # noqa: E712
+    )
 
 class PriceAggregate(Base):
     __tablename__ = 'price_aggregates'

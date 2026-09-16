@@ -235,7 +235,8 @@ async def health_check():
 
 
 SECURITY_TXT = """\
-Contact: mailto:security@motormila.com
+Contact: mailto:suvenseoras@gmail.com
+Contact: tel:0758504424
 Preferred-Languages: en
 Policy: https://motormila.vercel.app/security
 Expires: 2027-01-01T00:00:00.000Z

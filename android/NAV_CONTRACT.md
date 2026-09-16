@@ -122,7 +122,7 @@ fun ProScreen(
 // lk.motormila.app.ui.dealer — DealerScreen.kt
 @Composable
 fun DealerScreen(
-    onContactSupport: () -> Unit, // mailto:support@motormila.lk
+    onContactSupport: () -> Unit, // mailto:suvenseoras@gmail.com · 0758504424
     viewModel: DealerViewModel = hiltViewModel(),
 )
 

@@ -41,9 +41,10 @@ object PricingCatalog {
         PricingTier(
             id = "pro",
             name = "Pro",
-            price = "LKR 999",
-            note = "/mo",
-            annualNote = "LKR 9,990/yr (2 months free)",
+            price = "Coming soon",
+            note = "launching soon",
+            // Live price (kept): LKR 999 /mo, LKR 9,990/yr
+            annualNote = "Coming soon",
             audience = "Brokers, analysts, and serious buyers who need depth",
             features = listOf(
                 "Full Pro terminal",
@@ -58,9 +59,10 @@ object PricingCatalog {
         PricingTier(
             id = "dealer",
             name = "Dealer",
-            price = "LKR 1,999",
-            note = "/mo",
-            annualNote = "LKR 19,990/yr (2 months free)",
+            price = "Coming soon",
+            note = "launching soon",
+            // Live price (kept): LKR 1,999 /mo, LKR 19,990/yr
+            annualNote = "Coming soon",
             audience = "Yards and multi-lot dealers running inventory every day",
             highlight = true,
             features = listOf(
@@ -76,7 +78,7 @@ object PricingCatalog {
         PricingTier(
             id = "custom",
             name = "Custom",
-            price = "Custom",
+            price = "Coming soon",
             note = "message us",
             audience = "Banks, leasing desks, multi-branch importers",
             features = listOf(
@@ -113,5 +115,6 @@ object PricingCatalog {
         ),
     )
 
-    const val CONTACT_MAILTO = "mailto:support@motormila.lk"
+    const val CONTACT_MAILTO = "mailto:suvenseoras@gmail.com"
+    const val CONTACT_PHONE = "0758504424"
 }
