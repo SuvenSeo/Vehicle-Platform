@@ -1,6 +1,7 @@
 package lk.motormila.app.ui.pro
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,8 +39,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.io.File
 import lk.motormila.app.billing.BillingState
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatPct
@@ -51,6 +55,7 @@ import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaMetricTile
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.domain.model.ArbitrageGap
 import lk.motormila.app.domain.model.ProDistrict
@@ -132,6 +137,10 @@ fun ProScreen(
                         tapConfirm()
                         viewModel.onEvent(ProUiEvent.ThresholdChanged(pct))
                     },
+                    onExportCsv = {
+                        tapConfirm()
+                        shareProCsv(context, state)
+                    },
                 )
             }
         }
@@ -191,6 +200,7 @@ private fun ProContent(
     onSelectLane: (make: String, model: String) -> Unit,
     onToggleDistrict: (district: String) -> Unit,
     onThreshold: (pct: Double) -> Unit,
+    onExportCsv: () -> Unit,
 ) {
     // When blurred, show deterministic placeholder snapshot so the paywall has
     // something to lock; real values arrive post-upgrade via Refresh.
@@ -217,6 +227,16 @@ private fun ProContent(
                 } else {
                     Text("Upgrade to load live KPIs.", style = MaterialTheme.typography.bodyMedium)
                 }
+            }
+            if (!blurred && snap != null) {
+                Spacer(Modifier.height(8.dp))
+                MotormilaPrimaryButton(
+                    label = "Export CSV report",
+                    leadingIcon = Icons.Filled.Share,
+                    onClick = onExportCsv,
+                    fillMaxWidth = true,
+                    modifier = Modifier.semantics { contentDescription = "Export Pro CSV report" },
+                )
             }
         }
         item { SectionTitle("Lanes — tap a lane for detail") }
@@ -510,3 +530,28 @@ private fun previewArb() = listOf(
 )
 
 private fun previewSourceLabels() = listOf("ikman · 1,204", "riyasewana · 986")
+
+private fun shareProCsv(context: android.content.Context, state: ProUiState) {
+    val csv = ProCsvExport.build(
+        snapshot = state.snapshot,
+        lanes = state.lanes,
+        districts = state.districts,
+        arbitrage = state.arbitrage,
+    )
+    val dir = File(context.cacheDir, "share").apply { mkdirs() }
+    val file = File(dir, "motormila-pro-report.csv")
+    file.writeText(csv)
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        file,
+    )
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/csv"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, "Motormila Pro report")
+        putExtra(Intent.EXTRA_TEXT, "Motormila Pro snapshot, lanes, districts, and arbitrage export.")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(Intent.createChooser(intent, "Share Pro CSV"))
+}
