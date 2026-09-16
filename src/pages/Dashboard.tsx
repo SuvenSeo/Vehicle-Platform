@@ -19,6 +19,7 @@ import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { HeroSideSignals } from "@/components/HeroSideSignals";
 import { HeroVariantPicker } from "@/components/HeroVariantPicker";
 import { useHeroVariantLab } from "@/hooks/useHeroVariantLab";
+import type { HeroAlign } from "@/lib/heroVariants";
 import { RevealSection } from "@/components/RevealSection";
 import { SectionHeader } from "@/components/SectionHeader";
 import { visuals } from "@/lib/visualAssets";
@@ -142,6 +143,30 @@ const HERO_POPULAR_SCANS = [
 ] as const;
 
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
+
+function heroCopyAlignClass(align: HeroAlign, hideSideSignals: boolean): string {
+  switch (align) {
+    case "left":
+      return cn(
+        "mr-auto max-w-xl text-left lg:max-w-2xl",
+        !hideSideSignals && "xl:ml-[min(22vw,292px)] xl:max-w-[36rem]",
+      );
+    case "right":
+      return cn(
+        "ml-auto max-w-xl text-left lg:max-w-2xl",
+        !hideSideSignals && "xl:mr-[min(22vw,292px)] xl:max-w-[36rem]",
+      );
+    case "center":
+      return cn(
+        "mx-auto flex w-full max-w-3xl flex-col items-center text-center",
+        !hideSideSignals && "xl:max-w-2xl 2xl:max-w-3xl",
+      );
+    default: {
+      const _exhaustive: never = align;
+      return _exhaustive;
+    }
+  }
+}
 
 function parseOptionalNumber(value: string | null) {
   if (!value) return undefined;
@@ -607,18 +632,8 @@ export default function Dashboard() {
   const listingFreshnessAt = liveMarketSnapshot?.latest_listing_at ?? stats?.last_updated ?? null;
   const { variant: heroVariant, setVariantId: setHeroVariantId, showPicker: showHeroLab } = useHeroVariantLab();
   const heroFilmTone = heroVariant.tone === "light" ? "light" : "cinematic";
-  const heroAlignClass =
-    heroVariant.align === "left"
-      ? cn(
-          "mr-auto max-w-xl text-left lg:max-w-2xl",
-          !heroVariant.hideSideSignals && "xl:ml-[min(22vw,292px)] xl:max-w-[36rem]",
-        )
-      : heroVariant.align === "right"
-        ? cn(
-            "ml-auto max-w-xl text-left lg:max-w-2xl",
-            !heroVariant.hideSideSignals && "xl:mr-[min(22vw,292px)] xl:max-w-[36rem]",
-          )
-        : "mx-auto max-w-3xl text-center";
+  const heroCentered = heroVariant.align === "center";
+  const heroAlignClass = heroCopyAlignClass(heroVariant.align, heroVariant.hideSideSignals);
   const heroCopyTone =
     heroFilmTone === "cinematic"
       ? "text-white [text-shadow:0_18px_48px_rgba(0,0,0,0.45)]"
@@ -658,9 +673,11 @@ export default function Dashboard() {
       {/* ── HERO — cinematic showroom ─────────────────────────────── */}
       <section
         id="overview"
-        className={`hero-cinematic relative -mt-[var(--nav-offset)] overflow-hidden border-b border-border pt-[var(--nav-offset)] ${
-          heroFilmTone === "cinematic" ? "bg-[#070605]" : "bg-surface"
-        }`}
+        className={cn(
+          "hero-cinematic relative -mt-[var(--nav-offset)] overflow-hidden border-b border-border pt-[var(--nav-offset)]",
+          heroFilmTone === "cinematic" ? "bg-[#070605]" : "bg-surface",
+          heroCentered && "hero-cinematic--centered",
+        )}
       >
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <AtmosphericImage
@@ -684,7 +701,12 @@ export default function Dashboard() {
           initial="hidden"
           animate="show"
           variants={heroContainerVariants}
-          className="relative z-10 mx-auto flex w-full max-w-[1560px] flex-1 flex-col justify-end px-5 pb-28 pt-24 sm:px-6 sm:pb-24 sm:pt-28 lg:pb-28 lg:pt-32"
+          className={cn(
+            "relative z-10 mx-auto flex w-full max-w-[1560px] flex-1 flex-col px-5 sm:px-6",
+            heroCentered
+              ? "min-h-[min(calc(88svh-var(--nav-offset)),calc(900px-var(--nav-offset)))] items-center justify-center py-24 sm:py-28"
+              : "justify-end pb-28 pt-24 sm:pb-24 sm:pt-28 lg:pb-28 lg:pt-32",
+          )}
         >
           {!heroVariant.hideSideSignals ? (
             <HeroSideSignals
@@ -702,7 +724,7 @@ export default function Dashboard() {
           ) : null}
 
           <div className={`relative ${heroAlignClass}`}>
-            <motion.p variants={heroItemVariants} className="hero-pill">
+            <motion.p variants={heroItemVariants} className={cn("hero-pill", heroCentered && "flex justify-center")}>
               <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-medium tracking-tight ${heroKickerClass}`}>
                 <span aria-hidden className="relative inline-flex h-1.5 w-1.5">
                   <span className="animate-live-dot absolute inset-0 rounded-full bg-primary" />
@@ -714,15 +736,28 @@ export default function Dashboard() {
 
             <motion.h1
               variants={heroItemVariants}
-              className={`display-hero mt-6 max-w-3xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroCopyTone}`}
+              className={cn(
+                "display-hero mt-6",
+                heroCentered ? "display-hero--lockup" : "max-w-3xl",
+                heroCopyTone,
+              )}
             >
-              {t("hero.title", "Sri Lanka's entire vehicle market,")}
-              <span className="italic text-primary"> {t("hero.titleAccent", "decoded.")}</span>
+              <span className={heroCentered ? "display-hero__lead" : undefined}>
+                {t("hero.title", "Sri Lanka's entire vehicle market,")}
+              </span>
+              <span className={cn("italic text-primary", heroCentered ? "display-hero__accent" : undefined)}>
+                {heroCentered ? null : " "}
+                {t("hero.titleAccent", "decoded.")}
+              </span>
             </motion.h1>
 
             <motion.p
               variants={heroItemVariants}
-              className={`text-body-lg mt-5 max-w-lg ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroMutedTone}`}
+              className={cn(
+                "text-body-lg mt-5 text-pretty",
+                heroCentered ? "mx-auto max-w-xl text-balance" : "max-w-lg",
+                heroMutedTone,
+              )}
             >
               <span className={`font-semibold num ${heroCopyTone}`}>
                 {marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}
@@ -733,7 +768,10 @@ export default function Dashboard() {
               ).replace("{sources}", String(marketPulseSources || 10))}
             </motion.p>
 
-            <motion.div variants={heroItemVariants} className="mt-9 max-w-2xl text-left">
+            <motion.div
+              variants={heroItemVariants}
+              className={cn("mt-9 w-full max-w-2xl", heroCentered ? "mx-auto" : "text-left")}
+            >
                 <div className="relative">
                   <div className={`flex items-center gap-2 rounded-full border p-1.5 transition-all ${heroSearchShellClass}`}>
                     <Search aria-hidden className={`ml-3.5 h-5 w-5 shrink-0 ${heroFilmTone === "cinematic" ? "text-white/55" : "text-muted-foreground"}`} />
@@ -855,7 +893,7 @@ export default function Dashboard() {
                 </div>
 
                 {heroSearchMessage && (
-                  <p className="mt-2 text-[11px] font-medium text-primary-bright">{heroSearchMessage}</p>
+                  <p className={cn("mt-2 text-[11px] font-medium text-primary-bright", heroCentered && "text-center")}>{heroSearchMessage}</p>
                 )}
             </motion.div>
           </div>

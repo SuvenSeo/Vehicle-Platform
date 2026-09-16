@@ -133,6 +133,17 @@ beforeEach(() => {
 });
 
 describe("Dashboard runtime safety", () => {
+  it("centers the home hero headline lockup", () => {
+    renderDashboard(["/?hero=expressway-dusk"]);
+
+    const heading = screen.getByRole("heading", {
+      name: /sri lanka's entire vehicle market/i,
+    });
+    expect(heading).toHaveClass("display-hero--lockup");
+    expect(heading.querySelector(".display-hero__lead")).not.toBeNull();
+    expect(heading.querySelector(".display-hero__accent")).not.toBeNull();
+  });
+
   it("renders the market pulse section without throwing", () => {
     renderDashboard();
 

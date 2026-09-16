@@ -1,11 +1,28 @@
-# Neon-first ops: single DB + egress budget
+# SQLite is the live catalog; Neon is an optional archive
 
-> **Sep 2026 status — second block, and why we stayed on Neon.** After the
-> first quota block (Supabase) and the SQLite-first architecture, the Neon
-> free 5 GB budget tipped over again mid-month. The traffic study: public
-> browsing is already zero-egress (R2 snapshots), so the remaining burn was
-> (a) the weekly heavy passes streaming ~240k rows to the runner and (b) hot
-> API cache misses re-reading Postgres. Fixes in this repo:
+> **Sep 2026 — stop the monthly lockout.** Neon Free (and Supabase before
+> it) blocks **all connections** once the 5 GB transfer quota is exhausted.
+> That used to freeze listings and scrapes until the 1st. It must not.
+>
+> **Do not migrate to Cloudflare D1.** D1 is SQLite over HTTP, not Postgres,
+> so the FastAPI/SQLAlchemy stack would need a rewrite. Free D1 is still
+> capped: **500 MB per database**, **5 million rows read/day**, **100k rows
+> written/day**. Exceeding those **blocks queries that same day** (not at
+> month end). One full scan of ~240k listings is already ~240k row-reads;
+> a few catalog syncs plus weekly maintenance blows the daily write cap.
+> Paid D1 is billed per row-read — worse economics for this shape of
+> workload. Limits: [D1 limits](https://developers.cloudflare.com/d1/platform/limits/),
+> [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/). Full
+> write-up: §7 below.
+>
+> **Permanent path:** the live catalog is the `merged-db` GitHub SQLite
+> release (~240k listings). Public browsing reads Vercel/R2 snapshots
+> exported from that file. Hugging Face fails over to the same file when
+> Neon is unreachable. Manus scrapes keep writing SQLite dumps 3×/day.
+> Neon-backed GitHub scrapes (`daily-scrape.yml`, midday, residential)
+> **skip** when Neon is blocked instead of failing until month-end.
+>
+> Remaining Neon-side burn (when the quota is *not* exhausted):
 >
 > 1. **Process-local TTL cache** (`app/utils/memory_cache.py`, wired into
 >    `/stats/*` endpoints) — repeat API hits within the TTL cost **zero
@@ -19,28 +36,13 @@
 > 3. **Egress optimizer equivalent** (`scripts/ops/top_egress_queries.py`) —
 >    ranks `pg_stat_statements` by rows returned and flags any statement
 >    averaging ≥10k rows/call so over-fetching is found before it bills.
->
-> Evaluated and rejected: **Cloudflare D1** (free tier enforces hard daily
-> caps — 5M rows read/day, 100k rows written/day, enforced since 2026-09-01 —
-> and a 500 MB free database size; a 240k-listing table with 2–3×/day
-> upserts and weekly full passes would blow through both immediately) and
-> **Turso** (SQLite, 500M rows read/mo on the free Developer plan, but the
-> FastAPI + SQLAlchemy + Postgres stack would need a rewrite to libSQL with
-> `psycopg2` dropped, percentile/window SQL semantics differ, and the same
-> "move reads to snapshots" ceiling applies). Both would just trade the
-> transfer cliff for a worse row-based cliff; neither accepts arbitrary SQL
-> maintenance the way Postgres does. Decision: **stay on Neon**, keep the
-> reads off the DB, and keep the gated heavy passes. Full analysis:
-> `docs/supabase-egress-mitigation.md` (history) and §7 below.
 
-Motormila moved **fully to NeonDB** (single database). Supabase free egress was
-exceeded (5 GB/mo) and all scrapers were paused — this runbook explains the new
-setup, why public browsing no longer burns DB transfer, and how to stay inside
-Neon's monthly data-transfer allowance so scrapers never get blocked again.
+This runbook is the ops map for that split: SQLite + snapshots for the
+public site, Neon only as a write archive while transfer budget remains.
 
 > Historical context: `docs/supabase-egress-mitigation.md` and
 > `docs/permanent-free-ops-r2-oracle.md` document the older dual-DB
-> (Supabase reads / Neon writes) era. The current architecture is Neon-only.
+> (Supabase reads / Neon writes) era.
 
 ---
 
@@ -56,9 +58,11 @@ Neon's monthly data-transfer allowance so scrapers never get blocked again.
 | **Full catalog export from Neon** | **Never scheduled** — SQLite is the publish source | 0 |
 | **DB backup (pg_dump)** | Monthly, manual, after a gated heavy run | ~1 full-table read |
 
-`backend/db/session.py` runs in **single-DB mode**: set only
-`HOT_DATABASE_URL` (the Neon pooled DSN) and both HOT and COLD engines point
-at it. No Supabase secret is referenced anywhere anymore.
+`backend/db/session.py` still runs in **single-DB mode** when
+`HOT_DATABASE_URL` is set (Neon pooled DSN). Hugging Face production also
+enables `SQLITE_FAILOVER` (default on): if that DSN refuses connections,
+the API rebinds to the public `merged-db` SQLite dump. No Supabase secret
+is referenced anywhere anymore.
 
 ### The permanent fix (Sep 2026): SQLite is the publish source
 
@@ -110,6 +114,7 @@ for public reads — missing snapshots render empty instead of hitting Postgres.
 ```text
 HOT_DATABASE_URL=<neon pooled dsn>
 ALLOW_SQLITE_FALLBACK=false
+SQLITE_FAILOVER=true
 DISABLE_LIVE_SSE=true
 LIVE_STREAM_INTERVAL_SECONDS=120
 ```
@@ -159,14 +164,18 @@ after the second transfer block):
   migration across ~30 files that re-locates the cliff rather than
   removing it.
 
-**Decision:** stay on Neon. The structural fix is to keep *reads* off the
-database (snapshots + caches) and make every scheduled pass either SQL-side
-or egress-gated — which is now done. Neon also has a documented pattern of
-unblocking accounts on request once the first fix ships.
+**Decision:** do **not** migrate to D1. Cloudflare’s own limits still apply
+(free D1 is 500 MB per database, 5 million rows read/day, 100k rows
+written/day; exceeding them **blocks queries the same day**, not at month
+end — see [D1 limits](https://developers.cloudflare.com/d1/platform/limits/)
+and [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/)).
+The live catalog already lives in SQLite (`merged-db` GitHub release). Neon
+is an optional archive; public reads and scrapes must not require it.
 
 ## 8. The permanent-fix checklist (what actually moved the needle)
 
-1. ✅ Public browsing reads R2 snapshots — zero DB reads (`VITE_SNAPSHOT_ONLY=true`).
+1. ✅ Public browsing reads R2 / Vercel snapshots — zero DB reads when the
+   catalog JSON is present (`manus-to-live.yml` + `restore-catalog-after-main.yml`).
 2. ✅ Catalog refresh merges SQLite dumps — zero Neon reads (`manus-to-live.yml`).
 3. ✅ Heavy passes weekly + egress-gated at 50% (`heavy-maintenance.yml`).
 4. ✅ Outlier fences computed in Postgres, not streamed (this repo).
@@ -176,10 +185,21 @@ unblocking accounts on request once the first fix ships.
    re-parsing a payload the worker already built.
 6. ✅ `top_egress_queries.py` — pg_stat_statements watch for over-fetching.
 7. ✅ Watchdog (`neon-egress-watch.yml`) warns at 70% and gates at 50%.
-8. ⬜ Optional: set `NEON_API_KEY` + `NEON_PROJECT_ID` secrets so the
-   watchdog reads real usage instead of the size estimate.
-9. ⬜ Optional: `CREATE EXTENSION IF NOT EXISTS pg_stat_statements;` once,
-   so the top-consumer report works from day one.
+8. ✅ Hugging Face API fails over to `merged-db` SQLite when Neon is unreachable
+   (`db/sqlite_failover.py`) so `/listings` does not 500 for a month.
+9. ✅ Git → Vercel deploys restore the gitignored listing catalog from SQLite
+   (`restore-catalog-after-main.yml`) so a UI push cannot wipe the public grid.
+10. ✅ Neon-backed scrapes skip when connections are blocked (`probe_neon.py`
+    in `daily-scrape.yml`, `midday-top-sources-scrape.yml`,
+    `residential-cf-sources.yml`); Manus → `manus-to-live.yml` keeps
+    scraping into SQLite.
+11. ⬜ Optional: set `NEON_API_KEY` + `NEON_PROJECT_ID` secrets so the
+    watchdog reads real usage instead of the size estimate.
+12. ⬜ Optional: `CREATE EXTENSION IF NOT EXISTS pg_stat_statements;` once,
+    so the top-consumer report works from day one.
+13. ⬜ Optional: point `VITE_SNAPSHOT_BASE_URL` at a public R2 domain and set
+    `VITE_SNAPSHOT_ONLY=true` so even a missed Vercel snapshot deploy cannot
+    fall through to Postgres.
 
 ---
 
@@ -298,10 +318,11 @@ architecture it no longer matters for the public site:
    into the merged SQLite DB and deploying fresh snapshots — zero Neon reads,
    so scrapes, merges, catalog refreshes and deploys all continue during the
    block.
-2. **Writes pause.** Scrapers that write to Neon (daily-scrape,
-   midday-top-sources) will fail their DB steps until the quota resets on the
-   1st. That only costs Neon-side freshness; the Manus-side pipeline is
-   unaffected.
+2. **Neon-backed writes skip, they do not fail-loop.** `daily-scrape.yml`,
+   `midday-top-sources-scrape.yml`, and `residential-cf-sources.yml` probe
+   Neon first (`probe_neon.py`) and skip when connections are blocked.
+   That only costs Neon-side freshness; Manus → `manus-to-live.yml` keeps
+   scraping into SQLite.
 3. **After the reset:** let the gated `heavy-maintenance.yml` run (or force
    it once) to re-sync analytics, then optionally run **Neon Export** (dispatch-only)
    as a DR capture if the SQLite archive needs refreshing from Neon. Do not

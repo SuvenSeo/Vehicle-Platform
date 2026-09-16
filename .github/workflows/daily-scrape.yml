@@ -1,7 +1,7 @@
-# Neon-first: scrapers WRITE to NeonDB (ingress is free). Public reads stay on
-# R2 snapshots (VITE_SNAPSHOT_ONLY=true) so DB egress stays flat.
-# Daily runs export stats-only snapshots; the full catalog refreshes weekly
-# via "Scrape → Export → Redeploy" (see docs/neon-egress-budget.md).
+# Neon-backed archive scrapes. Public listings do NOT depend on this workflow:
+# Manus → merged SQLite (`manus-to-live.yml`) is the live catalog. When Neon
+# Free has exhausted monthly transfer quota, neon-guard skips every job here
+# so we do not hammer a blocked database until the 1st.
 name: Unified Vehicle Scraper
 
 on:
@@ -18,7 +18,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  neon-guard:
+    name: Skip when Neon transfer quota is exhausted
+    uses: ./.github/workflows/probe-neon.yml
+    secrets: inherit
+
+  neon-skipped:
+    name: Neon blocked — SQLite pipeline still live
+    runs-on: ubuntu-latest
+    needs: neon-guard
+    if: ${{ needs.neon-guard.outputs.available != 'true' }}
+    steps:
+      - run: |
+          echo "Neon Free has blocked connections (monthly transfer quota)."
+          echo "This workflow writes to Neon, so it is skipping until quota resets."
+          echo "Listings and scrapes continue via manus-to-live.yml (merged SQLite + snapshots)."
+
   scrape-source:
+    needs: neon-guard
+    if: ${{ needs.neon-guard.outputs.available == 'true' }}
     # GitHub-hosted: the laptop self-hosted runner has been offline for weeks,
     # so scheduled jobs sat queued and were cancelled by the next cron tick.
     # ikman (public JSON API) and most other sources work from datacenter IPs.
@@ -181,8 +199,8 @@ jobs:
 
   market-analysis:
     runs-on: ubuntu-latest
-    needs: scrape-source
-    if: ${{ always() && !cancelled() }}
+    needs: [neon-guard, scrape-source]
+    if: ${{ needs.neon-guard.outputs.available == 'true' && always() && !cancelled() }}
     # EGRESS CONTROL: only SQL-side passes run daily (lifecycle + stats cache).
     # The Python-side full-table reads (dedup, outlier, aggregates, deal
     # scores) each stream the whole car_listings table to the runner — running
@@ -243,8 +261,8 @@ jobs:
 
   snapshot-export:
     runs-on: ubuntu-latest
-    needs: [scrape-source, market-analysis]
-    if: ${{ always() && !cancelled() && needs.market-analysis.result == 'success' }}
+    needs: [neon-guard, scrape-source, market-analysis]
+    if: ${{ needs.neon-guard.outputs.available == 'true' && always() && !cancelled() && needs.market-analysis.result == 'success' }}
     timeout-minutes: 30
 
     defaults:
