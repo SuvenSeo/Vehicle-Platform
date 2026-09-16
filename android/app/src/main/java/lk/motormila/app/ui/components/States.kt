@@ -24,11 +24,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -151,7 +149,11 @@ fun EmptyState(
         Text(body, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         if (ctaLabel != null && onCta != null) {
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onCta, shape = CircleShape) { Text(ctaLabel) }
+            MotormilaPrimaryButton(
+                label = ctaLabel,
+                onClick = onCta,
+                fillMaxWidth = false,
+            )
         }
     }
 }
@@ -188,15 +190,31 @@ fun ErrorState(
         )
         Spacer(Modifier.height(16.dp))
         if (isAuthError && onLogin != null) {
-            Button(onClick = onLogin, shape = CircleShape) { Text("Sign in to Motormila") }
+            MotormilaPrimaryButton(
+                label = "Sign in to Motormila",
+                onClick = onLogin,
+                fillMaxWidth = false,
+            )
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onRetry, shape = CircleShape) { Text("Retry") }
+            MotormilaGhostButton(
+                label = "Retry",
+                onClick = onRetry,
+                fillMaxWidth = false,
+            )
         } else {
-            Button(onClick = onRetry, shape = CircleShape) { Text("Retry") }
+            MotormilaPrimaryButton(
+                label = "Retry",
+                onClick = onRetry,
+                fillMaxWidth = false,
+            )
         }
         if (cachedAvailable && onShowCached != null) {
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = onShowCached, shape = CircleShape) { Text("Show cached results") }
+            MotormilaGhostButton(
+                label = "Show cached results",
+                onClick = onShowCached,
+                fillMaxWidth = false,
+            )
         }
     }
 }

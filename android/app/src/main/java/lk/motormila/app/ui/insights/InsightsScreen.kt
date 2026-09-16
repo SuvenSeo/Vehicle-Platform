@@ -1,15 +1,20 @@
 package lk.motormila.app.ui.insights
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -28,34 +32,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.ElectricCar
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,14 +55,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -90,19 +76,27 @@ import lk.motormila.app.domain.model.DistrictStat
 import lk.motormila.app.domain.model.DistrictVelocity
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.domain.model.PriceDrop
-import lk.motormila.app.domain.model.PriceIndexPoint
 import lk.motormila.app.domain.model.TrendPoint
 import lk.motormila.app.ui.components.LivePulse
+import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaChipTabs
+import lk.motormila.app.ui.components.MotormilaEyebrow
+import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaMetricTile
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.components.SriLankaHeatMap
+import lk.motormila.app.ui.components.toMapPoint
+import lk.motormila.app.ui.theme.AppleEasing
 import lk.motormila.app.ui.theme.MotormilaGood
-import lk.motormila.app.ui.theme.MotormilaGoodText
-import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
+import lk.motormila.app.ui.theme.MotormilaSurface as MotormilaSurfaceColor
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaWarn
 import lk.motormila.app.ui.theme.rememberHaptics
@@ -115,6 +109,9 @@ fun InsightsScreen(
     onOpenPulseDetail: (signalId: String) -> Unit,
     onDrillDistrict: (district: String) -> Unit,
     onSearchModels: (query: String) -> Unit,
+    onChargersClick: () -> Unit = {},
+    onUpgrade: () -> Unit = {},
+    initialTab: Int = 0,
     viewModel: InsightsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -122,7 +119,7 @@ fun InsightsScreen(
     val snacks = remember { SnackbarHostState() }
     val reducedMotion = rememberReducedMotion()
     val haptics = rememberHaptics()
-    var tab by remember { mutableIntStateOf(0) }
+    var tab by remember { mutableIntStateOf(initialTab.coerceIn(0, tabs.lastIndex)) }
 
     LaunchedEffect(state.error) {
         state.error?.let {
@@ -131,24 +128,17 @@ fun InsightsScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Market insights") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = tab) {
-                tabs.forEachIndexed { i, title ->
-                    Tab(
-                        selected = tab == i,
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            tab = i
-                        },
-                        text = { Text(title) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    )
-                }
-            }
+    MotormilaPage(title = "Insights", snackbarHostState = snacks) {
+        Column(Modifier.fillMaxSize()) {
+            MotormilaChipTabs(
+                tabs = tabs,
+                selected = tab,
+                onSelect = {
+                    if (!reducedMotion) haptics.tick()
+                    tab = it
+                },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = { viewModel.onEvent(InsightsUiEvent.Refresh) },
@@ -158,13 +148,21 @@ fun InsightsScreen(
                     state.isLoading -> SkeletonList()
                     state.error != null && state.trends.isEmpty() && state.index.isEmpty() ->
                         ErrorRetry(state.error ?: "Error", onRetry = { viewModel.onEvent(InsightsUiEvent.Refresh) })
-
-                    else -> when (tab) {
-                        0 -> TrendsTab(state, viewModel, onSearchModels)
-                        1 -> EvTab(state, viewModel)
-                        2 -> IndexTab(state)
-                        3 -> DistrictsTab(state, onDrillDistrict)
-                        else -> PulseTab(state, live, onOpenPulseDetail)
+                    else -> AnimatedContent(
+                        targetState = tab,
+                        transitionSpec = {
+                            fadeIn(tween(220, easing = AppleEasing)) togetherWith
+                                fadeOut(tween(160, easing = AppleEasing))
+                        },
+                        label = "insights-tab",
+                    ) { current ->
+                        when (current) {
+                            0 -> TrendsTab(state, viewModel, onSearchModels)
+                            1 -> EvTab(state, viewModel, onChargersClick)
+                            2 -> IndexTab(state, onUpgrade)
+                            3 -> DistrictsTab(state, onDrillDistrict)
+                            else -> PulseTab(state, live, onOpenPulseDetail)
+                        }
                     }
                 }
             }
@@ -199,21 +197,7 @@ private fun TrendsTab(
         // Hero Header: Eyebrow Pill, Headline with negative letter spacing, Subtitle
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MotormilaSurfaceHigh,
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                ) {
-                    Text(
-                        text = "• TREND STUDIO",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MotormilaPrimaryBright,
-                        ),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
-                }
+                MotormilaEyebrow("TREND STUDIO")
 
                 Text(
                     text = "Price trends.",
@@ -241,121 +225,83 @@ private fun TrendsTab(
 
         state.summary?.let { summary ->
             item {
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth()
-                        .semantics { contentDescription = "Market summary, ${summary.totalListings} listings" },
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = "MARKET SNAPSHOT",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                color = MotormilaSecondaryText,
-                            ),
-                        )
-                        SummaryKpiFlow(summary)
-                    }
-                }
-            }
-        }
-
-        // Selectors Card (16dp rounded glass card)
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                MotormilaSurface(
+                    modifier = Modifier.semantics {
+                        contentDescription = "Market summary, ${summary.totalListings} listings"
+                    },
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "MARKET FILTERS",
+                        text = "MARKET SNAPSHOT",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
                             color = MotormilaSecondaryText,
                         ),
                     )
+                    SummaryKpiFlow(summary)
+                }
+            }
+        }
 
-                    // Make & Model Row
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        InsightTextField("Make", s.make, Modifier.weight(1f)) {
-                            viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(make = it)))
-                        }
-                        InsightTextField("Model", s.model, Modifier.weight(1f)) {
-                            viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(model = it)))
-                        }
+        // Selectors Card (16dp rounded glass card)
+        item {
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "MARKET FILTERS",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MotormilaSecondaryText,
+                    ),
+                )
+
+                // Make & Model Row
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    InsightTextField("Make", s.make, Modifier.weight(1f)) {
+                        viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(make = it)))
                     }
-
-                    // Quick Make Chips
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        popularMakes.forEach { makeName ->
-                            FilterChip(
-                                shape = androidx.compose.foundation.shape.CircleShape,
-                                selected = s.make.equals(makeName, ignoreCase = true),
-                                onClick = {
-                                    val nextMake = if (s.make.equals(makeName, ignoreCase = true)) "" else makeName
-                                    viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(make = nextMake)))
-                                },
-                                label = { Text(makeName, fontSize = 11.sp) },
-                                modifier = Modifier.heightIn(min = 32.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                    selectedLabelColor = MotormilaPrimaryBright,
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = s.make.equals(makeName, ignoreCase = true),
-                                    borderColor = MotormilaOutline,
-                                    selectedBorderColor = MotormilaPrimary,
-                                ),
-                            )
-                        }
+                    InsightTextField("Model", s.model, Modifier.weight(1f)) {
+                        viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(model = it)))
                     }
+                }
 
-                    // Condition & District Row
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        InsightTextField("Condition", s.condition, Modifier.weight(1f)) {
-                            viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(condition = it)))
-                        }
-                        InsightTextField("District", s.district, Modifier.weight(1f)) {
-                            viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(district = it)))
-                        }
+                // Quick Make Chips
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    popularMakes.forEach { makeName ->
+                        MotormilaChoiceChip(
+                            label = makeName,
+                            selected = s.make.equals(makeName, ignoreCase = true),
+                            compact = true,
+                            onClick = {
+                                val nextMake = if (s.make.equals(makeName, ignoreCase = true)) "" else makeName
+                                viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(make = nextMake)))
+                            },
+                        )
                     }
+                }
 
-                    // Quick District Chips
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        listOf("All districts", "Colombo", "Kandy", "Gampaha", "Kurunegala").forEach { dist ->
-                            FilterChip(
-                                shape = androidx.compose.foundation.shape.CircleShape,
-                                selected = s.district.equals(dist, ignoreCase = true),
-                                onClick = {
-                                    viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(district = dist)))
-                                },
-                                label = { Text(dist, fontSize = 11.sp) },
-                                modifier = Modifier.heightIn(min = 32.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                    selectedLabelColor = MotormilaPrimaryBright,
-                                ),
-                                border = FilterChipDefaults.filterChipBorder(
-                                    enabled = true,
-                                    selected = s.district.equals(dist, ignoreCase = true),
-                                    borderColor = MotormilaOutline,
-                                    selectedBorderColor = MotormilaPrimary,
-                                ),
-                            )
-                        }
+                // Condition & District Row
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    InsightTextField("Condition", s.condition, Modifier.weight(1f)) {
+                        viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(condition = it)))
+                    }
+                    InsightTextField("District", s.district, Modifier.weight(1f)) {
+                        viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(district = it)))
+                    }
+                }
+
+                // Quick District Chips
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("All districts", "Colombo", "Kandy", "Gampaha", "Kurunegala").forEach { dist ->
+                        MotormilaChoiceChip(
+                            label = dist,
+                            selected = s.district.equals(dist, ignoreCase = true),
+                            compact = true,
+                            onClick = {
+                                viewModel.onEvent(InsightsUiEvent.SelectorsChanged(s.copy(district = dist)))
+                            },
+                        )
                     }
                 }
             }
@@ -363,100 +309,90 @@ private fun TrendsTab(
 
         // Median Price Movement Chart with ±10% Confidence Band
         item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Text(
+                        text = "MEDIAN PRICE MOVEMENT (±10% BAND)",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            color = MotormilaSecondaryText,
+                        ),
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(Modifier.size(8.dp).clip(CircleShape).background(MotormilaPrimaryBright))
+                            Text("Median", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(Modifier.size(8.dp).clip(RoundedCornerShape(999.dp)).background(MotormilaPrimary.copy(alpha = 0.25f)))
+                            Text("±10% Band", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
+                        }
+                    }
+                }
+
+                // Key metric callout
+                val latestPoint = state.trends.lastOrNull()
+                if (latestPoint != null) {
+                    val med = latestPoint.medianPriceLkr ?: latestPoint.avgPriceLkr ?: 0.0
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Column {
+                            Text(
+                                text = formatLkr(med),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MotormilaOnSurface,
+                                ),
+                            )
+                            Text(
+                                text = "Latest tracked median · ${latestPoint.listingCount} listings",
+                                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+                            )
+                        }
+                        Text(
+                            text = "${state.trends.size} monthly periods",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MotormilaPrimaryBright),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(4.dp))
+
+                BandChart(
+                    points = state.trends,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .semantics { contentDescription = "Price trend chart, ${state.trends.size} points" },
+                )
+
+                state.trendCoverageNote?.let {
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = MotormilaSurfaceColor,
+                        border = BorderStroke(1.dp, MotormilaOutline),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
-                            text = "MEDIAN PRICE MOVEMENT (±10% BAND)",
+                            text = "Scope: $it",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
                                 color = MotormilaSecondaryText,
+                                fontSize = 11.sp,
                             ),
+                            modifier = Modifier.padding(8.dp),
                         )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.size(8.dp).clip(CircleShape).background(MotormilaPrimaryBright))
-                                Text("Median", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(Modifier.size(8.dp).clip(RoundedCornerShape(999.dp)).background(MotormilaPrimary.copy(alpha = 0.25f)))
-                                Text("±10% Band", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = MotormilaSecondaryText))
-                            }
-                        }
-                    }
-
-                    // Key metric callout
-                    val latestPoint = state.trends.lastOrNull()
-                    if (latestPoint != null) {
-                        val med = latestPoint.medianPriceLkr ?: latestPoint.avgPriceLkr ?: 0.0
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Bottom,
-                        ) {
-                            Column {
-                                Text(
-                                    text = formatLkr(med),
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MotormilaOnSurface,
-                                    ),
-                                )
-                                Text(
-                                    text = "Latest tracked median · ${latestPoint.listingCount} listings",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
-                                )
-                            }
-                            Text(
-                                text = "${state.trends.size} monthly periods",
-                                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaPrimaryBright),
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(4.dp))
-
-                    BandChart(
-                        points = state.trends,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .semantics { contentDescription = "Price trend chart, ${state.trends.size} points" },
-                    )
-
-                    state.trendCoverageNote?.let {
-                        Surface(
-                            shape = RoundedCornerShape(28.dp),
-                            color = MotormilaSurface,
-                            border = BorderStroke(1.dp, MotormilaOutline),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = "Scope: $it",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = MotormilaSecondaryText,
-                                    fontSize = 11.sp,
-                                ),
-                                modifier = Modifier.padding(8.dp),
-                            )
-                        }
                     }
                 }
             }
@@ -465,21 +401,11 @@ private fun TrendsTab(
         // Search Listings CTA
         item {
             val query = "${s.make} ${s.model}".trim().ifBlank { "All listings" }
-            Button(
+            MotormilaPrimaryButton(
+                label = "Search $query in live inventory",
+                leadingIcon = Icons.Filled.Search,
                 onClick = { onSearchModels("${s.make} ${s.model}".trim()) },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MotormilaPrimary,
-                    contentColor = MotormilaOnPrimary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp),
-            ) {
-                Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Search $query in live inventory", fontWeight = FontWeight.SemiBold)
-            }
+            )
         }
     }
 }
@@ -500,8 +426,8 @@ private fun InsightTextField(
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MotormilaPrimary,
             unfocusedBorderColor = MotormilaOutline,
-            focusedContainerColor = MotormilaSurface,
-            unfocusedContainerColor = MotormilaSurface,
+            focusedContainerColor = MotormilaSurfaceColor,
+            unfocusedContainerColor = MotormilaSurfaceColor,
             focusedTextColor = MotormilaOnSurface,
             unfocusedTextColor = MotormilaOnSurface,
             focusedLabelColor = MotormilaPrimaryBright,
@@ -564,13 +490,16 @@ private fun BandChart(points: List<TrendPoint>, modifier: Modifier = Modifier) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.totalListings} live") })
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("Avg ${formatLkrCompact(summary.avgPriceLkr)}") })
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.goodDealsCount} good deals") })
-        AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("${summary.listingsThisWeek} new / 7d") })
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        MotormilaMetricTile(label = "Live", value = summary.totalListings.toString())
+        MotormilaMetricTile(label = "Avg price", value = formatLkrCompact(summary.avgPriceLkr))
+        MotormilaMetricTile(label = "Good deals", value = summary.goodDealsCount.toString())
+        MotormilaMetricTile(label = "New / 7d", value = summary.listingsThisWeek.toString())
         summary.priceChangeMom?.let {
-            AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text("MoM ${formatPct(it)}") })
+            MotormilaMetricTile(label = "MoM", value = formatPct(it))
         }
     }
 }
@@ -579,17 +508,13 @@ private fun SummaryKpiFlow(summary: lk.motormila.app.domain.model.StatsSummary) 
 @Composable
 private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
     val frac = if (maxScore > 0) (v.velocityScore / maxScore).toFloat().coerceIn(0f, 1f) else 0f
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth()
-            .semantics {
-                contentDescription =
-                    "${v.district} velocity ${"%.1f".format(v.velocityScore)}, ${v.new7dCount} new in 7 days"
-            },
+    MotormilaSurface(
+        modifier = Modifier.semantics {
+            contentDescription =
+                "${v.district} velocity ${"%.1f".format(v.velocityScore)}, ${v.new7dCount} new in 7 days"
+        },
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -604,7 +529,7 @@ private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
             Box(
                 Modifier.fillMaxWidth().height(8.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(MotormilaSurface),
+                    .background(MotormilaSurfaceColor),
             ) {
                 Box(
                     Modifier.fillMaxWidth(frac).height(8.dp)
@@ -616,7 +541,6 @@ private fun VelocityRow(v: DistrictVelocity, maxScore: Double) {
                 "Velocity ${"%.1f".format(v.velocityScore)} · ${v.listingCount} listings",
                 style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
             )
-        }
     }
 }
 
@@ -635,11 +559,9 @@ private fun FuelMixRow(mix: List<lk.motormila.app.domain.model.FuelMixBucket>) {
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             mix.forEach { bucket ->
-                AssistChip(
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    onClick = {},
-                    label = { Text("${bucket.fuelType}: ${formatPct(bucket.pct, 0)}") },
-                    modifier = Modifier.heightIn(min = 44.dp),
+                MotormilaMetricTile(
+                    label = bucket.fuelType,
+                    value = formatPct(bucket.pct, 0),
                 )
             }
         }
@@ -648,33 +570,28 @@ private fun FuelMixRow(mix: List<lk.motormila.app.domain.model.FuelMixBucket>) {
 
 @Composable
 private fun PriceDropCard(drop: PriceDrop) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth()
-            .semantics {
-                contentDescription =
-                    "Price drop ${drop.listing.displayName}, down ${formatPct(drop.dropPct, 0)}"
-            },
+    MotormilaSurface(
+        modifier = Modifier.semantics {
+            contentDescription =
+                "Price drop ${drop.listing.displayName}, down ${formatPct(drop.dropPct, 0)}"
+        },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                drop.listing.displayName,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            )
-            Text(
-                "${formatLkr(drop.previousPriceLkr)} → ${formatLkr(drop.newPriceLkr)} · −${formatPct(drop.dropPct, 0).trimStart('+')}",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontFamily = FontFamily.Monospace,
-                    color = MotormilaGood,
-                ),
-            )
-            Text(
-                "${drop.listing.district ?: "Sri Lanka"} · ${drop.droppedAt.take(10)}",
-                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
-            )
-        }
+        Text(
+            drop.listing.displayName,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        )
+        Text(
+            "${formatLkr(drop.previousPriceLkr)} → ${formatLkr(drop.newPriceLkr)} · −${formatPct(drop.dropPct, 0).trimStart('+')}",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = FontFamily.Monospace,
+                color = MotormilaGood,
+            ),
+        )
+        Text(
+            "${drop.listing.district ?: "Sri Lanka"} · ${drop.droppedAt.take(10)}",
+            style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+        )
     }
 }
 
@@ -698,11 +615,9 @@ private fun LiveTicker(live: List<Listing>) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             live.take(8).forEach { listing ->
-                AssistChip(
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    onClick = {},
-                    label = { Text("${listing.displayName} · ${formatLkrCompact(listing.priceLkr)}") },
-                    modifier = Modifier.heightIn(min = 44.dp),
+                MotormilaMetricTile(
+                    label = listing.displayName,
+                    value = formatLkrCompact(listing.priceLkr),
                 )
             }
         }
@@ -713,7 +628,11 @@ private fun LiveTicker(live: List<Listing>) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
+private fun EvTab(
+    state: InsightsUiState,
+    viewModel: InsightsViewModel,
+    onChargersClick: () -> Unit,
+) {
     val ev = state.ev
 
     LazyColumn(
@@ -767,146 +686,123 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // Metric 1: ELECTRIC LISTINGS LIVE: 599
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                        border = BorderStroke(1.dp, MotormilaOutline),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(
-                                text = "ELECTRIC LISTINGS LIVE",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.8.sp,
-                                    fontSize = 10.sp,
-                                    color = MotormilaSecondaryText,
-                                ),
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = (ev?.count ?: 599).toString(),
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 28.sp,
-                                    color = MotormilaPrimaryBright,
-                                ),
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = "Tracked across all SL portals",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MotormilaSecondaryText,
-                                    fontSize = 11.sp,
-                                ),
-                            )
-                        }
+                    MotormilaSurface(modifier = Modifier.weight(1f), fillMaxWidth = false) {
+                        Text(
+                            text = "ELECTRIC LISTINGS LIVE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                fontSize = 10.sp,
+                                color = MotormilaSecondaryText,
+                            ),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = ev?.count?.takeIf { it > 0 }?.toString() ?: "—",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 28.sp,
+                                color = MotormilaPrimaryBright,
+                            ),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Tracked across all SL portals",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MotormilaSecondaryText,
+                                fontSize = 11.sp,
+                            ),
+                        )
                     }
 
-                    // Metric 2: EV MARKET SHARE: 0.3%
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                        border = BorderStroke(1.dp, MotormilaOutline),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(
-                                text = "EV MARKET SHARE",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.8.sp,
-                                    fontSize = 10.sp,
-                                    color = MotormilaSecondaryText,
-                                ),
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = ev?.let { "%.1f%%".format(it.sharePct) } ?: "0.3%",
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 28.sp,
-                                    color = MotormilaGood,
-                                ),
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = "Of total verified vehicle stock",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MotormilaSecondaryText,
-                                    fontSize = 11.sp,
-                                ),
-                            )
-                        }
+                    MotormilaSurface(modifier = Modifier.weight(1f), fillMaxWidth = false) {
+                        Text(
+                            text = "EV MARKET SHARE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                fontSize = 10.sp,
+                                color = MotormilaSecondaryText,
+                            ),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = ev?.let { "%.1f%%".format(it.sharePct) } ?: "—",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 28.sp,
+                                color = MotormilaGood,
+                            ),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Of total verified vehicle stock",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MotormilaSecondaryText,
+                                fontSize = 11.sp,
+                            ),
+                        )
                     }
                 }
 
-                // Secondary Metric Cards
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                        border = BorderStroke(1.dp, MotormilaOutline),
+                    MotormilaSurface(
                         modifier = Modifier.weight(1f),
+                        fillMaxWidth = false,
+                        contentPadding = PaddingValues(14.dp),
                     ) {
-                        Column(Modifier.padding(14.dp)) {
-                            Text(
-                                text = "MEDIAN EV PRICE",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    color = MotormilaSecondaryText,
-                                ),
-                            )
-                            Text(
-                                text = ev?.medianLkr?.let { formatLkrCompact(it) } ?: "LKR 14.5M",
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MotormilaOnSurface,
-                                ),
-                            )
-                            Text(
-                                text = "Hybrid benchmark: ${ev?.aquaMedianLkr?.let { formatLkrCompact(it) } ?: "LKR 11.2M"}",
-                                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText, fontSize = 10.sp),
-                            )
-                        }
+                        Text(
+                            text = "MEDIAN EV PRICE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = MotormilaSecondaryText,
+                            ),
+                        )
+                        Text(
+                            text = ev?.medianLkr?.let { formatLkrCompact(it) } ?: "LKR 14.5M",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = MotormilaOnSurface,
+                            ),
+                        )
+                        Text(
+                            text = "Hybrid benchmark: ${ev?.aquaMedianLkr?.let { formatLkrCompact(it) } ?: "LKR 11.2M"}",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText, fontSize = 10.sp),
+                        )
                     }
 
-                    Card(
-                        shape = RoundedCornerShape(28.dp),
-                        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                        border = BorderStroke(1.dp, MotormilaOutline),
+                    MotormilaSurface(
                         modifier = Modifier.weight(1f),
+                        fillMaxWidth = false,
+                        contentPadding = PaddingValues(14.dp),
                     ) {
-                        Column(Modifier.padding(14.dp)) {
-                            Text(
-                                text = "ANNUAL FUEL SAVINGS",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
-                                    color = MotormilaSecondaryText,
-                                ),
-                            )
-                            Text(
-                                text = ev?.savingsPerYearLkr?.let { formatLkrCompact(it) } ?: "LKR 440K/yr",
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MotormilaGood,
-                                ),
-                            )
-                            Text(
-                                text = "Payback recovery ~2.5 yrs",
-                                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText, fontSize = 10.sp),
-                            )
-                        }
+                        Text(
+                            text = "ANNUAL FUEL SAVINGS",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = MotormilaSecondaryText,
+                            ),
+                        )
+                        Text(
+                            text = ev?.savingsPerYearLkr?.let { formatLkrCompact(it) } ?: "LKR 440K/yr",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = MotormilaGood,
+                            ),
+                        )
+                        Text(
+                            text = "Payback recovery ~2.5 yrs",
+                            style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText, fontSize = 10.sp),
+                        )
                     }
                 }
             }
@@ -930,203 +826,157 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                 )
 
                 // 1. Battery Health
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Filled.BatteryChargingFull, contentDescription = null, tint = MotormilaPrimaryBright)
-                                Text("Battery Health & Degradation", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                            }
-                            Text("01 • SOH", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright))
+                MotormilaSurface(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Filled.BatteryChargingFull, contentDescription = null, tint = MotormilaPrimaryBright)
+                            Text("Battery Health & Degradation", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                         }
-                        Text(
-                            text = "Insist on an OBD-II diagnostic report before placing a deposit. Maintain a 20%–30% reserve buffer for daily commuting. Japanese domestic imports (Leaf, e-Note, Ariya) degrade at ~2.1% per year under tropical humidity.",
-                            style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
-                        )
+                        Text("01 • SOH", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright))
                     }
+                    Text(
+                        text = "Insist on an OBD-II diagnostic report before placing a deposit. Maintain a 20%–30% reserve buffer for daily commuting. Japanese domestic imports (Leaf, e-Note, Ariya) degrade at ~2.1% per year under tropical humidity.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
+                    )
                 }
 
                 // 2. Duty & Policy
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Filled.Shield, contentDescription = null, tint = MotormilaGood)
-                                Text("Duty & Import Concessions", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                            }
-                            Text("02 • TARIFF", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaGood))
+                MotormilaSurface(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Filled.Shield, contentDescription = null, tint = MotormilaGood)
+                            Text("Duty & Import Concessions", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                         }
-                        Text(
-                            text = "Customs duty on battery electric vehicles (BEVs) under 100kW motor capacity carries preferential rates over ICE equivalents. Zero luxury tax applies below statutory CIF thresholds. Confirm HS code customs gazette classification before clearing.",
-                            style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
-                        )
+                        Text("02 • TARIFF", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaGood))
                     }
+                    Text(
+                        text = "Customs duty on battery electric vehicles (BEVs) under 100kW motor capacity carries preferential rates over ICE equivalents. Zero luxury tax applies below statutory CIF thresholds. Confirm HS code customs gazette classification before clearing.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
+                    )
                 }
 
                 // 3. Charging Fit
-                Card(
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Filled.Power, contentDescription = null, tint = MotormilaWarn)
-                                Text("Home vs Public Charging Fit", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                            }
-                            Text("03 • RANGE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaWarn))
+                MotormilaSurface(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Filled.Power, contentDescription = null, tint = MotormilaWarn)
+                            Text("Home vs Public Charging Fit", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                         }
-                        Text(
-                            text = "Overnight 7kW AC home charging delivers ~LKR 6/km running cost (off-peak tariff) versus LKR 28/km for petrol. Public DC fast charging covers Expressway E01/E02 corridors and Kandy/Galle inter-city corridors.",
-                            style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
-                        )
+                        Text("03 • RANGE", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaWarn))
                     }
+                    Text(
+                        text = "Overnight 7kW AC home charging delivers ~LKR 6/km running cost (off-peak tariff) versus LKR 28/km for petrol. Public DC fast charging covers Expressway E01/E02 corridors and Kandy/Galle inter-city corridors.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
+                    )
                 }
             }
         }
 
         // Sri Lanka Fast-Charging Network Status
         item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Filled.Bolt, contentDescription = null, tint = MotormilaPrimary)
+                        Text(
+                            text = "Sri Lanka Fast-Charging Network",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MotormilaGood.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.4f)),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Filled.Bolt, contentDescription = null, tint = MotormilaPrimary)
-                            Text(
-                                text = "Sri Lanka Fast-Charging Network",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            )
-                        }
+                        Text(
+                            text = if (state.chargers.isEmpty()) "MAP" else "${state.chargers.size} NEARBY",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                color = MotormilaGood,
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Open Charge Map points cached for Sri Lanka. Confirm status before you travel.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
+                )
+
+                // Connector Standards
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    listOf("CCS2 (50-120kW)", "CHAdeMO (50kW)", "Type 2 (22kW)").forEach { connector ->
                         Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MotormilaGood.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, MotormilaGood.copy(alpha = 0.4f)),
+                            shape = RoundedCornerShape(28.dp),
+                            color = MotormilaSurfaceColor,
+                            border = BorderStroke(1.dp, MotormilaOutline),
+                            modifier = Modifier.weight(1f),
                         ) {
                             Text(
-                                text = "ONLINE • 48 HUBS",
+                                text = connector,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
-                                    color = MotormilaGood,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MotormilaOnSurface,
                                 ),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
+                }
 
+                // Search Radius Filter
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Real-time coverage along Southern Expressway (E01: Welipenna, Kottawa), Central Expressway (E02: Mirigama), and Colombo-Kandy (A1) highway.",
-                        style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp),
+                        text = "Locate chargers within radius",
+                        style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
                     )
-
-                    // Connector Standards
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        listOf("CCS2 (50-120kW)", "CHAdeMO (50kW)", "Type 2 (22kW)").forEach { connector ->
-                            Surface(
-                                shape = RoundedCornerShape(28.dp),
-                                color = MotormilaSurface,
-                                border = BorderStroke(1.dp, MotormilaOutline),
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(
-                                    text = connector,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MotormilaOnSurface,
-                                    ),
-                                    modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                )
-                            }
-                        }
-                    }
-
-                    // Search Radius Filter
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Locate chargers within radius",
-                            style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(10, 25, 50, 100).forEach { km ->
-                                FilterChip(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                    selected = state.chargerRadiusKm == km,
-                                    onClick = { viewModel.onEvent(InsightsUiEvent.ChargerRadiusChanged(km)) },
-                                    label = { Text("${km}km") },
-                                    modifier = Modifier.heightIn(min = 36.dp),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                        selectedLabelColor = MotormilaPrimaryBright,
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = state.chargerRadiusKm == km,
-                                        borderColor = MotormilaOutline,
-                                        selectedBorderColor = MotormilaPrimary,
-                                    ),
-                                )
-                            }
-                        }
-                    }
-
-                    // Active Chargers List
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        val activeChargers = if (state.chargers.isNotEmpty()) {
-                            state.chargers
-                        } else {
-                            listOf(
-                                "Welipenna Service Area · Southern Expressway E01 · 60kW CCS2",
-                                "Kottawa Interchange Hub · Makumbura MMC · 50kW Dual",
-                                "Mirigama Rest Point · Central Expressway E02 · 120kW Ultra-Fast",
-                                "Peradeniya Gateway · Kandy A1 Corridor · 50kW DC",
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(10, 25, 50, 100).forEach { km ->
+                            MotormilaChoiceChip(
+                                label = "${km}km",
+                                selected = state.chargerRadiusKm == km,
+                                onClick = { viewModel.onEvent(InsightsUiEvent.ChargerRadiusChanged(km)) },
+                                compact = true,
                             )
                         }
+                    }
+                }
 
-                        activeChargers.forEach { c ->
+                // Active Chargers List
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (state.chargers.isEmpty()) {
+                        Text(
+                            "No cached chargers in this radius yet.",
+                            style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+                        )
+                    } else {
+                        state.chargers.take(6).forEach { c ->
                             Surface(
                                 shape = RoundedCornerShape(28.dp),
-                                color = MotormilaSurface,
+                                color = MotormilaSurfaceColor,
                                 border = BorderStroke(1.dp, MotormilaOutline),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
@@ -1147,6 +997,7 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
                             }
                         }
                     }
+                    MotormilaGhostButton("Open charger map", onClick = onChargersClick)
                 }
             }
         }
@@ -1156,95 +1007,16 @@ private fun EvTab(state: InsightsUiState, viewModel: InsightsViewModel) {
 // ---------- 3. Index Tab ----------
 
 @Composable
-private fun IndexTab(state: InsightsUiState) {
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(
-                        "MOTOROMILA PRICE INDEX",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MotormilaSecondaryText,
-                        ),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    AreaChart(
-                        state.index,
-                        Modifier.fillMaxWidth().height(200.dp)
-                            .semantics { contentDescription = "Price index area chart" },
-                    )
-                }
-            }
-        }
-        item {
-            SectionTitle("Month on month movement")
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                state.index.takeLast(6).forEach { p ->
-                    val mom = p.momChangePct ?: 0.0
-                    AssistChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = {},
-                        label = { Text("${p.period.takeLast(7)}: ${if (mom >= 0) "+" else ""}${formatPct(mom)}") },
-                        modifier = Modifier.heightIn(min = 44.dp),
-                    )
-                }
-            }
-        }
-        item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Index Methodology", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                    Text(
-                        "Hedonic median of verified Sri Lanka listings, district-weighted and rebased monthly. " +
-                            "Low-sample vehicle variants are flagged and isolated to prevent distortion.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MotormilaSecondaryText,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AreaChart(points: List<PriceIndexPoint>, modifier: Modifier = Modifier) {
-    val line = MotormilaPrimary
-    val fill = MotormilaPrimary.copy(alpha = 0.2f)
-    Canvas(modifier) {
-        if (points.size < 2) return@Canvas
-        val vals = points.map { it.indexValue.toFloat() }
-        val min = vals.minOrNull() ?: 0f
-        val max = vals.maxOrNull() ?: 1f
-        val span = (max - min).takeIf { it > 0 } ?: 1f
-        fun x(i: Int) = size.width * i / (points.size - 1)
-        fun y(v: Float) = size.height - ((v - min) / span) * size.height
-        val path = Path().apply {
-            moveTo(0f, y(vals.first()))
-            vals.forEachIndexed { i, v -> lineTo(x(i), y(v)) }
-            lineTo(size.width, size.height)
-            lineTo(0f, size.height)
-            close()
-        }
-        drawPath(path, fill)
-        vals.forEachIndexed { i, v ->
-            if (i > 0) drawLine(line, Offset(x(i - 1), y(vals[i - 1])), Offset(x(i), y(v)), strokeWidth = 4.5f)
-        }
-    }
+private fun IndexTab(state: InsightsUiState, onUpgrade: () -> Unit) {
+    PriceIndexPane(
+        index = if (state.priceIndex.points.isNotEmpty() || state.priceIndex.methodology.isNotBlank()) {
+            state.priceIndex
+        } else {
+            lk.motormila.app.domain.model.PriceIndex(points = state.index)
+        },
+        onOpenPro = onUpgrade,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
 }
 
 // ---------- 4. Districts Tab ----------
@@ -1254,22 +1026,22 @@ private fun DistrictsTab(state: InsightsUiState, onDrillDistrict: (String) -> Un
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { OfflineBanner(visible = state.offline) }
         item {
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "District map placeholder" },
-            ) {
-                Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.Map, contentDescription = null, tint = MotormilaPrimary, modifier = Modifier.size(32.dp))
-                    Spacer(Modifier.height(8.dp))
-                    Text("District Heat Map", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    Text(
-                        "District price velocity and inventory concentration across Sri Lanka.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MotormilaSecondaryText,
-                    )
-                }
+            MotormilaSurface {
+                Text(
+                    "District heat map",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MotormilaOnSurface,
+                )
+                Text(
+                    "Tap a district to open its hub. Dot size is live listing weight.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MotormilaSecondaryText,
+                )
+                Spacer(Modifier.height(8.dp))
+                SriLankaHeatMap(
+                    points = state.districts.map { it.toMapPoint() },
+                    onDistrictClick = onDrillDistrict,
+                )
             }
         }
         item { SectionTitle("Velocity (median days to sell)") }
@@ -1292,16 +1064,14 @@ private fun DistrictRow(d: DistrictStat, onDrill: () -> Unit) {
         .map { it.trim() }
         .filter { it.isNotEmpty() }
         .joinToString(" · ")
-    Card(
+    MotormilaSurface(
         onClick = onDrill,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth()
-            .semantics { contentDescription = "${d.district}, median ${formatLkr(d.medianPriceLkr)}, ${d.count} listings" },
+        modifier = Modifier.semantics {
+            contentDescription = "${d.district}, median ${formatLkr(d.medianPriceLkr)}, ${d.count} listings"
+        },
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
@@ -1341,34 +1111,22 @@ private fun PulseTab(state: InsightsUiState, live: List<Listing>, onOpenPulseDet
         }
         item { SectionTitle("Market Signals Feed") }
         items(state.pulse, key = { it.id }) { s ->
-            Card(
+            MotormilaSurface(
                 onClick = { onOpenPulseDetail(s.id) },
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth()
-                    .semantics { contentDescription = "Signal ${s.title}" },
+                modifier = Modifier.semantics { contentDescription = "Signal ${s.title}" },
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(shape = androidx.compose.foundation.shape.CircleShape, onClick = {}, label = { Text(s.tag) })
-                    Text(s.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                    Text(s.body, style = MaterialTheme.typography.bodySmall, color = MotormilaSecondaryText)
-                    Text(s.timeLabel, style = MaterialTheme.typography.labelSmall.copy(color = MotormilaPrimaryBright))
-                }
+                MotormilaMetricTile(label = s.tag, value = s.tag)
+                Text(s.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                Text(s.body, style = MaterialTheme.typography.bodySmall, color = MotormilaSecondaryText)
+                Text(s.timeLabel, style = MaterialTheme.typography.labelSmall.copy(color = MotormilaPrimaryBright))
             }
         }
         item { SectionTitle("Automotive Industry News") }
         items(state.news, key = { it.id }) { n ->
-            Card(
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(n.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                    Text("${n.source} · ${n.timeLabel}", style = MaterialTheme.typography.labelSmall, color = MotormilaSecondaryText)
-                }
+            MotormilaSurface(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(n.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                Text("${n.source} · ${n.timeLabel}", style = MaterialTheme.typography.labelSmall, color = MotormilaSecondaryText)
             }
         }
     }

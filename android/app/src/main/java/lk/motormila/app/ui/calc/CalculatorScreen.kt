@@ -18,33 +18,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -67,10 +53,12 @@ import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.domain.repository.CostLine
 import lk.motormila.app.domain.repository.LandedCost
 import lk.motormila.app.domain.repository.Tco
-import lk.motormila.app.ui.components.BrandLogo
-import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPillTabs
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface as MotormilaPane
 import lk.motormila.app.ui.components.OfflineBanner
-import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
@@ -103,46 +91,15 @@ fun CalculatorScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.calc_title), fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = stringResource(R.string.calc_title),
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
+        snackbarHostState = snacks,
+    ) {
+        Column(Modifier.fillMaxSize()) {
             OfflineBanner(visible = state.offline)
             CalculatorTabs(
                 selected = state.tab,
@@ -159,16 +116,6 @@ fun CalculatorScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item { CalculatorHero() }
-                if (!state.unlocked) {
-                    item {
-                        ProUpsellChips(
-                            onUpgrade = {
-                                if (!reducedMotion) haptics.tick()
-                                onUpgrade()
-                            },
-                        )
-                    }
-                }
                 item {
                     when (state.tab) {
                         CalculatorTab.LANDED -> LandedPane(
@@ -179,7 +126,13 @@ fun CalculatorScreen(
                                 viewModel.onEvent(CalculatorUiEvent.CalculateLanded)
                             },
                         )
-                        CalculatorTab.TCO -> if (state.unlocked) {
+                        CalculatorTab.TCO -> ProGate(
+                            unlocked = state.unlocked,
+                            onUpgrade = {
+                                if (!reducedMotion) haptics.tick()
+                                onUpgrade()
+                            },
+                        ) {
                             TcoPane(
                                 state = state,
                                 onForm = { viewModel.onEvent(CalculatorUiEvent.TcoFormChanged(it)) },
@@ -188,11 +141,67 @@ fun CalculatorScreen(
                                     viewModel.onEvent(CalculatorUiEvent.CalculateTco)
                                 },
                             )
-                        } else {
-                            TcoLockedCard(
-                                onUpgrade = {
+                        }
+                        CalculatorTab.LEASE -> ProGate(
+                            unlocked = state.unlocked,
+                            onUpgrade = {
+                                if (!reducedMotion) haptics.tick()
+                                onUpgrade()
+                            },
+                        ) {
+                            LeasePane(
+                                state = state,
+                                onForm = { viewModel.onEvent(CalculatorUiEvent.LeaseFormChanged(it)) },
+                                onCalculate = {
                                     if (!reducedMotion) haptics.tick()
-                                    onUpgrade()
+                                    viewModel.onEvent(CalculatorUiEvent.CalculateLease)
+                                },
+                            )
+                        }
+                        CalculatorTab.OWNERSHIP -> ProGate(
+                            unlocked = state.unlocked,
+                            onUpgrade = {
+                                if (!reducedMotion) haptics.tick()
+                                onUpgrade()
+                            },
+                        ) {
+                            OwnershipPane(
+                                state = state,
+                                onForm = { viewModel.onEvent(CalculatorUiEvent.OwnershipFormChanged(it)) },
+                                onCalculate = {
+                                    if (!reducedMotion) haptics.tick()
+                                    viewModel.onEvent(CalculatorUiEvent.CalculateOwnership)
+                                },
+                            )
+                        }
+                        CalculatorTab.PERMITS -> ProGate(
+                            unlocked = state.unlocked,
+                            onUpgrade = {
+                                if (!reducedMotion) haptics.tick()
+                                onUpgrade()
+                            },
+                        ) {
+                            PermitsPane(
+                                state = state,
+                                onRefresh = {
+                                    if (!reducedMotion) haptics.tick()
+                                    viewModel.onEvent(CalculatorUiEvent.LoadPermits)
+                                },
+                            )
+                        }
+                        CalculatorTab.DEPRECIATION -> ProGate(
+                            unlocked = state.unlocked,
+                            onUpgrade = {
+                                if (!reducedMotion) haptics.tick()
+                                onUpgrade()
+                            },
+                        ) {
+                            DepreciationPane(
+                                state = state,
+                                onForm = { viewModel.onEvent(CalculatorUiEvent.DepreciationFormChanged(it)) },
+                                onCalculate = {
+                                    if (!reducedMotion) haptics.tick()
+                                    viewModel.onEvent(CalculatorUiEvent.CalculateDepreciation)
                                 },
                             )
                         }
@@ -204,7 +213,6 @@ fun CalculatorScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CalculatorTabs(
     selected: CalculatorTab,
@@ -213,38 +221,19 @@ private fun CalculatorTabs(
 ) {
     val tabs = listOf(
         CalculatorTab.LANDED to stringResource(R.string.calc_tab_landed),
-        CalculatorTab.TCO to stringResource(R.string.calc_tab_tco),
+        CalculatorTab.TCO to tabLabel(stringResource(R.string.calc_tab_tco), unlocked),
+        CalculatorTab.LEASE to tabLabel(stringResource(R.string.calc_tab_lease), unlocked),
+        CalculatorTab.OWNERSHIP to tabLabel(stringResource(R.string.calc_tab_ownership), unlocked),
+        CalculatorTab.PERMITS to tabLabel(stringResource(R.string.calc_tab_permits), unlocked),
+        CalculatorTab.DEPRECIATION to tabLabel(stringResource(R.string.calc_tab_depreciation), unlocked),
     )
     val selectedIndex = tabs.indexOfFirst { it.first == selected }.coerceAtLeast(0)
-    PrimaryTabRow(
-        selectedTabIndex = selectedIndex,
-        containerColor = MotormilaBg,
-        contentColor = MotormilaOnSurface,
-    ) {
-        tabs.forEachIndexed { index, (tab, title) ->
-            val locked = tab == CalculatorTab.TCO && !unlocked
-            val cd = if (locked) stringResource(R.string.calc_cd_tab_locked, title) else title
-            Tab(
-                selected = selectedIndex == index,
-                onClick = { onSelect(tab) },
-                text = { Text(title) },
-                icon = if (locked) {
-                    {
-                        Icon(
-                            Icons.Filled.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                } else {
-                    null
-                },
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = cd },
-            )
-        }
-    }
+    MotormilaPillTabs(
+        tabs = tabs.map { it.second },
+        selected = selectedIndex,
+        onSelect = { onSelect(tabs[it].first) },
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
@@ -286,53 +275,21 @@ private fun CalculatorHero() {
     }
 }
 
+@Composable
+private fun tabLabel(label: String, unlocked: Boolean): String =
+    if (unlocked) label else "$label · Pro"
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ProUpsellChips(onUpgrade: () -> Unit) {
-    val upgradeCd = stringResource(R.string.calc_cd_upgrade)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.calc_upsell_hint),
-            style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            listOf(
-                R.string.calc_tab_lease,
-                R.string.calc_tab_ownership,
-                R.string.calc_tab_permits,
-                R.string.calc_tab_depreciation,
-            ).forEach { labelRes ->
-                FilterChip(
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    selected = false,
-                    onClick = onUpgrade,
-                    label = { Text(stringResource(labelRes)) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Filled.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    },
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = upgradeCd },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                        selectedLabelColor = MotormilaPrimaryBright,
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = false,
-                        borderColor = MotormilaOutline,
-                        selectedBorderColor = MotormilaPrimary,
-                    ),
-                )
-            }
-        }
+private fun ProGate(
+    unlocked: Boolean,
+    onUpgrade: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (unlocked) {
+        content()
+    } else {
+        TcoLockedCard(onUpgrade = onUpgrade)
     }
 }
 
@@ -346,16 +303,7 @@ private fun LandedPane(
     val form = state.landedForm
     val calculateCd = stringResource(R.string.calc_cd_calculate_landed)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-            border = BorderStroke(1.dp, MotormilaOutline),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -420,24 +368,12 @@ private fun LandedPane(
                     CalculatorFuelType.entries.forEach { fuel ->
                         val label = fuelLabel(fuel)
                         val fuelCd = stringResource(R.string.calc_cd_fuel, label)
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = label,
                             selected = form.fuelType == fuel,
                             onClick = { onForm(form.copy(fuelType = fuel)) },
-                            label = { Text(label) },
-                            modifier = Modifier
-                                .heightIn(min = 48.dp)
-                                .semantics { contentDescription = fuelCd },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                                selectedLabelColor = MotormilaPrimaryBright,
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = form.fuelType == fuel,
-                                borderColor = MotormilaOutline,
-                                selectedBorderColor = MotormilaPrimary,
-                            ),
+                            compact = true,
+                            modifier = Modifier.semantics { contentDescription = fuelCd },
                         )
                     }
                 }
@@ -452,32 +388,17 @@ private fun LandedPane(
                     style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
                 )
                 ValidationText(state.validation)
-                Button(
+                MotormilaPrimaryButton(
+                    label = if (state.calculatingLanded) {
+                        stringResource(R.string.calc_calculating)
+                    } else {
+                        stringResource(R.string.calc_calculate_landed)
+                    },
                     onClick = onCalculate,
                     enabled = !state.calculatingLanded,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotormilaPrimary,
-                        contentColor = MotormilaOnPrimary,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = calculateCd },
-                ) {
-                    if (state.calculatingLanded) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            color = MotormilaOnPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.calc_calculating), fontWeight = FontWeight.SemiBold)
-                    } else {
-                        Text(stringResource(R.string.calc_calculate_landed), fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+                    loading = state.calculatingLanded,
+                    modifier = Modifier.semantics { contentDescription = calculateCd },
+                )
         }
         LandedResultCard(result = state.landed, calculating = state.calculatingLanded)
     }
@@ -492,16 +413,7 @@ private fun TcoPane(
     val form = state.tcoForm
     val calculateCd = stringResource(R.string.calc_cd_calculate_tco)
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Card(
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-            border = BorderStroke(1.dp, MotormilaOutline),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -544,32 +456,17 @@ private fun TcoPane(
                     onChange = { onForm(form.copy(years = it)) },
                 )
                 ValidationText(state.validation)
-                Button(
+                MotormilaPrimaryButton(
+                    label = if (state.calculatingTco) {
+                        stringResource(R.string.calc_calculating)
+                    } else {
+                        stringResource(R.string.calc_calculate_tco)
+                    },
                     onClick = onCalculate,
                     enabled = !state.calculatingTco,
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MotormilaPrimary,
-                        contentColor = MotormilaOnPrimary,
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = calculateCd },
-                ) {
-                    if (state.calculatingTco) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            color = MotormilaOnPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.calc_calculating), fontWeight = FontWeight.SemiBold)
-                    } else {
-                        Text(stringResource(R.string.calc_calculate_tco), fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
+                    loading = state.calculatingTco,
+                    modifier = Modifier.semantics { contentDescription = calculateCd },
+                )
         }
         TcoResultCard(result = state.tco, calculating = state.calculatingTco)
     }
@@ -578,16 +475,10 @@ private fun TcoPane(
 @Composable
 private fun TcoLockedCard(onUpgrade: () -> Unit) {
     val upgradeCd = stringResource(R.string.calc_cd_upgrade)
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
-        modifier = Modifier.fillMaxWidth(),
+    MotormilaPane(
+        highlighted = true,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -606,36 +497,17 @@ private fun TcoLockedCard(onUpgrade: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MotormilaSecondaryText,
             )
-            Button(
+            MotormilaPrimaryButton(
+                label = stringResource(R.string.calc_upgrade),
                 onClick = onUpgrade,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MotormilaPrimary,
-                    contentColor = MotormilaOnPrimary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = upgradeCd },
-            ) {
-                Text(stringResource(R.string.calc_upgrade), fontWeight = FontWeight.SemiBold)
-            }
-        }
+                modifier = Modifier.semantics { contentDescription = upgradeCd },
+            )
     }
 }
 
 @Composable
 private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    MotormilaPane(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 stringResource(R.string.calc_breakdown),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -720,22 +592,12 @@ private fun LandedResultCard(result: LandedCost?, calculating: Boolean) {
                     )
                 }
             }
-        }
     }
 }
 
 @Composable
 private fun TcoResultCard(result: Tco?, calculating: Boolean) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    MotormilaPane(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 stringResource(R.string.calc_tco_breakdown),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -817,6 +679,266 @@ private fun TcoResultCard(result: Tco?, calculating: Boolean) {
                     )
                 }
             }
+    }
+}
+
+@Composable
+private fun LeasePane(
+    state: CalculatorUiState,
+    onForm: (LeaseForm) -> Unit,
+    onCalculate: () -> Unit,
+) {
+    val form = state.leaseForm
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                stringResource(R.string.calc_lease_title),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            )
+            Text(
+                stringResource(R.string.calc_lease_hint),
+                style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+            )
+            CalcTextField(
+                label = stringResource(R.string.calc_purchase_price),
+                value = form.priceLkr,
+                keyboardType = KeyboardType.Number,
+                onChange = { onForm(form.copy(priceLkr = it)) },
+            )
+            AmountPreview(form.priceLkr)
+            CalcTextField(
+                label = stringResource(R.string.calc_lease_down_pct),
+                value = form.downPct,
+                keyboardType = KeyboardType.Decimal,
+                onChange = { onForm(form.copy(downPct = it)) },
+            )
+            CalcTextField(
+                label = stringResource(R.string.calc_lease_rate_pct),
+                value = form.ratePct,
+                keyboardType = KeyboardType.Decimal,
+                onChange = { onForm(form.copy(ratePct = it)) },
+            )
+            CalcTextField(
+                label = stringResource(R.string.calc_years),
+                value = form.years,
+                keyboardType = KeyboardType.Number,
+                onChange = { onForm(form.copy(years = it)) },
+            )
+            ValidationText(state.validation)
+            MotormilaPrimaryButton(
+                label = stringResource(R.string.calc_calculate_lease),
+                onClick = onCalculate,
+            )
+        }
+        state.lease?.let { quote ->
+            MotormilaPane(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                CostLineRow(stringResource(R.string.calc_lease_principal), quote.principalLkr)
+                CostLineRow(stringResource(R.string.calc_lease_monthly), quote.monthlyLkr)
+                CostLineRow(stringResource(R.string.calc_lease_interest), quote.totalInterestLkr)
+                CostLineRow(stringResource(R.string.calc_lease_total_paid), quote.totalPaidLkr)
+                if (quote.ltvBreached) {
+                    Text(
+                        stringResource(R.string.calc_lease_ltv_warn),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MotormilaWarn,
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OwnershipPane(
+    state: CalculatorUiState,
+    onForm: (OwnershipForm) -> Unit,
+    onCalculate: () -> Unit,
+) {
+    val form = state.ownershipForm
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                stringResource(R.string.calc_ownership_title),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            )
+            Text(
+                stringResource(R.string.calc_ownership_hint),
+                style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+            )
+            CalcTextField(
+                label = stringResource(R.string.calc_engine_cc),
+                value = form.engineCc,
+                keyboardType = KeyboardType.Number,
+                onChange = { onForm(form.copy(engineCc = it)) },
+            )
+            Text(
+                stringResource(R.string.calc_fuel_category),
+                style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CalculatorFuelType.entries.forEach { fuel ->
+                    MotormilaChoiceChip(
+                        label = fuelLabel(fuel),
+                        selected = form.fuelType == fuel,
+                        onClick = { onForm(form.copy(fuelType = fuel)) },
+                        compact = true,
+                    )
+                }
+            }
+            CalcTextField(
+                label = stringResource(R.string.calc_ownership_consideration),
+                value = form.considerationLkr,
+                keyboardType = KeyboardType.Number,
+                onChange = { onForm(form.copy(considerationLkr = it)) },
+            )
+            MotormilaChoiceChip(
+                label = stringResource(R.string.calc_ownership_include_transfer),
+                selected = form.includeTransfer,
+                onClick = { onForm(form.copy(includeTransfer = !form.includeTransfer)) },
+            )
+            ValidationText(state.validation)
+            MotormilaPrimaryButton(
+                label = if (state.calculatingOwnership) {
+                    stringResource(R.string.calc_calculating)
+                } else {
+                    stringResource(R.string.calc_calculate_ownership)
+                },
+                onClick = onCalculate,
+                enabled = !state.calculatingOwnership,
+                loading = state.calculatingOwnership,
+            )
+        }
+        state.ownership?.let { bundle ->
+            MotormilaPane(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                CostLineRow(stringResource(R.string.calc_ownership_revenue), bundle.revenueLicenceLkr)
+                CostLineRow(stringResource(R.string.calc_ownership_insurance), bundle.insuranceLkr)
+                CostLineRow(stringResource(R.string.calc_ownership_transfer), bundle.transferFeesLkr)
+                CostLineRow(stringResource(R.string.calc_ownership_emission), bundle.emissionTestLkr)
+                CostLineRow(stringResource(R.string.calc_ownership_total), bundle.firstYearTotalLkr)
+                if (bundle.notes.isNotBlank()) {
+                    Text(
+                        bundle.notes,
+                        style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermitsPane(
+    state: CalculatorUiState,
+    onRefresh: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                stringResource(R.string.calc_permits_title),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            )
+            Text(
+                stringResource(R.string.calc_permits_hint),
+                style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+            )
+            MotormilaPrimaryButton(
+                label = if (state.loadingPermits) {
+                    stringResource(R.string.calc_calculating)
+                } else {
+                    stringResource(R.string.calc_permits_refresh)
+                },
+                onClick = onRefresh,
+                enabled = !state.loadingPermits,
+                loading = state.loadingPermits,
+            )
+        }
+        when {
+            state.loadingPermits && state.permits.isEmpty() -> {
+                MotormilaPane {
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(color = MotormilaPrimary, modifier = Modifier.size(24.dp))
+                    }
+                }
+            }
+            state.permits.isEmpty() -> {
+                MotormilaPane {
+                    Text(
+                        stringResource(R.string.calc_permits_empty),
+                        style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+                    )
+                }
+            }
+            else -> {
+                state.permits.forEach { permit ->
+                    MotormilaPane(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            permit.name,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        )
+                        Text(
+                            permit.type.ifBlank { "—" },
+                            style = MaterialTheme.typography.labelSmall.copy(color = MotormilaSecondaryText),
+                        )
+                        Text(
+                            LkrFormat.full(permit.marketPriceLkr),
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DepreciationPane(
+    state: CalculatorUiState,
+    onForm: (DepreciationForm) -> Unit,
+    onCalculate: () -> Unit,
+) {
+    val form = state.depreciationForm
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        MotormilaPane(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                stringResource(R.string.calc_depreciation_title),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            )
+            Text(
+                stringResource(R.string.calc_depreciation_hint),
+                style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText),
+            )
+            CalcTextField(
+                label = stringResource(R.string.calc_purchase_price),
+                value = form.priceLkr,
+                keyboardType = KeyboardType.Number,
+                onChange = { onForm(form.copy(priceLkr = it)) },
+            )
+            AmountPreview(form.priceLkr)
+            ValidationText(state.validation)
+            MotormilaPrimaryButton(
+                label = stringResource(R.string.calc_calculate_depreciation),
+                onClick = onCalculate,
+            )
+        }
+        if (state.depreciation.isNotEmpty()) {
+            MotormilaPane(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                state.depreciation.forEach { point ->
+                    CostLineRow(point.yearLabel, point.valueLkr)
+                }
+            }
         }
     }
 }
@@ -884,6 +1006,9 @@ private fun validationMessage(reason: CalculatorValidation?): String? {
             CalculatorValidation.MONTHLY_KM_REQUIRED -> R.string.calc_error_monthly_km
             CalculatorValidation.KM_PER_LITRE_REQUIRED -> R.string.calc_error_kmpl
             CalculatorValidation.YEARS_INVALID -> R.string.calc_error_years
+            CalculatorValidation.DOWN_PCT_INVALID -> R.string.calc_error_down_pct
+            CalculatorValidation.RATE_PCT_INVALID -> R.string.calc_error_rate_pct
+            CalculatorValidation.CONSIDERATION_REQUIRED -> R.string.calc_error_consideration
         },
     )
 }

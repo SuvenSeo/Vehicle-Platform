@@ -8,7 +8,10 @@ import kotlinx.serialization.Serializable
 data object Splash
 
 @Serializable
-data object Login
+data class Login(
+    val token: String? = null,
+    val signup: Boolean = false,
+)
 
 @Serializable
 data object Home
@@ -87,6 +90,33 @@ data class DistrictHub(val district: String)
 @Serializable
 data object Calculator
 
+@Serializable
+data object Pricing
+
+@Serializable
+data object Docs
+
+@Serializable
+data class PulseGuide(val key: String)
+
+@Serializable
+data object Admin
+
+@Serializable
+data object EvChargers
+
+@Serializable
+data object Privacy
+
+@Serializable
+data object Terms
+
+@Serializable
+data object Permits
+
+@Serializable
+data object PriceIndex
+
 /** Routes that show the bottom NavigationBar. */
 val BOTTOM_BAR_ROUTES: Set<String> = setOf(
     Home::class.qualifiedName!!,
@@ -135,9 +165,9 @@ internal fun parseDeepLink(raw: String): ParsedDeepLink? {
 }
 
 /**
- * Maps a `motormila://` (or https listing) VIEW URI to a type-safe destination.
- * Used after splash and on [android.content.Intent.ACTION_VIEW] so optional query
- * params still land even when NavHost deep-link matching is picky.
+ * Maps a `motormila://` or `https://motormila.vercel.app/…` VIEW URI to a
+ * type-safe destination. Used after splash and on ACTION_VIEW so query params
+ * still land even when NavHost deep-link matching is picky.
  */
 fun resolveMotormilaDeepLink(uri: Uri): Any? = resolveMotormilaDeepLink(uri.toString())
 
@@ -151,6 +181,7 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
     val host = parsed.host
     val segments = parsed.pathSegments
     if (scheme == "https" && host == HTTPS_APP_HOST) {
+        if (segments.isEmpty()) return Home
         if (segments.size >= 2 && segments[0] == "listing") {
             return segments[1].toIntOrNull()?.let { ListingDetail(it) }
         }
@@ -162,12 +193,42 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
         if (segments.size >= 2 && segments[0] == "locations") {
             return DistrictHub(segments[1])
         }
-        if (segments.size >= 2 && segments[0] == "official-pulse") {
-            if (segments[1] == "guide") return OfficialPulse
+        if (segments.firstOrNull() == "official-pulse") {
+            if (segments.size == 1) return OfficialPulse
+            if (segments[1] == "guide") {
+                val key = segments.getOrNull(2)?.takeIf { it.isNotBlank() } ?: return OfficialPulse
+                return PulseGuide(key)
+            }
             return segments[1].toIntOrNull()?.let { OfficialPulseDetail(it) }
         }
-        if (segments.firstOrNull() == "calculator") return Calculator
-        return null
+        if (segments.firstOrNull() == "compare") {
+            return Compare(compareIds(parsed, slugSegment = segments.getOrNull(1)))
+        }
+        return when (segments.firstOrNull()) {
+            "calculator" -> Calculator
+            "pricing" -> Pricing
+            "docs" -> Docs
+            "admin" -> Admin
+            "privacy" -> Privacy
+            "terms" -> Terms
+            "permits" -> Permits
+            "price-index" -> PriceIndex
+            "trends" -> Insights
+            "ev-chargers" -> EvChargers
+            "ev-hub" -> EvHub
+            "estimate" -> Valuation(
+                make = parsed.queryOrNull("make"),
+                model = parsed.queryOrNull("model"),
+            )
+            "best-picks" -> BestPicks
+            "dealer" -> Dealer
+            "settings" -> Settings
+            "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
+            "sign-in" -> loginDestination(parsed, signup = false)
+            "sign-up" -> loginDestination(parsed, signup = true)
+            "pro", "pro-preview" -> Pro
+            else -> null
+        }
     }
     if (scheme != "motormila") return null
     return when (host) {
@@ -188,10 +249,20 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             val id = segments.firstOrNull()?.toIntOrNull()
             if (id != null) OfficialPulseDetail(id) else OfficialPulse
         }
+        "guide" -> segments.firstOrNull()?.takeIf { it.isNotBlank() }?.let { PulseGuide(it) } ?: OfficialPulse
         "scan" -> PlateScan
         "listing" -> segments.firstOrNull()?.toIntOrNull()?.let { ListingDetail(it) }
         "pro" -> if (parsed.queryOrNull("deal") == "day") BestPicks else Pro
         "calculator" -> Calculator
+        "pricing" -> Pricing
+        "docs" -> Docs
+        "admin" -> Admin
+        "chargers", "ev-chargers" -> EvChargers
+        "privacy" -> Privacy
+        "terms" -> Terms
+        "permits" -> Permits
+        "price-index" -> PriceIndex
+        "trends" -> Insights
         "make" -> segments.firstOrNull()?.takeIf { it.isNotBlank() }?.let { MakeHub(it) }
         "cars" -> {
             val make = segments.getOrNull(0)?.takeIf { it.isNotBlank() } ?: return null
@@ -199,8 +270,39 @@ internal fun resolveParsedDeepLink(parsed: ParsedDeepLink): Any? {
             if (model == null) MakeHub(make) else MakeModelHub(make, model)
         }
         "locations" -> segments.firstOrNull()?.takeIf { it.isNotBlank() }?.let { DistrictHub(it) }
+        "estimate" -> Valuation(
+            make = parsed.queryOrNull("make"),
+            model = parsed.queryOrNull("model"),
+        )
+        "compare" -> Compare(compareIds(parsed, slugSegment = segments.firstOrNull()))
+        "dealer" -> Dealer
+        "settings" -> Settings
+        "alerts" -> Alerts(listingId = parsed.query["listingId"]?.toIntOrNull() ?: 0)
+        "login", "sign-in" -> loginDestination(parsed, signup = parsed.flagQuery("signup"))
+        "sign-up" -> loginDestination(parsed, signup = true)
+        "best-picks" -> BestPicks
         else -> null
     }
+}
+
+private fun loginDestination(parsed: ParsedDeepLink, signup: Boolean): Login {
+    val token = parsed.queryOrNull("token")
+    return Login(
+        token = token,
+        signup = signup || !token.isNullOrBlank(),
+    )
+}
+
+private fun compareIds(parsed: ParsedDeepLink, slugSegment: String?): List<Int> {
+    val fromQuery = parsed.query["ids"]
+        ?.split(',')
+        ?.mapNotNull { it.trim().toIntOrNull()?.takeIf { id -> id > 0 } }
+        .orEmpty()
+    val fromSlug = slugSegment
+        ?.split("-vs-")
+        ?.mapNotNull { it.trim().toIntOrNull()?.takeIf { id -> id > 0 } }
+        .orEmpty()
+    return (fromQuery + fromSlug).distinct()
 }
 
 private fun ParsedDeepLink.queryOrNull(key: String): String? =

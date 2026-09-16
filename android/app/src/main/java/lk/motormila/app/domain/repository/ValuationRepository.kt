@@ -39,7 +39,33 @@ data class Tco(
     val monthlyLkr: Double,
 )
 
+data class OwnershipBundleInput(
+    val vehicleClass: String = "motor_car",
+    val fuelType: String = "petrol",
+    val engineCc: Int = 1500,
+    val considerationLkr: Double = 0.0,
+    val includeTransfer: Boolean = false,
+)
+
+data class OwnershipBundle(
+    val revenueLicenceLkr: Double,
+    val insuranceLkr: Double,
+    val transferFeesLkr: Double,
+    val emissionTestLkr: Double,
+    val firstYearTotalLkr: Double,
+    val notes: String = "",
+)
+
+data class PermitQuote(
+    val id: Int?,
+    val name: String,
+    val type: String,
+    val marketPriceLkr: Double,
+)
+
 interface ValuationRepository {
     suspend fun landedCost(input: LandedCostInput): LandedCost
     suspend fun tco(input: TcoInput): Tco
+    suspend fun ownershipBundle(input: OwnershipBundleInput): OwnershipBundle
+    suspend fun permits(): List<PermitQuote>
 }

@@ -125,6 +125,37 @@ class CalculatorInputsTest {
     }
 
     @Test
+    fun parseLease_flagsCbsLLtvAndComputesPayment() {
+        val parsed = CalculatorInputs.parseLease(
+            LeaseForm(priceLkr = "10m", downPct = "50", ratePct = "18", years = "5"),
+        )
+        assertTrue(parsed is CalculatorParseResult.Ok)
+        val quote = (parsed as CalculatorParseResult.Ok).value
+        assertEquals(5_000_000.0, quote.principalLkr, 0.001)
+        assertFalse(quote.ltvBreached)
+        assertTrue(quote.monthlyLkr > 0.0)
+
+        val lowDown = CalculatorInputs.parseLease(
+            LeaseForm(priceLkr = "10m", downPct = "20", ratePct = "18", years = "5"),
+        )
+        assertTrue((lowDown as CalculatorParseResult.Ok).value.ltvBreached)
+    }
+
+    @Test
+    fun parseOwnership_andDepreciation() {
+        val ownership = CalculatorInputs.parseOwnership(
+            OwnershipForm(engineCc = "1500", considerationLkr = "12m"),
+        )
+        assertTrue(ownership is CalculatorParseResult.Ok)
+        assertEquals(12_000_000.0, (ownership as CalculatorParseResult.Ok).value.considerationLkr, 0.001)
+
+        val dep = CalculatorInputs.parseDepreciation(DepreciationForm(priceLkr = "10m"))
+        assertTrue(dep is CalculatorParseResult.Ok)
+        assertEquals(3, (dep as CalculatorParseResult.Ok).value.size)
+        assertTrue(dep.value.first().valueLkr < 10_000_000.0)
+    }
+
+    @Test
     fun parseHelpers_rejectGarbage() {
         assertNull(CalculatorInputs.parsePositiveAmount(""))
         assertNull(CalculatorInputs.parsePositiveAmount("8x"))

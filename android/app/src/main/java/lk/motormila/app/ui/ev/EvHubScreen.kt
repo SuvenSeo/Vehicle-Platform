@@ -1,10 +1,10 @@
 package lk.motormila.app.ui.ev
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BatteryChargingFull
@@ -26,23 +24,11 @@ import androidx.compose.material.icons.filled.Power
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,20 +55,22 @@ import lk.motormila.app.domain.model.ChargingStation
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaEyebrow
+import lk.motormila.app.ui.components.MotormilaMetricTile
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaGood
-import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
-import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
-import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 import lk.motormila.app.ui.theme.MotormilaWarn
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -95,6 +83,7 @@ fun EvHubScreen(
     onBack: () -> Unit,
     onSearchModels: (query: String) -> Unit,
     onOpenListing: (Int) -> Unit,
+    onChargersClick: () -> Unit = {},
     viewModel: EvHubViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -112,47 +101,19 @@ fun EvHubScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.hub_ev_title), fontWeight = FontWeight.Bold)
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = stringResource(R.string.hub_ev_title),
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+        snackbarHostState = snacks,
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(EvHubUiEvent.Refresh) },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .semantics { contentDescription = refreshCd },
         ) {
             when {
@@ -177,6 +138,7 @@ fun EvHubScreen(
                     onSearchModels = onSearchModels,
                     onRadius = { viewModel.onEvent(EvHubUiEvent.ChargerRadiusChanged(it)) },
                     onHaptic = { if (!reducedMotion) haptics.tick() },
+                    onChargersClick = onChargersClick,
                 )
             }
         }
@@ -204,6 +166,7 @@ private fun EvHubBody(
     onSearchModels: (String) -> Unit,
     onRadius: (Int) -> Unit,
     onHaptic: () -> Unit,
+    onChargersClick: () -> Unit,
 ) {
     val ev = state.ev
     LazyColumn(
@@ -245,29 +208,22 @@ private fun EvHubBody(
                     onHaptic()
                     onRadius(km)
                 },
+                onSeeAll = {
+                    onHaptic()
+                    onChargersClick()
+                },
             )
         }
         item {
             val browseLabel = stringResource(R.string.hub_ev_browse_cta)
-            Button(
+            MotormilaPrimaryButton(
+                label = browseLabel,
+                leadingIcon = Icons.Filled.Search,
                 onClick = {
                     onHaptic()
                     onSearchModels("electric")
                 },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MotormilaPrimary,
-                    contentColor = MotormilaOnPrimary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = browseLabel },
-            ) {
-                Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(browseLabel, fontWeight = FontWeight.SemiBold)
-            }
+            )
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -276,21 +232,7 @@ private fun EvHubBody(
 @Composable
 private fun EvHero() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = MotormilaSurfaceHigh,
-            border = BorderStroke(1.dp, MotormilaOutline),
-        ) {
-            Text(
-                text = "• ${stringResource(R.string.hub_ev_eyebrow).uppercase()}",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MotormilaPrimaryBright,
-                ),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            )
-        }
+        MotormilaEyebrow(stringResource(R.string.hub_ev_eyebrow))
         Text(
             text = stringResource(R.string.hub_ev_headline),
             style = MaterialTheme.typography.headlineLarge.copy(
@@ -316,66 +258,24 @@ private fun EvStatsGrid(count: Int, sharePct: Double, medianLkr: Double?) {
     val medianText = medianLkr?.let { LkrFormat.price(it) } ?: stringResource(R.string.hub_na)
     val medianCd = stringResource(R.string.hub_ev_cd_stat_median, medianText)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        HubMetricCard(
+        MotormilaMetricTile(
             label = stringResource(R.string.hub_ev_count_label),
             value = LkrFormat.count(count),
             note = stringResource(R.string.hub_ev_count_note),
-            valueColor = MotormilaPrimaryBright,
             modifier = Modifier.fillMaxWidth().semantics { contentDescription = countCd },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            HubMetricCard(
+            MotormilaMetricTile(
                 label = stringResource(R.string.hub_ev_share_label),
                 value = stringResource(R.string.hub_ev_share_value, sharePct),
                 note = stringResource(R.string.hub_ev_share_note),
-                valueColor = MotormilaGood,
                 modifier = Modifier.weight(1f).semantics { contentDescription = shareCd },
             )
-            HubMetricCard(
+            MotormilaMetricTile(
                 label = stringResource(R.string.hub_ev_median_label),
                 value = medianText,
                 note = stringResource(R.string.hub_ev_median_note),
                 modifier = Modifier.weight(1f).semantics { contentDescription = medianCd },
-            )
-        }
-    }
-}
-
-@Composable
-private fun HubMetricCard(
-    label: String,
-    value: String,
-    note: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = MotormilaOnSurface,
-) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = modifier,
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    fontSize = 10.sp,
-                    color = MotormilaSecondaryText,
-                ),
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    color = valueColor,
-                ),
-            )
-            Text(
-                text = note,
-                style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, fontSize = 11.sp),
             )
         }
     }
@@ -395,18 +295,10 @@ private fun FuelMixSection(mix: List<FuelMixBucket>) {
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             mix.forEach { bucket ->
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = MotormilaSurfaceHigh,
-                    border = BorderStroke(1.dp, MotormilaOutline),
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) {
-                    Text(
-                        text = "${bucket.fuelType}: ${formatPct(bucket.pct, 0)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-                    )
-                }
+                MotormilaMetricTile(
+                    label = bucket.fuelType,
+                    value = formatPct(bucket.pct, 0),
+                )
             }
         }
     }
@@ -429,19 +321,13 @@ private fun TopModelsSection(
         )
         models.forEach { model ->
             val searchCd = stringResource(R.string.hub_ev_search_model, model)
-            Card(
+            MotormilaSurface(
                 onClick = { onSearchModels(model) },
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-                border = BorderStroke(1.dp, MotormilaOutline),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = searchCd },
+                modifier = Modifier.semantics { contentDescription = searchCd },
             ) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
                         .heightIn(min = 48.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -471,68 +357,57 @@ private fun TopModelsSection(
 @Composable
 private fun TcoCard(state: EvHubUiState) {
     val saving = LkrFormat.price(state.annualFuelSavingLkr)
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = MotormilaPrimary)
-                Text(
-                    text = stringResource(R.string.hub_ev_tco_eyebrow).uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = MotormilaPrimaryBright,
-                    ),
-                )
-            }
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Filled.TrendingDown, contentDescription = null, tint = MotormilaPrimary)
             Text(
-                stringResource(R.string.hub_ev_tco_title),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            )
-            Text(
-                stringResource(
-                    R.string.hub_ev_tco_body,
-                    saving,
-                    TCO_EV_PER_KM_LKR,
-                    TCO_PETROL_PER_KM_LKR,
-                    TCO_KM_PER_YEAR / 1000,
+                text = stringResource(R.string.hub_ev_tco_eyebrow).uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MotormilaPrimaryBright,
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MotormilaSecondaryText,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HubMetricCard(
-                    label = stringResource(R.string.hub_ev_tco_petrol_label),
-                    value = stringResource(R.string.hub_ev_tco_per_km, TCO_PETROL_PER_KM_LKR),
-                    note = "",
-                    modifier = Modifier.weight(1f),
-                )
-                HubMetricCard(
-                    label = stringResource(R.string.hub_ev_tco_ev_label),
-                    value = stringResource(R.string.hub_ev_tco_per_km, TCO_EV_PER_KM_LKR),
-                    note = "",
-                    valueColor = MotormilaGood,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            HubMetricCard(
-                label = stringResource(R.string.hub_ev_tco_savings_label),
-                value = saving,
-                note = state.paybackYears?.let { stringResource(R.string.hub_ev_tco_payback_value, it) }
-                    ?: stringResource(R.string.hub_ev_tco_disclaimer),
-                valueColor = MotormilaGood,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Text(
-                stringResource(R.string.hub_ev_tco_disclaimer),
-                style = MaterialTheme.typography.labelSmall,
-                color = MotormilaSecondaryText,
             )
         }
+        Text(
+            stringResource(R.string.hub_ev_tco_title),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        )
+        Text(
+            stringResource(
+                R.string.hub_ev_tco_body,
+                saving,
+                TCO_EV_PER_KM_LKR,
+                TCO_PETROL_PER_KM_LKR,
+                TCO_KM_PER_YEAR / 1000,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MotormilaSecondaryText,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MotormilaMetricTile(
+                label = stringResource(R.string.hub_ev_tco_petrol_label),
+                value = stringResource(R.string.hub_ev_tco_per_km, TCO_PETROL_PER_KM_LKR),
+                modifier = Modifier.weight(1f),
+            )
+            MotormilaMetricTile(
+                label = stringResource(R.string.hub_ev_tco_ev_label),
+                value = stringResource(R.string.hub_ev_tco_per_km, TCO_EV_PER_KM_LKR),
+                modifier = Modifier.weight(1f),
+            )
+        }
+        MotormilaMetricTile(
+            label = stringResource(R.string.hub_ev_tco_savings_label),
+            value = saving,
+            note = state.paybackYears?.let { stringResource(R.string.hub_ev_tco_payback_value, it) }
+                ?: stringResource(R.string.hub_ev_tco_disclaimer),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            stringResource(R.string.hub_ev_tco_disclaimer),
+            style = MaterialTheme.typography.labelSmall,
+            color = MotormilaSecondaryText,
+        )
     }
 }
 
@@ -579,80 +454,62 @@ private fun ModuleCard(
     body: String,
     tint: Color,
 ) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(icon, contentDescription = null, tint = tint)
-                    Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                }
-                Text(step, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = tint))
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(icon, contentDescription = null, tint = tint)
+                Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
             }
-            Text(body, style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp))
+            Text(step, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = tint))
         }
+        Text(body, style = MaterialTheme.typography.bodySmall.copy(color = MotormilaSecondaryText, lineHeight = 18.sp))
     }
 }
 
 @Composable
 private fun OwnershipGuidelines() {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                stringResource(R.string.hub_ev_ownership),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            )
-            OwnershipTile(
-                stringResource(R.string.hub_ev_own_battery_label),
-                stringResource(R.string.hub_ev_own_battery_value),
-                stringResource(R.string.hub_ev_own_battery_note),
-            )
-            OwnershipTile(
-                stringResource(R.string.hub_ev_own_home_label),
-                stringResource(R.string.hub_ev_own_home_value),
-                stringResource(R.string.hub_ev_own_home_note),
-            )
-            OwnershipTile(
-                stringResource(R.string.hub_ev_own_resale_label),
-                stringResource(R.string.hub_ev_own_resale_value),
-                stringResource(R.string.hub_ev_own_resale_note),
-            )
-        }
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            stringResource(R.string.hub_ev_ownership),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        )
+        OwnershipTile(
+            stringResource(R.string.hub_ev_own_battery_label),
+            stringResource(R.string.hub_ev_own_battery_value),
+            stringResource(R.string.hub_ev_own_battery_note),
+        )
+        OwnershipTile(
+            stringResource(R.string.hub_ev_own_home_label),
+            stringResource(R.string.hub_ev_own_home_value),
+            stringResource(R.string.hub_ev_own_home_note),
+        )
+        OwnershipTile(
+            stringResource(R.string.hub_ev_own_resale_label),
+            stringResource(R.string.hub_ev_own_resale_value),
+            stringResource(R.string.hub_ev_own_resale_note),
+        )
     }
 }
 
 @Composable
 private fun OwnershipTile(label: String, value: String, note: String) {
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
+    MotormilaSurface(
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MotormilaSecondaryText,
-                ),
-            )
-            Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-            Text(note, style = MaterialTheme.typography.labelSmall, color = MotormilaSecondaryText)
-        }
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        Text(value, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+        Text(note, style = MaterialTheme.typography.labelSmall, color = MotormilaSecondaryText)
     }
 }
 
@@ -661,66 +518,52 @@ private fun ChargersSection(
     chargers: List<ChargingStation>,
     radiusKm: Int,
     onRadius: (Int) -> Unit,
+    onSeeAll: () -> Unit = {},
 ) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.Bolt, contentDescription = null, tint = MotormilaPrimary)
-                Column {
-                    Text(
-                        stringResource(R.string.hub_ev_chargers_title),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    )
-                    Text(
-                        stringResource(R.string.hub_ev_chargers_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MotormilaSecondaryText,
-                    )
-                }
-            }
-            Text(
-                stringResource(R.string.hub_ev_chargers_radius),
-                style = MaterialTheme.typography.labelSmall,
-                color = MotormilaSecondaryText,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                RadiusOptionsKm.forEach { km ->
-                    FilterChip(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        selected = radiusKm == km,
-                        onClick = { onRadius(km) },
-                        label = { Text(stringResource(R.string.hub_ev_radius_km, km)) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MotormilaPrimary.copy(alpha = 0.2f),
-                            selectedLabelColor = MotormilaPrimaryBright,
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = radiusKm == km,
-                            borderColor = MotormilaOutline,
-                            selectedBorderColor = MotormilaPrimary,
-                        ),
-                    )
-                }
-            }
-            if (chargers.isEmpty()) {
+    MotormilaSurface(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Filled.Bolt, contentDescription = null, tint = MotormilaPrimary)
+            Column {
                 Text(
-                    stringResource(R.string.hub_ev_chargers_empty_body),
-                    style = MaterialTheme.typography.bodySmall,
+                    stringResource(R.string.hub_ev_chargers_title),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                )
+                Text(
+                    stringResource(R.string.hub_ev_chargers_subtitle),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MotormilaSecondaryText,
                 )
-            } else {
-                chargers.forEach { station ->
-                    ChargerRow(station)
-                }
             }
         }
+        Text(
+            stringResource(R.string.hub_ev_chargers_radius),
+            style = MaterialTheme.typography.labelSmall,
+            color = MotormilaSecondaryText,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RadiusOptionsKm.forEach { km ->
+                MotormilaChoiceChip(
+                    label = stringResource(R.string.hub_ev_radius_km, km),
+                    selected = radiusKm == km,
+                    onClick = { onRadius(km) },
+                )
+            }
+        }
+        if (chargers.isEmpty()) {
+            Text(
+                stringResource(R.string.hub_ev_chargers_empty_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MotormilaSecondaryText,
+            )
+        } else {
+            chargers.forEach { station ->
+                ChargerRow(station)
+            }
+        }
+        MotormilaPrimaryButton(
+            label = "Open charger map",
+            onClick = onSeeAll,
+        )
     }
 }
 
@@ -730,14 +573,12 @@ private fun ChargerRow(station: ChargingStation) {
         ?: stringResource(R.string.hub_ev_charger_nearby)
     val place = listOfNotNull(station.town, station.address).firstOrNull().orEmpty()
     val rowCd = stringResource(R.string.hub_ev_cd_charger, station.name, distance)
-    Surface(
-        shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = rowCd },
+    MotormilaSurface(
+        modifier = Modifier.semantics { contentDescription = rowCd },
+        contentPadding = PaddingValues(12.dp),
     ) {
         Row(
-            Modifier.padding(12.dp).heightIn(min = 48.dp),
+            Modifier.heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -768,15 +609,11 @@ private fun ChargerRow(station: ChargingStation) {
 
 @Composable
 private fun UpgradeStrip(title: String, body: String) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaPrimary.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, MotormilaPrimary.copy(alpha = 0.35f)),
-        modifier = Modifier.fillMaxWidth(),
+    MotormilaSurface(
+        highlighted = true,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright))
-            Text(body, style = MaterialTheme.typography.bodySmall, color = MotormilaSecondaryText)
-        }
+        Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, color = MotormilaPrimaryBright))
+        Text(body, style = MaterialTheme.typography.bodySmall, color = MotormilaSecondaryText)
     }
 }

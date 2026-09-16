@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,24 +18,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +54,9 @@ import lk.motormila.app.domain.model.HubTopModel
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.ListingCard
@@ -71,10 +64,8 @@ import lk.motormila.app.ui.components.LoadingSkeletonCard
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.MotormilaBg
 import lk.motormila.app.ui.theme.MotormilaGood
-import lk.motormila.app.ui.theme.MotormilaOnPrimary
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
-import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
@@ -105,52 +96,19 @@ fun DistrictHubScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = state.displayName.ifBlank { stringResource(R.string.district_hub_title) },
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = state.displayName.ifBlank { stringResource(R.string.district_hub_title) },
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+        snackbarHostState = snacks,
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(DistrictHubUiEvent.Refresh) },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .semantics { contentDescription = refreshCd },
         ) {
             when {
@@ -260,24 +218,12 @@ private fun DistrictHubBody(
         }
         item {
             val browseLabel = stringResource(R.string.district_hub_browse, displayName)
-            Button(
+            MotormilaPrimaryButton(
+                label = browseLabel,
+                leadingIcon = Icons.Filled.Search,
+                modifier = Modifier.semantics { contentDescription = browseLabel },
                 onClick = { onSeeAllSearch(searchDistrict) },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MotormilaPrimary,
-                    contentColor = MotormilaOnPrimary,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = browseLabel },
-            ) {
-                Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(browseLabel, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
+            )
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -379,31 +325,27 @@ private fun DistrictMetricCard(
     modifier: Modifier = Modifier,
     valueColor: Color = MotormilaOnSurface,
 ) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
+    MotormilaSurface(
         modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    fontSize = 10.sp,
-                    color = MotormilaSecondaryText,
-                ),
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    color = valueColor,
-                ),
-            )
-        }
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                fontSize = 10.sp,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                color = valueColor,
+            ),
+        )
     }
 }
 
@@ -444,47 +386,39 @@ private fun NearbyDistrictChip(
     val price = item.avgPriceLkr?.takeIf { it > 0 }?.let { LkrFormat.price(it) }
         ?: stringResource(R.string.district_hub_na)
     val chipCd = stringResource(R.string.district_hub_cd_nearby, item.district)
-    Card(
+    MotormilaSurface(
         onClick = onClick,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
+        fillMaxWidth = false,
         modifier = Modifier
             .width(168.dp)
             .semantics { contentDescription = chipCd },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(
-            Modifier
-                .padding(14.dp)
-                .heightIn(min = 48.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        Text(
+            item.district,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            stringResource(R.string.district_hub_listings_count, item.count),
+            style = MaterialTheme.typography.labelSmall,
+            color = MotormilaSecondaryText,
+        )
+        Text(
+            price,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+            ),
+        )
+        val new7d = item.new7dCount
+        if (new7d != null && new7d > 0) {
             Text(
-                item.district,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                stringResource(R.string.district_hub_listings_count, item.count),
+                stringResource(R.string.district_hub_new_7d, new7d),
                 style = MaterialTheme.typography.labelSmall,
-                color = MotormilaSecondaryText,
+                color = MotormilaPrimaryBright,
             )
-            Text(
-                price,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                ),
-            )
-            val new7d = item.new7dCount
-            if (new7d != null && new7d > 0) {
-                Text(
-                    stringResource(R.string.district_hub_new_7d, new7d),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MotormilaPrimaryBright,
-                )
-            }
         }
     }
 }
@@ -527,39 +461,27 @@ private fun TopModelCard(
         entry.model,
         entry.listingCount,
     )
-    Card(
+    MotormilaSurface(
         onClick = onClick,
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = modelCd },
+        modifier = Modifier.semantics { contentDescription = modelCd },
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .heightIn(min = 48.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = "${entry.make} ${entry.model}",
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            )
-            Text(
-                text = stringResource(R.string.district_hub_listings_count, entry.listingCount),
-                style = MaterialTheme.typography.labelSmall,
-                color = MotormilaSecondaryText,
-            )
-            Text(
-                text = price,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                ),
-            )
-        }
+        Text(
+            text = "${entry.make} ${entry.model}",
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+        )
+        Text(
+            text = stringResource(R.string.district_hub_listings_count, entry.listingCount),
+            style = MaterialTheme.typography.labelSmall,
+            color = MotormilaSecondaryText,
+        )
+        Text(
+            text = price,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+            ),
+        )
     }
 }
 

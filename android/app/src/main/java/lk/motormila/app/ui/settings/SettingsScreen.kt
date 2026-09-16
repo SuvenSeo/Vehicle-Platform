@@ -14,19 +14,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +40,11 @@ import lk.motormila.app.R
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
+import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaGroup
+import lk.motormila.app.ui.components.MotormilaGroupRow
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -55,6 +55,8 @@ fun SettingsScreen(
     onOpenUrl: (url: String) -> Unit,
     /** Host wires BiometricPrompt; on success the toggle persists, on failure show message. */
     onBiometricVerify: (onSuccess: () -> Unit, onError: (String) -> Unit) -> Unit,
+    onPrivacyClick: () -> Unit = {},
+    onTermsClick: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -95,12 +97,9 @@ fun SettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Settings") }) },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    MotormilaPage(title = "Settings", snackbarHostState = snacks) {
         LazyColumn(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { OfflineBanner(visible = state.offline) }
@@ -108,12 +107,10 @@ fun SettingsScreen(
                 SectionTitle("Appearance")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("light", "dark", "system").forEach { t ->
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = t.replaceFirstChar { c -> c.uppercase() },
                             selected = theme == t,
                             onClick = { tapTick(); viewModel.onEvent(SettingsUiEvent.ThemeChanged(t)) },
-                            label = { Text(t.replaceFirstChar { c -> c.uppercase() }) },
-                            modifier = Modifier.heightIn(min = 48.dp),
                         )
                     }
                 }
@@ -124,17 +121,14 @@ fun SettingsScreen(
                     for (option in LanguageChips) {
                         val label = stringResource(option.labelRes)
                         val description = stringResource(option.contentDescriptionRes)
-                        FilterChip(
-                            shape = androidx.compose.foundation.shape.CircleShape,
+                        MotormilaChoiceChip(
+                            label = label,
                             selected = language == option.code,
                             onClick = {
                                 tapTick()
                                 viewModel.onEvent(SettingsUiEvent.LanguageChanged(option.code))
                             },
-                            label = { Text(label) },
-                            modifier = Modifier
-                                .heightIn(min = 48.dp)
-                                .semantics { contentDescription = description },
+                            modifier = Modifier.semantics { contentDescription = description },
                         )
                     }
                 }
@@ -160,9 +154,9 @@ fun SettingsScreen(
             }
             item {
                 SectionTitle("Security")
-                Card(Modifier.fillMaxWidth()) {
+                MotormilaSurface {
                     Row(
-                        Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(Icons.Filled.Fingerprint, contentDescription = null)
@@ -212,7 +206,7 @@ fun SettingsScreen(
             }
             item {
                 SectionTitle("Dealer claim (debug)")
-                Card(Modifier.fillMaxWidth()) {
+                MotormilaSurface {
                     Text(
                         if (claimToken != null) {
                             "claim_token ${claimToken?.take(8)}…${claimToken?.takeLast(4)} — managed by Dealer tools"
@@ -221,8 +215,7 @@ fun SettingsScreen(
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp)
-                            .semantics { contentDescription = "Dealer claim token debug value" },
+                        modifier = Modifier.semantics { contentDescription = "Dealer claim token debug value" },
                     )
                 }
             }
@@ -240,17 +233,18 @@ fun SettingsScreen(
             }
             item {
                 SectionTitle("Legal")
-                Row {
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = { onOpenUrl("https://motormila.vercel.app/privacy") },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Privacy") }
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = { onOpenUrl("https://motormila.vercel.app/terms") },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Terms") }
+                MotormilaGroup {
+                    MotormilaGroupRow(
+                        title = "Privacy Policy",
+                        subtitle = "How we collect and protect data",
+                        onClick = onPrivacyClick,
+                    )
+                    MotormilaGroupRow(
+                        title = "Terms of Service",
+                        subtitle = "Rules that govern the platform",
+                        onClick = onTermsClick,
+                        showDivider = false,
+                    )
                 }
             }
             item {

@@ -77,6 +77,8 @@ class InsightsRepositoryImpl @Inject constructor(
                     distanceKm = it.distanceKm,
                     status = it.status,
                     connectors = it.connectionTypes,
+                    lat = it.lat ?: it.latitude,
+                    lng = it.lng ?: it.longitude,
                 )
             }
         }

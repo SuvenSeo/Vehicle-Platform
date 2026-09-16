@@ -4,21 +4,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,13 +31,14 @@ import lk.motormila.app.R
 import lk.motormila.app.core.format.LkrFormat
 import lk.motormila.app.domain.model.TrendPoint
 import lk.motormila.app.ui.components.LoadingSkeletonCard
-import lk.motormila.app.ui.theme.MotormilaOnPrimary
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
-import lk.motormila.app.ui.theme.MotormilaSurface
+import lk.motormila.app.ui.theme.MotormilaSurface as MotormilaSurfaceColor
 import lk.motormila.app.ui.theme.MotormilaSurfaceHigh
 
 @Composable
@@ -115,39 +109,35 @@ internal fun MakeHubMetricCard(
     modifier: Modifier = Modifier,
     valueColor: Color = MotormilaOnSurface,
 ) {
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
+    MotormilaSurface(
         modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                fontSize = 10.sp,
+                color = MotormilaSecondaryText,
+            ),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                color = valueColor,
+            ),
+        )
+        if (note.isNotBlank()) {
             Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.8.sp,
-                    fontSize = 10.sp,
+                text = note,
+                style = MaterialTheme.typography.bodySmall.copy(
                     color = MotormilaSecondaryText,
+                    fontSize = 11.sp,
                 ),
             )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    color = valueColor,
-                ),
-            )
-            if (note.isNotBlank()) {
-                Text(
-                    text = note,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = MotormilaSecondaryText,
-                        fontSize = 11.sp,
-                    ),
-                )
-            }
         }
     }
 }
@@ -200,43 +190,39 @@ internal fun MakeHubTrendSection(
 ) {
     val visible = points.takeLast(MAKE_HUB_TREND_LIMIT)
     if (visible.isEmpty()) return
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = modifier.fillMaxWidth(),
+    MotormilaSurface(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = MotormilaPrimary)
-                Column {
-                    Text(
-                        text = stringResource(R.string.make_hub_trend_eyebrow).uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MotormilaPrimaryBright,
-                        ),
-                    )
-                    Text(
-                        text = stringResource(R.string.make_hub_trend_title),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    )
-                }
-            }
-            if (!coverageNote.isNullOrBlank()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = MotormilaPrimary)
+            Column {
                 Text(
-                    text = coverageNote,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MotormilaSecondaryText,
+                    text = stringResource(R.string.make_hub_trend_eyebrow).uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MotormilaPrimaryBright,
+                    ),
+                )
+                Text(
+                    text = stringResource(R.string.make_hub_trend_title),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 )
             }
-            visible.forEach { point ->
-                MakeHubTrendRow(point)
-            }
+        }
+        if (!coverageNote.isNullOrBlank()) {
+            Text(
+                text = coverageNote,
+                style = MaterialTheme.typography.bodySmall,
+                color = MotormilaSecondaryText,
+            )
+        }
+        visible.forEach { point ->
+            MakeHubTrendRow(point)
         }
     }
 }
@@ -249,7 +235,7 @@ private fun MakeHubTrendRow(point: TrendPoint) {
     val rowCd = stringResource(R.string.make_hub_cd_trend, period, price)
     Surface(
         shape = RoundedCornerShape(28.dp),
-        color = MotormilaSurface,
+        color = MotormilaSurfaceColor,
         border = BorderStroke(1.dp, MotormilaOutline),
         modifier = Modifier
             .fillMaxWidth()
@@ -292,22 +278,12 @@ internal fun MakeHubBrowseButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(
+    MotormilaPrimaryButton(
+        label = label,
+        modifier = modifier,
+        leadingIcon = Icons.Filled.Search,
         onClick = onClick,
-        shape = androidx.compose.foundation.shape.CircleShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MotormilaPrimary,
-            contentColor = MotormilaOnPrimary,
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .semantics { contentDescription = label },
-    ) {
-        Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(label, fontWeight = FontWeight.SemiBold)
-    }
+    )
 }
 
 @Composable

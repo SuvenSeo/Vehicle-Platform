@@ -1,7 +1,6 @@
 package lk.motormila.app.ui.notifications
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,16 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Badge
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +31,9 @@ import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.ErrorRetry
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.AppNotification
+import lk.motormila.app.ui.components.MotormilaGhostButton
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
 
@@ -60,36 +56,25 @@ fun NotificationsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Inbox")
-                        if (state.unreadCount > 0) {
-                            Badge(
-                                modifier = Modifier.padding(start = 8.dp)
-                                    .semantics { contentDescription = "${state.unreadCount} unread" },
-                            ) { Text(state.unreadCount.toString()) }
-                        }
+    MotormilaPage(
+        title = if (state.unreadCount > 0) "Inbox (${state.unreadCount})" else "Inbox",
+        snackbarHostState = snacks,
+        actions = {
+            MotormilaGhostButton(
+                label = "Mark all read",
+                fillMaxWidth = false,
+                onClick = {
+                    if (state.unreadCount > 0) {
+                        viewModel.onEvent(NotificationsUiEvent.MarkAllRead)
                     }
-                },
-                actions = {
-                    TextButton(
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        onClick = { viewModel.onEvent(NotificationsUiEvent.MarkAllRead) },
-                        enabled = state.unreadCount > 0,
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Mark all read") }
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(NotificationsUiEvent.Refresh) },
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
         ) {
             when {
                 state.isLoading -> SkeletonList()
@@ -128,38 +113,34 @@ private fun NotificationRow(n: AppNotification, onOpen: () -> Unit) {
     // link contained /listings/{id}, else "alert". Listing rows deep-link to
     // detail via the graph's Int parsing; alert rows open the inbox only.
     val kindLabel = if (n.kind == "listing") "Listing" else "Alert"
-    Card(
+    MotormilaSurface(
+        modifier = Modifier.semantics {
+            contentDescription = "${if (n.isRead) "Read" else "Unread"}: ${n.title}"
+        },
         onClick = onOpen,
-        modifier = Modifier.fillMaxWidth()
-            .semantics { contentDescription = "${if (n.isRead) "Read" else "Unread"}: ${n.title}" },
-        colors = CardDefaults.cardColors(
-            containerColor = if (n.isRead) MaterialTheme.colorScheme.surface
-            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-        ),
+        highlighted = !n.isRead,
     ) {
-        Column(Modifier.padding(16.dp).heightIn(min = 48.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    n.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = if (n.isRead) FontWeight.Normal else FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                Badge(
-                    modifier = Modifier.padding(start = 8.dp)
-                        .semantics { contentDescription = "$kindLabel notification" },
-                ) { Text(kindLabel) }
-            }
-            Text(n.body, style = MaterialTheme.typography.bodySmall)
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                n.createdAt,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                n.title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = if (n.isRead) FontWeight.Normal else FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
             )
+            Badge(
+                modifier = Modifier.padding(start = 8.dp)
+                    .semantics { contentDescription = "$kindLabel notification" },
+            ) { Text(kindLabel) }
         }
+        Text(n.body, style = MaterialTheme.typography.bodySmall)
+        Text(
+            n.createdAt,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

@@ -1,6 +1,7 @@
 package lk.motormila.app.domain.repository
 
 import kotlinx.coroutines.flow.Flow
+import lk.motormila.app.domain.model.SelfSignupStatus
 import lk.motormila.app.domain.model.UserSession
 
 interface AuthRepository {
@@ -12,6 +13,10 @@ interface AuthRepository {
     suspend fun login(email: String, password: String): UserSession
 
     suspend fun signup(name: String, email: String, password: String, inviteToken: String?): UserSession
+
+    suspend fun selfSignupStatus(): SelfSignupStatus
+
+    suspend fun selfSignup(name: String, email: String, password: String): UserSession
 
     suspend fun logout()
 

@@ -21,6 +21,11 @@
     <string name="hub_home_pulse_hint">බලපත්‍ර, පුවත්, සංඥා</string>
     <string name="hub_home_picks_hint">Deal-score කෙටි ලැයිස්තුව</string>
     <string name="hub_home_calc_hint">ආනයන බදු, බදු, TCO</string>
+    <string name="hub_index_title">මිල දර්ශකය</string>
+    <string name="hub_open_index">මිල දර්ශකය විවෘත කරන්න</string>
+    <string name="hub_home_index_hint">මිශ්‍ර-සීරුමාරු වෙළඳපොළ මිණුම</string>
+    <string name="hub_open_permits">බලපත්‍ර වෙළඳපොළ විවෘත කරන්න</string>
+    <string name="hub_home_permits_hint">ආනයන බලපත්‍ර මිල ගණන්</string>
 
     <!-- EV Hub -->
     <string name="hub_ev_title">EV Hub</string>

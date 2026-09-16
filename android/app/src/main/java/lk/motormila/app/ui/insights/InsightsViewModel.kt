@@ -20,6 +20,7 @@ import lk.motormila.app.domain.model.EvStats
 import lk.motormila.app.domain.model.FuelMixBucket
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.domain.model.PriceDrop
+import lk.motormila.app.domain.model.PriceIndex
 import lk.motormila.app.domain.model.PriceIndexPoint
 import lk.motormila.app.domain.model.PulseSignal
 import lk.motormila.app.domain.model.StatsSummary
@@ -44,6 +45,7 @@ data class InsightsUiState(
     val trends: List<TrendPoint> = emptyList(),
     val trendCoverageNote: String? = null,
     val index: List<PriceIndexPoint> = emptyList(),
+    val priceIndex: PriceIndex = PriceIndex(),
     val districts: List<DistrictStat> = emptyList(),
     val velocities: List<DistrictVelocity> = emptyList(),
     val fuelMix: List<FuelMixBucket> = emptyList(),
@@ -92,7 +94,7 @@ class InsightsViewModel @Inject constructor(
                 _state.update { it.copy(chargerRadiusKm = event.km) }
                 loadChargers()
             }
-            InsightsUiEvent.            DismissError -> _state.update { it.copy(error = null, offline = false) }
+            InsightsUiEvent.DismissError -> _state.update { it.copy(error = null, offline = false) }
         }
     }
 
@@ -158,6 +160,7 @@ class InsightsViewModel @Inject constructor(
                         trends = trends.points,
                         trendCoverageNote = trends.coverageNote,
                         index = index.points,
+                        priceIndex = index,
                         districts = districts,
                         velocities = velocities,
                         fuelMix = fuelMix,

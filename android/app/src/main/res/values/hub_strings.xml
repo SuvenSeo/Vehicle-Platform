@@ -21,6 +21,11 @@
     <string name="hub_home_pulse_hint">Permits, news, signals</string>
     <string name="hub_home_picks_hint">Deal-score shortlist</string>
     <string name="hub_home_calc_hint">Duty, tax, TCO</string>
+    <string name="hub_index_title">Price Index</string>
+    <string name="hub_open_index">Open Price Index</string>
+    <string name="hub_home_index_hint">Mix-adjusted market benchmark</string>
+    <string name="hub_open_permits">Open permit market</string>
+    <string name="hub_home_permits_hint">Import permit quotes</string>
 
     <!-- EV Hub -->
     <string name="hub_ev_title">EV Hub</string>

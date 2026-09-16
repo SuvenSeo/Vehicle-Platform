@@ -6,11 +6,15 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.LandedCostRequestDto
+import lk.motormila.app.data.remote.dto.OwnershipBundleRequestDto
 import lk.motormila.app.data.remote.dto.TcoRequestDto
 import lk.motormila.app.di.IoDispatcher
 import lk.motormila.app.domain.repository.CostLine
 import lk.motormila.app.domain.repository.LandedCost
 import lk.motormila.app.domain.repository.LandedCostInput
+import lk.motormila.app.domain.repository.OwnershipBundle
+import lk.motormila.app.domain.repository.OwnershipBundleInput
+import lk.motormila.app.domain.repository.PermitQuote
 import lk.motormila.app.domain.repository.Tco
 import lk.motormila.app.domain.repository.TcoInput
 import lk.motormila.app.domain.repository.ValuationRepository
@@ -78,5 +82,42 @@ class ValuationRepositoryImpl @Inject constructor(
             totalLkr = total,
             monthlyLkr = total / months,
         )
+    }
+
+    override suspend fun ownershipBundle(input: OwnershipBundleInput): OwnershipBundle = withContext(io) {
+        val res = api.ownershipBundle(
+            OwnershipBundleRequestDto(
+                vehicleClass = input.vehicleClass,
+                fuelType = input.fuelType,
+                engineCc = input.engineCc.takeIf { it > 0 },
+                considerationLkr = input.considerationLkr,
+                includeTransfer = input.includeTransfer,
+            ),
+        )
+        OwnershipBundle(
+            revenueLicenceLkr = res.revenueLicenceLkr ?: 0.0,
+            insuranceLkr = res.insuranceLkr ?: 0.0,
+            transferFeesLkr = res.transferFeesLkr ?: 0.0,
+            emissionTestLkr = res.emissionTestLkr ?: 0.0,
+            firstYearTotalLkr = res.firstYearTotalLkr
+                ?: listOfNotNull(
+                    res.revenueLicenceLkr,
+                    res.insuranceLkr,
+                    res.transferFeesLkr,
+                    res.emissionTestLkr,
+                ).sum(),
+            notes = res.notes.orEmpty(),
+        )
+    }
+
+    override suspend fun permits(): List<PermitQuote> = withContext(io) {
+        api.permits().map { dto ->
+            PermitQuote(
+                id = dto.id,
+                name = dto.permitName.ifBlank { "Permit" },
+                type = dto.permitType,
+                marketPriceLkr = dto.marketPriceLkr,
+            )
+        }
     }
 }

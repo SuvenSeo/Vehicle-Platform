@@ -15,6 +15,8 @@ fun AlertDto.toDomain(): Alert = Alert(
     id = id, make = make, model = model, maxPriceLkr = maxPrice,
     district = district, notifyPhone = notifyPhone, notifyEmail = notifyEmail,
     notifyTelegramChatId = notifyTelegramChatId, notifyChannels = notifyChannels,
+    deliveryMode = deliveryMode ?: "instant",
+    quietHoursEnabled = quietHoursEnabled ?: true,
     active = active, createdAt = createdAt,
 )
 
@@ -22,6 +24,7 @@ fun AlertInput.toRequest(): CreateAlertRequestDto = CreateAlertRequestDto(
     make = make, model = model, maxPrice = maxPriceLkr, district = district,
     notifyPhone = notifyPhone, notifyEmail = notifyEmail,
     notifyTelegramChatId = notifyTelegramChatId, notifyChannels = notifyChannels,
+    deliveryMode = deliveryMode, quietHoursEnabled = quietHoursEnabled,
 )
 
 fun AlertMatchListingDto.toDomain(): AlertMatchListing = AlertMatchListing(

@@ -22,17 +22,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAlert
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,13 +61,14 @@ import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.FilterSheet
 import lk.motormila.app.ui.components.ListingCard
 import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaChoiceChip
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.components.SearchBar
 import lk.motormila.app.ui.components.rememberReducedMotion
 import lk.motormila.app.ui.scan.VoiceSearchHelper
 import lk.motormila.app.ui.scan.parseVoiceQuery
 import lk.motormila.app.ui.theme.MotormilaGlassFillStrong
-import lk.motormila.app.ui.theme.MotormilaPill
 import lk.motormila.app.ui.theme.fluidSpring
 import lk.motormila.app.ui.theme.liquidGlass
 
@@ -320,36 +316,18 @@ private fun SortFilterRow(
             }
         }
         items(ListingSorts.ALL) { s ->
-            FilterChip(
-                selected = sort == s,
-                onClick = { onSort(s) },
-                shape = MotormilaPill,
-                modifier = Modifier.heightIn(min = 48.dp),
-                colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = lk.motormila.app.ui.theme.MotormilaPrimary,
-                    selectedLabelColor = androidx.compose.ui.graphics.Color.White,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-                border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = sort == s,
-                    borderColor = lk.motormila.app.ui.theme.MotormilaOutline,
-                    selectedBorderColor = lk.motormila.app.ui.theme.MotormilaPrimaryBright,
-                ),
-                label = {
-                    Text(
-                        when (s) {
-                            ListingSorts.NEWEST -> "Newest"
-                            ListingSorts.DEAL_SCORE -> "Best deal"
-                            ListingSorts.PRICE_ASC -> "Price ↑"
-                            ListingSorts.PRICE_DESC -> "Price ↓"
-                            ListingSorts.MILEAGE_ASC -> "Low km"
-                            else -> s
-                        },
-                        fontWeight = if (sort == s) FontWeight.Bold else FontWeight.Medium,
-                    )
+            MotormilaChoiceChip(
+                label = when (s) {
+                    ListingSorts.NEWEST -> "Newest"
+                    ListingSorts.DEAL_SCORE -> "Best deal"
+                    ListingSorts.PRICE_ASC -> "Price ↑"
+                    ListingSorts.PRICE_DESC -> "Price ↓"
+                    ListingSorts.MILEAGE_ASC -> "Low km"
+                    else -> s
                 },
+                selected = sort == s,
+                compact = true,
+                onClick = { onSort(s) },
             )
         }
         item {
@@ -396,21 +374,12 @@ private fun CompareToggleRow(selected: Boolean, enabled: Boolean, onToggle: () -
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilterChip(
-            selected = selected,
-            enabled = enabled,
-            onClick = onToggle,
-            shape = MotormilaPill,
-            modifier = Modifier.heightIn(min = 48.dp),
-            label = { Text(if (selected) "Added to compare" else "Compare") },
-            leadingIcon = {
-                Icon(
-                    if (selected) Icons.Filled.Check else Icons.Filled.CompareArrows,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            },
-        )
+            MotormilaChoiceChip(
+                label = if (selected) "Added to compare" else "Compare",
+                selected = selected,
+                enabled = enabled,
+                onClick = onToggle,
+            )
     }
 }
 
@@ -439,12 +408,12 @@ private fun CompareTray(count: Int, onCompare: () -> Unit, onClear: () -> Unit, 
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
             Spacer(Modifier.width(8.dp))
-            Button(
+            MotormilaPrimaryButton(
+                label = "Compare",
                 onClick = onCompare,
                 enabled = count >= 2,
-                shape = CircleShape,
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) { Text("Compare") }
+                fillMaxWidth = false,
+            )
         }
     }
 }

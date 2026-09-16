@@ -11,7 +11,12 @@ import lk.motormila.app.data.remote.dto.MakeModelInsightDto
 import lk.motormila.app.data.remote.dto.NotificationDto
 import lk.motormila.app.data.remote.dto.StatsSummaryDto
 import lk.motormila.app.data.remote.dto.TrendPointDto
+import lk.motormila.app.data.remote.dto.PriceIndexDto
+import lk.motormila.app.data.remote.dto.PriceIndexPointDto
 import lk.motormila.app.data.remote.mapper.toDomain
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import lk.motormila.app.domain.model.DealBand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -148,5 +153,43 @@ class DataMappersTest {
         assertEquals("Colombo", domain.district)
         assertEquals("Vezel", domain.topModels.single().model)
         assertEquals(9, domain.topModels.single().listingCount)
+    }
+
+    @Test
+    fun priceIndex_parsesSegmentJsonArray() {
+        val dto = PriceIndexDto(
+            basePeriod = "2023-01",
+            latestPeriod = "2024-06",
+            points = listOf(
+                PriceIndexPointDto(
+                    period = "2024-06",
+                    indexValue = 112.4,
+                    medianPriceLkr = 8_000_000.0,
+                    listingCount = 40,
+                    momChangePct = 1.2,
+                ),
+            ),
+            segments = mapOf(
+                "hybrid" to buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("period", "2024-06")
+                            put("index_value", 108.0)
+                            put("median_price_lkr", 9_000_000.0)
+                            put("listing_count", 12)
+                            put("mom_change_pct", -0.5)
+                        },
+                    )
+                },
+            ),
+            methodology = "Hedonic median of verified listings",
+        )
+        val domain = dto.toDomain()
+        assertEquals("2023-01", domain.basePeriod)
+        assertEquals(112.4, domain.points.single().indexValue, 0.0)
+        assertEquals(1, domain.segments["hybrid"]?.size)
+        assertEquals(108.0, domain.segments.getValue("hybrid").single().indexValue, 0.0)
+        assertEquals(-0.5, domain.segments.getValue("hybrid").single().momChangePct)
+        assertEquals("Hedonic median of verified listings", domain.methodology)
     }
 }

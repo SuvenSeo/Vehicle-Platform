@@ -19,19 +19,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +48,8 @@ import lk.motormila.app.domain.model.HubTopModel
 import lk.motormila.app.domain.model.Listing
 import lk.motormila.app.ui.components.BrandLogo
 import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.EmptyState
 import lk.motormila.app.ui.components.ErrorState
 import lk.motormila.app.ui.components.ListingCard
@@ -91,50 +87,19 @@ fun MakeHubScreen(
         }
     }
 
-    Scaffold(
-        containerColor = MotormilaBg,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BrandLogo(
-                            size = BrandLogoSize.COMPACT,
-                            showWordmark = false,
-                            showTagline = false,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            state.displayMake.ifBlank { stringResource(R.string.make_hub_eyebrow) },
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (!reducedMotion) haptics.tick()
-                            onBack()
-                        },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = backCd },
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backCd)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MotormilaBg,
-                    titleContentColor = MotormilaOnSurface,
-                    navigationIconContentColor = MotormilaOnSurface,
-                ),
-            )
+    MotormilaPage(
+        title = state.displayMake.ifBlank { stringResource(R.string.make_hub_eyebrow) },
+        onBack = {
+            if (!reducedMotion) haptics.tick()
+            onBack()
         },
-        snackbarHost = { SnackbarHost(snacks) },
-    ) { padding ->
+        snackbarHostState = snacks,
+    ) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.onEvent(MakeHubUiEvent.Refresh) },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .semantics { contentDescription = refreshCd },
         ) {
             when {
@@ -265,19 +230,13 @@ private fun MakeHubModelRow(
     val make = entry.make.ifBlank { fallbackMake }
     val price = LkrFormat.price(entry.avgPriceLkr)
     val rowCd = stringResource(R.string.make_hub_cd_model, make, entry.model)
-    Card(
+    MotormilaSurface(
         onClick = { onClick(make, entry.model) },
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MotormilaSurfaceHigh.copy(alpha = 0.85f)),
-        border = BorderStroke(1.dp, MotormilaOutline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = rowCd },
+        modifier = Modifier.semantics { contentDescription = rowCd },
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
                 .heightIn(min = 48.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),

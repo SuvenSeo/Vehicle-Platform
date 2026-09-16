@@ -7,11 +7,9 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +43,7 @@ import kotlinx.coroutines.flow.map
 import lk.motormila.app.R
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatPct
+import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.domain.repository.InsightsRepository
 import lk.motormila.app.domain.repository.StatsRepository
 
@@ -220,20 +219,20 @@ fun dealRemoteViews(context: Context, state: DealWidgetState): RemoteViews =
 
 @Composable
 fun DealWidgetContent(state: DealWidgetState, modifier: Modifier = Modifier) {
-    Card(
-        modifier.semantics {
+    MotormilaSurface(
+        modifier = modifier.semantics {
             contentDescription = "Motormila ${state.indexLabel} ${state.momLabel}, ${state.dealTitle}"
         },
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(state.indexLabel, style = MaterialTheme.typography.titleSmall)
-                Text(state.momLabel, style = MaterialTheme.typography.labelMedium)
-            }
-            Text(state.dealTitle, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-            state.dealPriceLkr?.let {
-                Text(formatLkr(it), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-            }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(state.indexLabel, style = MaterialTheme.typography.titleSmall)
+            Text(state.momLabel, style = MaterialTheme.typography.labelMedium)
+        }
+        Text(state.dealTitle, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+        state.dealPriceLkr?.let {
+            Text(formatLkr(it), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
