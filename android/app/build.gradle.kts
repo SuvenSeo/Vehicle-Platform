@@ -17,8 +17,8 @@ android {
         applicationId = "lk.motormila.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.5.0"
+        versionCode = 7
+        versionName = "1.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -42,14 +42,16 @@ android {
     }
 
     signingConfigs {
-        // Sideload / GitHub Release preview. Play upload needs a real upload
-        // key via ANDROID_KEYSTORE_* env; until then we sign with the SDK debug
-        // key so `assembleRelease` produces an installable APK.
+        // Sideload / GitHub Release preview. Resolution order:
+        // 1. ANDROID_KEYSTORE_* env (real secrets on a hardened CI)
+        // 2. the committed ci-signing.keystore — one stable signature so every
+        //    release installs over the previous one (in-app self-update works)
+        // 3. the local SDK debug key (machine-local fallback)
         create("sideload") {
-            val envStore = providers.environmentVariable("ANDROID_KEYSTORE_FILE")
-            val store = envStore.orNull?.let { file(it) }
+            val committedKey = rootProject.file("ci-signing.keystore").takeIf { it.exists() }
+            storeFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull?.let { file(it) }
+                ?: committedKey
                 ?: file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storeFile = store
             storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
                 .orElse("android").get()
             keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")

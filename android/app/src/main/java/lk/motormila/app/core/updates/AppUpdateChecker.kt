@@ -12,6 +12,7 @@ import java.io.File
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import lk.motormila.app.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -101,6 +102,9 @@ class AppUpdateChecker @Inject constructor(
             null
         } catch (_: SecurityException) {
             null
+        } catch (_: Exception) {
+            // Last-resort guard: download failure must never crash the app.
+            null
         }
     }
 
@@ -137,11 +141,12 @@ class AppUpdateChecker @Inject constructor(
                 val body = response.body ?: return null
                 json.decodeFromString(LatestRelease.serializer(), body.string())
             }
-        } catch (_: IOException) {
-            null
-        } catch (_: SerializationException) {
-            null
-        } catch (_: IllegalArgumentException) {
+        } catch (e: CancellationException) {
+            // Coroutine cancellation must propagate, never be swallowed.
+            throw e
+        } catch (_: Exception) {
+            // Any failure (offline, parse, unexpected runtime error) is a silent
+            // "up to date" — a broken update check must never crash the app.
             null
         }
     }

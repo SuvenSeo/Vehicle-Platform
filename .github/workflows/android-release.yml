@@ -63,23 +63,19 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Ensure sideload keystore
+      - name: Verify sideload keystore present
         working-directory: .
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.android"
-          KEYSTORE="$HOME/.android/debug.keystore"
-          if [[ ! -f "$KEYSTORE" ]]; then
-            keytool -genkeypair -noprompt \
-              -keystore "$KEYSTORE" \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
+          # The committed android/ci-signing.keystore gives every release the
+          # same signature, so in-app updates install over previous versions.
+          # (Before 1.5.1 a fresh debug key was generated per CI run, which
+          # blocked in-place upgrades — do not reintroduce key generation.)
+          test -f android/ci-signing.keystore || {
+            echo "ERROR: android/ci-signing.keystore missing — release would get a new signature and block in-place updates"
+            exit 1
+          }
+          echo "Using committed sideload keystore (stable signature)."
 
       - name: Assemble release APK
         run: ./gradlew :app:assembleRelease --stacktrace
@@ -127,7 +123,7 @@ jobs:
             echo
             echo "- Install: download the APK, enable **Install unknown apps**, open the file."
             echo "- API: production Hugging Face backend."
-            echo "- Signed with the Android debug key (not a Play Store upload key). Reinstall later from Play will not match this signature."
+            echo "- Signed with the stable Motormila sideload key (not a Play Store upload key). Future releases install over this one without uninstalling."
             echo "- Guest browse works without signing in; Pro / alerts / dealer still need an invite."
             echo
             echo "Built from \`${GITHUB_SHA}\`."

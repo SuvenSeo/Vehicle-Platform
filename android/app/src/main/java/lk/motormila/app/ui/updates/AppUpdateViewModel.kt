@@ -15,6 +15,12 @@ import kotlinx.coroutines.withContext
 import lk.motormila.app.core.updates.AppUpdateChecker
 
 /**
+ * All checker I/O is confined to [AppUpdateViewModel] via withContext(Dispatchers.IO)
+ * — the checker's blocking OkHttp calls must never touch the main thread, and the
+ * surrounding runCatching guarantees an update-check failure can never crash the app.
+ */
+
+/**
  * Owns the in-app update flow: one passive check per cold start, an optional
  * manual re-check, download + installer hand-off.
  *
@@ -76,10 +82,16 @@ class AppUpdateViewModel @Inject constructor(
         if (_state.value.downloading) return
         _state.value = _state.value.copy(downloading = true)
         viewModelScope.launch {
-            val apk = updateChecker.downloadApk(update.apkUrl, appContext)
+            // Blocking network + disk I/O stays off the main thread.
+            val apk = runCatching {
+                withContext(Dispatchers.IO) { updateChecker.downloadApk(update.apkUrl, appContext) }
+            }.getOrElse {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                null
+            }
             _state.value = _state.value.copy(downloading = false)
             if (apk != null) {
-                withContext(Dispatchers.Main) { updateChecker.launchInstaller(apk, appContext) }
+                runCatching { updateChecker.launchInstaller(apk, appContext) }
             } else {
                 _state.value = _state.value.copy(downloadFailedTick = _state.value.downloadFailedTick + 1)
             }
@@ -90,7 +102,15 @@ class AppUpdateViewModel @Inject constructor(
         if (_state.value.checking) return
         _state.value = _state.value.copy(checking = true)
         viewModelScope.launch {
-            val result = updateChecker.check(currentVersionCode)
+            // The checker performs blocking network I/O — always on Dispatchers.IO.
+            // Any failure (network down, parse error, unexpected exception) is a
+            // silent "up to date"; the update flow can never crash the app.
+            val result = runCatching {
+                withContext(Dispatchers.IO) { updateChecker.check(currentVersionCode) }
+            }.getOrElse {
+                if (it is kotlinx.coroutines.CancellationException) throw it
+                AppUpdateChecker.CheckResult.UpToDate
+            }
             val current = _state.value
             _state.value = when (result) {
                 is AppUpdateChecker.CheckResult.UpdateAvailable ->
