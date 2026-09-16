@@ -30,12 +30,13 @@ export default function HeroLab() {
     setParams(next, { replace: true });
   };
 
+  const centered = variant.align === "center";
   const alignClass =
     variant.align === "left"
       ? "mr-auto max-w-xl text-left lg:max-w-2xl"
       : variant.align === "right"
         ? "ml-auto max-w-xl text-left lg:max-w-2xl"
-        : "mx-auto max-w-3xl text-center";
+        : "mx-auto flex w-full max-w-3xl flex-col items-center text-center";
   const copyTone = variant.tone === "dark" ? "text-white" : "text-foreground";
   const mutedTone =
     variant.tone === "dark" ? "text-white/75" : "text-foreground/80";
@@ -117,16 +118,22 @@ export default function HeroLab() {
             >
               Vehicle Intelligence · Sri Lanka
             </p>
-            <h1 className={`display-hero mt-6 ${copyTone}`}>
-              Sri Lanka&apos;s entire vehicle market,
-              <span className="text-sheen"> decoded.</span>
+            <h1 className={`display-hero mt-6 ${centered ? "display-hero--lockup" : ""} ${copyTone}`}>
+              <span className={centered ? "display-hero__lead" : undefined}>
+                Sri Lanka&apos;s entire vehicle market,
+              </span>
+              <span className={`text-sheen ${centered ? "display-hero__accent" : ""}`}>
+                {centered ? "" : " "}decoded.
+              </span>
             </h1>
-            <p className={`text-body-lg mt-6 max-w-xl ${mutedTone}`}>
+            <p className={`text-body-lg mt-6 max-w-xl ${centered ? "mx-auto" : ""} ${mutedTone}`}>
               <span className={`font-bold num ${copyTone}`}>120,000+</span> live listings —
               real-time pricing, deal scores, and market intelligence.
             </p>
             <div
-              className={`mt-8 flex max-w-xl items-center gap-2 rounded-xl border px-3 py-2 ${
+              className={`mt-8 flex w-full max-w-xl items-center gap-2 rounded-xl border px-3 py-2 ${
+                centered ? "mx-auto" : ""
+              } ${
                 variant.tone === "dark"
                   ? "border-white/20 bg-white/10 text-white"
                   : "border-border bg-card"
