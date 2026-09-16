@@ -52,7 +52,69 @@ data class AlertForm(
     val maxPrice: String = "",
     val push: Boolean = true,
     val email: Boolean = false,
+    val whatsappPhone: String = "",
+    val telegramChatId: String = "",
+    val whatsapp: Boolean = false,
+    val telegram: Boolean = false,
+    val inapp: Boolean = true,
+    val digest: Boolean = false,
+    val quietHours: Boolean = true,
 )
+
+val ALERT_CHANNEL_ORDER = listOf("inapp", "email", "whatsapp", "telegram", "push")
+
+fun parseNotifyChannels(raw: String?): List<String> {
+    if (raw == null) return listOf("push")
+    return raw.split(",")
+        .map { it.trim().lowercase() }
+        .filter { it.isNotEmpty() }
+}
+
+fun AlertForm.selectedNotifyChannels(isPro: Boolean): List<String> {
+    val selected = buildList {
+        if (inapp && isPro) add("inapp")
+        if (email) add("email")
+        if (whatsapp && isPro) add("whatsapp")
+        if (telegram && isPro) add("telegram")
+        if (push) add("push")
+    }
+    return selected.ifEmpty { listOf("push") }
+}
+
+fun AlertForm.toAlertInput(isPro: Boolean): AlertInput? {
+    val parsedMax = parseLkrShorthand(maxPrice)
+    if (make.isBlank() || parsedMax == null) return null
+    return AlertInput(
+        make = make.trim(),
+        model = model.trim().ifBlank { null },
+        district = district.trim().ifBlank { null },
+        maxPriceLkr = parsedMax,
+        notifyPhone = if (isPro && whatsapp) whatsappPhone.trim().ifBlank { null } else null,
+        notifyTelegramChatId = if (isPro && telegram) telegramChatId.trim().ifBlank { null } else null,
+        notifyChannels = selectedNotifyChannels(isPro).joinToString(","),
+        deliveryMode = if (isPro && digest) "digest" else "instant",
+        quietHoursEnabled = if (isPro) quietHours else true,
+    )
+}
+
+fun alertFormFrom(alert: Alert): AlertForm {
+    val channels = parseNotifyChannels(alert.notifyChannels)
+    return AlertForm(
+        make = alert.make.orEmpty(),
+        model = alert.model.orEmpty(),
+        district = alert.district ?: "Colombo",
+        maxPrice = alert.maxPriceLkr?.let(::formatLkrShorthand).orEmpty(),
+        push = alert.notifyChannels == null || "push" in channels,
+        email = "email" in channels,
+        whatsappPhone = alert.notifyPhone.orEmpty(),
+        telegramChatId = alert.notifyTelegramChatId.orEmpty(),
+        whatsapp = "whatsapp" in channels,
+        telegram = "telegram" in channels,
+        inapp = "inapp" in channels,
+        digest = alert.deliveryMode == "digest",
+        quietHours = alert.quietHoursEnabled != false,
+    )
+}
 
 data class AlertsUiState(
     val isLoading: Boolean = true,
@@ -70,6 +132,8 @@ data class AlertsUiState(
     val matchesLoading: Boolean = false,
     /** Row ids with an in-flight active-toggle. */
     val togglingIds: Set<Int> = emptySet(),
+    /** Row ids with an in-flight channel PATCH. */
+    val channelUpdatingIds: Set<Int> = emptySet(),
     val isPro: Boolean = false,
     /** Free plan cap: 1 active alert. */
     val freeCapReached: Boolean = false,
@@ -96,6 +160,9 @@ sealed interface AlertsUiEvent {
     data class ToggleActive(val id: Int, val active: Boolean) : AlertsUiEvent
     data object RefreshMatches : AlertsUiEvent
     data class Delete(val id: Int) : AlertsUiEvent
+    data class ToggleAlertChannel(val id: Int, val channel: String) : AlertsUiEvent
+    data class ToggleAlertDelivery(val id: Int) : AlertsUiEvent
+    data class ToggleAlertQuietHours(val id: Int, val enabled: Boolean) : AlertsUiEvent
     data object ConsumeCreated : AlertsUiEvent
     data object ConsumePrefill : AlertsUiEvent
     data object DismissError : AlertsUiEvent
@@ -168,6 +235,9 @@ class AlertsViewModel @Inject constructor(
             is AlertsUiEvent.ToggleActive -> toggleActive(event.id, event.active)
             AlertsUiEvent.RefreshMatches -> loadMatches(_state.value.alerts, force = true)
             is AlertsUiEvent.Delete -> delete(event.id)
+            is AlertsUiEvent.ToggleAlertChannel -> toggleAlertChannel(event.id, event.channel)
+            is AlertsUiEvent.ToggleAlertDelivery -> toggleAlertDelivery(event.id)
+            is AlertsUiEvent.ToggleAlertQuietHours -> toggleAlertQuietHours(event.id, event.enabled)
             AlertsUiEvent.ConsumeCreated -> _state.update { it.copy(justCreatedId = null) }
             AlertsUiEvent.ConsumePrefill -> _state.update { it.copy(justPrefill = false) }
             AlertsUiEvent.DismissError -> _state.update { it.copy(error = null, offline = false) }
@@ -241,20 +311,7 @@ class AlertsViewModel @Inject constructor(
         }
     }
 
-    private fun buildInput(f: AlertForm): AlertInput? {
-        val maxPrice = parseLkrShorthand(f.maxPrice)
-        if (f.make.isBlank() || maxPrice == null) return null
-        return AlertInput(
-            make = f.make.trim(),
-            model = f.model.trim().ifBlank { null },
-            district = f.district,
-            maxPriceLkr = maxPrice,
-            notifyChannels = buildList {
-                if (f.push) add("push")
-                if (f.email) add("email")
-            }.ifEmpty { listOf("push") }.joinToString(","),
-        )
-    }
+    private fun buildInput(f: AlertForm): AlertInput? = f.toAlertInput(_state.value.isPro)
 
     private fun create() {
         val f = _state.value.form
@@ -262,7 +319,10 @@ class AlertsViewModel @Inject constructor(
             _state.update { it.copy(error = "Free plan allows 1 alert. Upgrade to Pro for unlimited alerts.") }
             return
         }
-        // AlertInput has no channels list; push/email toggles fold into notifyChannels CSV.
+        if (!_state.value.isPro && (f.whatsapp || f.telegram)) {
+            _state.update { it.copy(error = "WhatsApp and Telegram notifications unlock with Pro.") }
+            return
+        }
         val input = buildInput(f)
         if (input == null) {
             _state.update { it.copy(error = "Enter at least a make and a max price (e.g. 8m).") }
@@ -292,14 +352,7 @@ class AlertsViewModel @Inject constructor(
         _state.update {
             it.copy(
                 editingId = id,
-                form = AlertForm(
-                    make = alert.make.orEmpty(),
-                    model = alert.model.orEmpty(),
-                    district = alert.district ?: "Colombo",
-                    maxPrice = alert.maxPriceLkr?.let(::formatLkrShorthand).orEmpty(),
-                    push = alert.notifyChannels?.contains("push") != false,
-                    email = alert.notifyChannels?.contains("email") == true,
-                ),
+                form = alertFormFrom(alert),
             )
         }
     }
@@ -359,6 +412,61 @@ class AlertsViewModel @Inject constructor(
                         it.copy(offline = mapped is AppError.Network, error = mapped.message)
                     }
                 }
+        }
+    }
+
+    private fun toggleAlertChannel(id: Int, channel: String) {
+        if (!_state.value.isPro) {
+            _state.update { it.copy(error = "Notification channels unlock with Pro.") }
+            return
+        }
+        val alert = _state.value.alerts.firstOrNull { it.id == id } ?: return
+        val next = parseNotifyChannels(alert.notifyChannels).toMutableSet()
+        if (channel in next) next.remove(channel) else next.add(channel)
+        if (next.isEmpty()) next.add("inapp")
+        patchChannels(id, channels = ALERT_CHANNEL_ORDER.filter { it in next })
+    }
+
+    private fun toggleAlertDelivery(id: Int) {
+        if (!_state.value.isPro) {
+            _state.update { it.copy(error = "Digest delivery unlocks with Pro.") }
+            return
+        }
+        val alert = _state.value.alerts.firstOrNull { it.id == id } ?: return
+        val next = if (alert.deliveryMode == "digest") "instant" else "digest"
+        patchChannels(id, deliveryMode = next)
+    }
+
+    private fun toggleAlertQuietHours(id: Int, enabled: Boolean) {
+        if (!_state.value.isPro) {
+            _state.update { it.copy(error = "Quiet hours unlock with Pro.") }
+            return
+        }
+        patchChannels(id, quietHoursEnabled = enabled)
+    }
+
+    private fun patchChannels(
+        id: Int,
+        channels: List<String>? = null,
+        deliveryMode: String? = null,
+        quietHoursEnabled: Boolean? = null,
+    ) {
+        viewModelScope.launch {
+            _state.update { it.copy(channelUpdatingIds = it.channelUpdatingIds + id, error = null) }
+            runCatching {
+                repository.updateChannels(
+                    id = id,
+                    channels = channels,
+                    deliveryMode = deliveryMode,
+                    quietHoursEnabled = quietHoursEnabled,
+                )
+            }.onFailure { e ->
+                val mapped = ErrorMapper.map(e)
+                _state.update {
+                    it.copy(offline = mapped is AppError.Network, error = mapped.message)
+                }
+            }
+            _state.update { it.copy(channelUpdatingIds = it.channelUpdatingIds - id) }
         }
     }
 

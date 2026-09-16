@@ -38,11 +38,15 @@ data class DealerClaimRequestDto(
 
 @Serializable
 data class DealerClaimResponseDto(
+    val id: Int? = null,
     @SerialName("claim_id") val claimId: String? = null,
     val status: String = "pending",
     val message: String = "",
     @SerialName("claim_token") val claimToken: String? = null,
     @SerialName("display_name") val displayName: String? = null,
+    @SerialName("seller_name_pattern") val sellerNamePattern: String? = null,
+    @SerialName("claimed_url") val claimedUrl: String? = null,
+    @SerialName("matched_listings") val matchedListings: Int? = null,
 )
 
 @Serializable

@@ -108,6 +108,7 @@ import lk.motormila.app.data.remote.dto.AdminSystemDto
 import lk.motormila.app.data.remote.dto.AdminUserDto
 import lk.motormila.app.data.remote.dto.AdminUserUpdateDto
 import lk.motormila.app.data.remote.dto.AdminUsersResponseDto
+import lk.motormila.app.data.remote.dto.AlertChannelsUpdateDto
 import lk.motormila.app.data.remote.dto.SelfSignupRequestDto
 import lk.motormila.app.data.remote.dto.SelfSignupStatusDto
 import retrofit2.http.Body
@@ -404,6 +405,12 @@ interface MotormilaApiService {
     /** Matches ALL of the caller's alerts server-side; filter client-side by id. */
     @POST("alerts/match")
     suspend fun matchAlerts(): MatchResponseDto
+
+    @PATCH("alerts/{id}/channels")
+    suspend fun updateAlertChannels(
+        @Path("id") id: Int,
+        @Body body: AlertChannelsUpdateDto,
+    ): AlertDto
 
     // ----------------------------------------------------------- notifications
     @GET("notifications")

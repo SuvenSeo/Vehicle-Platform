@@ -44,12 +44,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import lk.motormila.app.core.format.formatLkr
 import lk.motormila.app.core.format.formatPct
 import lk.motormila.app.core.motion.rememberReducedMotion
 import lk.motormila.app.core.ui.EmptyState
 import lk.motormila.app.core.ui.ErrorRetry
-import lk.motormila.app.core.ui.PrimaryAction
 import lk.motormila.app.core.ui.SectionTitle
 import lk.motormila.app.core.ui.SkeletonList
 import lk.motormila.app.domain.model.Alert
@@ -57,6 +57,7 @@ import lk.motormila.app.domain.model.AlertMatch
 import lk.motormila.app.ui.components.MotormilaChoiceChip
 import lk.motormila.app.ui.components.MotormilaGhostButton
 import lk.motormila.app.ui.components.MotormilaPage
+import lk.motormila.app.ui.components.MotormilaPrimaryButton
 import lk.motormila.app.ui.components.MotormilaSurface
 import lk.motormila.app.ui.components.OfflineBanner
 import lk.motormila.app.ui.theme.rememberHaptics
@@ -84,7 +85,7 @@ fun AlertsScreen(
     LaunchedEffect(state.justCreatedId) {
         if (state.justCreatedId != null) {
             if (!reducedMotion) haptics.confirm()
-            kotlinx.coroutines.delay(1600)
+            delay(1600)
             viewModel.onEvent(AlertsUiEvent.ConsumeCreated)
         }
     }
@@ -156,11 +157,20 @@ fun AlertsScreen(
                                 alert = alert,
                                 active = alert.active,
                                 toggling = alert.id in state.togglingIds,
+                                channelUpdating = alert.id in state.channelUpdatingIds,
+                                isPro = state.isPro,
                                 matches = state.matches.filter { m -> m.alertId == alert.id },
                                 onOpenDetail = { if (!reducedMotion) haptics.tick(); onOpenDetail(it) },
                                 onToggle = { viewModel.onEvent(AlertsUiEvent.ToggleActive(alert.id, it)) },
                                 onEdit = { viewModel.onEvent(AlertsUiEvent.Prefill(alert.id)) },
                                 onDelete = { viewModel.onEvent(AlertsUiEvent.Delete(alert.id)) },
+                                onUpgrade = onUpgrade,
+                                onToggleChannel = { channel ->
+                                    viewModel.onEvent(AlertsUiEvent.ToggleAlertChannel(alert.id, channel))
+                                },
+                                onToggleDelivery = {
+                                    viewModel.onEvent(AlertsUiEvent.ToggleAlertDelivery(alert.id))
+                                },
                             )
                         }
                     }
@@ -175,6 +185,7 @@ fun AlertsScreen(
 private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgrade: () -> Unit) {
     val f = state.form
     val editing = state.editingId != null
+    val proLocked = !state.isPro
     MotormilaSurface {
         SectionTitle(if (editing) "Edit alert" else "New alert")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -202,18 +213,109 @@ private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgra
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp),
             )
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            MotormilaChoiceChip(
-                label = "Push",
-                selected = f.push,
-                onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(push = !f.push))) },
+        OutlinedTextField(
+            value = f.whatsappPhone,
+            onValueChange = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(whatsappPhone = it))) },
+            label = { Text("WhatsApp phone") },
+            singleLine = true,
+            supportingText = { Text("Used when WhatsApp is selected (Pro)") },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        )
+        OutlinedTextField(
+            value = f.telegramChatId,
+            onValueChange = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(telegramChatId = it))) },
+            label = { Text("Telegram chat ID") },
+            singleLine = true,
+            supportingText = { Text("Chat ID or @username (Pro)") },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        )
+        Text(
+            "Notify via",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ChannelChoiceChip(
+                label = "In-app",
+                selected = f.inapp,
+                locked = proLocked,
+                onUpgrade = onUpgrade,
+                onToggle = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(inapp = !f.inapp))) },
             )
             MotormilaChoiceChip(
                 label = "Email",
                 selected = f.email,
                 onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(email = !f.email))) },
             )
+            ChannelChoiceChip(
+                label = "WhatsApp",
+                selected = f.whatsapp,
+                locked = proLocked,
+                onUpgrade = onUpgrade,
+                onToggle = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(whatsapp = !f.whatsapp))) },
+            )
+            ChannelChoiceChip(
+                label = "Telegram",
+                selected = f.telegram,
+                locked = proLocked,
+                onUpgrade = onUpgrade,
+                onToggle = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(telegram = !f.telegram))) },
+            )
+            MotormilaChoiceChip(
+                label = "Push",
+                selected = f.push,
+                onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(push = !f.push))) },
+            )
         }
+        Text(
+            "Delivery",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MotormilaChoiceChip(
+                label = "Instant",
+                selected = !f.digest,
+                onClick = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(digest = false))) },
+            )
+            ChannelChoiceChip(
+                label = "Digest",
+                selected = f.digest,
+                locked = proLocked,
+                onUpgrade = onUpgrade,
+                onToggle = { viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(digest = true))) },
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                "Quiet hours 21:00–07:00",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = f.quietHours,
+                onCheckedChange = { enabled ->
+                    if (proLocked) onUpgrade()
+                    else viewModel.onEvent(AlertsUiEvent.FormChanged(f.copy(quietHours = enabled)))
+                },
+                modifier = Modifier.semantics { contentDescription = "Quiet hours" },
+            )
+        }
+        Text(
+            "Email, WhatsApp, Telegram and push queue for the 07:00 digest. In-app always delivers.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         if (state.freeCapReached && !editing) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -232,37 +334,60 @@ private fun CreateForm(state: AlertsUiState, viewModel: AlertsViewModel, onUpgra
             Spacer(Modifier.height(8.dp))
         }
         if (editing) {
-            PrimaryAction(
+            MotormilaPrimaryButton(
                 label = "Save changes",
-                onClick = { viewModel.onEvent(AlertsUiEvent.Update) },
                 loading = state.updating,
+                onClick = { viewModel.onEvent(AlertsUiEvent.Update) },
             )
             MotormilaGhostButton(
                 label = "Cancel editing",
                 onClick = { viewModel.onEvent(AlertsUiEvent.CancelEdit) },
             )
         } else {
-            PrimaryAction(
+            MotormilaPrimaryButton(
                 label = "Create alert",
-                onClick = { viewModel.onEvent(AlertsUiEvent.Create) },
                 loading = state.creating,
                 enabled = !state.freeCapReached,
+                onClick = { viewModel.onEvent(AlertsUiEvent.Create) },
             )
         }
     }
 }
 
 @Composable
+private fun ChannelChoiceChip(
+    label: String,
+    selected: Boolean,
+    locked: Boolean,
+    onUpgrade: () -> Unit,
+    onToggle: () -> Unit,
+) {
+    MotormilaChoiceChip(
+        label = label,
+        selected = selected,
+        leadingIcon = if (locked) Icons.Filled.Lock else null,
+        onClick = { if (locked) onUpgrade() else onToggle() },
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun AlertRow(
     alert: Alert,
     active: Boolean,
     toggling: Boolean,
+    channelUpdating: Boolean,
+    isPro: Boolean,
     matches: List<AlertMatch>,
     onOpenDetail: (Int) -> Unit,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onUpgrade: () -> Unit,
+    onToggleChannel: (String) -> Unit,
+    onToggleDelivery: () -> Unit,
 ) {
+    val channels = parseNotifyChannels(alert.notifyChannels)
     MotormilaSurface(
         modifier = Modifier.semantics {
             contentDescription = "Alert ${alert.title} under ${formatLkr(alert.maxPriceLkr)}"
@@ -301,6 +426,42 @@ private fun AlertRow(
                 Icon(Icons.Filled.Delete, contentDescription = null)
             }
         }
+        Text(
+            "Channels",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ALERT_CHANNEL_ORDER.forEach { channel ->
+                val label = when (channel) {
+                    "inapp" -> "In-app"
+                    "email" -> "Email"
+                    "whatsapp" -> "WhatsApp"
+                    "telegram" -> "Telegram"
+                    "push" -> "Push"
+                    else -> channel
+                }
+                MotormilaChoiceChip(
+                    label = label,
+                    selected = channel in channels,
+                    enabled = if (isPro) !channelUpdating else true,
+                    leadingIcon = if (!isPro && channel !in listOf("push", "email")) Icons.Filled.Lock else null,
+                    onClick = {
+                        if (isPro) onToggleChannel(channel) else onUpgrade()
+                    },
+                )
+            }
+            MotormilaChoiceChip(
+                label = if (alert.deliveryMode == "digest") "Digest" else "Instant",
+                selected = true,
+                enabled = if (isPro) !channelUpdating else true,
+                leadingIcon = if (!isPro) Icons.Filled.Lock else null,
+                onClick = { if (isPro) onToggleDelivery() else onUpgrade() },
+            )
+        }
         val flat = matches.flatMap { it.listings }.take(5)
         if (flat.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
@@ -326,7 +487,7 @@ private fun AlertRow(
                             buildString {
                                 append(m.priceLkr?.let { formatLkr(it) } ?: "Price on request")
                                 append(" · ${m.district ?: "—"}")
-                                m.dealScore?.let { append(" · ★ %.1f".format(it)) }
+                                m.dealScore?.let { append(" ★ %.1f".format(it)) }
                                 if (underPct != null && underPct >= 0) {
                                     append(" · ${formatPct(underPct, 0)} under max")
                                 }

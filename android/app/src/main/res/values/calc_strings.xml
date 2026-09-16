@@ -70,6 +70,40 @@
     <string name="calc_error_monthly_km">Enter monthly kilometres greater than zero.</string>
     <string name="calc_error_kmpl">Enter fuel efficiency in km per litre.</string>
     <string name="calc_error_years">Ownership years must be between 1 and 15.</string>
+    <string name="calc_error_down_pct">Enter a down-payment percent between 0 and 100.</string>
+    <string name="calc_error_rate_pct">Enter an annual interest rate percent.</string>
+    <string name="calc_error_consideration">Enter the vehicle consideration (sale price) in LKR.</string>
+
+    <string name="calc_lease_title">Lease repayment</string>
+    <string name="calc_lease_hint">CBSL passenger LTV is typically 50% max finance. Formula is a standard amortizing loan.</string>
+    <string name="calc_lease_down_pct">Down payment (%)</string>
+    <string name="calc_lease_rate_pct">Annual rate (%)</string>
+    <string name="calc_calculate_lease">Calculate lease</string>
+    <string name="calc_lease_principal">Financed principal</string>
+    <string name="calc_lease_monthly">Monthly installment</string>
+    <string name="calc_lease_interest">Total interest</string>
+    <string name="calc_lease_total_paid">Total paid over term</string>
+    <string name="calc_lease_ltv_warn">Down payment is below the common 50% CBSL passenger LTV floor — banks may refuse this structure.</string>
+
+    <string name="calc_ownership_title">First-year on-road fees</string>
+    <string name="calc_ownership_hint">Revenue licence, third-party insurance, optional transfer fees, and emission test from live calculator endpoints.</string>
+    <string name="calc_ownership_consideration">Consideration / sale price (LKR)</string>
+    <string name="calc_ownership_include_transfer">Include ownership transfer fees</string>
+    <string name="calc_calculate_ownership">Calculate on-road fees</string>
+    <string name="calc_ownership_revenue">Revenue licence</string>
+    <string name="calc_ownership_insurance">Third-party insurance</string>
+    <string name="calc_ownership_transfer">Transfer fees</string>
+    <string name="calc_ownership_emission">Emission test</string>
+    <string name="calc_ownership_total">First-year total</string>
+
+    <string name="calc_permits_title">Permit market quotes</string>
+    <string name="calc_permits_hint">Admin-seeded and scraper-backed permit prices. Same feed as the Permits screen.</string>
+    <string name="calc_permits_refresh">Refresh permits</string>
+    <string name="calc_permits_empty">No permit quotes yet. Refresh once the API has seeded rows.</string>
+
+    <string name="calc_depreciation_title">Retention curve</string>
+    <string name="calc_depreciation_hint">Indicative written-down value: 12% / 9% / 8% over three years. Not a bank residual.</string>
+    <string name="calc_calculate_depreciation">Project retention</string>
 
     <string name="calc_cd_back">Back</string>
     <string name="calc_cd_calculate_landed">Calculate landed cost</string>

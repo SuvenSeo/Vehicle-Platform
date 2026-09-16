@@ -10,7 +10,7 @@ import lk.motormila.app.data.remote.MotormilaApiService
 import lk.motormila.app.data.remote.dto.BenchmarkUrlsRequestDto
 import lk.motormila.app.data.remote.dto.DealerClaimRequestDto
 import lk.motormila.app.data.remote.dto.DealerVerifyRequestDto
-import lk.motormila.app.data.remote.dto.UrlBenchmarkResultDto
+import lk.motormila.app.data.remote.mapper.toDomain
 import lk.motormila.app.di.IoDispatcher
 import lk.motormila.app.domain.model.DealerBenchmark
 import lk.motormila.app.domain.model.DealerClaim
@@ -27,21 +27,25 @@ class DealerRepositoryImpl @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : DealerRepository {
 
-    override suspend fun claim(dealerName: String, contactEmail: String, contactPhone: String?): DealerClaim =
+    override suspend fun claim(
+        dealerName: String,
+        contactEmail: String,
+        contactPhone: String?,
+        sellerNamePattern: String?,
+        claimedUrl: String?,
+    ): DealerClaim =
         withContext(io) {
             val res = api.claimDealer(
                 DealerClaimRequestDto(
                     displayName = dealerName,
                     contactEmail = contactEmail,
                     contactPhone = contactPhone,
+                    sellerNamePattern = sellerNamePattern,
+                    claimedUrl = claimedUrl,
                 ),
             )
             res.claimToken?.let { settings.setDealerClaimToken(it) }
-            DealerClaim(
-                claimId = res.claimId ?: "",
-                status = res.status,
-                message = res.message,
-            )
+            res.toDomain()
         }
 
     override suspend fun benchmark(dealerName: String): DealerBenchmark = withContext(io) {
@@ -59,7 +63,7 @@ class DealerRepositoryImpl @Inject constructor(
 
     /** URL-level benchmark aggregation for the yard-tools UI. */
     suspend fun benchmarkUrls(dealerName: String, urls: List<String>): DealerBenchmark = withContext(io) {
-        val rows: List<UrlBenchmarkResultDto> = api.benchmarkUrls(BenchmarkUrlsRequestDto(urls))
+        val rows = api.benchmarkUrls(BenchmarkUrlsRequestDto(urls)).map { it.toDomain() }
         val medians = rows.mapNotNull { it.marketMedian }
         DealerBenchmark(
             dealerName = dealerName,
@@ -68,18 +72,18 @@ class DealerRepositoryImpl @Inject constructor(
             medianPriceLkr = medians.sorted().let { s -> if (s.isEmpty()) null else s[s.size / 2] },
             avgDealScore = null,
             district = null,
+            urlResults = rows,
         )
     }
 
     override suspend fun myClaimStatus(): DealerClaim? = withContext(io) {
         val token = settings.observe().first().dealerClaimToken ?: return@withContext null
         val res = runCatching { api.dealerMe(token) }.getOrNull() ?: return@withContext null
-        DealerClaim(claimId = res.claimId ?: "", status = res.status, message = res.message)
+        res.toDomain()
     }
 
     /** POST /dealer/verify — confirm a claim with an out-of-band code. Impl helper. */
     suspend fun verifyDealer(claimToken: String, code: String? = null): DealerClaim = withContext(io) {
-        val res = api.verifyDealer(DealerVerifyRequestDto(claimToken, code))
-        DealerClaim(claimId = res.claimId ?: "", status = res.status, message = res.message)
+        api.verifyDealer(DealerVerifyRequestDto(claimToken, code)).toDomain()
     }
 }
