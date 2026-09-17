@@ -140,7 +140,13 @@ jobs:
           RUN_MARKET_ANALYSIS: "true"
           RUN_MARKET_SIGNALS: "true"
           RUN_DEAL_SCORE_REFRESH: "true"
-          RUN_DEDUP: "true"
+          # Dedup marking DISABLED (2026-09-17): the make/model/year/price±3%
+          # matcher was flagging >50% of the catalog as cross-source duplicates
+          # (incl. distinct cars in different districts), collapsing public
+          # live counts 207k → 106k. Keep off until the matcher requires
+          # district + seller/photo evidence. The repair step below clears any
+          # residual flags before every export so the catalog stays whole.
+          RUN_DEDUP: "false"
           # Incremental (48h window) dedup — a full sweep re-reads 240k rows
           # and adds ~40 min to every merge. Full passes run on-demand via
           # heavy-maintenance.yml against SQLite (zero egress cost).
@@ -154,6 +160,17 @@ jobs:
           RUN_THUMBNAIL_CACHE: "false"
           RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
+
+      - name: Repair duplicate flags (keep catalog whole)
+        # Clears is_duplicate/duplicate_of set by earlier dedup passes so the
+        # export counts every row. Same run condition as the export step so a
+        # forced publish-full-catalog redeploy also heals.
+        if: steps.discover.outputs.count != '0' || github.event.inputs.publish-full-catalog == 'true'
+        env:
+          COLD_DATABASE_URL: sqlite:///motormila.db
+          MOTORMILA_LOCAL_DB: motormila.db
+          ALLOW_SQLITE_FALLBACK: "true"
+        run: python scripts/ops/repair_duplicate_flags.py --apply
 
       - name: Export and deploy SQLite snapshots (zero-egress catalog refresh)
         # Permanent path: whenever new dump data was merged, refresh the live
@@ -177,8 +194,10 @@ jobs:
 
       # Always advance the merge marker after a successful merge so a skipped
       # Vercel deploy (Neon is healthy) does not re-merge the same dumps.
+      # Also persists the repaired DB on forced publish-full-catalog runs so
+      # the healed flags survive (the export alone would not save them back).
       - name: Publish merged DB back to release
-        if: steps.discover.outputs.count != '0'
+        if: steps.discover.outputs.count != '0' || github.event.inputs.publish-full-catalog == 'true'
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
