@@ -3,7 +3,8 @@
 // (Sensitive env vars are not readable via `vercel env pull`).
 //
 // Auth: Authorization: Bearer <SNAPSHOT_EXPORT_SECRET>
-// or ?token=<SNAPSHOT_EXPORT_SECRET>
+// (query-param tokens are intentionally NOT accepted — they leak secrets
+//  into access logs, browser history, and Referer headers)
 //
 // Query:
 //   kind=stats-summary|live-market|district-prices|district-velocity|
@@ -83,10 +84,10 @@ function dbUrl() {
 function authorized(req) {
   const secret = String(process.env.SNAPSHOT_EXPORT_SECRET || "").trim();
   if (!secret) return false;
+  // Bearer header only. A ?token=<secret> fallback would leak the shared
+  // secret into access logs, browser history, and Referer headers.
   const header = String(req.headers.authorization || "");
-  if (header === `Bearer ${secret}`) return true;
-  const url = new URL(req.url, "http://localhost");
-  return url.searchParams.get("token") === secret;
+  return header === `Bearer ${secret}`;
 }
 
 function json(res, status, body) {

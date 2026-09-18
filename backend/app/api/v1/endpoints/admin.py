@@ -26,6 +26,7 @@ from app.api.v1.endpoints.auth import (
 )
 from app.services.invite_email import try_send_invite_email
 from app.services.geo_service import sample_geocode
+from app.utils.like_pattern import LIKE_ESCAPE_CHAR, contains_pattern
 from app.services.revcardata_pilot import run_pilot
 from app.services.providers.health import provider_health
 from db.models import (
@@ -214,11 +215,11 @@ def list_users(
         heal_platform_users_schema(db)
         query = db.query(PlatformUser)
         if q:
-            needle = f"%{q.strip().lower()}%"
+            needle = contains_pattern(q.strip().lower())
             query = query.filter(
                 or_(
-                    func.lower(PlatformUser.email).like(needle),
-                    func.lower(PlatformUser.name).like(needle),
+                    func.lower(PlatformUser.email).like(needle, escape=LIKE_ESCAPE_CHAR),
+                    func.lower(PlatformUser.name).like(needle, escape=LIKE_ESCAPE_CHAR),
                 )
             )
         if plan:

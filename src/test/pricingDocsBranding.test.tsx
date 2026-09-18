@@ -28,8 +28,10 @@ describe("Docs and Pricing pages", () => {
   it("renders pricing tiers and ICP personas", () => {
     wrap(<Pricing />);
     expect(screen.getByRole("heading", { name: /Pricing that funds the pipeline/i })).toBeInTheDocument();
-    expect(screen.getByText("LKR 999")).toBeInTheDocument();
-    expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
+    // Paid plans are in Coming-Soon mode (PRICING_COMING_SOON): tier cards
+    // show "Coming soon" instead of the LKR prices. When pricing launches,
+    // restore the "LKR 999" / "LKR 1,999" assertions.
+    expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
     expect(screen.getByText("Dealers")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
       "href",

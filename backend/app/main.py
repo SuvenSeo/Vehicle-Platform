@@ -12,6 +12,7 @@ from starlette.middleware.gzip import GZipMiddleware
 
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
 from app.services.digest_flush_scheduler import start_digest_flush_scheduler, stop_digest_flush_scheduler
+from app.utils.config_check import config_problems, log_config_warnings
 from db import session as db_session
 from db.session import init_db
 from db.sqlite_failover import start_sqlite_failover_background
@@ -72,6 +73,10 @@ class BodySizeLimitMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("starting_up")
+    # Loud, non-fatal config self-check: gates on + empty AUTH_TOKEN_SECRET
+    # means the deploy cannot authenticate anyone. Logged at CRITICAL and
+    # surfaced via /health["config"] so it never fails silently.
+    log_config_warnings()
     # In a real app, we'd use migrations (Alembic)
     # For now, we'll initialize the DB directly.
     # Runs in a thread with a hard timeout: init_db() is a blocking sync call,
@@ -226,6 +231,7 @@ async def health_check():
     content = {
         "status": "ok" if db_status == "ok" else "degraded",
         "db": db_status,
+        "config": config_problems(),
         "version": "1.0.0",
     }
 

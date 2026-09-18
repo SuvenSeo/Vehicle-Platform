@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.models.schemas import CollateralValueResponse
 from app.services.rate_limit import RateLimiter, _client_key
+from app.utils.like_pattern import LIKE_ESCAPE_CHAR, contains_pattern
 from app.utils.sql_median import median_price_expr, python_median
 from app.utils.time import utc_now
 from db.models import CarListing, live_listing_filter
@@ -85,8 +86,8 @@ def collateral_value(
         live_listing_filter(),  # noqa: E712
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
-        CarListing.make.ilike(f"%{make.strip()}%"),
-        CarListing.model.ilike(f"%{model.strip()}%"),
+        CarListing.make.ilike(contains_pattern(make.strip()), escape=LIKE_ESCAPE_CHAR),
+        CarListing.model.ilike(contains_pattern(model.strip()), escape=LIKE_ESCAPE_CHAR),
     )
     if year:
         q = q.filter(CarListing.year.between(year - 1, year + 1))

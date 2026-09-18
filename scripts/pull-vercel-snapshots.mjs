@@ -10,9 +10,10 @@
  * Usage:
  *   SNAPSHOT_EXPORT_SECRET=<token> node scripts/pull-vercel-snapshots.mjs
  *
- * The token is sent as:
+ * The token is sent ONLY as:
  *   Authorization: Bearer <token>
- * and also as query param ?token=<token> for APIs that prefer it.
+ * (never as a query param — that would leak the secret into access logs,
+ *  browser history, and Referer headers)
  *
  * Exits non-zero on:
  *   - Missing token
@@ -68,7 +69,6 @@ function fileSizeStr(filePath) {
 async function fetchKind(kind, extraParams = {}) {
   const url = new URL(BASE_URL);
   url.searchParams.set('kind', kind);
-  url.searchParams.set('token', TOKEN); // secondary: query-param style
   for (const [k, v] of Object.entries(extraParams)) {
     url.searchParams.set(k, String(v));
   }

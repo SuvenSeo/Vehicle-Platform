@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 from app.utils.districts import count_canonical_districts
+from app.utils.like_pattern import LIKE_ESCAPE_CHAR, contains_pattern
 from app.utils.sql_median import median_price_expr, median_price_for_query, python_median
 from app.utils.time import utc_now
 from statistics import median
@@ -111,9 +112,13 @@ def _apply_listing_scope(
     condition: Optional[str] = None,
 ):
     if make:
-        query = query.filter(CarListing.make.ilike(f"%{make.strip()}%"))
+        query = query.filter(
+            CarListing.make.ilike(contains_pattern(make.strip()), escape=LIKE_ESCAPE_CHAR)
+        )
     if model:
-        query = query.filter(CarListing.model.ilike(f"%{model.strip()}%"))
+        query = query.filter(
+            CarListing.model.ilike(contains_pattern(model.strip()), escape=LIKE_ESCAPE_CHAR)
+        )
     if district:
         normalized = " ".join(district.strip().lower().replace("-", " ").split())
         district_slug = normalized.replace(" ", "-")
@@ -121,8 +126,8 @@ def _apply_listing_scope(
         raw_location_expr = func.lower(func.replace(CarListing.raw_location, "-", " "))
         query = query.filter(
             or_(
-                district_expr.ilike(f"%{normalized}%"),
-                raw_location_expr.ilike(f"%{normalized}%"),
+                district_expr.ilike(contains_pattern(normalized), escape=LIKE_ESCAPE_CHAR),
+                raw_location_expr.ilike(contains_pattern(normalized), escape=LIKE_ESCAPE_CHAR),
                 func.lower(CarListing.url).ilike(f"%-for-sale-{district_slug}%"),
             )
         )

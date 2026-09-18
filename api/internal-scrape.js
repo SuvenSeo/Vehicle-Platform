@@ -1,7 +1,8 @@
 // Internal one-page ikman scrape for cloud-agent / ops recovery.
-// Auth: same SNAPSHOT_EXPORT_SECRET as api/internal-snapshot-export.js
+// Auth: same SNAPSHOT_EXPORT_SECRET as api/internal-snapshot-export.js,
+// sent as `Authorization: Bearer <secret>` (never in the query string).
 //
-// GET /api/internal-scrape?source=ikman&category=392&page=1&token=…
+// GET /api/internal-scrape?source=ikman&category=392&page=1
 // Optional: next_page_token=
 //
 // Hobby plan timeouts are short — scrape ONE SERP page per invocation.
@@ -36,10 +37,10 @@ function dbUrl() {
 function authorized(req) {
   const secret = String(process.env.SNAPSHOT_EXPORT_SECRET || "").trim();
   if (!secret) return false;
+  // Bearer header only. A ?token=<secret> fallback would leak the shared
+  // secret into access logs, browser history, and Referer headers.
   const header = String(req.headers.authorization || "");
-  if (header === `Bearer ${secret}`) return true;
-  const url = new URL(req.url, "http://localhost");
-  return url.searchParams.get("token") === secret;
+  return header === `Bearer ${secret}`;
 }
 
 function json(res, status, body) {

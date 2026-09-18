@@ -108,6 +108,3 @@ api_router.include_router(seo.router, prefix="/seo", tags=["seo"])
 # Public app-release metadata: backs the Android in-app update checker
 # (read-only GET over env-published release info; no auth, no PII).
 api_router.include_router(releases.router, prefix="/releases", tags=["releases"])
-# Public app-release metadata: backs the Android in-app update checker
-# (read-only GET over env-published release info; no auth, no PII).
-api_router.include_router(releases.router, prefix="/releases", tags=["releases"])

@@ -4,6 +4,7 @@ from sqlalchemy import String, cast, func, desc, and_, or_
 from typing import Optional, List, Dict, Any, Annotated
 from statistics import median
 from datetime import datetime, timedelta, timezone
+from app.utils.like_pattern import LIKE_ESCAPE_CHAR, contains_pattern
 from app.utils.time import utc_now
 import ipaddress
 import json
@@ -1155,9 +1156,14 @@ def _model_clause(value: Optional[str]):
     expr = _compact_expr(CarListing.model)
     if len(aliases) == 1:
         token = next(iter(aliases))
-        return or_(expr == token, expr.like(f"%{token}%"))
+        return or_(expr == token, expr.like(contains_pattern(token), escape=LIKE_ESCAPE_CHAR))
 
-    return or_(*[expr.like(f"%{alias}%") for alias in sorted(aliases)])
+    return or_(
+        *[
+            expr.like(contains_pattern(alias), escape=LIKE_ESCAPE_CHAR)
+            for alias in sorted(aliases)
+        ]
+    )
 
 
 def _model_match_rank(candidate_model: Optional[str], requested_model: Optional[str]) -> int:
@@ -1349,15 +1355,17 @@ def search_listings(
         )
 
     for token in _search_filter_tokens(keyword_text or ""):
-        like_pattern = f"%{token}%"
+        like_pattern = contains_pattern(token)
         clauses = [
-            CarListing.make.ilike(like_pattern),
-            CarListing.model.ilike(like_pattern),
-            CarListing.title.ilike(like_pattern),
-            CarListing.source_id.ilike(like_pattern),
+            CarListing.make.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
+            CarListing.model.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
+            CarListing.title.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
+            CarListing.source_id.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
         ]
         if token.isdigit():
-            clauses.append(cast(CarListing.year, String).ilike(like_pattern))
+            clauses.append(
+                cast(CarListing.year, String).ilike(like_pattern, escape=LIKE_ESCAPE_CHAR)
+            )
         q = q.filter(or_(*clauses))
 
     if source:
@@ -1366,9 +1374,9 @@ def search_listings(
             q = q.filter(_compact_expr(CarListing.source) == normalized_source)
 
     if make:
-        q = q.filter(CarListing.make.ilike(f"%{make}%"))
+        q = q.filter(CarListing.make.ilike(contains_pattern(make), escape=LIKE_ESCAPE_CHAR))
     if model:
-        q = q.filter(CarListing.model.ilike(f"%{model}%"))
+        q = q.filter(CarListing.model.ilike(contains_pattern(model), escape=LIKE_ESCAPE_CHAR))
     if year_min:
         q = q.filter(CarListing.year >= year_min)
     if year_max:
@@ -1402,8 +1410,8 @@ def search_listings(
         raw_location_expr = func.lower(func.replace(CarListing.raw_location, "-", " "))
         q = q.filter(
             or_(
-                district_expr.ilike(f"%{normalized_district}%"),
-                raw_location_expr.ilike(f"%{normalized_district}%"),
+                district_expr.ilike(contains_pattern(normalized_district), escape=LIKE_ESCAPE_CHAR),
+                raw_location_expr.ilike(contains_pattern(normalized_district), escape=LIKE_ESCAPE_CHAR),
                 func.lower(CarListing.url).ilike(f"%-for-sale-{district_slug}%"),
             )
         )
@@ -1675,16 +1683,16 @@ def search_listing_suggestions(q: str, limit: int, db: Session) -> List[dict]:
         return []
 
     query_tokens = [token for token in normalized_query.split(" ") if token]
-    like_pattern = f"%{normalized_query}%"
+    like_pattern = contains_pattern(normalized_query)
 
     rows = (
         db.query(CarListing)
         .filter(
             live_listing_filter(),
             or_(
-                CarListing.make.ilike(like_pattern),
-                CarListing.model.ilike(like_pattern),
-                CarListing.title.ilike(like_pattern),
+                CarListing.make.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
+                CarListing.model.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
+                CarListing.title.ilike(like_pattern, escape=LIKE_ESCAPE_CHAR),
             ),
         )
         .order_by(desc(CarListing.first_seen_at))
@@ -1886,7 +1894,9 @@ def _vehicle_filter_query(
     )
 
     if payload.make:
-        q = q.filter(CarListing.make.ilike(f"%{payload.make}%"))
+        q = q.filter(
+            CarListing.make.ilike(contains_pattern(payload.make), escape=LIKE_ESCAPE_CHAR)
+        )
     if payload.model and not relax_model:
         model_filter = _model_clause(payload.model)
         if model_filter is not None:
@@ -1915,7 +1925,7 @@ def _vehicle_filter_query(
         district_expr = func.lower(func.replace(CarListing.district, "-", " "))
         q = q.filter(
             or_(
-                district_expr.ilike(f"%{normalized_district}%"),
+                district_expr.ilike(contains_pattern(normalized_district), escape=LIKE_ESCAPE_CHAR),
                 func.lower(CarListing.url).ilike(f"%-for-sale-{district_slug}%"),
             )
         )

@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.services.rate_limit import RateLimiter
+from app.utils.like_pattern import LIKE_ESCAPE_CHAR, contains_pattern
 from app.utils.sql_median import median_price_expr, python_median
 from db.models import CarListing, DealerProfile, live_listing_filter
 from db.session import get_db
@@ -135,10 +136,10 @@ def _market_benchmark(
         live_listing_filter(),  # noqa: E712
         CarListing.price_lkr.isnot(None),
         CarListing.price_lkr >= MIN_REASONABLE_PRICE_LKR,
-        CarListing.make.ilike(f"%{make.strip()}%"),
+        CarListing.make.ilike(contains_pattern(make.strip()), escape=LIKE_ESCAPE_CHAR),
     )
     if model:
-        q = q.filter(CarListing.model.ilike(f"%{model.strip()}%"))
+        q = q.filter(CarListing.model.ilike(contains_pattern(model.strip()), escape=LIKE_ESCAPE_CHAR))
     if year:
         q = q.filter(CarListing.year.between(year - 2, year + 2))
 
@@ -306,7 +307,7 @@ def _match_claimed_listings(db: Session, profile: DealerProfile) -> int:
     pattern = (profile.seller_name_pattern or "").strip()
     url = (profile.claimed_url or "").strip()
     if pattern:
-        q = q.filter(CarListing.title.ilike(f"%{pattern}%"))
+        q = q.filter(CarListing.title.ilike(contains_pattern(pattern), escape=LIKE_ESCAPE_CHAR))
     elif url:
         q = q.filter(CarListing.url == url)
     else:
