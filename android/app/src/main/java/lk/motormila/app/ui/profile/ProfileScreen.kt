@@ -101,6 +101,25 @@ fun ProfileScreen(
         }
     }
 
+    // In-app update feedback for the manual "tap to check" row: the dialog
+    // handles UpdateAvailable, but UpToDate and download failure would
+    // otherwise be silent. These toasts consume the ViewModel's one-shot
+    // flags; the passive launch check never sets them.
+    val updateUpToDateText = stringResource(R.string.update_up_to_date)
+    val updateDownloadFailedText = stringResource(R.string.update_download_failed)
+    LaunchedEffect(updateState.manuallyCheckedWithNoUpdate) {
+        if (updateState.manuallyCheckedWithNoUpdate) {
+            snacks.showSnackbar(updateUpToDateText)
+            updateViewModel.consumeNoUpdateFeedback()
+        }
+    }
+    LaunchedEffect(updateState.downloadFailedTick) {
+        if (updateState.downloadFailedTick > 0) {
+            snacks.showSnackbar(updateDownloadFailedText)
+            updateViewModel.consumeDownloadFailure()
+        }
+    }
+
     MotormilaPage(title = "You", snackbarHostState = snacks) {
         PullToRefreshBox(
             isRefreshing = state.isRefreshing,

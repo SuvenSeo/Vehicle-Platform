@@ -117,6 +117,10 @@ fun MotormilaNavGraph(
 
     // In-app update check (sideload channel): one passive check per cold
     // start; the dialog is hosted above the scaffold content.
+    //
+    // ProfileScreen ALSO runs AppUpdateViewModel, but through the same Hilt
+    // scope it resolves the SAME instance — there is exactly one store and
+    // one check per process. Do not add a second checkOnLaunch here.
     val updateViewModel: AppUpdateViewModel = hiltViewModel()
     val updateState by updateViewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {

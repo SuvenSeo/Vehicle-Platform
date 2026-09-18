@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import lk.motormila.app.core.updates.AppUpdateChecker
@@ -62,25 +63,26 @@ class AppUpdateViewModel @Inject constructor(
     }
 
     fun consumeNoUpdateFeedback() {
-        _state.value = _state.value.copy(manuallyCheckedWithNoUpdate = false)
+        _state.update { it.copy(manuallyCheckedWithNoUpdate = false) }
     }
 
     fun consumeDownloadFailure() {
-        _state.value = _state.value.copy(downloadFailedTick = 0)
+        _state.update { it.copy(downloadFailedTick = 0) }
     }
 
     /** "Later" — quiet for this version on passive checks. */
     fun dismiss() {
-        val current = _state.value
-        _state.value = current.copy(
-            available = null,
-            dismissedVersionCode = current.available?.versionCode,
-        )
+        _state.update { current ->
+            current.copy(
+                available = null,
+                dismissedVersionCode = current.available?.versionCode,
+            )
+        }
     }
 
     fun downloadAndInstall(update: AppUpdateChecker.CheckResult.UpdateAvailable) {
         if (_state.value.downloading) return
-        _state.value = _state.value.copy(downloading = true)
+        _state.update { it.copy(downloading = true) }
         viewModelScope.launch {
             // Blocking network + disk I/O stays off the main thread.
             val apk = runCatching {
@@ -89,18 +91,17 @@ class AppUpdateViewModel @Inject constructor(
                 if (it is kotlinx.coroutines.CancellationException) throw it
                 null
             }
-            _state.value = _state.value.copy(downloading = false)
+            _state.update { it.copy(downloading = false) }
             if (apk != null) {
                 runCatching { updateChecker.launchInstaller(apk, appContext) }
             } else {
-                _state.value = _state.value.copy(downloadFailedTick = _state.value.downloadFailedTick + 1)
+                _state.update { it.copy(downloadFailedTick = it.downloadFailedTick + 1) }
             }
         }
     }
-
     private fun runCheck(currentVersionCode: Int, isManual: Boolean) {
         if (_state.value.checking) return
-        _state.value = _state.value.copy(checking = true)
+        _state.update { it.copy(checking = true) }
         viewModelScope.launch {
             // The checker performs blocking network I/O — always on Dispatchers.IO.
             // Any failure (network down, parse error, unexpected exception) is a
@@ -111,19 +112,20 @@ class AppUpdateViewModel @Inject constructor(
                 if (it is kotlinx.coroutines.CancellationException) throw it
                 AppUpdateChecker.CheckResult.UpToDate
             }
-            val current = _state.value
-            _state.value = when (result) {
-                is AppUpdateChecker.CheckResult.UpdateAvailable ->
-                    // Manual checks always re-show; passive checks respect dismissal.
-                    if (!isManual && current.dismissedVersionCode == result.versionCode) {
-                        current.copy(checking = false)
-                    } else {
-                        current.copy(checking = false, available = result)
-                    }
-                AppUpdateChecker.CheckResult.UpToDate -> current.copy(
-                    checking = false,
-                    manuallyCheckedWithNoUpdate = isManual,
-                )
+            _state.update { current ->
+                when (result) {
+                    is AppUpdateChecker.CheckResult.UpdateAvailable ->
+                        // Manual checks always re-show; passive checks respect dismissal.
+                        if (!isManual && current.dismissedVersionCode == result.versionCode) {
+                            current.copy(checking = false)
+                        } else {
+                            current.copy(checking = false, available = result)
+                        }
+                    AppUpdateChecker.CheckResult.UpToDate -> current.copy(
+                        checking = false,
+                        manuallyCheckedWithNoUpdate = isManual,
+                    )
+                }
             }
         }
     }
