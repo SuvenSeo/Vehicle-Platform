@@ -65,17 +65,33 @@ jobs:
 
       - name: Verify sideload keystore present
         working-directory: .
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ secrets.ANDROID_KEYSTORE_FILE }}
         run: |
           set -euo pipefail
           # The committed android/ci-signing.keystore gives every release the
           # same signature, so in-app updates install over previous versions.
           # (Before 1.5.1 a fresh debug key was generated per CI run, which
           # blocked in-place upgrades — do not reintroduce key generation.)
-          test -f android/ci-signing.keystore || {
-            echo "ERROR: android/ci-signing.keystore missing — release would get a new signature and block in-place updates"
-            exit 1
-          }
-          echo "Using committed sideload keystore (stable signature)."
+          #
+          # Migration path: set ANDROID_KEYSTORE_FILE (base64-encoded real
+          # keystore) + ANDROID_KEYSTORE_PASSWORD/ANDROID_KEY_ALIAS/
+          # ANDROID_KEY_PASSWORD secrets and the committed public keystore is
+          # bypassed automatically — no build change needed. Until then every
+          # release keeps the legacy co-install signature.
+          # See docs/ANDROID_SIGNING.md. Do not delete ci-signing.keystore
+          # before the first secret-keyed release ships.
+          if [ -n "${ANDROID_KEYSTORE_FILE:-}" ]; then
+            echo "ANDROID_KEYSTORE_FILE secret present: committed keystore bypassed."
+          else
+            test -f android/ci-signing.keystore || {
+              echo "ERROR: android/ci-signing.keystore missing — release would get a new signature and block in-place updates"
+              exit 1
+            }
+            echo "WARNING: using committed sideload keystore (public, shared dev identity)."
+            echo "Migrate to ANDROID_KEYSTORE_FILE; see docs/ANDROID_SIGNING.md."
+          fi
+          echo "Using stable sideload signature."
 
       - name: Assemble release APK
         run: ./gradlew :app:assembleRelease --stacktrace
