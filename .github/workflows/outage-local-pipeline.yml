@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check Python
         run: |
@@ -130,7 +130,7 @@ jobs:
 
       - name: Upload debug artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: outage-scrape-${{ matrix.source }}-failure-${{ github.run_id }}
           path: |
@@ -155,7 +155,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
@@ -189,7 +189,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
@@ -224,7 +224,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
@@ -304,7 +304,7 @@ jobs:
       # it just uploads the files to Vercel). Keeps the laptop runner free of
       # Node/npx requirements.
       - name: Upload snapshots artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: outage-snapshots-${{ github.run_id }}
           path: backend/snapshots/latest
@@ -318,10 +318,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Download snapshots artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: outage-snapshots-${{ github.run_id }}
           path: snapshots-artifact
