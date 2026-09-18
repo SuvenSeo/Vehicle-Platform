@@ -95,6 +95,9 @@ android/*.status
 backend/db_snapshots/
 backend/scrape_checkpoints/
 backend/rescue_exports/
+# Scraped Manus dumps: live listings incl. seller contact details. Keep them out
+# of git entirely and hand them around via release assets / R2 instead.
+data/manus-dumps/
 /PROJECT.md
 /ORIGINAL_REQUEST.md
 .env*
