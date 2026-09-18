@@ -8,6 +8,11 @@ on:
     - cron: "0 * * * *"
   workflow_dispatch:
 
+# One probe pass at a time; slow runs must not stack.
+concurrency:
+  group: pipeline-monitor
+  cancel-in-progress: false
+
 jobs:
   pipeline-health:
     runs-on: ubuntu-latest

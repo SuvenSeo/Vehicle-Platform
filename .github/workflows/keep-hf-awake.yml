@@ -11,6 +11,11 @@ on:
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
+# One ping at a time; never cancel a run mid-flight.
+concurrency:
+  group: keep-hf-awake
+  cancel-in-progress: false
+
 jobs:
   ping:
     runs-on: ubuntu-latest

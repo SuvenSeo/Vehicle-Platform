@@ -16,6 +16,13 @@ on:
         type: boolean
         default: false
 
+# Serialize backend deploys: two concurrent syncs to the same Space race on
+# git push and can leave a half-deployed build. Never cancel an in-flight
+# deploy (a cancelled push can strand the Space).
+concurrency:
+  group: deploy-hf-backend
+  cancel-in-progress: false
+
 jobs:
   sync-to-hf:
     runs-on: ubuntu-latest

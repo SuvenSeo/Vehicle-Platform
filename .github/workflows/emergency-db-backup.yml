@@ -3,6 +3,11 @@ name: Emergency DB Backup
 on:
   workflow_dispatch:
 
+# Only one dump at a time — concurrent pg_dumps double the egress hit.
+concurrency:
+  group: emergency-db-backup
+  cancel-in-progress: false
+
 jobs:
   pgdump:
     runs-on: ubuntu-latest

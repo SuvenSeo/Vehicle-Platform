@@ -17,6 +17,11 @@ on:
           - "true"
           - "false"
 
+# Serialize: two live runs would double-send emails to the same recipients.
+concurrency:
+  group: weekly-digest
+  cancel-in-progress: false
+
 jobs:
   send-digest:
     runs-on: ubuntu-latest

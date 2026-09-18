@@ -2,17 +2,77 @@
 # runs WEEKLY (not daily) to stay inside the free transfer allowance. Neon's
 # built-in PITR/branch history covers day-to-day recovery. Public browsing
 # reads R2 snapshots, not this dump.
+#
+# Quota-aware: the dump is skipped (not failed) when Neon is blocked or when
+# the egress watchdog reports warning/over budget. Backups must never be the
+# thing that exhausts the transfer quota and takes the live DB offline.
 name: Weekly DB Backup
 
-# on:
-#   schedule:
-#     - cron: "30 2 * * 0"   # Paused to protect Neon free transfer quota (550MB remaining until Oct 1)
 on:
+  schedule:
+    - cron: "30 2 * * 0"   # Weekly, Sunday 02:30 UTC (after the 1st-of-month quota reset)
   workflow_dispatch:
 
+# Never two dumps at once; a running dump is never cancelled by a new dispatch.
+concurrency:
+  group: db-backup-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  neon-guard:
+    name: Skip when Neon transfer quota is exhausted
+    uses: ./.github/workflows/probe-neon.yml
+    secrets: inherit
+
+  egress-guard:
+    name: Skip when egress budget is tight
+    needs: neon-guard
+    if: ${{ needs.neon-guard.outputs.available == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    outputs:
+      safe: ${{ steps.egress.outputs.safe }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Neon data transfer budget
+        id: egress
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+          NEON_ORG_ID: ${{ secrets.NEON_ORG_ID }}
+          NEON_TRANSFER_BUDGET_GB: "5"
+          NEON_WARN_FRACTION: "0.7"
+          HOT_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          # 0=under budget, 1=over, 2=warning, 3=could not check.
+          set +e
+          python scripts/ops/check_neon_egress.py
+          code=$?
+          set -e
+          case "$code" in
+            0|3) echo "safe=true"  >> "$GITHUB_OUTPUT" ;;   # proceed (unknown = old behavior)
+            *)   echo "safe=false" >> "$GITHUB_OUTPUT"
+                 echo "::warning::Neon egress budget tight (exit ${code}) — skipping weekly dump." ;;
+          esac
+
   backup:
     name: pg_dump → artifact
+    needs: [neon-guard, egress-guard]
+    if: ${{ needs.neon-guard.outputs.available == 'true' && needs.egress-guard.outputs.safe == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
