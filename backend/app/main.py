@@ -49,24 +49,50 @@ _MAX_BODY_SIZE = 1_048_576  # 1 MB
 
 
 class BodySizeLimitMiddleware:
-    """Reject requests whose Content-Length exceeds _MAX_BODY_SIZE bytes."""
+    """Reject request bodies larger than _MAX_BODY_SIZE bytes.
+
+    Content-Length is the cheap first gate, but a header-only check is bypassable:
+    a client can omit Content-Length and stream a chunked body instead
+    (``Transfer-Encoding: chunked``), which never trips the declared-length
+    comparison. Every endpoint here accepts bounded JSON bodies, so
+    length-less chunked requests are rejected with 411 rather than buffered —
+    that keeps the cap enforceable without reimplementing stream accounting.
+    """
 
     def __init__(self, app) -> None:
         self.app = app
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] == "http":
+            declared: int | None = None
+            chunked = False
             for name, value in scope.get("headers", []):
                 if name == b"content-length":
-                    if int(value) > _MAX_BODY_SIZE:
-                        response = JSONResponse(
-                            status_code=413,
-                            content={"detail": "Request body too large"},
-                        )
-                        await response(scope, receive, send)
-                        return
-                    break
+                    try:
+                        declared = int(value)
+                    except (TypeError, ValueError):
+                        declared = None
+                elif name == b"transfer-encoding":
+                    chunked = "chunked" in value.decode("latin-1").lower()
+
+            if declared is not None and declared > _MAX_BODY_SIZE:
+                await self._reject(scope, receive, send, 413, "Request body too large")
+                return
+            if chunked and declared is None:
+                await self._reject(
+                    scope,
+                    receive,
+                    send,
+                    411,
+                    "Content-Length required; chunked request bodies are not accepted",
+                )
+                return
         await self.app(scope, receive, send)
+
+    @staticmethod
+    async def _reject(scope, receive, send, status_code: int, detail: str) -> None:
+        response = JSONResponse(status_code=status_code, content={"detail": detail})
+        await response(scope, receive, send)
 
 
 @asynccontextmanager
