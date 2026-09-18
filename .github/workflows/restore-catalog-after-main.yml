@@ -17,7 +17,11 @@ on:
 
 concurrency:
   group: restore-production-catalog
-  cancel-in-progress: true
+  # Do not cancel an in-flight restore. This job is what re-publishes the
+  # listing catalog after a deploy, so killing it part-way (e.g. a rapid push
+  # pair, where the newer run cancels the older) can leave production serving a
+  # stale or partial catalog. Runs in this group are serialized instead.
+  cancel-in-progress: false
 
 permissions:
   contents: read

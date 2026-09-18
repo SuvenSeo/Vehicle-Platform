@@ -2,10 +2,12 @@ name: Manus Scrape Dump (3x Daily)
 
 on:
   schedule:
-    # Runs at 07:30, 15:30, and 23:30 Sri Lanka Time (02:00, 10:00, 18:00 UTC).
+    # Runs at 07:40, 15:40, and 23:40 Sri Lanka Time (02:10, 10:10, 18:10 UTC).
     # 3x daily with an incremental page budget prevents IP blocks and avoids
     # redundant scrapes while capturing fresh listings cleanly.
-    - cron: "0 2,10,18 * * *"
+    # The :10 offset keeps this clear of 02:00 UTC, where daily-scrape and the
+    # manus-to-live fallback both fire — simultaneous starts contended for the DB.
+    - cron: "10 2,10,18 * * *"
   workflow_dispatch:
 
 permissions:

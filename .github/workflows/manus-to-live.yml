@@ -31,7 +31,10 @@ on:
     types: [completed]
   schedule:
     # Fallback schedule every 6 hours (catches any missed dumps and retries cleanly).
-    - cron: "0 */6 * * *"
+    # The :25 offset keeps the merge/publish clear of the :00 scrape starts
+    # (daily-scrape 02:00, manus-scrape 02:10), so it does not read the merged
+    # DB while scrapers are launching writes.
+    - cron: "25 */6 * * *"
   workflow_dispatch:
     inputs:
       release-tag:
