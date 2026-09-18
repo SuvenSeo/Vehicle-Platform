@@ -60,6 +60,9 @@ concurrency:
   group: historical-backfill
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   backfill:
     runs-on: ubuntu-latest

@@ -10,6 +10,9 @@ name: Weekly DB Backup
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   backup:
     name: pg_dump → artifact

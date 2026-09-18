@@ -35,6 +35,9 @@ concurrency:
   group: ikman-bulk-backfill
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   scrape-ikman:
     runs-on: ubuntu-latest

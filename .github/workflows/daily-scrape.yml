@@ -17,6 +17,9 @@ concurrency:
   group: scrape-full-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   neon-guard:
     name: Skip when Neon transfer quota is exhausted

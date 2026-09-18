@@ -17,6 +17,9 @@ on:
           - "true"
           - "false"
 
+permissions:
+  contents: read
+
 jobs:
   send-digest:
     runs-on: ubuntu-latest

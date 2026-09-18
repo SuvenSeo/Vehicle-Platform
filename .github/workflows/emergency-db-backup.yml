@@ -3,6 +3,9 @@ name: Emergency DB Backup
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   pgdump:
     runs-on: ubuntu-latest

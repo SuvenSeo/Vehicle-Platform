@@ -24,6 +24,9 @@ concurrency:
   group: scrape-ikman-once
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   scrape-ikman:
     runs-on: ubuntu-latest

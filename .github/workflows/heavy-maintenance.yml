@@ -29,6 +29,9 @@ concurrency:
   group: heavy-maintenance
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   heavy-passes:
     runs-on: ubuntu-latest

@@ -12,6 +12,9 @@ on:
         description: "true when Neon accepted SELECT 1"
         value: ${{ jobs.probe.outputs.available }}
 
+permissions:
+  contents: read
+
 jobs:
   probe:
     name: Probe Neon

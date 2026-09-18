@@ -36,6 +36,9 @@ concurrency:
   group: riyasewana-bulk-backfill
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   scrape-riyasewana:
     # Runs on the laptop self-hosted runner (residential IP) so Cloudflare

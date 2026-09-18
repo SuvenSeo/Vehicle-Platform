@@ -16,6 +16,9 @@ concurrency:
   group: weekly-ocm-cache
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   refresh-ocm:
     runs-on: ubuntu-latest

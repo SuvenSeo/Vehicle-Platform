@@ -50,6 +50,9 @@ concurrency:
   group: scrape-export-redeploy
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   scrape:
     if: ${{ inputs.source != 'none' }}

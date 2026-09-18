@@ -19,6 +19,9 @@ on:
     - cron: "0 4 * * 1,4"   # Twice weekly (Monday & Thursday 04:00 UTC) early-warning check
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check-egress:
     runs-on: ubuntu-latest

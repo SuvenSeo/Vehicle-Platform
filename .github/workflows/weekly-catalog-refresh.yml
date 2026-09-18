@@ -19,6 +19,9 @@ concurrency:
   group: catalog-refresh-scheduled
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   export-catalog:
     runs-on: ubuntu-latest

@@ -16,6 +16,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   sync-to-hf:
     runs-on: ubuntu-latest
