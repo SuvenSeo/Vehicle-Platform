@@ -103,6 +103,7 @@ def _manifest_payload() -> Optional[dict]:
 
 
 def _releases_api_payload() -> Optional[dict]:
+    now = time.monotonic()
     payload: Optional[dict] = None
     try:
         req = urllib.request.Request(
