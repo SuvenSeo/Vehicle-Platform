@@ -348,7 +348,11 @@ def test_build_pipeline_status_falls_back_on_failure(monkeypatch):
 
     payload = export_public_snapshots.build_pipeline_status(db)
 
-    assert payload["overall_status"] == "ok"
+    # Must not claim health: only "ok"/"running" are treated as healthy by
+    # consumers (pipeline-monitor.yml, PipelineStatusBar), and an empty job list
+    # derives "delayed" from _derive_overall_status.
+    assert payload["overall_status"] == "delayed"
+    assert payload["overall_status"] == pipeline._derive_overall_status([])
     assert payload["jobs"] == []
     assert isinstance(payload["generated_at"], str)
 

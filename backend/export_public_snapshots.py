@@ -156,10 +156,15 @@ def build_pipeline_status(db) -> dict[str, Any]:
     try:
         return pipeline_endpoint.pipeline_status(db=db, is_admin=False)
     except Exception:
-        logger.exception("Failed to build pipeline-status snapshot; using empty fallback")
+        logger.exception("Failed to build pipeline-status snapshot; using degraded fallback")
         return {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "overall_status": "ok",
+            # Deliberately NOT "ok": an empty job list derives "delayed" from
+            # pipeline._derive_overall_status, and consumers treat only
+            # "ok"/"running" as healthy. Publishing "ok" here would ship a
+            # green pipeline-status.json to the UI exactly when the export
+            # failed, hiding the breakage.
+            "overall_status": "delayed",
             "jobs": [],
         }
 
