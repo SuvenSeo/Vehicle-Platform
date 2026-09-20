@@ -14,6 +14,7 @@ from typing import Any
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, load_only
 
+from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from db.models import CarListing, live_listing_filter
 
 LATEST_LISTINGS_LIMIT = 80
@@ -93,7 +94,9 @@ def listing_to_dict(row: CarListing) -> dict[str, Any]:
         "vehicle_category": row.vehicle_category,
         "district": row.district,
         "city": row.city,
-        "thumbnail_url": row.thumbnail_url,
+        # Stored rows can still hold a tiny source grid crop; cards render the
+        # upgraded URL so old listings get sharp art without a re-scrape.
+        "thumbnail_url": upgrade_thumbnail_url(row.thumbnail_url),
         "scraped_at": to_utc_iso(row.scraped_at),
         "first_seen_at": to_utc_iso(row.first_seen_at),
         "last_seen_at": to_utc_iso(row.last_seen_at),

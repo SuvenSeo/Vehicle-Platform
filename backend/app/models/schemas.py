@@ -4,6 +4,14 @@ from datetime import datetime
 from decimal import Decimal
 import re
 
+from app.utils.thumbnail_urls import upgrade_thumbnail_url
+
+
+def _upgrade_thumbnail(value: Optional[str]) -> Optional[str]:
+    """Pydantic validator shared by every schema that carries a card image."""
+    return upgrade_thumbnail_url(value)
+
+
 class CarListingBase(BaseModel):
     source: str
     source_id: str
@@ -24,6 +32,11 @@ class CarListingBase(BaseModel):
     city: Optional[str] = None
     thumbnail_url: Optional[str] = None
     images: Optional[List[str]] = None
+
+    @field_validator("thumbnail_url")
+    @classmethod
+    def _upgrade_thumbnail_url(cls, value: Optional[str]) -> Optional[str]:
+        return _upgrade_thumbnail(value)
 
 class CarListingRead(CarListingBase):
     id: int
@@ -55,6 +68,11 @@ class ListingSearchSuggestion(BaseModel):
     source: str
     thumbnail_url: Optional[str] = None
     url: Optional[str] = None
+
+    @field_validator("thumbnail_url")
+    @classmethod
+    def _upgrade_suggestion_thumbnail(cls, value: Optional[str]) -> Optional[str]:
+        return _upgrade_thumbnail(value)
 
 class StatsSummary(BaseModel):
     total_listings: int
@@ -89,6 +107,11 @@ class TrendingModelPoint(BaseModel):
     movement_pct: Optional[float] = None
     thumbnail_url: Optional[str] = None
 
+    @field_validator("thumbnail_url")
+    @classmethod
+    def _upgrade_trending_thumbnail(cls, value: Optional[str]) -> Optional[str]:
+        return _upgrade_thumbnail(value)
+
 
 class HotDealPoint(BaseModel):
     id: int
@@ -100,6 +123,11 @@ class HotDealPoint(BaseModel):
     price_lkr: float
     deal_score: float
     thumbnail_url: Optional[str] = None
+
+    @field_validator("thumbnail_url")
+    @classmethod
+    def _upgrade_hot_deal_thumbnail(cls, value: Optional[str]) -> Optional[str]:
+        return _upgrade_thumbnail(value)
 
 
 class DashboardInsightsResponse(BaseModel):

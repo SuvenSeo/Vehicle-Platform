@@ -24,6 +24,7 @@ from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
+from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from app.api.v1.endpoints.auth import PRO_PLANS, resolve_live_session, verify_token
 from app.utils.plan_limits import (
     FREE_LISTINGS_MAX_PAGE,
@@ -514,7 +515,10 @@ def _normalize_image_url(base_url: Optional[str], candidate: Optional[str]) -> O
     if not raw or raw.startswith("data:"):
         return None
     try:
-        return urljoin(base_url or "", raw)
+        # Some sources store a tiny grid crop (ikman: 142x107). Their CDN
+        # serves a larger variant from the same path, so every thumbnail URL
+        # is upgraded before it reaches the UI or the proxy download.
+        return upgrade_thumbnail_url(urljoin(base_url or "", raw))
     except Exception:
         return None
 

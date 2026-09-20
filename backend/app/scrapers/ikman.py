@@ -24,6 +24,7 @@ from app.scrapers.net import (
 )
 from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
 from app.utils.listing_upsert import upsert_listing, upsert_listings_batch
+from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from app.utils.time import utc_now
 
 log = structlog.get_logger()
@@ -159,7 +160,10 @@ class IkmanCarScraper:
         if not image_id:
             return ""
         base_uri = str(images.get("base_uri") or "https://i.ikman-st.com").rstrip("/")
-        return f"{base_uri}/{slug}/{image_id}/142/107/cropped.jpg"
+        # The grid markup only exposes a 142x107 crop; ikman's CDN serves any
+        # size from this path, so store a card-sized crop instead.
+        grid_crop = f"{base_uri}/{slug}/{image_id}/142/107/cropped.jpg"
+        return upgrade_thumbnail_url(grid_crop) or grid_crop
 
     @classmethod
     def _extract_thumbnail_from_detail_html(cls, html: str) -> str:
