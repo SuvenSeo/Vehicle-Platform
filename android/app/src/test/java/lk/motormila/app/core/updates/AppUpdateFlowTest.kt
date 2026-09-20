@@ -37,8 +37,11 @@ class AppUpdateFlowTest {
         Dispatchers.setMain(testDispatcher)
         checker = mockk()
         // Construct the ViewModel directly with an Application context mock so
-        // Dispatchers.Main (now the test dispatcher) drives viewModelScope.
-        viewModel = AppUpdateViewModel(checker, mockk(relaxed = true))
+        // Dispatchers.Main (now the test dispatcher) drives viewModelScope, and
+        // hand it the same test dispatcher for its IO work — otherwise the
+        // checker's withContext would escape the test scheduler and the state
+        // assertions below would race a real background thread.
+        viewModel = AppUpdateViewModel(checker, mockk(relaxed = true), testDispatcher)
     }
 
     @After
@@ -64,7 +67,7 @@ class AppUpdateFlowTest {
         viewModel.dismiss()
         assertNull(viewModel.state.value.available)
 
-        val nextProcess = AppUpdateViewModel(checker, mockk(relaxed = true))
+        val nextProcess = AppUpdateViewModel(checker, mockk(relaxed = true), testDispatcher)
         nextProcess.checkOnLaunch(7)
         advanceUntilIdle()
         // Dismissal lives in memory: the next cold start offers again (no silent skip).

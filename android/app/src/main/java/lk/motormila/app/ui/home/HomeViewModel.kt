@@ -171,7 +171,7 @@ class HomeViewModel @Inject constructor(
      * forever. After [timeoutMs] with nothing loaded, flip to the error state
      * so the user gets a retry affordance instead of an eternal spinner.
      */
-    fun armStuckLoadWatchdog(timeoutMs: Long = 20_000L) {
+    fun armStuckLoadWatchdog(timeoutMs: Long = 12_000L) {
         viewModelScope.launch {
             kotlinx.coroutines.delay(timeoutMs)
             val s = _state.value

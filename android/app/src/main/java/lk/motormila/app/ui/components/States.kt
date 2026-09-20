@@ -77,19 +77,35 @@ fun Modifier.shimmer(enabled: Boolean = true): Modifier = composed {
 @Composable
 fun LoadingSkeletonCard(modifier: Modifier = Modifier) {
     val reduced = rememberReducedMotion()
+    // Bento-metrics placeholder: one headline figure + a 2×2 stat grid so the
+    // skeleton reads as the same layout that replaces it (no layout jump).
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(12.dp)
-            .semantics { contentDescription = "Loading listing" },
+            .padding(16.dp)
+            .semantics { contentDescription = "Loading market stats" },
     ) {
-        Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(28.dp)).shimmer(!reduced))
+        Box(Modifier.width(140.dp).height(14.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
         Spacer(Modifier.height(10.dp))
-        Box(Modifier.width(180.dp).height(16.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
-        Spacer(Modifier.height(6.dp))
-        Box(Modifier.width(120.dp).height(14.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
+        Box(Modifier.width(200.dp).height(34.dp).clip(RoundedCornerShape(12.dp)).shimmer(!reduced))
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            repeat(4) {
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                        .padding(10.dp),
+                ) {
+                    Box(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
+                    Spacer(Modifier.height(6.dp))
+                    Box(Modifier.width(28.dp).height(12.dp).clip(RoundedCornerShape(999.dp)).shimmer(!reduced))
+                }
+            }
+        }
     }
 }
 
@@ -170,6 +186,26 @@ fun ErrorState(
     val isAuthError = message.contains("401", ignoreCase = true) ||
         message.contains("Unauthorized", ignoreCase = true) ||
         message.contains("Authentication", ignoreCase = true)
+    // Server fault (5xx / reachability) reads very differently from a client
+    // auth problem — give the user a calm, accurate message instead of a raw
+    // exception string.
+    val isServerError = message.contains("500", ignoreCase = true) ||
+        message.contains("502", ignoreCase = true) ||
+        message.contains("503", ignoreCase = true) ||
+        message.contains("reach", ignoreCase = true) ||
+        message.contains("Taking too long", ignoreCase = true) ||
+        message.contains("Couldn't refresh", ignoreCase = true)
+
+    val heading = when {
+        isAuthError -> "Session Required"
+        isServerError -> "Motormila is unreachable"
+        else -> "Something went wrong"
+    }
+    val body = when {
+        isAuthError -> "Sign in with your Motormila account to browse vehicle intelligence and market data."
+        isServerError -> "The Motormila service isn't responding right now. It may be waking up or briefly down — try again in a moment."
+        else -> message
+    }
 
     Column(
         modifier = modifier
@@ -180,10 +216,9 @@ fun ErrorState(
     ) {
         Icon(Icons.Filled.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(12.dp))
-        Text(if (isAuthError) "Session Required" else "Something went wrong", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(heading, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Spacer(Modifier.height(4.dp))
-        Text(
-            if (isAuthError) "Sign in with your Motormila account to browse vehicle intelligence and market data." else message,
+        Text(body,
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

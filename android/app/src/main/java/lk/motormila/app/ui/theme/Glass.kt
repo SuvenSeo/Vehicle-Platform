@@ -21,7 +21,7 @@ val MotormilaGlassFillStrong = Color(0xCC0F0F12)
 val MotormilaGlassHighlight = Color(0x28FFFFFF)
 
 /** Pill used by buttons, chips, search field, and badges. */
-val MotormilaPill = RoundedCornerShape(50)
+val MotormilaPill = MotormilaRadius.pill
 
 /** Sheet / dialog top corners. */
 val MotormilaSheetShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)

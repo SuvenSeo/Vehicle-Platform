@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import lk.motormila.app.core.updates.AppUpdateChecker
+import lk.motormila.app.di.IoDispatcher
 
 /**
  * All checker I/O is confined to [AppUpdateViewModel] via withContext(Dispatchers.IO)
@@ -34,6 +35,8 @@ import lk.motormila.app.core.updates.AppUpdateChecker
 class AppUpdateViewModel @Inject constructor(
     private val updateChecker: AppUpdateChecker,
     @ApplicationContext private val appContext: Context,
+    /** Injected per the app-wide convention so the flow is testable/deterministic. */
+    @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
 
     data class UiState(
@@ -86,7 +89,7 @@ class AppUpdateViewModel @Inject constructor(
         viewModelScope.launch {
             // Blocking network + disk I/O stays off the main thread.
             val apk = runCatching {
-                withContext(Dispatchers.IO) { updateChecker.downloadApk(update.apkUrl, appContext) }
+                withContext(io) { updateChecker.downloadApk(update.apkUrl, appContext) }
             }.getOrElse {
                 if (it is kotlinx.coroutines.CancellationException) throw it
                 null
@@ -107,7 +110,7 @@ class AppUpdateViewModel @Inject constructor(
             // Any failure (network down, parse error, unexpected exception) is a
             // silent "up to date"; the update flow can never crash the app.
             val result = runCatching {
-                withContext(Dispatchers.IO) { updateChecker.check(currentVersionCode) }
+                withContext(io) { updateChecker.check(currentVersionCode) }
             }.getOrElse {
                 if (it is kotlinx.coroutines.CancellationException) throw it
                 AppUpdateChecker.CheckResult.UpToDate

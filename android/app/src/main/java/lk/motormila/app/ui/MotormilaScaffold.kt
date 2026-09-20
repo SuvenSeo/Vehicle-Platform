@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -60,8 +61,12 @@ import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
 import lk.motormila.app.ui.theme.applePress
+import lk.motormila.app.ui.theme.appleTween
 import lk.motormila.app.ui.theme.fluidSpring
 import lk.motormila.app.ui.theme.liquidGlass
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.unit.Dp
 
 data class BottomNavItem(
     val route: String,
@@ -91,7 +96,9 @@ fun MotormilaScaffold(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     var showAIChat by rememberSaveable { mutableStateOf(false) }
-    val dockShape = RoundedCornerShape(32.dp)
+    // Fully-rounded capsule dock (50% corners) — reads as one smooth pill,
+    // matching the liquid-glass FAB stack and the app's rounded design language.
+    val dockShape = MotormilaPill
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -101,13 +108,18 @@ fun MotormilaScaffold(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+                        .padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
                 ) {
                     NavigationBar(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .liquidGlass(dockShape, fill = MotormilaGlassFill)
-                            .clip(dockShape),
+                            .clip(dockShape)
+                            .liquidGlass(
+                                dockShape,
+                                fill = MotormilaGlassFillStrong,
+                                border = Color(0x330A7AFF),
+                                specular = true,
+                            ),
                         containerColor = Color.Transparent,
                         contentColor = Color.White,
                         tonalElevation = 0.dp,
@@ -119,14 +131,25 @@ fun MotormilaScaffold(
                             val interaction = remember(item.route) { MutableInteractionSource() }
 
                             val iconScale by animateFloatAsState(
-                                targetValue = if (isSelected) 1.12f else 1.0f,
+                                targetValue = if (isSelected) 1.1f else 1.0f,
                                 animationSpec = fluidSpring(),
                                 label = "nav-icon-scale",
                             )
+                            val iconLift by animateDpAsState(
+                                targetValue = if (isSelected) (-1).dp else 0.dp,
+                                animationSpec = fluidSpring(),
+                                label = "nav-icon-lift",
+                            )
+                            val tint by animateColorAsState(
+                                targetValue = if (isSelected) MotormilaPrimaryBright else MotormilaSecondaryText,
+                                animationSpec = appleTween(220),
+                                label = "nav-tint",
+                            )
+                            val liftPx = with(LocalDensity.current) { iconLift.toPx() }
 
                             // The M3 NavigationBarItem indicator is a rounded
-                            // rectangle by default; wrapped in a pill clip it
-                            // matches the dock's fully-round shape language.
+                            // rectangle by default; the pill clip keeps it in the
+                            // dock's fully-round shape language.
                             NavigationBarItem(
                                 selected = isSelected,
                                 onClick = { onNavigate(item.route) },
@@ -138,8 +161,12 @@ fun MotormilaScaffold(
                                             .graphicsLayer {
                                                 scaleX = iconScale
                                                 scaleY = iconScale
+                                                translationY = liftPx
                                             },
                                     ) {
+                                        val iconSlot: @Composable () -> Unit = {
+                                            Icon(item.icon, contentDescription = null, tint = tint)
+                                        }
                                         if (count != null && count > 0) {
                                             BadgedBox(
                                                 badge = {
@@ -157,18 +184,16 @@ fun MotormilaScaffold(
                                                         )
                                                     }
                                                 },
-                                            ) {
-                                                Icon(item.icon, contentDescription = null)
-                                            }
+                                            ) { iconSlot() }
                                         } else {
-                                            Icon(item.icon, contentDescription = null)
+                                            iconSlot()
                                         }
                                     }
                                 },
                                 label = {
                                     Text(
                                         text = item.label,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                                         fontSize = 11.sp,
                                     )
                                 },
@@ -180,7 +205,7 @@ fun MotormilaScaffold(
                                     unselectedTextColor = MotormilaSecondaryText,
                                 ),
                                 modifier = Modifier
-                                    .applePress(interaction, pressedScale = 0.94f)
+                                    .applePress(interaction, pressedScale = 0.92f)
                                     .semantics { contentDescription = item.label },
                             )
                         }
