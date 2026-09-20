@@ -32,7 +32,10 @@ RELEASE_MANIFEST_URL = (
 )
 RELEASES_CACHE_TTL_SECONDS = 300  # 5 min
 
-_cache: dict[str, Any] = {"fetched_at": 0.0, "payload": None}
+# ``fetched_at`` is None until a fetch actually happens. A numeric 0.0
+# sentinel would look "fresh" on any host whose monotonic clock is younger
+# than the TTL (freshly booted CI VMs), pinning an empty payload for 5 min.
+_cache: dict[str, Any] = {"fetched_at": None, "payload": None}
 
 
 def _env(name: str) -> Optional[str]:
@@ -55,9 +58,17 @@ def _env_payload() -> Optional[dict]:
     }
 
 
+def _cache_is_fresh(now: float) -> bool:
+    """True only when a payload was actually fetched and is still within TTL."""
+    fetched_at = _cache["fetched_at"]
+    if fetched_at is None:
+        return False
+    return (now - fetched_at) < RELEASES_CACHE_TTL_SECONDS
+
+
 def _github_payload() -> Optional[dict]:
     now = time.monotonic()
-    if now - _cache["fetched_at"] < RELEASES_CACHE_TTL_SECONDS:
+    if _cache_is_fresh(now):
         return _cache["payload"]
 
     payload = _manifest_payload()

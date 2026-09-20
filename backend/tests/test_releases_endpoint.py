@@ -22,11 +22,16 @@ from app.api.v1.endpoints import releases
 
 @pytest.fixture(autouse=True)
 def _reset_releases_cache():
-    """Isolate the module-level release cache between tests."""
-    releases._cache["fetched_at"] = 0.0
+    """Isolate the module-level release cache between tests (None = never fetched).
+
+    Resetting ``fetched_at`` to 0.0 would leave the cache looking fresh on a
+    host whose monotonic clock is younger than the TTL — exactly what a fresh
+    CI runner is — so the endpoint skipped the stubbed GitHub fallback.
+    """
+    releases._cache["fetched_at"] = None
     releases._cache["payload"] = None
     yield
-    releases._cache["fetched_at"] = 0.0
+    releases._cache["fetched_at"] = None
     releases._cache["payload"] = None
 
 
@@ -62,7 +67,7 @@ def test_releases_api_payload_does_not_raise_when_network_fails(monkeypatch):
     # Must return (not raise) so the caller's except-clause stays a safety net.
     assert releases._releases_api_payload() is None
     assert releases._cache["payload"] is None
-    assert releases._cache["fetched_at"] > 0
+    assert releases._cache["fetched_at"] is not None
 
 
 def test_releases_api_payload_parses_latest_android_release(monkeypatch):
@@ -158,3 +163,21 @@ def test_release_endpoint_falls_back_to_github_payload(monkeypatch, client):
     assert body["apk_url"] == "https://example.test/gh.apk"
     assert body["source"] == "github"
     assert body["min_supported_version_code"] == 0
+
+
+def test_cold_cache_is_not_fresh_on_a_young_monotonic_clock(monkeypatch):
+    """Regression: an empty cache must not look fresh just because the host
+    booted less than RELEASES_CACHE_TTL_SECONDS ago (fresh CI runners)."""
+
+    monkeypatch.setattr(releases.time, "monotonic", lambda: 5.0)
+    monkeypatch.setattr(releases, "_manifest_payload", lambda: None)
+    monkeypatch.setattr(
+        releases,
+        "_releases_api_payload",
+        lambda: {"version": "1.6.0", "source": "github"},
+    )
+
+    payload = releases._github_payload()
+
+    assert payload is not None
+    assert payload["version"] == "1.6.0"
