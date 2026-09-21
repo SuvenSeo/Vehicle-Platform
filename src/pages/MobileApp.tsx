@@ -28,11 +28,11 @@ import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 const WAITLIST_KEY = "motormila.mobile_waitlist";
 
 /** Live sideload release — keep in step with android/app/build.gradle.kts + GitHub Releases. */
-const APK_VERSION = "1.5.4";
+const APK_VERSION = "1.5.5";
 const APK_SIZE = "16.9 MB";
 const APK_URL =
-  "https://github.com/SuvenSeo/Vehicle-Platform/releases/download/android-v1.5.4/motormila-1.5.4.apk";
-const APK_SHA256 = "63489f1bc1aa1fa51f3b3289d412fd0919325ad06ea7c552fde2a5799e0a984b";
+  "https://github.com/SuvenSeo/Vehicle-Platform/releases/download/android-v1.5.5/motormila-1.5.5.apk";
+const APK_SHA256 = "208923c4883f725d78fec3edd613ad8a987a47e45f76f704e107978c17038ee6";
 
 type Feature = {
   icon: React.ComponentType<{ className?: string }>;
