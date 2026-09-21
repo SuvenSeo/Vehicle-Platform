@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,6 +88,8 @@ import lk.motormila.app.ui.theme.MotormilaOutline
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.applePress
+import lk.motormila.app.ui.theme.rememberHaptics
 
 /** Data representation for Trending Models rail. */
 data class TrendingModelItem(
@@ -132,6 +135,8 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val live by viewModel.liveStrip.collectAsStateWithLifecycle()
+    val haptics = rememberHaptics()
+    val reducedMotion = rememberReducedMotion()
 
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -291,11 +296,19 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         items(live, key = { it.id }) { l ->
+                            val tickerInteraction = remember(l.id) { MutableInteractionSource() }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(999.dp))
-                                    .clickable { onListingClick(l.id) }
+                                    .applePress(tickerInteraction, pressedScale = 0.95f)
+                                    .clickable(
+                                        interactionSource = tickerInteraction,
+                                        indication = null,
+                                    ) {
+                                        if (!reducedMotion) haptics.tick()
+                                        onListingClick(l.id)
+                                    }
                                     .padding(end = 12.dp),
                             ) {
                                 LivePulse()

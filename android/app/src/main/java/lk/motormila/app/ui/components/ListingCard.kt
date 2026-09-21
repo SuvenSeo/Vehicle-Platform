@@ -138,7 +138,7 @@ fun ListingCard(
                 }
                 IconButton(
                     onClick = {
-                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onWatchToggle()
                     },
                     modifier = Modifier

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
@@ -67,6 +68,7 @@ import lk.motormila.app.ui.theme.MotormilaOnSurface
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.motormilaReveal
 import lk.motormila.app.ui.theme.rememberHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -201,6 +203,9 @@ fun BestPicksScreen(
                                     onWatch = {
                                         viewModel.onEvent(BestPicksUiEvent.ToggleWatch(listing))
                                     },
+                                    modifier = Modifier.motormilaReveal(
+                                        delayMillis = (index % 8) * 45,
+                                    ),
                                 )
                             }
                         }
@@ -208,7 +213,7 @@ fun BestPicksScreen(
                             item { LoadingSkeletonCard() }
                         }
                     } else {
-                        items(state.freePicks, key = { it.id }) { listing ->
+                        itemsIndexed(state.freePicks, key = { _, it -> it.id }) { index, listing ->
                             PickCard(
                                 listing = listing,
                                 watched = state.watchedIds.contains(listing.id),
@@ -219,6 +224,9 @@ fun BestPicksScreen(
                                 onWatch = {
                                     viewModel.onEvent(BestPicksUiEvent.ToggleWatch(listing))
                                 },
+                                modifier = Modifier.motormilaReveal(
+                                    delayMillis = (index % 8) * 45,
+                                ),
                             )
                         }
                         item { PicksUpgradeStrip() }
@@ -421,12 +429,14 @@ private fun PickCard(
     watched: Boolean,
     onClick: () -> Unit,
     onWatch: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     ListingCard(
         listing = listing,
         isWatched = watched,
         onClick = onClick,
         onWatchToggle = onWatch,
+        modifier = modifier,
     )
 }
 

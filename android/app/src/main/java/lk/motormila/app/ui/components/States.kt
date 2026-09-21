@@ -46,7 +46,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Shimmer modifier: 1200ms sweep; static fill when reduced motion. */
+import lk.motormila.app.ui.theme.SHIMMER_MS
+
+/** Shimmer modifier: SHIMMER_MS sweep; static fill when reduced motion. */
 fun Modifier.shimmer(enabled: Boolean = true): Modifier = composed {
     if (!enabled) {
         return@composed this.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -55,7 +57,7 @@ fun Modifier.shimmer(enabled: Boolean = true): Modifier = composed {
     val offset by transition.animateFloat(
         initialValue = -1f,
         targetValue = 2f,
-        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(SHIMMER_MS, easing = LinearEasing), RepeatMode.Restart),
         label = "shimmer-x",
     )
     var size = androidx.compose.runtime.remember { IntSize.Zero }

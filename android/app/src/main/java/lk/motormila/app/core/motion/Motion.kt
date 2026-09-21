@@ -1,6 +1,7 @@
 package lk.motormila.app.core.motion
 
 import android.provider.Settings
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -27,7 +28,10 @@ fun rememberReducedMotion(): Boolean {
     }
 }
 
+/** Apple smooth easing cubic (0.16, 1, 0.3, 1). Local copy so core never depends on ui.theme. */
+val CoreAppleEasing = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
+
 /** Tween that snaps instantly when reduced motion is requested. */
 @Composable
 fun <T> motionSpec(reducedMotion: Boolean, durationMillis: Int = 300): FiniteAnimationSpec<T> =
-    if (reducedMotion) snap() else tween(durationMillis)
+    if (reducedMotion) snap() else tween(durationMillis, easing = CoreAppleEasing)
