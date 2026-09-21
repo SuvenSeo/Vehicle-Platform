@@ -2,7 +2,6 @@ package lk.motormila.app.work
 
 import android.app.PendingIntent
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -13,8 +12,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
 import lk.motormila.app.core.notifications.NotificationHelper
 import lk.motormila.app.data.local.db.MotormilaDatabase
@@ -30,15 +31,28 @@ import lk.motormila.app.fcm.listingTapPendingIntent
  *
  * Schedule with [enqueue] (12 h interval + immediate one-shot,
  * network-required, exponential backoff); [cancel] on logout.
+ *
+ * Dependencies come from a Hilt entry point (NOT @HiltWorker): the generated
+ * worker factory binding proved unreliable on-device (reflection fallback →
+ * NoSuchMethodException), while a plain (Context, WorkerParameters)
+ * constructor instantiates under every factory.
  */
-@HiltWorker
-class PriceAlertSyncWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
-    private val api: MotormilaApiService,
-    private val db: MotormilaDatabase,
-    private val notifications: NotificationHelper,
+class PriceAlertSyncWorker(
+    context: Context,
+    params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface AlertWorkerEntryPoint {
+        fun api(): MotormilaApiService
+        fun db(): MotormilaDatabase
+        fun notifications(): NotificationHelper
+    }
+
+    private val entryPoint: AlertWorkerEntryPoint by lazy {
+        EntryPointAccessors.fromApplication(applicationContext, AlertWorkerEntryPoint::class.java)
+    }
 
     companion object {
         const val UNIQUE_NAME = "price_alert_sync"
@@ -72,6 +86,9 @@ class PriceAlertSyncWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result {
+        val api = entryPoint.api()
+        val db = entryPoint.db()
+        val notifications = entryPoint.notifications()
         val alerts = runCatching { db.alertDao().getAll().filter { it.active } }.getOrElse { emptyList() }
         if (alerts.isEmpty()) return Result.success()
         val match = runCatching { api.matchAlerts() }.getOrElse { return Result.retry() }

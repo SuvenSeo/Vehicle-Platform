@@ -2,9 +2,14 @@
 
 Resolution order for GET /releases/app:
 1. APP_RELEASE_* env vars — explicit override (pin / rollback / air-gapped).
-2. GitHub API — latest release with an `android-v*` tag carrying an APK asset.
-   Cached in-process for RELEASES_CACHE_TTL_SECONDS so many app cold-starts
-   don't chew through the unauthenticated API budget.
+2. The release manifest published with the site itself
+   (``/app/latest-release.json`` on the public web origin — written by the
+   android-release workflow alongside the APK). The source repository is
+   private, so nothing here defaults to api.github.com/raw.githubusercontent.
+3. GitHub Releases API — only when GITHUB_RELEASES_REPO is explicitly set
+   (self-hosters with a public mirror). Cached in-process for
+   RELEASES_CACHE_TTL_SECONDS so many app cold-starts don't chew through the
+   unauthenticated API budget.
 
 Always returns 200; unknown fields are null when no release is published, so
 installed apps treat the response as "up to date" and move on.
@@ -24,11 +29,16 @@ log = structlog.get_logger()
 
 router = APIRouter()
 
-GITHUB_REPO = os.getenv("GITHUB_RELEASES_REPO", "SuvenSeo/Vehicle-Platform")
-GITHUB_API_RELEASES = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
+PUBLIC_APP_ORIGIN = os.getenv("PUBLIC_APP_ORIGIN", "https://motormila.vercel.app").rstrip("/")
 RELEASE_MANIFEST_URL = (
-    "https://raw.githubusercontent.com/"
-    f"{GITHUB_REPO}/main/android/latest-release.json"
+    os.getenv("APP_RELEASE_MANIFEST_URL", "").strip()
+    or f"{PUBLIC_APP_ORIGIN}/app/latest-release.json"
+)
+# Opt-in only: unset by default so the private source repo is never queried
+# (or named) from the public API.
+GITHUB_REPO = os.getenv("GITHUB_RELEASES_REPO", "").strip()
+GITHUB_API_RELEASES = (
+    f"https://api.github.com/repos/{GITHUB_REPO}/releases" if GITHUB_REPO else ""
 )
 RELEASES_CACHE_TTL_SECONDS = 300  # 5 min
 
@@ -73,7 +83,7 @@ def _github_payload() -> Optional[dict]:
 
     payload = _manifest_payload()
     try:
-        if payload is None:
+        if payload is None and GITHUB_API_RELEASES:
             payload = _releases_api_payload()
     except Exception as exc:  # noqa: BLE001 — never fail the endpoint
         log.warning("releases_github_fetch_failed", error=str(exc))
@@ -84,7 +94,8 @@ def _github_payload() -> Optional[dict]:
 
 
 def _manifest_payload() -> Optional[dict]:
-    """CI writes android/latest-release.json on every release — cheapest source."""
+    """The android-release workflow publishes /app/latest-release.json with the
+    site on every release — cheapest source, and it never names the repo."""
     try:
         req = urllib.request.Request(
             RELEASE_MANIFEST_URL,
@@ -106,7 +117,7 @@ def _manifest_payload() -> Optional[dict]:
             "apk_url": apk_url,
             "notes": None,
             "published_at": data.get("published_at"),
-            "source": "github-manifest",
+            "source": "site-manifest",
         }
     except Exception as exc:  # noqa: BLE001
         log.info("releases_manifest_unavailable", error=str(exc))

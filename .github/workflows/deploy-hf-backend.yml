@@ -44,6 +44,9 @@ jobs:
           # Wipe and replace with current backend folder (exclude local dev artifacts)
           rm -rf hf-space/*
           rsync -a backend/. hf-space/ \
+            --exclude=scripts/ \
+            --exclude=tests/ \
+            --exclude=.pytest_cache/ \
             --exclude=venv/ \
             --exclude=__pycache__/ \
             --exclude="*.pyc" \

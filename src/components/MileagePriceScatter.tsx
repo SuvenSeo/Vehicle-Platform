@@ -79,7 +79,7 @@ export const MileagePriceScatter = memo(function MileagePriceScatter({
                 fill: "hsl(var(--muted-foreground))",
                 fontSize: 10,
                 fontWeight: 600,
-                fontFamily: "Geist Mono",
+                fontFamily: "Nofex",
               }}
               tickFormatter={formatKm}
               label={{
@@ -89,7 +89,7 @@ export const MileagePriceScatter = memo(function MileagePriceScatter({
                 style: {
                   fill: "hsl(var(--muted-foreground))",
                   fontSize: 11,
-                  fontFamily: "Geist Mono",
+                  fontFamily: "Nofex",
                   fontWeight: 500,
                   letterSpacing: "0.02em",
                 },
@@ -105,7 +105,7 @@ export const MileagePriceScatter = memo(function MileagePriceScatter({
                 fill: "hsl(var(--muted-foreground))",
                 fontSize: 10,
                 fontWeight: 600,
-                fontFamily: "Geist Mono",
+                fontFamily: "Nofex",
               }}
               tickFormatter={(value: number) => `${(value / 1_000_000).toFixed(0)}M`}
               width={44}

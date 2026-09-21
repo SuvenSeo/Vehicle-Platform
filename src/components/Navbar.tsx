@@ -733,15 +733,6 @@ export function Navbar() {
 
             <div className="mt-2.5 flex items-center justify-between rounded-2xl border border-border px-3 py-2">
               <LocaleSwitcher compact />
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
-              >
-                {t("nav.github", "GitHub")}
-                <ArrowUpRight className="h-3 w-3" aria-hidden />
-              </a>
             </div>
           </div>
         </div>

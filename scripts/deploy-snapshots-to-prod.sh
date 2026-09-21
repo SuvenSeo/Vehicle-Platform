@@ -84,6 +84,30 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
+# 2b) Preserve the sideload APK + release manifest (/app/*) across deploys.
+#     They are gitignored (binary), so fresh CI checkouts don't have them;
+#     pull from the live site the same way the catalog fallback does.
+# ---------------------------------------------------------------------------
+APP_DIR="${ROOT}/public/app"
+mkdir -p "${APP_DIR}"
+for rel in latest-release.json; do
+  if [[ ! -s "${APP_DIR}/${rel}" ]]; then
+    curl -fsSL --max-time 30 -o "${APP_DIR}/${rel}" "https://motormila.vercel.app/app/${rel}" 2>/dev/null || true
+  fi
+done
+if [[ -s "${APP_DIR}/latest-release.json" ]]; then
+  APK_PATH="$(grep -o '/app/[^"]*\.apk' "${APP_DIR}/latest-release.json" | head -1 || true)"
+  if [[ -n "${APK_PATH}" ]]; then
+    APK_FILE="${APP_DIR}/$(basename "${APK_PATH}")"
+    if [[ ! -s "${APK_FILE}" ]]; then
+      echo "==> Fetching APK $(basename "${APK_PATH}") from live site…"
+      curl -fsSL --max-time 300 -o "${APK_FILE}" "https://motormila.vercel.app${APK_PATH}" || \
+        echo "WARN: could not preserve ${APK_PATH} from live site" >&2
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # 3) Validate every JSON file parses.
 # ---------------------------------------------------------------------------
 "${PY}" - "${SNAP_DIR}" <<'PY'

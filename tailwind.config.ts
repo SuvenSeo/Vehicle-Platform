@@ -15,11 +15,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        display: ['"Fraunces"', "Iowan Old Style", "Palatino Linotype", "Georgia", "serif"],
-        body: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        mono: ['"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
-        numeric: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        sans: ['"Nofex"', '"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        display: ['"Nofex"', '"Fraunces"', "Iowan Old Style", "Palatino Linotype", "Georgia", "serif"],
+        body: ['"Nofex"', '"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        mono: ['"Nofex"', '"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
+        numeric: ['"Nofex"', '"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
       },
       fontSize: {
         xs: ["0.75rem", { lineHeight: "1.5" }],

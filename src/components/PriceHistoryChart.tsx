@@ -190,13 +190,13 @@ export function PriceHistoryChart({
                     dataKey="label"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Nofex" }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Nofex" }}
                     tickFormatter={(value: number) => `${value.toFixed(1)}M`}
                     width={56}
                   />

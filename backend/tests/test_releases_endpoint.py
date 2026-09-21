@@ -83,6 +83,9 @@ def test_releases_api_payload_parses_latest_android_release(monkeypatch):
         }
     ]
     monkeypatch.setattr(
+        releases, "GITHUB_API_RELEASES", "https://api.github.com/repos/example/repo/releases"
+    )
+    monkeypatch.setattr(
         releases.urllib.request, "urlopen", lambda *_a, **_k: _FakeResponse(payload)
     )
 
@@ -140,7 +143,11 @@ def test_release_endpoint_stays_200_with_no_sources(monkeypatch, client):
 
 
 def test_release_endpoint_falls_back_to_github_payload(monkeypatch, client):
+    """GitHub Releases is an opt-in fallback: only used when a repo is set."""
     monkeypatch.delenv("APP_RELEASE_VERSION", raising=False)
+    monkeypatch.setattr(
+        releases, "GITHUB_API_RELEASES", "https://api.github.com/repos/example/repo/releases"
+    )
     monkeypatch.setattr(releases, "_manifest_payload", lambda: None)
     monkeypatch.setattr(
         releases,
@@ -170,6 +177,9 @@ def test_cold_cache_is_not_fresh_on_a_young_monotonic_clock(monkeypatch):
     booted less than RELEASES_CACHE_TTL_SECONDS ago (fresh CI runners)."""
 
     monkeypatch.setattr(releases.time, "monotonic", lambda: 5.0)
+    monkeypatch.setattr(
+        releases, "GITHUB_API_RELEASES", "https://api.github.com/repos/example/repo/releases"
+    )
     monkeypatch.setattr(releases, "_manifest_payload", lambda: None)
     monkeypatch.setattr(
         releases,
@@ -181,3 +191,19 @@ def test_cold_cache_is_not_fresh_on_a_young_monotonic_clock(monkeypatch):
 
     assert payload is not None
     assert payload["version"] == "1.6.0"
+
+def test_github_fallback_disabled_without_explicit_repo(monkeypatch, client):
+    """Privacy: the public API must not name or query the source repo by default."""
+    monkeypatch.delenv("APP_RELEASE_VERSION", raising=False)
+    monkeypatch.setattr(releases, "GITHUB_API_RELEASES", "")
+    monkeypatch.setattr(releases, "_manifest_payload", lambda: None)
+    monkeypatch.setattr(
+        releases,
+        "_releases_api_payload",
+        lambda: (_ for _ in ()).throw(AssertionError("GitHub API must not be queried")),
+    )
+
+    response = client.get("/api/v1/releases/app")
+
+    assert response.status_code == 200
+    assert response.json()["source"] == "none"

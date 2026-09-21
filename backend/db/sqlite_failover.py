@@ -19,9 +19,9 @@ re-checks every ``SQLITE_FAILOVER_CHECK_SECONDS`` (default 120s):
     automatically (no manual Space restart needed at month reset).
 
 Download sources are tried in order: ``MERGED_SQLITE_URLS`` (comma-separated),
-then ``MERGED_SQLITE_URL``, then the built-in defaults — the public Vercel
-snapshot copy first, the GitHub ``merged-db`` release last (that repo is
-private, so anonymous downloads of the release asset 404).
+then ``MERGED_SQLITE_URL``, then the built-in default — the public copy
+deployed next to the site's snapshot JSON. The source repository is private,
+so no repo URL is baked into this file (it is synced to a public HF Space).
 """
 
 from __future__ import annotations
@@ -42,13 +42,10 @@ from db import session as db_session
 
 logger = structlog.get_logger()
 
-DEFAULT_MERGED_DB_URL = (
-    "https://github.com/SuvenSeo/Vehicle-Platform/releases/download/"
-    "merged-db/merged-autolens.db.gz"
-)
-# Public copy deployed next to the snapshot JSON by manus-to-live.yml. Unlike
-# the GitHub release (private repo -> anonymous 404) this URL always works
-# from the HF Space without credentials.
+# Public copy deployed next to the snapshot JSON by the live-publish pipeline.
+# This URL must stay reachable WITHOUT credentials: the failover download is
+# anonymous and the old release-asset mirror went away when the source
+# repository was made private.
 VERCEL_MERGED_DB_URL = (
     "https://motormila.vercel.app/snapshots/latest/merged-autolens.db.gz"
 )
@@ -165,9 +162,8 @@ def _candidate_sources() -> list[str]:
     single = os.getenv("MERGED_SQLITE_URL", "").strip()
     if single and single not in urls:
         urls.append(single)
-    for default in (VERCEL_MERGED_DB_URL, DEFAULT_MERGED_DB_URL):
-        if default not in urls:
-            urls.append(default)
+    if VERCEL_MERGED_DB_URL not in urls:
+        urls.append(VERCEL_MERGED_DB_URL)
     return urls
 
 

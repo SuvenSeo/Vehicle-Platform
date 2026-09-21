@@ -1,7 +1,6 @@
 package lk.motormila.app.work
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -12,8 +11,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import java.util.concurrent.TimeUnit
 import lk.motormila.app.data.local.db.MotormilaDatabase
 import lk.motormila.app.data.local.db.entity.DistrictStatEntity
@@ -25,14 +26,27 @@ import lk.motormila.app.data.remote.mapper.toEntity
  * Periodic snapshot refresher: warms district prices + price drops into Room
  * so the home screen renders instantly offline.
  * 6 h interval + immediate one-shot, network-required, exponential backoff.
+ *
+ * Dependencies come from a Hilt entry point (NOT @HiltWorker): the generated
+ * worker factory binding proved unreliable on-device (reflection fallback →
+ * NoSuchMethodException), while a plain (Context, WorkerParameters)
+ * constructor instantiates under every factory.
  */
-@HiltWorker
-class SnapshotRefreshWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted params: WorkerParameters,
-    private val api: MotormilaApiService,
-    private val db: MotormilaDatabase,
+class SnapshotRefreshWorker(
+    context: Context,
+    params: WorkerParameters,
 ) : CoroutineWorker(context, params) {
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface SnapshotWorkerEntryPoint {
+        fun api(): MotormilaApiService
+        fun db(): MotormilaDatabase
+    }
+
+    private val entryPoint: SnapshotWorkerEntryPoint by lazy {
+        EntryPointAccessors.fromApplication(applicationContext, SnapshotWorkerEntryPoint::class.java)
+    }
 
     companion object {
         const val UNIQUE_NAME = "snapshot_refresh"
@@ -65,6 +79,8 @@ class SnapshotRefreshWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result {
+        val api = entryPoint.api()
+        val db = entryPoint.db()
         return try {
             val now = System.currentTimeMillis()
             runCatching {

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import lk.motormila.app.ui.theme.SHIMMER_MS
+import lk.motormila.app.ui.theme.MotormilaOnSurface
 
 /** Shimmer modifier: SHIMMER_MS sweep; static fill when reduced motion. */
 fun Modifier.shimmer(enabled: Boolean = true): Modifier = composed {
@@ -162,7 +163,13 @@ fun EmptyState(
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(56.dp))
         Spacer(Modifier.height(12.dp))
-        Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, textAlign = TextAlign.Center)
+        Text(
+            title,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            color = MotormilaOnSurface,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(4.dp))
         Text(body, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         if (ctaLabel != null && onCta != null) {

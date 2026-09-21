@@ -16,7 +16,7 @@
       "destination": "/api/listing-og?id=:id"
     },
     {
-      "source": "/((?!api/|assets/|snapshots/).*)",
+      "source": "/((?!api/|assets/|snapshots/|app/).*)",
       "destination": "/index.html"
     }
   ],

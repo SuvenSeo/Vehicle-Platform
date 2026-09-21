@@ -166,6 +166,7 @@ fun ListingCard(
                         text = listing.displayName,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 14.sp,
+                        color = MotormilaOnSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),

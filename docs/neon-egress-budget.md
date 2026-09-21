@@ -68,10 +68,10 @@ is referenced anywhere anymore.
 > - The failover DB is now published **publicly next to the snapshots** at
 >   `https://motormila.vercel.app/snapshots/latest/merged-autolens.db.gz`
 >   by `manus-to-live.yml` (user/alert/event tables are wiped first; they are
->   empty by design). The GitHub `merged-db` release stays as a mirror, but
->   the repo is **private**, so anonymous downloads 404 — the Vercel copy is
->   the first built-in source. Override ordering with `MERGED_SQLITE_URLS`
->   (comma-separated) or `MERGED_SQLITE_URL` on the Space if this moves.
+>   empty by design). This Vercel copy is the ONLY built-in source — the
+>   source repo is **private**, so no repo URL is baked into the failover
+>   code. Override with `MERGED_SQLITE_URLS` (comma-separated) or
+>   `MERGED_SQLITE_URL` on the Space if this moves.
 > - The failover is a **self-healing monitor**, not a one-shot startup check:
 >   it re-probes every `SQLITE_FAILOVER_CHECK_SECONDS` (default 120 s),
 >   retries failed downloads, and **fails back to Neon automatically** once

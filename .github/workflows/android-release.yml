@@ -162,7 +162,7 @@ jobs:
           set -euo pipefail
           VERSION="${{ steps.apk.outputs.version }}"
           VERSION_CODE="$(grep -oP 'versionCode\s*=\s*\K[0-9]+' android/app/build.gradle.kts | head -1)"
-          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${{ steps.apk.outputs.name }}"
+          APK_URL="https://motormila.vercel.app/app/${{ steps.apk.outputs.name }}"
           PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           mkdir -p android
           cat > android/latest-release.json <<EOF
@@ -185,3 +185,23 @@ jobs:
             git push origin "HEAD:main"
             echo "Manifest pushed to main"
           fi
+
+      - name: Publish APK to the website (public/app)
+        working-directory: .
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "VERCEL_TOKEN not set; APK published as a private release asset only."
+            exit 0
+          fi
+          mkdir -p public/app
+          cp "android/dist/${{ steps.apk.outputs.name }}" "public/app/${{ steps.apk.outputs.name }}"
+          cp android/latest-release.json public/app/latest-release.json
+          # Whole-tree CLI deploy (same mechanism as snapshot publishes) so the
+          # gitignored APK ships; deploy-snapshots-to-prod.sh preserves the
+          # catalog from the live site automatically.
+          bash scripts/deploy-snapshots-to-prod.sh
