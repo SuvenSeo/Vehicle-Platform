@@ -25,6 +25,8 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
  * Logging: BODY in debug, NONE in release. JSON: ignoreUnknownKeys +
  * coerceInputValues + explicitNulls=false so backend additions never crash decode.
  */
+private const val SNAPSHOT_BASE_URL = "https://motormila.vercel.app/snapshots/latest/"
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
@@ -91,9 +93,5 @@ object NetworkModule {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(SnapshotApiService::class.java)
-    }
-
-    companion object {
-        const val SNAPSHOT_BASE_URL = "https://motormila.vercel.app/snapshots/latest/"
     }
 }

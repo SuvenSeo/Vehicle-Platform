@@ -183,7 +183,9 @@ fun MotormilaScaffold(
                                     )
                                     .semantics {
                                         contentDescription = item.label
-                                        selected = isSelected
+                                        // Qualified: the scaffold's own `selected`
+                                        // route param shadows the accessor.
+                                        this.selected = isSelected
                                     }
                                     .padding(vertical = 2.dp),
                             ) {
