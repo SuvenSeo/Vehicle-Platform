@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import lk.motormila.app.BuildConfig
 import lk.motormila.app.core.network.AuthInterceptor
 import lk.motormila.app.data.remote.MotormilaApiService
+import lk.motormila.app.data.remote.SnapshotApiService
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -71,4 +72,28 @@ object NetworkModule {
     @Singleton
     fun provideApi(retrofit: Retrofit): MotormilaApiService =
         retrofit.create(MotormilaApiService::class.java)
+
+    /**
+     * Static snapshot fallback (public Vercel JSON, rebuilt by the
+     * restore-catalog workflow). Separate client WITHOUT the auth
+     * interceptor — these files are public and must load logged-out.
+     */
+    @Provides
+    @Singleton
+    fun provideSnapshotApi(json: Json): SnapshotApiService {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(25, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
+            .build()
+        return Retrofit.Builder()
+            .baseUrl(SNAPSHOT_BASE_URL)
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(SnapshotApiService::class.java)
+    }
+
+    companion object {
+        const val SNAPSHOT_BASE_URL = "https://motormila.vercel.app/snapshots/latest/"
+    }
 }

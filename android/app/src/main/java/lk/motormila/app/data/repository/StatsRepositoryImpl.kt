@@ -14,6 +14,8 @@ import lk.motormila.app.data.local.db.MotormilaDatabase
 import lk.motormila.app.data.local.db.entity.DistrictStatEntity
 import lk.motormila.app.data.local.db.entity.StatsCacheEntity
 import lk.motormila.app.data.remote.MotormilaApiService
+import lk.motormila.app.data.remote.SnapshotApiService
+import lk.motormila.app.core.calc.OfflineCalculators
 import lk.motormila.app.data.remote.dto.ChargingStationsDto
 import lk.motormila.app.data.remote.dto.GeoDto
 import lk.motormila.app.data.remote.dto.HybridBandsDto
@@ -60,10 +62,13 @@ import lk.motormila.app.domain.repository.StatsRepository
 /**
  * Stats: network-first with a 15-min JSON cache (stats_cache) for summary;
  * district prices mirrored into district_stats for offline map rendering.
+ * Every read below falls back to the public Vercel snapshots when the live
+ * API throws (Neon outage) — see [withSnapshotFallback].
  */
 @Singleton
 class StatsRepositoryImpl @Inject constructor(
     private val api: MotormilaApiService,
+    private val snapshots: SnapshotApiService,
     private val db: MotormilaDatabase,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : StatsRepository {
@@ -76,7 +81,10 @@ class StatsRepositoryImpl @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun summary(): StatsSummary = withContext(io) {
-        val fresh = api.statsSummary().toDomain()
+        val fresh = withSnapshotFallback(
+            live = { api.statsSummary().toDomain() },
+            snapshot = { snapshots.statsSummary().toDomain() },
+        )
         db.statsCacheDao().put(
             StatsCacheEntity(SUMMARY_KEY, json.encodeToString(fresh.toCache()), System.currentTimeMillis()),
         )
@@ -92,7 +100,10 @@ class StatsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insights(): Insights = withContext(io) {
-        api.insights().toDomain()
+        withSnapshotFallback(
+            live = { api.insights().toDomain() },
+            snapshot = { snapshots.insights().toDomain() },
+        )
     }
 
     override suspend fun trends(make: String?, model: String?, condition: String?, district: String?, months: Int): TrendSeries =
@@ -107,12 +118,18 @@ class StatsRepositoryImpl @Inject constructor(
         }
 
     override suspend fun priceIndex(): PriceIndex = withContext(io) {
-        api.priceIndex().toDomain()
+        withSnapshotFallback(
+            live = { api.priceIndex().toDomain() },
+            snapshot = { snapshots.priceIndex().toDomain() },
+        )
     }
 
     override suspend fun districtPrices(): List<DistrictStat> = withContext(io) {
         val now = System.currentTimeMillis()
-        val dtos = api.districtPrices().points
+        val dtos = withSnapshotFallback(
+            live = { api.districtPrices().points },
+            snapshot = { snapshots.districtPrices().points },
+        )
         db.statsCacheDao().upsertDistricts(
             dtos.map {
                 DistrictStatEntity(it.district, it.count, it.avgPriceLkr, it.medianPriceLkr, now)
@@ -145,15 +162,24 @@ class StatsRepositoryImpl @Inject constructor(
         }
 
     override suspend fun districtVelocity(): List<DistrictVelocity> = withContext(io) {
-        api.districtVelocity().points.map { it.toDomain() }
+        withSnapshotFallback(
+            live = { api.districtVelocity().points.map { it.toDomain() } },
+            snapshot = { snapshots.districtVelocity().points.map { it.toDomain() } },
+        )
     }
 
     override suspend fun priceDrops(days: Int, limit: Int): List<PriceDrop> = withContext(io) {
-        api.getPriceDrops(days).items.take(limit).map { it.toDomain() }
+        withSnapshotFallback(
+            live = { api.getPriceDrops(days).items.take(limit).map { it.toDomain() } },
+            snapshot = { snapshots.priceDrops().items.take(limit).map { it.toDomain() } },
+        )
     }
 
     override suspend fun fuelMix(): List<FuelMixBucket> = withContext(io) {
-        val rows = api.fuelMix().buckets
+        val rows = withSnapshotFallback(
+            live = { api.fuelMix().buckets },
+            snapshot = { snapshots.fuelMix().buckets },
+        )
         val total = rows.sumOf { it.count }.coerceAtLeast(1)
         rows.map { it.toDomain(total) }
     }
@@ -173,7 +199,11 @@ class StatsRepositoryImpl @Inject constructor(
             val items = runCatching {
                 api.searchListings(sort = "newest", page = 1, size = limit.coerceIn(1, 50))
                     .items.map { it.toDomain() }
-            }.getOrNull().orEmpty()
+            }.getOrElse {
+                runCatching {
+                    snapshots.liveMarket().latestListings.take(limit.coerceIn(1, 50)).map { it.toDomain() }
+                }.getOrNull().orEmpty()
+            }
             emit(items)
             delay(60_000)
         }
@@ -196,9 +226,12 @@ class StatsRepositoryImpl @Inject constructor(
     // ErrorMapper -> AppError (401/403/404/422/429/503 covered). Helpers never
     // synthesize fake payloads or 500s; list helpers return raw DTO lists.
 
-    /** GET /stats/hybrid-bands — hybrid price bands. */
+    /** GET /stats/hybrid-bands — hybrid price bands (snapshot fallback). */
     suspend fun hybridBands(): HybridBandsDto = withContext(io) {
-        api.hybridBands()
+        withSnapshotFallback(
+            live = { api.hybridBands() },
+            snapshot = { snapshots.hybridBands() },
+        )
     }
 
     /** GET /stats/source-quality — per-source listing quality rows. */
@@ -268,9 +301,11 @@ class StatsRepositoryImpl @Inject constructor(
         api.macro()
     }
 
-    /** GET /calculators/permits — permit price list. */
+    /** GET /calculators/permits — permit price list (snapshot, then benchmarks). */
     suspend fun permits(): List<PermitDto> = withContext(io) {
-        api.permits()
+        runCatching { api.permits() }
+            .getOrElse { snapshots.permits().items }
+            .ifEmpty { OfflineCalculators.benchmarkPermits() }
     }
 
     /** GET /calculators/vehicle-news — vehicle news items. */

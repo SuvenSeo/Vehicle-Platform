@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Bug, Lightbulb, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppPreferences } from "@/lib/appPreferences";
+
+import { OPEN_FEEDBACK_EVENT } from "@/lib/feedbackEvents";
 
 const LOCAL_FEEDBACK_KEY = "autolens.feedback.offline.v1";
 
@@ -33,6 +35,12 @@ export function FeedbackWidget() {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener(OPEN_FEEDBACK_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_FEEDBACK_EVENT, handleOpen);
+  }, []);
 
   const categoryOptions = useMemo(
     () =>
@@ -77,7 +85,7 @@ export function FeedbackWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-primary active:scale-95 max-sm:hidden"
+        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-card/90 text-muted-foreground shadow-soft-lg backdrop-blur transition-all duration-200 hover:border-primary/40 hover:text-primary active:scale-95 max-sm:hidden"
         aria-label={t("feedback.sendAria", "Send feedback")}
         title={t("feedback.title", "Send Feedback")}
       >

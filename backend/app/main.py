@@ -14,7 +14,11 @@ from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_d
 from app.services.digest_flush_scheduler import start_digest_flush_scheduler, stop_digest_flush_scheduler
 from db import session as db_session
 from db.session import init_db
-from db.sqlite_failover import start_sqlite_failover_background
+from db.sqlite_failover import (
+    failover_active,
+    failover_enabled,
+    start_sqlite_failover_background,
+)
 
 from .api.v1.api import api_router
 
@@ -95,6 +99,19 @@ class BodySizeLimitMiddleware:
         await response(scope, receive, send)
 
 
+def _failover_can_take_over() -> bool:
+    """True when the SQLite failover monitor can rebind the API off Postgres.
+
+    In that case a failed/timed-out Neon init must not abort startup: the
+    monitor thread rebinds to the merged dump within a couple of minutes,
+    whereas aborting puts the Space into a restart crash-loop for the rest of
+    the outage.
+    """
+    return failover_enabled() and not str(
+        getattr(db_session, "HOT_URL", "") or ""
+    ).startswith("sqlite")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("starting_up")
@@ -104,8 +121,9 @@ async def lifespan(app: FastAPI):
     # and a stuck DB connection here would otherwise freeze the whole event
     # loop forever, so the app never starts accepting requests.
     # Neon Free blocks all connections after the transfer quota is exhausted.
-    # Kick a background download of the public merged SQLite dump so listings
-    # recover without blocking uvicorn listen (HF HEALTHCHECK start-period is 10s).
+    # Kick a background monitor that downloads the public merged SQLite dump
+    # (and fails back to Neon on recovery) so listings recover without
+    # blocking uvicorn listen (HF HEALTHCHECK start-period is 10s).
     start_sqlite_failover_background()
 
     if SKIP_DB_INIT:
@@ -116,10 +134,14 @@ async def lifespan(app: FastAPI):
             logger.info("db_initialized")
         except asyncio.TimeoutError as e:
             logger.critical("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
-            raise RuntimeError("Database initialization timed out. Aborting startup.") from e
+            if not _failover_can_take_over():
+                raise RuntimeError("Database initialization timed out. Aborting startup.") from e
+            logger.critical("db_init_deferred_to_sqlite_failover")
         except Exception as e:
             logger.critical("db_init_failed", error=str(e))
-            raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
+            if not _failover_can_take_over():
+                raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
+            logger.critical("db_init_deferred_to_sqlite_failover")
 
     try:
         start_daily_sync_scheduler()
@@ -252,6 +274,10 @@ async def health_check():
     content = {
         "status": "ok" if db_status == "ok" else "degraded",
         "db": db_status,
+        # True while serving from the downloaded SQLite dump (Neon quota
+        # block); the DB probe above then targets SQLite, so "ok" +
+        # failover=true is the expected outage posture.
+        "failover": failover_active(),
         "version": "1.0.0",
     }
 

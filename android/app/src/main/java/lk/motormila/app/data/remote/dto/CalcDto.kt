@@ -97,6 +97,14 @@ data class PermitDto(
     @SerialName("market_price_lkr") val marketPriceLkr: Double = 0.0,
 )
 
+/** Static export shape: backend/export_public_snapshots.py permits.json. */
+@Serializable
+data class PermitsSnapshotDto(
+    val items: List<PermitDto> = emptyList(),
+    @SerialName("generated_at") val generatedAt: String? = null,
+    val unavailable: Boolean = false,
+)
+
 @Serializable
 data class VehicleNewsItemDto(
     val title: String = "",

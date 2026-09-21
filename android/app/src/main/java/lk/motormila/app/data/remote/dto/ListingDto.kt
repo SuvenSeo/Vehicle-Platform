@@ -2,6 +2,10 @@ package lk.motormila.app.data.remote.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 
 /**
  * Listing DTOs. Backend: backend/app/models/schemas.py + endpoints/listings.py.
@@ -210,6 +214,29 @@ data class PriceDropsDto(
     val items: List<PriceDropItemDto> = emptyList(),
     @SerialName("window_days") val windowDays: Int = 7,
 )
+
+/**
+ * Static export shape: backend/export_public_snapshots.py price-sparklines.json.
+ * Each entry is the last ≤8 [price_lkr, scraped_at] pairs, oldest first.
+ */
+@Serializable
+data class PriceSparklinesDto(
+    val sparklines: Map<String, List<List<JsonElement>>> = emptyMap(),
+    @SerialName("generated_at") val generatedAt: String? = null,
+    val unavailable: Boolean = false,
+) {
+    /** Chronological (price, iso-timestamp) pairs for a listing, or null. */
+    fun pointsFor(listingId: Int): List<Pair<Double, String>>? {
+        val raw = sparklines[listingId.toString()] ?: return null
+        if (raw.isEmpty()) return null
+        return raw.mapNotNull { pair ->
+            if (pair.size < 2) return@mapNotNull null
+            val price = (pair[0] as? JsonPrimitive)?.doubleOrNull ?: return@mapNotNull null
+            val at = (pair[1] as? JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
+            price to at
+        }.takeIf { it.isNotEmpty() }
+    }
+}
 
 @Serializable
 data class SourcesDto(val sources: List<String> = emptyList())

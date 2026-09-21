@@ -243,6 +243,78 @@ def write_catalog_parts(output_dir: Path, catalog: list[dict[str, Any]], generat
     )
 
 
+def build_price_drops(db, days: int = 7, limit: int = 20) -> dict[str, Any]:
+    """Biggest recorded cuts in the window — same LAG logic as the endpoint.
+
+    Export runs anonymous (no plan gating); mirrors the free-browse limit.
+    """
+    from db.models import VehiclePriceHistory
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+    prev_price = (
+        func.lag(VehiclePriceHistory.price_lkr)
+        .over(
+            partition_by=VehiclePriceHistory.vehicle_id,
+            order_by=(VehiclePriceHistory.scraped_at, VehiclePriceHistory.id),
+        )
+        .label("prev_price")
+    )
+    ordered = (
+        db.query(
+            VehiclePriceHistory.vehicle_id.label("vehicle_id"),
+            VehiclePriceHistory.price_lkr.label("new_price"),
+            VehiclePriceHistory.scraped_at.label("dropped_at"),
+            prev_price,
+        )
+    ).subquery("ordered_history")
+    drops = (
+        db.query(
+            ordered.c.vehicle_id,
+            ordered.c.new_price,
+            ordered.c.prev_price,
+            ordered.c.dropped_at,
+        )
+        .filter(
+            ordered.c.prev_price.isnot(None),
+            ordered.c.new_price < ordered.c.prev_price,
+            ordered.c.dropped_at >= cutoff,
+        )
+        .subquery("drops")
+    )
+    rows = (
+        db.query(
+            CarListing,
+            drops.c.new_price,
+            drops.c.prev_price,
+            drops.c.dropped_at,
+        )
+        .join(drops, drops.c.vehicle_id == CarListing.id)
+        .filter(live_listing_filter(), CarListing.is_duplicate.is_(False))
+        .order_by(desc((drops.c.prev_price - drops.c.new_price) / drops.c.prev_price))
+        .limit(limit)
+        .all()
+    )
+    items = []
+    seen: set[int] = set()
+    for listing, new_price, prev, dropped_at in rows:
+        if listing.id in seen:
+            continue
+        seen.add(int(listing.id))
+        prev_f = float(prev)
+        new_f = float(new_price)
+        items.append(
+            {
+                "listing": listing_to_dict(listing),
+                "previous_price_lkr": prev_f,
+                "new_price_lkr": new_f,
+                "drop_pct": round((prev_f - new_f) / prev_f * 100, 1) if prev_f > 0 else 0.0,
+                "dropped_at": to_utc_iso(dropped_at),
+            }
+        )
+    return {"items": items, "window_days": days, "generated_at": now.isoformat()}
+
+
 def build_price_sparklines(db, max_listings: int = 100000, per_listing: int = 8) -> dict[str, Any]:
     """Compact per-listing price trajectories for the offline price chart.
 
@@ -339,6 +411,7 @@ def build_small_snapshots(db) -> dict[str, Any]:
     # depth: national overall, 12 months).
     builders["price-trends.json"] = lambda: stats_endpoint._compute_price_trends_payload(db=db)
     builders["price-sparklines.json"] = lambda: build_price_sparklines(db)
+    builders["price-drops.json"] = lambda: build_price_drops(db)
     out: dict[str, Any] = {}
     for filename, build in builders.items():
         try:
@@ -391,6 +464,7 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
                     "import-era-split.json",
                     "permits.json",
                     "price-sparklines.json",
+                    "price-drops.json",
                     "dashboard-insights.json",
                     "listing-sources.json",
                     "listing-makes.json",

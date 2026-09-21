@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import lk.motormila.app.data.local.db.MotormilaDatabase
 import lk.motormila.app.data.remote.MotormilaApiService
+import lk.motormila.app.data.remote.SnapshotApiService
 import lk.motormila.app.data.remote.mapper.toCustomEstimateDto
 import lk.motormila.app.data.remote.mapper.toDomain
 import lk.motormila.app.data.remote.mapper.toEntities
@@ -36,10 +37,13 @@ import lk.motormila.app.domain.repository.ListingRepository
  * - [paging]: Paging3. Default network-only [ListingPagingSource]; pass
  *   `cached=true` for the Room-backed [ListingRemoteMediator] (15-min TTL).
  * - Detail/similar/history/fmv/seller: fetched fresh, detail upserted to Room.
+ * - Search/detail/similar/history fall back to the public Vercel snapshots
+ *   when the live API throws (Neon outage) — see [withSnapshotFallback].
  */
 @Singleton
 class ListingRepositoryImpl @Inject constructor(
     private val api: MotormilaApiService,
+    private val snapshots: SnapshotApiService,
     private val db: MotormilaDatabase,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : ListingRepository {
@@ -68,44 +72,68 @@ class ListingRepositoryImpl @Inject constructor(
     override fun paging(query: ListingQuery): Flow<PagingData<Listing>> = paging(query, cached = false)
 
     override suspend fun searchPage(query: ListingQuery, page: Int, size: Int): List<Listing> = withContext(io) {
-        api.searchListings(
-            q = query.keyword,
-            source = query.source,
-            make = query.make,
-            model = query.model,
-            yearMin = query.yearMin,
-            yearMax = query.yearMax,
-            priceMin = query.priceMin,
-            priceMax = query.priceMax,
-            mileageMax = query.mileageMax,
-            fuelType = query.fuelType,
-            transmission = query.transmission,
-            condition = query.condition,
-            bodyType = query.bodyType,
-            district = query.district,
-            vehicleCategory = query.vehicleCategory,
-            sort = query.sort,
-            page = page,
-            size = size,
-        ).items.map { it.toDomain() }
+        withSnapshotFallback(
+            live = {
+                api.searchListings(
+                    q = query.keyword,
+                    source = query.source,
+                    make = query.make,
+                    model = query.model,
+                    yearMin = query.yearMin,
+                    yearMax = query.yearMax,
+                    priceMin = query.priceMin,
+                    priceMax = query.priceMax,
+                    mileageMax = query.mileageMax,
+                    fuelType = query.fuelType,
+                    transmission = query.transmission,
+                    condition = query.condition,
+                    bodyType = query.bodyType,
+                    district = query.district,
+                    vehicleCategory = query.vehicleCategory,
+                    sort = query.sort,
+                    page = page,
+                    size = size,
+                ).items.map { it.toDomain() }
+            },
+            snapshot = {
+                val rows = snapshots.liveMarket().latestListings
+                filterSnapshotListings(rows, query).map { it.toDomain() }
+            },
+        )
     }
 
     override suspend fun getDetail(id: Int): Listing = withContext(io) {
-        val dto = api.getListing(id)
-        val domain = dto.toDomain()
+        val domain = withSnapshotFallback(
+            live = { api.getListing(id).toDomain() },
+            snapshot = {
+                snapshots.liveMarket().latestListings.firstOrNull { it.id == id }?.toDomain()
+                    ?: error("Listing $id is not in the offline snapshot")
+            },
+        )
         db.listingDao().upsert(domain.toEntity())
         domain
     }
 
     override suspend fun similar(id: Int, limit: Int): List<Listing> = withContext(io) {
-        api.getSimilar(id, limit).map { it.toDomain() }
+        withSnapshotFallback(
+            live = { api.getSimilar(id, limit).map { it.toDomain() } },
+            snapshot = { similarFromSnapshot(snapshots.liveMarket().latestListings, id, limit) },
+        )
     }
 
     override suspend fun priceHistory(id: Int): PriceHistory = withContext(io) {
-        val dto = api.getPriceHistory(id)
-        db.priceHistoryDao().clearForListing(id)
-        db.priceHistoryDao().insertAll(dto.toEntities())
-        dto.toDomain()
+        withSnapshotFallback(
+            live = {
+                val dto = api.getPriceHistory(id)
+                db.priceHistoryDao().clearForListing(id)
+                db.priceHistoryDao().insertAll(dto.toEntities())
+                dto.toDomain()
+            },
+            snapshot = {
+                priceHistoryFromSparklines(snapshots.priceSparklines(), id)
+                    ?: error("Listing $id has no offline price history")
+            },
+        )
     }
 
     override suspend fun historyReport(id: Int): HistoryReport = withContext(io) {
@@ -135,7 +163,15 @@ class ListingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun suggestions(query: String, limit: Int): List<Listing> = withContext(io) {
-        api.getSearchSuggestions(query, limit).map { it.toDomain() }
+        withSnapshotFallback(
+            live = { api.getSearchSuggestions(query, limit).map { it.toDomain() } },
+            snapshot = {
+                filterSnapshotListings(
+                    snapshots.liveMarket().latestListings,
+                    ListingQuery(keyword = query),
+                ).take(limit.coerceAtLeast(1)).map { it.toDomain() }
+            },
+        )
     }
 
     override suspend fun estimate(input: ValuationInput): Valuation = withContext(io) {
