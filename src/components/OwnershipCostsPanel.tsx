@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  calculateOwnershipBundle,
-  checkImportEligibility,
   formatPrice,
   type ImportEligibilityResult,
   type OwnershipBundleResult,
   type OwnershipVehicleClass,
 } from "@/services/api";
+import {
+  calculateOwnershipBundleResilient as calculateOwnershipBundle,
+  checkImportEligibilityResilient as checkImportEligibility,
+  type OfflineFlag,
+} from "@/lib/offlineCalculators";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, CheckCircle, Shield, FileBadge } from "lucide-react";
 import { toast } from "sonner";
@@ -38,8 +41,8 @@ export function OwnershipCostsPanel({
   const [consideration, setConsideration] = useState(initialPrice);
   const [includeTransfer, setIncludeTransfer] = useState(true);
   const [modelYear, setModelYear] = useState(2022);
-  const [bundle, setBundle] = useState<OwnershipBundleResult | null>(null);
-  const [eligibility, setEligibility] = useState<ImportEligibilityResult | null>(null);
+  const [bundle, setBundle] = useState<(OwnershipBundleResult & OfflineFlag) | null>(null);
+  const [eligibility, setEligibility] = useState<(ImportEligibilityResult & OfflineFlag) | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -211,6 +214,7 @@ export function OwnershipCostsPanel({
           <h3 className="text-sm font-bold text-foreground">First-year statutory outlay</h3>
           <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
             Gazette-aligned planning figures — confirm eRL / insurer / RMV before paying
+            {bundle?.offline ? " · computed on-device" : ""}
           </p>
         </div>
 

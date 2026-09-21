@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatPrice, calculateLandedCost, calculateTco, getPermits, getMacroContext, type LandedCostResult, type TcoResult, type PermitInfo, type MacroContext } from "@/services/api";
+import { formatPrice, getPermits, getMacroContext, type LandedCostResult, type TcoResult, type PermitInfo, type MacroContext } from "@/services/api";
+import {
+  calculateLandedCostResilient as calculateLandedCost,
+  calculateTcoResilient as calculateTco,
+  type OfflineFlag,
+} from "@/lib/offlineCalculators";
 import { Input } from "@/components/ui/input";
 import {
   Banknote,
@@ -120,7 +125,7 @@ export default function Calculator() {
   const [lcMotorKw, setLcMotorKw] = useState(() => numParam(searchParams, "kw", 110));
   const [applySurcharge, setApplySurcharge] = useState(() => boolParam(searchParams, "surcharge", true));
   const [applySscl, setApplySscl] = useState(() => boolParam(searchParams, "sscl", true));
-  const [lcResult, setLcResult] = useState<LandedCostResult | null>(null);
+  const [lcResult, setLcResult] = useState<(LandedCostResult & OfflineFlag) | null>(null);
   // What this exact import saves if the 50% surcharge lapses on schedule.
   const [lcLapseSavings, setLcLapseSavings] = useState<number | null>(null);
   const [lcLoading, setLcLoading] = useState(false);
@@ -210,7 +215,7 @@ export default function Calculator() {
   const [tcoService, setTcoService] = useState(() => numParam(searchParams, "svc", 60000));
   const [tcoTyres, setTcoTyres] = useState(() => numParam(searchParams, "tyres", 30000));
   const [tcoDepreciation, setTcoDepreciation] = useState(() => numParam(searchParams, "dep", 100000));
-  const [tcoResult, setTcoResult] = useState<TcoResult | null>(null);
+  const [tcoResult, setTcoResult] = useState<(TcoResult & OfflineFlag) | null>(null);
   const [tcoLoading, setTcoLoading] = useState(false);
 
   // Permit state
@@ -397,6 +402,14 @@ export default function Calculator() {
       />
 
       <FreePlanBanner />
+
+      {(lcResult?.offline || tcoResult?.offline) && (
+        <div className="mx-auto max-w-[1320px] px-4 pt-4">
+          <p className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200">
+            {t("calc.offlineBadge", "On-device calculation — server unreachable, same gazette schedules.")}
+          </p>
+        </div>
+      )}
 
       <PageBody className="space-y-0 pb-0">
       <motion.div variants={itemVariants} className="flex max-w-[1320px] flex-nowrap items-center gap-3 pb-6">
