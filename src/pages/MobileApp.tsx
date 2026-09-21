@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  AlertTriangle,
   Apple,
   BellRing,
   Calculator,
   Camera,
+  Check,
   CheckCircle2,
+  Copy,
+  Download,
   Gauge,
   MapPin,
   ScanLine,
@@ -25,6 +26,13 @@ import { useAppPreferences } from "@/lib/appPreferences";
 import { revealContainer, revealItem, springSoft } from "@/lib/motion";
 
 const WAITLIST_KEY = "motormila.mobile_waitlist";
+
+/** Live sideload release — keep in step with android/app/build.gradle.kts + GitHub Releases. */
+const APK_VERSION = "1.5.3";
+const APK_SIZE = "16.9 MB";
+const APK_URL =
+  "https://github.com/SuvenSeo/Vehicle-Platform/releases/download/android-v1.5.3/motormila-1.5.3.apk";
+const APK_SHA256 = "337894354ce70786134833f214ed48cdc4f1ad7dc6c8830341aadbf808a58900";
 
 type Feature = {
   icon: React.ComponentType<{ className?: string }>;
@@ -175,6 +183,22 @@ export default function MobileApp() {
   const [email, setEmail] = useState("");
   const [joined, setJoined] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const copyChecksum = async () => {
+    try {
+      await navigator.clipboard.writeText(APK_SHA256);
+    } catch {
+      const area = document.createElement("textarea");
+      area.value = APK_SHA256;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      document.body.removeChild(area);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     try {
@@ -240,12 +264,12 @@ export default function MobileApp() {
                 <Smartphone className="h-3.5 w-3.5" aria-hidden />
                 {t("mobile.eyebrow", "Motormila Mobile")}
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[11.5px] font-semibold text-amber-200">
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-[11.5px] font-semibold text-emerald-200">
                 <span aria-hidden className="relative inline-flex h-1.5 w-1.5">
-                  <span className="absolute inset-0 animate-ping rounded-full bg-amber-300/70" />
-                  <span className="relative h-1.5 w-1.5 rounded-full bg-amber-300" />
+                  <span className="absolute inset-0 animate-ping rounded-full bg-emerald-300/70" />
+                  <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-300" />
                 </span>
-                {t("mobile.releasingSoon", "Releasing soon")}
+                {t("mobile.availableNow", "v{version} · Available now", { version: APK_VERSION })}
               </span>
             </motion.div>
 
@@ -264,6 +288,21 @@ export default function MobileApp() {
                 "The Motormila Android app is in its final build: live listings, deal scores, price-drop alerts and plate scanning — working even when the signal drops.",
               )}
             </motion.p>
+
+            <motion.div variants={revealItem} className="mt-8 flex max-w-md flex-wrap items-center gap-3">
+              <motion.a
+                href={APK_URL}
+                whileTap={{ scale: 0.97 }}
+                transition={springSoft}
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-[#0A7AFF] px-7 text-[13.5px] font-semibold text-white no-underline shadow-[0_14px_44px_-18px_rgba(10,122,255,0.9)] transition-colors hover:bg-[#3D94FF]"
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                {t("mobile.downloadCta", "Download for Android · {size}", { size: APK_SIZE })}
+              </motion.a>
+              <span className="text-[11.5px] text-white/40">
+                {t("mobile.downloadMeta", "v{version} · Android 8.0+ · free", { version: APK_VERSION })}
+              </span>
+            </motion.div>
 
             <motion.div variants={revealItem} className="mt-8 max-w-md">
               {joined ? (
@@ -449,20 +488,48 @@ export default function MobileApp() {
             ))}
           </ol>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3 rounded-3xl border border-white/[0.09] bg-white/[0.035] px-5 py-4">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-300" aria-hidden />
-            <p className="text-[12.5px] leading-relaxed text-white/60">
+          <div className="mt-8 rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] px-5 py-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/25 bg-emerald-400/12">
+                <Download className="h-4 w-4 text-emerald-300" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold text-white">
+                  {t("mobile.downloadTitle", "Motormila v{version} for Android", { version: APK_VERSION })}
+                </p>
+                <p className="mt-0.5 text-[12px] text-white/55">
+                  {t("mobile.downloadSub", "{size} · Android 8.0+ · installs over older builds, watchlist kept", { size: APK_SIZE })}
+                </p>
+              </div>
+              <motion.a
+                href={APK_URL}
+                whileTap={{ scale: 0.97 }}
+                transition={springSoft}
+                className="inline-flex h-11 items-center rounded-full bg-[#0A7AFF] px-5 text-[12.5px] font-semibold text-white no-underline transition-colors hover:bg-[#3D94FF]"
+              >
+                {t("mobile.downloadNow", "Download APK")}
+              </motion.a>
+            </div>
+            <button
+              type="button"
+              onClick={copyChecksum}
+              className="mt-4 flex w-full items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3.5 py-2.5 text-left transition-colors hover:border-[#3D94FF]/40"
+              aria-label={t("mobile.copyChecksum", "Copy SHA-256 checksum")}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#3D94FF]" aria-hidden />
+              <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-white/60">{APK_SHA256}</code>
+              {copied ? (
+                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" aria-hidden />
+              ) : (
+                <Copy className="h-3.5 w-3.5 shrink-0 text-white/40" aria-hidden />
+              )}
+            </button>
+            <p className="mt-3 text-[12px] leading-relaxed text-white/55">
               {t(
-                "mobile.downloadNote",
-                "There is no APK to download yet — the download will appear on this page with a published checksum when the release is ready. Motormila on the web is fully live today.",
+                "mobile.downloadVerify",
+                "On your phone: open the file, allow “Install unknown apps” once, then open. Verify the SHA-256 above matches if you want proof of origin — we never ask you to install from a third-party mirror.",
               )}
             </p>
-            <Link
-              to="/"
-              className="ml-auto inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#6CB8FF] no-underline transition-colors hover:text-white"
-            >
-              {t("mobile.useWeb", "Use the web app")}
-            </Link>
           </div>
         </div>
       </RevealSection>
@@ -500,19 +567,22 @@ export default function MobileApp() {
         <div className="mx-auto flex w-full max-w-[1180px] flex-col items-start justify-between gap-6 rounded-[2.5rem] border border-white/[0.1] bg-[radial-gradient(ellipse_at_top_left,rgba(10,122,255,0.16),transparent_60%)] px-6 py-10 sm:flex-row sm:items-center sm:px-10">
           <div>
             <p className="font-display text-[1.5rem] font-semibold tracking-tight text-white">
-              {t("mobile.ctaTitle", "Come back when the APK lands.")}
+              {t("mobile.ctaTitle", "The APK has landed.")}
             </p>
             <p className="mt-2 max-w-md text-[13px] leading-relaxed text-white/60">
-              {t("mobile.ctaBody", "Meanwhile the full Motormila terminal — market, trends, EV hub and pricing — is already live.")}
+              {t("mobile.ctaBody", "Motormila v{version} for Android is live — market, deal scores, alerts and plate scanning in your pocket.", { version: APK_VERSION })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <PrefetchLink
-              to="/pricing"
-              className="inline-flex h-11 items-center rounded-full bg-[#0A7AFF] px-5 text-[12.5px] font-semibold text-white no-underline transition-colors hover:bg-[#3D94FF]"
+            <motion.a
+              href={APK_URL}
+              whileTap={{ scale: 0.97 }}
+              transition={springSoft}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-[#0A7AFF] px-5 text-[12.5px] font-semibold text-white no-underline transition-colors hover:bg-[#3D94FF]"
             >
-              {t("mobile.ctaPricing", "See Pro plans")}
-            </PrefetchLink>
+              <Download className="h-4 w-4" aria-hidden />
+              {t("mobile.ctaDownload", "Download APK · {size}", { size: APK_SIZE })}
+            </motion.a>
             <PrefetchLink
               to="/"
               className="inline-flex h-11 items-center rounded-full border border-white/15 px-5 text-[12.5px] font-semibold text-white/80 no-underline transition-colors hover:border-[#3D94FF]/45 hover:text-white"
