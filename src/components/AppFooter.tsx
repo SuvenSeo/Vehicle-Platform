@@ -113,7 +113,7 @@ export function AppFooter() {
 
   return (
     <footer
-      className="app-footer relative z-10 overflow-hidden px-3 pb-20 pt-8 md:px-6 md:pb-6 md:pt-12"
+      className="app-footer relative z-10 overflow-hidden px-3 pb-32 pt-8 sm:pb-36 md:px-6 md:pb-6 md:pt-12"
       aria-labelledby="platform-footer-title"
     >
       <motion.div

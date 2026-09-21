@@ -98,7 +98,7 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
-      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-white/40 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft dark:border-white/12"
+      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-border/80 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft dark:border-white/12"
       onPointerEnter={() => {
         prefetchRoute(`/listing/${listing.id}`);
         void getListing(listing.id);

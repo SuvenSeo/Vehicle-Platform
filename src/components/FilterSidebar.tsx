@@ -4,10 +4,8 @@ import { getListingSources, getMakes, getModels, formatPrice, type ListingSource
 import { SRI_LANKA_DISTRICTS } from "@/data/districts";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SlidersHorizontal, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { deleteSavedSearch, listSavedSearches, saveSavedSearch } from "@/utils/savedSearches";
 
@@ -844,30 +842,10 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 }
 
 export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersChange }: FilterSidebarProps) {
-  const { t } = useAppPreferences();
   return (
-    <>
-      <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] border border-border/80 shadow-soft lg:block">
-        <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
-      </aside>
-
-      <div className="sticky bottom-4 z-40 mt-3 flex justify-end lg:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button size="sm" className="floating-control h-10 gap-2 rounded-full text-foreground transition-all hover:bg-foreground/[0.05] active:scale-[0.97] shadow-soft">
-              <SlidersHorizontal className="h-4 w-4" />
-              {t("filter.title", "Filters")}
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="command-surface w-[min(100vw-2rem,320px)] overflow-y-auto p-0 rounded-r-3xl border-r border-border/80">
-            <SheetHeader className="px-4 pt-4 pb-0">
-              <SheetTitle className="text-base font-semibold tracking-tight text-foreground">{t("filter.title", "Filters")}</SheetTitle>
-            </SheetHeader>
-            <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
-          </SheetContent>
-        </Sheet>
-      </div>
-    </>
+    <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] border border-border/80 shadow-soft lg:block">
+      <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
+    </aside>
   );
 });
 

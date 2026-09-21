@@ -264,7 +264,7 @@ export default function Dashboard() {
     () => (fullAccess ? filters : { ...filters, page: 1 }),
     [filters, fullAccess],
   );
-  const { t } = useAppPreferences();
+  const { t, resolvedTheme } = useAppPreferences();
   const queryClient = useQueryClient();
   const liveMarketSnapshot = useLiveMarketSnapshot();
   const [compareListings, setCompareListings] = useState<CarListing[]>([]);
@@ -636,7 +636,7 @@ export default function Dashboard() {
   const isPriceUnavailableMode = filters.price_availability === "unavailable";
   const listingFreshnessAt = liveMarketSnapshot?.latest_listing_at ?? stats?.last_updated ?? null;
   const { variant: heroVariant, setVariantId: setHeroVariantId, showPicker: showHeroLab } = useHeroVariantLab();
-  const heroFilmTone = heroVariant.tone === "light" ? "light" : "cinematic";
+  const heroFilmTone = resolvedTheme === "light" ? "light" : (heroVariant.tone === "light" ? "light" : "cinematic");
   const heroCentered = heroVariant.align === "center";
   const heroAlignClass = heroCopyAlignClass(heroVariant.align, heroVariant.hideSideSignals);
   const heroCopyTone =
@@ -650,7 +650,7 @@ export default function Dashboard() {
   const heroSearchShellClass =
     heroFilmTone === "cinematic"
       ? "border-white/18 bg-white/10 shadow-soft-xl backdrop-blur-2xl focus-within:border-primary/55 focus-within:shadow-gold-glow"
-      : "border-white/50 bg-white/55 shadow-soft-lg backdrop-blur-2xl focus-within:border-primary/40 focus-within:shadow-gold-glow";
+      : "border-border/80 bg-card/90 shadow-soft-lg backdrop-blur-2xl focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20";
   const heroInputClass =
     heroFilmTone === "cinematic"
       ? "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder:text-white/45 outline-none [&::-webkit-search-cancel-button]:hidden"
@@ -1109,6 +1109,20 @@ export default function Dashboard() {
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMobileFilter(true)}
+                className="inline-flex lg:hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-[12px] font-semibold text-primary-bright transition-colors hover:bg-primary/15 active:scale-[0.97]"
+                aria-label={t("filter.title", "Filters")}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {t("filter.title", "Filters")}
+                {activeFilterLabels.length > 0 && (
+                  <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
+                    {activeFilterLabels.length}
+                  </span>
+                )}
+              </button>
               <button type="button" onClick={() => setShowSavedListings(true)}
                 className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
               >{watchlistIds.length} {t("common.saved", "saved")}</button>
@@ -1373,22 +1387,6 @@ export default function Dashboard() {
         </div>
       </RevealSection>
 
-      {/* ── MOBILE QUICK FILTER BUTTON ──────────────────────────── */}
-      <button
-        type="button"
-        aria-label="Open quick filters"
-        onClick={() => setShowMobileFilter(true)}
-        className="md:hidden fixed bottom-24 right-4 z-[1100] flex h-12 items-center gap-2 rounded-full border border-border bg-card/95 pl-3.5 pr-4 shadow-soft-xl backdrop-blur-xl transition-all hover:bg-card active:scale-95"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-      >
-        <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-        <span className="text-[12px] font-semibold text-foreground">Filters</span>
-        {activeFilterLabels.length > 0 && (
-          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
-            {activeFilterLabels.length}
-          </span>
-        )}
-      </button>
 
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (

@@ -62,7 +62,7 @@ export function MobileAppPromo() {
           exit={{ opacity: 0, y: 18, scale: 0.98 }}
           transition={springSoft}
           aria-label={t("mobile.promoAria", "Motormila mobile app announcement")}
-          className="fixed bottom-[5.5rem] left-3 right-3 z-[998] md:bottom-6 md:left-6 md:right-auto md:w-[368px]"
+          className="fixed bottom-[112px] left-3 right-3 z-[998] md:bottom-6 md:left-6 md:right-auto md:w-[368px]"
         >
           <div className="relative overflow-hidden rounded-3xl border border-white/12 bg-[linear-gradient(155deg,rgba(7,11,19,0.97),rgba(9,15,26,0.94))] p-4 shadow-[0_28px_80px_-30px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
             <div

@@ -489,7 +489,7 @@ export function AIChatWidget() {
         <section
           role="dialog"
           aria-modal="false"
-          className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-3xl border border-white/40 bg-card/80 text-foreground shadow-soft-xl backdrop-blur-2xl dark:border-white/12`}
+          className={`aw-panel-wrapper ${animOut ? "aw-panel-out" : "aw-panel-in"} flex flex-col overflow-hidden rounded-3xl border border-border/80 bg-card/90 text-foreground shadow-soft-xl backdrop-blur-2xl dark:border-white/12`}
           aria-label={t("chat.header.title", "Motormila Copilot")}
         >
           <header className="border-b border-border px-4 py-4">
@@ -590,7 +590,7 @@ export function AIChatWidget() {
                       className={`max-w-[88%] rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
                         assistant
                           ? "border-border bg-card text-foreground"
-                          : "border-primary/25 bg-primary/12 text-primary"
+                          : "border-primary/25 bg-primary/12 text-primary-bright dark:text-primary font-medium"
                       }`}
                     >
                       {assistant ? formatMessage(message.content) : message.content}
