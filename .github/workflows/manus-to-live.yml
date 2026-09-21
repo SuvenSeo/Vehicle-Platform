@@ -212,6 +212,10 @@ jobs:
           PY
           gzip -f -c backend/motormila.db > public/snapshots/latest/merged-autolens.db.gz
           ls -lh public/snapshots/latest/merged-autolens.db.gz
+          # Sideload APK + release manifest for /app/* (private repo: the
+          # release asset can only be fetched with a token, and the binary is
+          # gitignored, so it must ride the CLI deploy).
+          bash scripts/fetch-apk-for-deploy.sh
           bash scripts/deploy-snapshots-to-prod.sh
 
       # Always advance the merge marker after a successful merge so a skipped

@@ -36,9 +36,6 @@ import { useAuth } from "@/lib/authContext";
 import { formatRelativeTimeI18n } from "@/lib/formatting";
 import { NotificationBell } from "@/components/NotificationBell";
 
-const GITHUB_REPO = "SuvenSeo/Vehicle-Platform";
-const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-
 type NavSection = {
   label: string;
   href: string;
@@ -481,16 +478,7 @@ export function Navbar() {
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 border-t border-border bg-foreground/[0.02] px-3.5 py-2.5">
-                    <a
-                      href={GITHUB_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground no-underline transition-colors hover:text-foreground"
-                    >
-                      {t("nav.github", "GitHub")}
-                      <ArrowUpRight className="h-3 w-3" aria-hidden />
-                    </a>
+                  <div className="flex items-center justify-end gap-2 border-t border-border bg-foreground/[0.02] px-3.5 py-2.5">
                     <button
                       type="button"
                       onClick={() => goTo("/pricing")}

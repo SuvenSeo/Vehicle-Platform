@@ -145,6 +145,12 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Fetch sideload APK for the deploy (private release asset)
+        if: steps.vercel.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/fetch-apk-for-deploy.sh
+
       - name: Deploy snapshots to Vercel production
         if: steps.vercel.outputs.configured == 'true'
         env:
