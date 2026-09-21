@@ -10,6 +10,9 @@ __pycache__/
 *.pyc
 *.db
 *.db.gz
+# …except the public failover DB the HF Space downloads during Neon outages
+# (deployed alongside the snapshot JSON by manus-to-live.yml).
+!public/snapshots/latest/merged-autolens.db.gz
 *.log
 .pytest_cache/
 /android/

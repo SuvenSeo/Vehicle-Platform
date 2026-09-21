@@ -193,6 +193,25 @@ jobs:
           COLD_DATABASE_URL="sqlite:///${GITHUB_WORKSPACE}/backend/motormila.db" python backend/export_public_snapshots.py --output backend/snapshots/latest
           mkdir -p public/snapshots/latest
           cp -r backend/snapshots/latest/. public/snapshots/latest/
+          # Public failover DB for the HF Space. The GitHub `merged-db` release
+          # is unreachable anonymously (private repo -> 404), so the Space's
+          # sqlite_failover downloads this Vercel copy instead. User/alert/event
+          # tables are empty by design (auth lives only in Neon) but wipe them
+          # anyway so account data can never ship in a public artifact.
+          python - <<'PY'
+          import sqlite3
+          con = sqlite3.connect("backend/motormila.db")
+          for table in (
+              "platform_users", "user_invites", "market_alerts",
+              "market_alert_matches", "user_notifications", "user_feedback",
+              "analytics_events", "dealer_profiles",
+          ):
+              con.execute(f'DELETE FROM "{table}"')
+          con.commit()
+          con.close()
+          PY
+          gzip -f -c backend/motormila.db > public/snapshots/latest/merged-autolens.db.gz
+          ls -lh public/snapshots/latest/merged-autolens.db.gz
           bash scripts/deploy-snapshots-to-prod.sh
 
       # Always advance the merge marker after a successful merge so a skipped

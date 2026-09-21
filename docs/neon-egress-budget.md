@@ -61,8 +61,27 @@ public site, Neon only as a write archive while transfer budget remains.
 `backend/db/session.py` still runs in **single-DB mode** when
 `HOT_DATABASE_URL` is set (Neon pooled DSN). Hugging Face production also
 enables `SQLITE_FAILOVER` (default on): if that DSN refuses connections,
-the API rebinds to the public `merged-db` SQLite dump. No Supabase secret
+the API rebinds to the public merged SQLite dump. No Supabase secret
 is referenced anywhere anymore.
+
+> **Sep 2026 failover hardening** (after the Sept 21 lockout):
+> - The failover DB is now published **publicly next to the snapshots** at
+>   `https://motormila.vercel.app/snapshots/latest/merged-autolens.db.gz`
+>   by `manus-to-live.yml` (user/alert/event tables are wiped first; they are
+>   empty by design). The GitHub `merged-db` release stays as a mirror, but
+>   the repo is **private**, so anonymous downloads 404 — the Vercel copy is
+>   the first built-in source. Override ordering with `MERGED_SQLITE_URLS`
+>   (comma-separated) or `MERGED_SQLITE_URL` on the Space if this moves.
+> - The failover is a **self-healing monitor**, not a one-shot startup check:
+>   it re-probes every `SQLITE_FAILOVER_CHECK_SECONDS` (default 120 s),
+>   retries failed downloads, and **fails back to Neon automatically** once
+>   the quota resets — no manual Space restart on the 1st anymore.
+> - Startup no longer crash-loops when Neon is blocked: `init_db` failure is
+>   deferred to the failover monitor instead of aborting uvicorn.
+> - `/health` reports `"failover": true` while serving from the dump
+>   (`db: "ok"` then refers to the SQLite file — expected outage posture).
+> - Pro/auth still works during a block: accounts resolve from the
+>   `AUTH_USERS` env JSON when `platform_users` is empty in the dump.
 
 ### The permanent fix (Sep 2026): SQLite is the publish source
 

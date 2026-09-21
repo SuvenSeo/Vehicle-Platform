@@ -236,6 +236,7 @@ def maybe_activate_sqlite_failover() -> bool:
 
 def _tick_once() -> None:
     """One monitor pass: fail over when Neon is down, fail back when it recovers."""
+    global _activated
     if not failover_enabled():
         return
     if _current_url().startswith("sqlite") and not _activated:
@@ -246,7 +247,6 @@ def _tick_once() -> None:
             primary = _primary_url
             if primary and _probe_url(primary):
                 db_session.reattach_engines(primary)
-                global _activated
                 _activated = False
                 # Never log credentials — host part only.
                 logger.info("sqlite_failover_deactivated", primary_host=primary.split("@")[-1])
