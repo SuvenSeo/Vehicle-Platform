@@ -43,8 +43,12 @@ jobs:
 
           # Wipe and replace with current backend folder (exclude local dev artifacts)
           rm -rf hf-space/*
+          # run_sync.py (imported by the API's scheduler) does
+          # `from scripts.recover_missing_prices import ...`, so scripts/ must
+          # stay. Only the ops/ subfolder is dropped: it is CI-only and is the
+          # one place that names the (private) source repo.
           rsync -a backend/. hf-space/ \
-            --exclude=scripts/ \
+            --exclude=scripts/ops/ \
             --exclude=tests/ \
             --exclude=.pytest_cache/ \
             --exclude=venv/ \
