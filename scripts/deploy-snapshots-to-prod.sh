@@ -84,6 +84,18 @@ PY
 fi
 
 # ---------------------------------------------------------------------------
+# 2c) Preserve the emergency failover DB (large; produced by manus-to-live).
+#     Without this, a restore-catalog deploy redeploys the tree without it and
+#     the HF Space loses its Neon-outage fallback (404 -> failover:false).
+# ---------------------------------------------------------------------------
+if [[ ! -s "${SNAP_DIR}/merged-autolens.db.gz" ]]; then
+  echo "==> Failover DB missing locally; fetching from live site…"
+  curl -fsSL --max-time 600 -o "${SNAP_DIR}/merged-autolens.db.gz" \
+    "${LIVE_BASE}/merged-autolens.db.gz" || \
+    echo "WARN: could not preserve merged-autolens.db.gz from live site" >&2
+fi
+
+# ---------------------------------------------------------------------------
 # 2b) Preserve the sideload APK + release manifest (/app/*) across deploys.
 #     They are gitignored (binary), so fresh CI checkouts don't have them;
 #     pull from the live site the same way the catalog fallback does.
