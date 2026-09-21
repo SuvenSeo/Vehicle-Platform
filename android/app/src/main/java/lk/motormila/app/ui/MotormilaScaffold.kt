@@ -1,12 +1,14 @@
 package lk.motormila.app.ui
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -26,9 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,7 +44,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,10 +62,12 @@ import lk.motormila.app.ui.theme.MotormilaPill
 import lk.motormila.app.ui.theme.MotormilaPrimary
 import lk.motormila.app.ui.theme.MotormilaPrimaryBright
 import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.ReduceMotion
 import lk.motormila.app.ui.theme.applePress
 import lk.motormila.app.ui.theme.appleTween
 import lk.motormila.app.ui.theme.fluidSpring
 import lk.motormila.app.ui.theme.liquidGlass
+import lk.motormila.app.ui.theme.rememberHaptics
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.unit.Dp
@@ -99,6 +103,8 @@ fun MotormilaScaffold(
     // Fully-rounded capsule dock (50% corners) — reads as one smooth pill,
     // matching the liquid-glass FAB stack and the app's rounded design language.
     val dockShape = MotormilaPill
+    val haptics = rememberHaptics()
+    val reduceMotion = ReduceMotion.current
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -110,7 +116,11 @@ fun MotormilaScaffold(
                         .navigationBarsPadding()
                         .padding(start = 20.dp, end = 20.dp, bottom = 14.dp),
                 ) {
-                    NavigationBar(
+                    // Custom tab row (NOT NavigationBarItem): the M3 active
+                    // indicator is a fixed rounded-rectangle that clashed with
+                    // the dock's capsule language. Every tab owns a fully-round
+                    // MotormilaPill wash that fades/springs in when selected.
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(dockShape)
@@ -119,11 +129,10 @@ fun MotormilaScaffold(
                                 fill = MotormilaGlassFillStrong,
                                 border = Color(0x330A7AFF),
                                 specular = true,
-                            ),
-                        containerColor = Color.Transparent,
-                        contentColor = Color.White,
-                        tonalElevation = 0.dp,
-                        windowInsets = WindowInsets(0, 0, 0, 0),
+                            )
+                            .padding(horizontal = 6.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         motormilaNavItems().forEach { item ->
                             val isSelected = selected == item.route
@@ -145,24 +154,56 @@ fun MotormilaScaffold(
                                 animationSpec = appleTween(220),
                                 label = "nav-tint",
                             )
+                            val pillWash by animateColorAsState(
+                                targetValue = if (isSelected) Color(0x2E0A7AFF) else Color.Transparent,
+                                animationSpec = appleTween(220),
+                                label = "nav-pill",
+                            )
+                            val pillScale by animateFloatAsState(
+                                targetValue = if (isSelected) 1f else 0.85f,
+                                animationSpec = fluidSpring(),
+                                label = "nav-pill-scale",
+                            )
                             val liftPx = with(LocalDensity.current) { iconLift.toPx() }
 
-                            // The M3 NavigationBarItem indicator is a rounded
-                            // rectangle by default; the pill clip keeps it in the
-                            // dock's fully-round shape language.
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { onNavigate(item.route) },
-                                interactionSource = interaction,
-                                icon = {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(MotormilaPill)
+                                    .applePress(interaction, pressedScale = 0.92f)
+                                    .clickable(
+                                        interactionSource = interaction,
+                                        indication = null,
+                                        role = Role.Tab,
+                                        onClick = {
+                                            if (!reduceMotion) haptics.tick()
+                                            onNavigate(item.route)
+                                        },
+                                    )
+                                    .semantics {
+                                        contentDescription = item.label
+                                        selected = isSelected
+                                    }
+                                    .padding(vertical = 2.dp),
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .graphicsLayer {
+                                            scaleX = pillScale
+                                            scaleY = pillScale
+                                        }
+                                        .clip(MotormilaPill)
+                                        .background(pillWash)
+                                        .padding(horizontal = 14.dp, vertical = 4.dp),
+                                ) {
                                     Box(
-                                        modifier = Modifier
-                                            .clip(MotormilaPill)
-                                            .graphicsLayer {
-                                                scaleX = iconScale
-                                                scaleY = iconScale
-                                                translationY = liftPx
-                                            },
+                                        modifier = Modifier.graphicsLayer {
+                                            scaleX = iconScale
+                                            scaleY = iconScale
+                                            translationY = liftPx
+                                        },
                                     ) {
                                         val iconSlot: @Composable () -> Unit = {
                                             Icon(item.icon, contentDescription = null, tint = tint)
@@ -189,25 +230,14 @@ fun MotormilaScaffold(
                                             iconSlot()
                                         }
                                     }
-                                },
-                                label = {
-                                    Text(
-                                        text = item.label,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                        fontSize = 11.sp,
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = MotormilaPrimaryBright,
-                                    selectedTextColor = MotormilaPrimaryBright,
-                                    indicatorColor = Color(0x2E0A7AFF),
-                                    unselectedIconColor = MotormilaSecondaryText,
-                                    unselectedTextColor = MotormilaSecondaryText,
-                                ),
-                                modifier = Modifier
-                                    .applePress(interaction, pressedScale = 0.92f)
-                                    .semantics { contentDescription = item.label },
-                            )
+                                }
+                                Text(
+                                    text = item.label,
+                                    color = tint,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                    fontSize = 11.sp,
+                                )
+                            }
                         }
                     }
                 }
