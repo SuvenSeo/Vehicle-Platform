@@ -54,10 +54,10 @@ class OfflineCalculatorsTest {
             engineCc = 1500,
         )
         // 1120 kg estimate -> 4000 band + 1550 emission.
-        assertEquals(5_550.0, res.revenueLicenceLkr, 0.01)
+        assertEquals(5_550.0, res.revenueLicenceLkr ?: 0.0, 0.01)
         // 3250 CMT + 25 stamp.
-        assertEquals(3_275.0, res.insuranceLkr, 0.01)
-        assertEquals(8_825.0, res.firstYearTotalLkr, 0.01)
+        assertEquals(3_275.0, res.insuranceLkr ?: 0.0, 0.01)
+        assertEquals(8_825.0, res.firstYearTotalLkr ?: 0.0, 0.01)
     }
 
     @Test
