@@ -1413,29 +1413,59 @@ export interface ListingFmvDetail {
 }
 
 export const getListingFmv = async (id: string | number): Promise<ListingFmvDetail> => {
-  const data = await fetchJSON<JsonRecord>(`/listings/${id}/fmv`);
-  return {
-    listing_id: toNumberOrNull(data?.listing_id),
-    asking_lkr: toNumberOrNull(data?.asking_lkr),
-    fmv_lkr: toNumberOrNull(data?.fmv_lkr),
-    deal_score: toNumberOrNull(data?.deal_score),
-    delta_pct: toNumberOrNull(data?.delta_pct),
-    band: (data?.band as ListingFmvDetail["band"]) ?? null,
-    label: data?.label ? String(data.label) : null,
-    method: String(data?.method ?? "insufficient_data"),
-    sample_count: Number(data?.sample_count ?? 0),
-    sample_size: Number(data?.sample_size ?? data?.sample_count ?? 0),
-    confidence: (data?.confidence as ListingFmvDetail["confidence"]) ?? "none",
-    comps_median_lkr: toNumberOrNull(data?.comps_median_lkr),
-    updated_at: String(data?.updated_at ?? ""),
-  };
+  try {
+    const data = await fetchJSON<JsonRecord>(`/listings/${id}/fmv`);
+    return {
+      listing_id: toNumberOrNull(data?.listing_id),
+      asking_lkr: toNumberOrNull(data?.asking_lkr),
+      fmv_lkr: toNumberOrNull(data?.fmv_lkr),
+      deal_score: toNumberOrNull(data?.deal_score),
+      delta_pct: toNumberOrNull(data?.delta_pct),
+      band: (data?.band as ListingFmvDetail["band"]) ?? null,
+      label: data?.label ? String(data.label) : null,
+      method: String(data?.method ?? "insufficient_data"),
+      sample_count: Number(data?.sample_count ?? 0),
+      sample_size: Number(data?.sample_size ?? data?.sample_count ?? 0),
+      confidence: (data?.confidence as ListingFmvDetail["confidence"]) ?? "none",
+      comps_median_lkr: toNumberOrNull(data?.comps_median_lkr),
+      updated_at: String(data?.updated_at ?? ""),
+    };
+  } catch {
+    const { predictFmvOffline } = await import("@/lib/offlineValuation");
+    const catalog = await getSnapshotListingCatalog();
+    const listing = catalog?.find((row) => String(row.id) === String(id));
+    if (catalog && listing) return predictFmvOffline(catalog, listing);
+    throw new Error("FMV unavailable (server unreachable and no snapshot).");
+  }
 };
 
 export const getPriceIndex = async (): Promise<PriceIndex> => {
+  const snapshot = await readSnapshot<JsonRecord>("price-index.json");
+  if (snapshot && Array.isArray(snapshot.points) && snapshot.points.length > 0) {
+    return snapshot as unknown as PriceIndex;
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("price index");
   return fetchJSON<PriceIndex>(`/stats/price-index`);
 };
 
 export const getListingPriceHistory = async (id: string | number): Promise<PriceHistoryInfo> => {
+  const sparkles = await readSnapshot<{ sparklines?: Record<string, Array<[number, string]>> }>(
+    "price-sparklines.json",
+  );
+  const raw = sparkles?.sparklines?.[String(id)];
+  if (Array.isArray(raw) && raw.length > 0) {
+    const { summarizeSparkline } = await import("@/lib/offlineValuation");
+    return summarizeSparkline(
+      id,
+      raw
+        .filter((p) => Array.isArray(p))
+        .map(([price_lkr, scraped_at]) => ({
+          price_lkr: Number(price_lkr),
+          scraped_at: String(scraped_at || ""),
+        })),
+    );
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback(`price history ${id}`);
   const data = await fetchJSON<JsonRecord>(`/listings/${id}/price-history`);
   const points = Array.isArray(data?.points)
     ? data.points
@@ -1577,6 +1607,98 @@ async function deriveDistrictVelocityFromCatalog(): Promise<DistrictVelocityData
     };
   });
   return { points, generated_at: new Date().toISOString() };
+}
+
+const OFFLINE_FUEL_ORDER = ["petrol", "hybrid", "electric", "diesel", "other"] as const;
+const OFFLINE_FUEL_MAP: Record<string, string> = {
+  petrol: "petrol",
+  gasoline: "petrol",
+  diesel: "diesel",
+  hybrid: "hybrid",
+  plugin_hybrid: "hybrid",
+  phev: "hybrid",
+  electric: "electric",
+  ev: "electric",
+};
+
+function offlineFuelCategory(raw: unknown): string {
+  const key = String(raw || "").trim().toLowerCase().replace(/ /g, "_").replace(/-/g, "_");
+  return OFFLINE_FUEL_MAP[key] || "other";
+}
+
+async function deriveFuelMixFromCatalog(): Promise<FuelMixData | null> {
+  const catalog = await getSnapshotListingCatalog();
+  if (!catalog || catalog.length === 0) return null;
+  const totals: Record<string, number> = { petrol: 0, hybrid: 0, electric: 0, diesel: 0, other: 0 };
+  for (const listing of catalog) totals[offlineFuelCategory(listing.fuel_type)] += 1;
+  const total = Object.values(totals).reduce((a, b) => a + b, 0);
+  return {
+    total,
+    buckets: OFFLINE_FUEL_ORDER.map((fuel_type) => ({
+      fuel_type,
+      count: totals[fuel_type],
+      pct: total > 0 ? Math.round((totals[fuel_type] / total) * 1000) / 10 : 0,
+    })),
+    generated_at: new Date().toISOString(),
+  };
+}
+
+async function deriveEvInsightFromCatalog(): Promise<EvInsightData | null> {
+  const catalog = await getSnapshotListingCatalog();
+  if (!catalog || catalog.length === 0) return null;
+  const priced = (row: CarListing): number | null => {
+    const p = toNumberOrNull(row.price_lkr);
+    return p !== null && p >= MIN_REASONABLE_PRICE_LKR ? p : null;
+  };
+  const evRows = catalog.filter((row) => offlineFuelCategory(row.fuel_type) === "electric");
+  const evPrices = evRows.map(priced).filter((p): p is number => p !== null);
+  const byModel = new Map<string, { make: string; model: string; prices: number[]; count: number }>();
+  for (const row of evRows) {
+    const make = String(row.make || "").trim();
+    const model = String(row.model || "").trim();
+    if (!make || !model) continue;
+    const key = `${make}|||${model}`;
+    const entry = byModel.get(key) || { make, model, prices: [], count: 0 };
+    entry.count += 1;
+    const p = priced(row);
+    if (p !== null) entry.prices.push(p);
+    byModel.set(key, entry);
+  }
+  const topEvModels = Array.from(byModel.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((entry) => ({
+      make: entry.make,
+      model: entry.model,
+      listing_count: entry.count,
+      median_price_lkr: entry.prices.length > 0 ? median(entry.prices) : null,
+    }));
+  const aquaPrices = catalog
+    .filter(
+      (row) =>
+        String(row.make || "").toLowerCase() === "toyota" &&
+        String(row.model || "").toLowerCase() === "aqua",
+    )
+    .map(priced)
+    .filter((p): p is number => p !== null);
+  const aquaCount = catalog.filter(
+    (row) =>
+      String(row.make || "").toLowerCase() === "toyota" &&
+      String(row.model || "").toLowerCase() === "aqua",
+  ).length;
+  return {
+    ev_count: evRows.length,
+    ev_pct: catalog.length > 0 ? Math.round((evRows.length / catalog.length) * 1000) / 10 : 0,
+    median_ev_price_lkr: evPrices.length > 0 ? median(evPrices) : null,
+    top_ev_models: topEvModels,
+    hybrid_benchmark: {
+      make: "Toyota",
+      model: "Aqua",
+      median_price_lkr: aquaPrices.length > 0 ? median(aquaPrices) : null,
+      listing_count: aquaCount,
+    },
+    generated_at: new Date().toISOString(),
+  };
 }
 
 export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
@@ -2568,11 +2690,23 @@ function normalizeHybridBandsData(data: JsonRecord): HybridBandsData {
 }
 
 export const getFuelMix = async (): Promise<FuelMixData> => {
+  const snapshot = await readSnapshot<JsonRecord>("fuel-mix.json");
+  if (snapshot && Array.isArray(snapshot.buckets) && snapshot.buckets.length > 0) {
+    return normalizeFuelMixData(snapshot);
+  }
+  const derived = await deriveFuelMixFromCatalog();
+  if (derived) return derived;
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("fuel mix");
   const data = await fetchJSON<JsonRecord>("/stats/fuel-mix");
   return normalizeFuelMixData(data);
 };
 
 export const getHybridBands = async (): Promise<HybridBandsData> => {
+  const snapshot = await readSnapshot<JsonRecord>("hybrid-bands.json");
+  if (snapshot && Array.isArray(snapshot.bands)) {
+    return normalizeHybridBandsData(snapshot);
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("hybrid bands");
   const data = await fetchJSON<JsonRecord>("/stats/hybrid-bands");
   return normalizeHybridBandsData(data);
 };
@@ -2606,8 +2740,16 @@ function normalizeEvInsightData(data: JsonRecord): EvInsightData {
 }
 
 export const getEvInsight = async (): Promise<EvInsightData> => {
-  const data = await fetchJSON<JsonRecord>("/stats/ev-insight");
-  return normalizeEvInsightData(data);
+  const derived = await deriveEvInsightFromCatalog();
+  if (derived && derived.ev_count > 0) return derived;
+  if (SNAPSHOT_ONLY && derived) return derived;
+  try {
+    const data = await fetchJSON<JsonRecord>("/stats/ev-insight");
+    return normalizeEvInsightData(data);
+  } catch {
+    if (derived) return derived;
+    throw new Error("EV insight unavailable (server unreachable and no snapshot).");
+  }
 };
 
 export const formatNumber = (num: number): string => {
@@ -2788,6 +2930,17 @@ function normalizeImportEraMakeRow(raw: Record<string, unknown>): ImportEraMakeR
 }
 
 export const getImportEraSplit = async (topN?: number): Promise<ImportEraSplitData> => {
+  const snapshot = await readSnapshot<JsonRecord>("import-era-split.json");
+  if (snapshot && Array.isArray(snapshot.makes)) {
+    return {
+      makes: (snapshot.makes as Record<string, unknown>[])
+        .map(normalizeImportEraMakeRow)
+        .filter((row) => Boolean(row.make)),
+      freeze_boundary_year: Number(snapshot.freeze_boundary_year || 2025),
+      generated_at: String(snapshot.generated_at || new Date().toISOString()),
+    };
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("import era split");
   const params: QueryParams = {};
   if (topN !== undefined) params.top_n = topN;
   const data = await fetchJSON<Record<string, unknown>>("/stats/import-era-split", params);
@@ -2915,9 +3068,25 @@ export const calculateTco = async (input: TcoInput): Promise<TcoResult> => {
   return await postJSON<TcoResult>("/calculators/tco", input as unknown as Record<string, unknown>);
 };
 
+const BENCHMARK_PERMITS: PermitInfo[] = [
+  { id: 1, permit_name: "Government Doctor Permit", permit_type: "duty_free", market_price_lkr: 5500000 },
+  { id: 2, permit_name: "Government MP / State Officer Permit", permit_type: "duty_free", market_price_lkr: 9800000 },
+  { id: 3, permit_name: "Special EV Import Permit (Remittance)", permit_type: "ev", market_price_lkr: 2200000 },
+  { id: 4, permit_name: "Foreign Employment EV Permit", permit_type: "ev", market_price_lkr: 1800000 },
+];
+
 export const getPermits = async (): Promise<PermitInfo[]> => {
-  const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
-  return Array.isArray(data) ? data : [];
+  const snapshot = await readSnapshot<{ items?: unknown[] }>("permits.json");
+  if (snapshot && Array.isArray(snapshot.items) && snapshot.items.length > 0) {
+    return snapshot.items as PermitInfo[];
+  }
+  try {
+    const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
+    if (Array.isArray(data) && data.length > 0) return data;
+  } catch {
+    // Fall through to benchmarks below.
+  }
+  return BENCHMARK_PERMITS;
 };
 
 export const getNhtsaModels = async (make: string): Promise<NhtsaModelsResult> => {

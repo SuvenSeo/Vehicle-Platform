@@ -243,6 +243,111 @@ def write_catalog_parts(output_dir: Path, catalog: list[dict[str, Any]], generat
     )
 
 
+def build_price_sparklines(db, max_listings: int = 100000, per_listing: int = 8) -> dict[str, Any]:
+    """Compact per-listing price trajectories for the offline price chart.
+
+    Only listings with at least two distinct observed prices are included
+    (single-point histories add nothing over the catalog row). Each entry is
+    the last ``per_listing`` [price_lkr, scraped_at] pairs, oldest first.
+    Fully defensive: a missing/shapeless history table just yields {}.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        from db.models import VehiclePriceHistory
+
+        changed_ids = [
+            row.vehicle_id
+            for row in (
+                db.query(
+                    VehiclePriceHistory.vehicle_id,
+                    func.max(VehiclePriceHistory.scraped_at).label("last_seen"),
+                )
+                .group_by(VehiclePriceHistory.vehicle_id)
+                .having(func.count(func.distinct(VehiclePriceHistory.price_lkr)) > 1)
+                .order_by(desc("last_seen"))
+                .limit(max_listings)
+                .all()
+            )
+        ]
+        sparklines: dict[str, list] = {}
+        batch_size = 5000
+        for start in range(0, len(changed_ids), batch_size):
+            batch = changed_ids[start : start + batch_size]
+            rows = (
+                db.query(
+                    VehiclePriceHistory.vehicle_id,
+                    VehiclePriceHistory.price_lkr,
+                    VehiclePriceHistory.scraped_at,
+                )
+                .filter(VehiclePriceHistory.vehicle_id.in_(batch))
+                .order_by(VehiclePriceHistory.vehicle_id, VehiclePriceHistory.scraped_at.desc())
+                .all()
+            )
+            per_id: dict[int, list] = {}
+            for vehicle_id, price, scraped_at in rows:
+                bucket = per_id.setdefault(int(vehicle_id), [])
+                if len(bucket) < per_listing:
+                    bucket.append([float(price), to_utc_iso(scraped_at)])
+            for vehicle_id, points in per_id.items():
+                sparklines[str(vehicle_id)] = points[::-1]
+        return {"sparklines": sparklines, "generated_at": now}
+    except Exception as exc:
+        logger.warning("price sparklines skipped: %s", exc)
+        return {"sparklines": {}, "generated_at": now, "unavailable": True}
+
+
+def build_permits_snapshot(db) -> dict[str, Any]:
+    """Export the admin-seeded permit table; merged SQLite may not have it."""
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        from db.models import VehiclePermit
+
+        rows = db.query(VehiclePermit).order_by(VehiclePermit.market_price_lkr.desc()).all()
+        return {
+            "items": [
+                {
+                    "id": row.id,
+                    "permit_name": row.permit_name,
+                    "permit_type": row.permit_type,
+                    "market_price_lkr": number_or_none(row.market_price_lkr),
+                }
+                for row in rows
+            ],
+            "generated_at": now,
+        }
+    except Exception as exc:
+        logger.warning("permits snapshot skipped: %s", exc)
+        return {"items": [], "generated_at": now, "unavailable": True}
+
+
+def build_small_snapshots(db) -> dict[str, Any]:
+    """Cheap aggregate files so the SPA survives a Neon outage.
+
+    Each builder is isolated: one failure logs and skips that file instead of
+    breaking the whole export (the previous file stays deployed).
+    """
+    builders: dict[str, Any] = {
+        # Reader exists but the file was never regenerated — fixes stale velocity.
+        "district-velocity.json": lambda: stats_endpoint.compute_district_velocity(db),
+        "price-index.json": lambda: stats_endpoint._compute_price_index_payload(db),
+        "fuel-mix.json": lambda: stats_endpoint.get_fuel_mix(db=db),
+        "hybrid-bands.json": lambda: stats_endpoint.get_hybrid_bands(db=db),
+        "import-era-split.json": lambda: stats_endpoint.get_import_era_split(db),
+        "permits.json": lambda: build_permits_snapshot(db),
+    }
+    # Aggregate trends use the same compute path as the live endpoint (free-tier
+    # depth: national overall, 12 months).
+    builders["price-trends.json"] = lambda: stats_endpoint._compute_price_trends_payload(db=db)
+    builders["price-sparklines.json"] = lambda: build_price_sparklines(db)
+    out: dict[str, Any] = {}
+    for filename, build in builders.items():
+        try:
+            out[filename] = build()
+        except Exception as exc:
+            logger.warning("snapshot %s skipped: %s", filename, exc)
+    return out
+
+
 def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_catalog: bool = False) -> dict[str, Any]:
     db = SessionLocal()
     generated_at = datetime.now(timezone.utc)
@@ -278,6 +383,14 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
                     "live-market.json",
                     "pipeline-status.json",
                     "district-prices.json",
+                    "district-velocity.json",
+                    "price-trends.json",
+                    "price-index.json",
+                    "fuel-mix.json",
+                    "hybrid-bands.json",
+                    "import-era-split.json",
+                    "permits.json",
+                    "price-sparklines.json",
                     "dashboard-insights.json",
                     "listing-sources.json",
                     "listing-makes.json",
@@ -293,6 +406,7 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
             "listing-makes.json": listings_endpoint.get_makes(db=db),
             "listing-models.json": build_models_by_make(catalog),
         }
+        files.update(build_small_snapshots(db))
 
         if skip_derived:
             files.pop("listing-models.json")
