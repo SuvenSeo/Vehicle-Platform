@@ -25,11 +25,20 @@
           var root = document.documentElement;
           root.classList.add(dark ? "theme-dark" : "theme-light");
           root.style.colorScheme = dark ? "dark" : "light";
+          var fontChoice = localStorage.getItem("motormila_font_choice") || "satoshi-inter";
+          var fontScope = localStorage.getItem("motormila_font_scope") || "hybrid";
+          root.setAttribute("data-theme-font", fontChoice);
+          root.setAttribute("data-font-scope", fontScope);
         } catch (e) {
           document.documentElement.classList.add("theme-dark");
         }
       })();
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700,900&f[]=general-sans@400,500,600,700&f[]=clash-display@500,600,700&display=swap" rel="stylesheet" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://motormila.vercel.app/" />
     <meta property="og:title" content="Motormila — Vehicle Intelligence for Sri Lanka" />
@@ -55,6 +64,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preload" href="/logo-mark.png" as="image" type="image/png" />
+    <link rel="preload" href="/fonts/azonix.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
     <link rel="preload" href="/fonts/nofex.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
     <script>
       /* Recover from stale deploys where /assets/*.css 404s were rewritten to index.html,

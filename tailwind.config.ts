@@ -15,11 +15,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Nofex"', '"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        display: ['"Nofex"', '"Fraunces"', "Iowan Old Style", "Palatino Linotype", "Georgia", "serif"],
-        body: ['"Nofex"', '"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        mono: ['"Nofex"', '"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
-        numeric: ['"Nofex"', '"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        sans: ['var(--font-sans)', '"Plus Jakarta Sans"', '"Geist Sans"', "system-ui", "-apple-system", "sans-serif"],
+        display: ['var(--font-display)', '"Azonix"', '"Clash Display"', '"Orbitron"', "sans-serif"],
+        body: ['var(--font-body)', '"Plus Jakarta Sans"', '"Geist Sans"', "system-ui", "-apple-system", "sans-serif"],
+        mono: ['var(--font-numeric)', '"Geist Mono"', '"SFMono-Regular"', "monospace"],
+        numeric: ['var(--font-numeric)', '"Rajdhani"', '"Plus Jakarta Sans"', "sans-serif"],
       },
       fontSize: {
         xs: ["0.75rem", { lineHeight: "1.5" }],

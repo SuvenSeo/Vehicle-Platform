@@ -465,13 +465,19 @@ private fun PriceDealSection(listing: Listing, isPro: Boolean, onDealShown: () -
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(listing.displayName, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text(
+            listing.displayName,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            color = MotormilaOnSurface,
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 listing.formattedPrice(),
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 fontSize = 26.sp,
+                color = MotormilaOnSurface,
                 modifier = Modifier.weight(1f),
             )
             DealRing(score = if (isPro) listing.dealScore else null, band = if (isPro) listing.dealBand() else DealBand.LOCKED)
@@ -633,14 +639,14 @@ private fun HeroActionsRow(
             label = "VIEW ON $sourceName",
             fillMaxWidth = false,
             leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
-            modifier = Modifier.weight(1.1f),
+            modifier = Modifier.weight(1.25f),
             onClick = onViewSource,
         )
         MotormilaGhostButton(
             label = "SHARE ON WHATSAPP",
             fillMaxWidth = false,
             leadingIcon = Icons.AutoMirrored.Filled.Chat,
-            modifier = Modifier.weight(1.2f),
+            modifier = Modifier.weight(1f),
             onClick = onShareWhatsApp,
         )
         MotormilaIconAction(
@@ -656,7 +662,12 @@ private fun HeroActionsRow(
 private fun DealLadder(askingLkr: Double?, fmvLkr: Double?, modifier: Modifier = Modifier) {
     if (askingLkr == null || fmvLkr == null || fmvLkr <= 0) return
     MotormilaSurface(modifier = modifier) {
-        Text("Deal ladder", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Text(
+            "Deal ladder",
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = MotormilaOnSurface,
+        )
         Spacer(Modifier.height(8.dp))
         val low = fmvLkr * 0.9
         val high = fmvLkr * 1.1
@@ -682,7 +693,12 @@ private fun LadderRung(label: String, value: Double, active: Boolean) {
                 .background(if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
         )
         Spacer(Modifier.width(8.dp))
-        Text(label, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(
+            label,
+            fontSize = 13.sp,
+            color = MotormilaOnSurface,
+            modifier = Modifier.weight(1f),
+        )
         Text(LkrFormat.full(value), fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = if (active) FontWeight.Bold else FontWeight.Normal)
     }
 }
@@ -720,8 +736,9 @@ private fun BentoSpecsGrid(listing: Listing, modifier: Modifier = Modifier) {
         ?.replace("_", " ")
         ?.ifBlank { "Pre-Owned" } ?: "Pre-Owned"
     val bodyVal = listing.bodyType
-        ?.replaceFirstChar { it.uppercase() }
         ?.replace("_", " ")
+        ?.trim()
+        ?.let { if (it.length <= 4) it.uppercase() else it.replaceFirstChar(Char::uppercase) }
         ?.ifBlank { "Unknown" } ?: "Unknown"
 
     val specs = listOf(

@@ -104,3 +104,6 @@ data/manus-dumps/
 /PROJECT.md
 /ORIGINAL_REQUEST.md
 .env*
+
+# Local Hugging Face Space API dump (runtime status scratch)
+space.json

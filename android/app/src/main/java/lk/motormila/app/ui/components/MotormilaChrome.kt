@@ -582,6 +582,8 @@ fun MotormilaPrimaryButton(
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
