@@ -107,7 +107,7 @@ def list_notifications(
     return (
         db.query(UserNotification)
         .filter(UserNotification.user_token == owner)
-        .order_by(UserNotification.created_at.desc())
+        .order_by(UserNotification.created_at.desc(), UserNotification.id.desc())
         .limit(NOTIFICATION_LIST_LIMIT)
         .all()
     )

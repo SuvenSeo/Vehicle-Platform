@@ -44,7 +44,12 @@ LISTING_SQL = (
 )
 
 
-def _make_dump(path: Path, *, with_history_src: bool = True) -> Path:
+def _make_dump(
+    path: Path,
+    *,
+    with_history_src: bool = True,
+    scrape_run: tuple[str, str] | None = None,
+) -> Path:
     """Build a gzipped dump mirroring what the scrapers/exporters publish."""
     engine = create_engine(f"sqlite:///{path}")
     Base.metadata.create_all(engine)
@@ -67,6 +72,16 @@ def _make_dump(path: Path, *, with_history_src: bool = True) -> Path:
                     ),
                     {"s": source, "sid": source_id, "p": price, "t": scraped_at},
                 )
+        if scrape_run is not None:
+            source, started_at = scrape_run
+            conn.execute(
+                text(
+                    "INSERT INTO scrape_runs "
+                    "(source, started_at, finished_at, status, listings_found, listings_new) "
+                    "VALUES (:source, :started_at, :started_at, 'SUCCESS', 2, 1)"
+                ),
+                {"source": source, "started_at": started_at},
+            )
     engine.dispose()
     gz = path.with_suffix(".db.gz")
     with path.open("rb") as fin, gzip.open(gz, "wb") as fout:
@@ -172,6 +187,58 @@ def test_manus_dump_without_history_table_merges_listings_only(
     assert _count(target, "car_listings") == 2
     # Only the 2 first-sighting points; no history table in the dump.
     assert _count(target, "vehicle_price_history") == 2
+
+
+def test_merge_imports_latest_scrape_run_and_is_idempotent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dump = _make_dump(
+        tmp_path / "autolens.db",
+        with_history_src=False,
+        scrape_run=("ikman", "2026-08-03 09:00:00"),
+    )
+    target = tmp_path / "merged.db"
+    _fresh_target(target)
+
+    assert _run_merge(monkeypatch, dump, target) == 0
+    assert _run_merge(monkeypatch, dump, target) == 0
+
+    assert _count(target, "scrape_runs") == 1
+    with sqlite3.connect(target) as con:
+        row = con.execute(
+            "SELECT source, started_at, status FROM scrape_runs"
+        ).fetchone()
+    assert row[0] == "ikman"
+    assert str(row[1]).startswith("2026-08-03 09:00:00")
+    assert row[2] == "SUCCESS"
+
+
+def test_merge_does_not_replace_newer_target_scrape_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dump = _make_dump(
+        tmp_path / "autolens.db",
+        with_history_src=False,
+        scrape_run=("ikman", "2026-08-01 09:00:00"),
+    )
+    target = tmp_path / "merged.db"
+    _fresh_target(target)
+    with sqlite3.connect(target) as con:
+        con.execute(
+            "INSERT INTO scrape_runs "
+            "(source, started_at, finished_at, status, listings_found, listings_new) "
+            "VALUES ('ikman', '2026-08-04 09:00:00', '2026-08-04 09:01:00', "
+            "'SUCCESS', 9, 3)"
+        )
+        con.commit()
+
+    assert _run_merge(monkeypatch, dump, target) == 0
+
+    with sqlite3.connect(target) as con:
+        row = con.execute(
+            "SELECT started_at, listings_found, listings_new FROM scrape_runs"
+        ).fetchone()
+    assert row == ("2026-08-04 09:00:00", 9, 3)
 
 
 # ---------------------------------------------------------------------------
