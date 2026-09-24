@@ -2,7 +2,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { scrollBehavior } from "@/lib/motion";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
   BarChart3,
@@ -58,11 +58,16 @@ export function Navbar() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { user, logout, isAuthenticated, hasProAccess } = useAuth();
   const pipelineStatus = usePipelineStatus();
   const { t } = useAppPreferences();
   const { hash, pathname } = useLocation();
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion() ?? false;
+  const navSpring = reducedMotion
+    ? { duration: 0.2 }
+    : { type: "spring" as const, stiffness: 220, damping: 30, mass: 0.78, restDelta: 0.001 };
 
   const sections = useMemo<NavSection[]>(
     () => [
@@ -189,6 +194,31 @@ export function Navbar() {
       setActiveSection(hash.replace("#", ""));
     }
   }, [hash, pathname]);
+
+  useEffect(() => {
+    let frame = 0;
+
+    const updateScrollState = () => {
+      frame = 0;
+      const nextScrolled = window.scrollY > 24;
+      setIsScrolled((current) => (current === nextScrolled ? current : nextScrolled));
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateScrollState);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    updateScrollState();
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
 
   useEffect(() => {
     if (pathname !== "/") return;
@@ -318,26 +348,54 @@ export function Navbar() {
   const mobileAppActive = pathname.startsWith("/mobile-app");
 
   return (
-    <header className="fixed inset-x-0 top-0 z-[1000] pointer-events-none">
+    <header
+      className="site-nav-header fixed inset-x-0 top-0 z-[1000] pointer-events-none"
+      data-scrolled={isScrolled}
+      data-nav-mode={isScrolled ? "compact" : "full"}
+    >
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background via-background/75 to-transparent"
+        className="site-nav-fade absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-background via-background/75 to-transparent"
       />
-      <div className="relative flex justify-center px-2 pt-3 sm:px-3">
-        <nav
-          className="nav-glass pointer-events-auto w-[min(1480px,calc(100vw-16px))] overflow-visible rounded-full"
+      <motion.div
+        className="site-nav-offset relative flex justify-center"
+        initial={false}
+        animate={{
+          paddingTop: isScrolled ? 16 : 0,
+          paddingLeft: isScrolled ? 16 : 0,
+          paddingRight: isScrolled ? 16 : 0,
+        }}
+        transition={navSpring}
+      >
+        <motion.nav
+          className="site-nav nav-glass pointer-events-auto overflow-visible"
+          initial={false}
+          animate={{
+            maxWidth: isScrolled ? 1080 : 1480,
+            borderRadius: isScrolled ? 28 : 0,
+          }}
+          transition={navSpring}
           aria-label={t("nav.primaryNavigation", "Primary navigation")}
         >
-          <div className="relative flex min-h-[60px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[62px] sm:gap-2 sm:px-3">
+          <motion.div
+            className="site-nav__inner relative flex items-center px-2 sm:px-3"
+            initial={false}
+            animate={{
+              height: isScrolled ? 64 : 80,
+              paddingTop: isScrolled ? 4 : 6,
+              paddingBottom: isScrolled ? 4 : 6,
+            }}
+            transition={navSpring}
+          >
             {/* ── Brand ─────────────────────────────────── */}
             <Link
               to="/"
               onClick={onHomeLinkClick}
-              className="group flex shrink-0 items-center rounded-full px-2 py-1.5 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-2.5"
+              className="site-nav__brand-link group flex shrink-0 items-center rounded-full px-2 no-underline outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 sm:px-2.5"
               aria-label={t("nav.homeAria", "Motormila home")}
             >
               <span className="relative">
-                <BrandLogo size="nav" showTagline={false} />
+                <BrandLogo className="site-nav__brand-logo" size="nav" showTagline={false} />
                 <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-background ${statusDot}`} />
               </span>
             </Link>
@@ -500,8 +558,9 @@ export function Navbar() {
 
               {/* Live status pill */}
               <div
-                className="hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex"
+                className="site-nav__status hidden items-center gap-2 rounded-full border border-border bg-foreground/[0.03] px-3 py-1.5 xl:inline-flex"
                 title={`${liveLabel} · ${liveFreshnessLabel}`}
+                aria-hidden={isScrolled}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDot}`} />
                 <span className="text-[12px] font-medium tracking-tight text-foreground">{liveLabel}</span>
@@ -562,12 +621,12 @@ export function Navbar() {
               >
                 {mobileOpen ? <X className="h-3.5 w-3.5" /> : <Menu className="h-3.5 w-3.5" />}
               </button>
-            </div>
-          </div>
-        </nav>
-      </div>
+             </div>
+           </motion.div>
+         </motion.nav>
+       </motion.div>
 
-      {/* ── Mobile menu ──────────────────────────────────── */}
+       {/* ── Mobile menu ──────────────────────────────────── */}
       {mobileOpen && (
         <div
           id="mobile-menu"

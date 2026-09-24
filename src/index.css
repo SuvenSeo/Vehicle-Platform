@@ -1391,6 +1391,119 @@
     border-radius: 999px;
   }
 
+  .site-nav-fade {
+    opacity: 0.85;
+    transform: scaleY(1);
+    transform-origin: top center;
+    transition:
+      opacity 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .site-nav-offset {
+    padding: 0;
+  }
+
+  .site-nav {
+    width: 100%;
+    max-width: 1480px;
+    border-color: transparent;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    border-radius: 0;
+    transform: translate3d(0, 0, 0);
+    transform-origin: top center;
+    transition:
+      background-color 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .site-nav__inner {
+    height: 80px;
+    padding-block: 6px;
+    column-gap: 8px;
+  }
+
+  .site-nav__brand-link {
+    padding-block: 0.375rem;
+    transition: padding-block 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .site-nav__brand-logo {
+    height: 44px;
+    transition: height 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .site-nav__brand-logo .brand-wordmark {
+    max-width: 10rem;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    transition:
+      max-width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 240ms ease,
+      transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .site-nav__status {
+    max-width: 12rem;
+    overflow: hidden;
+    opacity: 1;
+    transition:
+      max-width 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 240ms ease,
+      padding-inline 420ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav-fade {
+    opacity: 0.28;
+    transform: scaleY(0.42);
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav-offset {
+    padding-top: 1rem;
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav {
+    background-color: hsl(var(--background) / 0.9);
+    border-color: transparent;
+    backdrop-filter: blur(18px) saturate(1.8);
+    -webkit-backdrop-filter: blur(18px) saturate(1.8);
+    box-shadow: var(--shadow-md), inset 0 1px 0 var(--glass-top);
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav__brand-link {
+    padding-block: 0.125rem;
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav__brand-logo {
+    height: 40px;
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav__brand-logo .brand-wordmark {
+    max-width: 0;
+    opacity: 0;
+    transform: translate3d(-8px, 0, 0);
+  }
+
+  .site-nav-header[data-scrolled="true"] .site-nav__status {
+    max-width: 0;
+    padding-inline: 0;
+    border-color: transparent;
+    opacity: 0;
+  }
+
+  @media (min-width: 640px) {
+    .site-nav__brand-logo {
+      height: 48px;
+    }
+  }
+
   .nav-command-panel,
   .mobile-menu-panel {
     border: 1px solid var(--glass-border);
