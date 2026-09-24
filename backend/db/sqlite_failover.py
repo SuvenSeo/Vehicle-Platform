@@ -55,6 +55,8 @@ _lock = threading.Lock()
 _activated = False
 _primary_url: str | None = None
 _consecutive_failures = 0
+_active_source_url: str | None = None
+_active_source_version: tuple[str | None, str | None, int | None] | None = None
 
 
 def failover_enabled() -> bool:
@@ -167,6 +169,36 @@ def _candidate_sources() -> list[str]:
     return urls
 
 
+def _source_version(url: str) -> tuple[str | None, str | None, int | None] | None:
+    """Read cheap deployment metadata for a public merged-DB source."""
+    if not url or url.startswith("file:"):
+        return None
+    request = urllib.request.Request(
+        url,
+        method="HEAD",
+        headers={"Cache-Control": "no-cache"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return _version_from_headers(response.headers)
+    except Exception as exc:  # noqa: BLE001 - refresh is best effort
+        logger.warning("sqlite_failover_source_probe_failed", url=url, error=str(exc))
+    return None
+
+
+def _version_from_headers(headers) -> tuple[str | None, str | None, int | None] | None:
+    etag = (headers.get("ETag") or headers.get("Etag") or "").strip() or None
+    last_modified = (headers.get("Last-Modified") or "").strip() or None
+    raw_length = (headers.get("Content-Length") or "").strip()
+    try:
+        content_length = int(raw_length) if raw_length else None
+    except ValueError:
+        content_length = None
+    if etag is None and last_modified is None and content_length is None:
+        return None
+    return etag, last_modified, content_length
+
+
 def _download_with_fallback(dest: Path) -> Path:
     """Try each mirror in order; only give up when every source fails."""
     last_error: Exception | None = None
@@ -202,12 +234,50 @@ def _remember_primary_locked() -> None:
 
 def _activate_locked() -> bool:
     """Download (if needed) and rebind onto the merged dump. Caller holds _lock."""
+    global _active_source_url, _active_source_version
     dest = Path(os.getenv("SQLITE_FAILOVER_PATH", DEFAULT_FAILOVER_PATH))
-    if not dest.is_file() or dest.stat().st_size < 1_000:
+    # A fresh process must refresh once even when the container reused an old
+    # /tmp file from a previous Space process.
+    if not _active_source_url or not dest.is_file() or dest.stat().st_size < 1_000:
         _download_with_fallback(dest)
     activate_sqlite_file(dest)
     _ensure_failover_schema()
+    if not _active_source_url:
+        sources = _candidate_sources()
+        _active_source_url = sources[0] if sources else None
+    _active_source_version = (
+        _source_version(_active_source_url) if _active_source_url else None
+    )
     return True
+
+
+def _refresh_active_failover_locked() -> bool:
+    """Refresh an active failover DB when the public source changes."""
+    global _active_source_url, _active_source_version
+    dest = Path(os.getenv("SQLITE_FAILOVER_PATH", DEFAULT_FAILOVER_PATH))
+    if not _activated or not dest.is_file():
+        return False
+
+    for url in _candidate_sources():
+        version = _source_version(url)
+        if version is None:
+            continue
+        if url == _active_source_url and version == _active_source_version:
+            return False
+
+        next_dest = dest.with_name(f"{dest.name}.refresh")
+        try:
+            download_merged_sqlite(next_dest, url)
+            next_dest.replace(dest)
+            activate_sqlite_file(dest)
+            _ensure_failover_schema()
+            _active_source_url = url
+            _active_source_version = version
+            logger.info("sqlite_failover_refreshed", url=url, bytes=dest.stat().st_size)
+            return True
+        except Exception as exc:  # noqa: BLE001 - try the next mirror
+            logger.warning("sqlite_failover_refresh_failed", url=url, error=str(exc))
+    return False
 
 
 def maybe_activate_sqlite_failover() -> bool:
@@ -244,8 +314,13 @@ def _tick_once() -> None:
             if primary and _probe_url(primary):
                 db_session.reattach_engines(primary)
                 _activated = False
+                global _active_source_url, _active_source_version
+                _active_source_url = None
+                _active_source_version = None
                 # Never log credentials — host part only.
                 logger.info("sqlite_failover_deactivated", primary_host=primary.split("@")[-1])
+            else:
+                _refresh_active_failover_locked()
             return
         _remember_primary_locked()
         if neon_reachable():
