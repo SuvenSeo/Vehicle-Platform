@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Motormila</string>
+
+    <!-- Bottom nav (content descriptions = visible labels) -->
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_watchlist">Watchlist</string>
+    <string name="nav_insights">Insights</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Notification channels -->
+    <string name="channel_price_drops">Price drops</string>
+    <string name="channel_price_drops_desc">Alerts when a watched vehicle drops in price.</string>
+    <string name="channel_market_news">Market news</string>
+    <string name="channel_market_news_desc">Market movements and new arrivals.</string>
+    <string name="channel_sync">Sync</string>
+    <string name="channel_sync_desc">Background watchlist sync status.</string>
+
+    <!-- Quick tile / shortcuts -->
+    <string name="tile_scan_plate">Scan plate</string>
+    <string name="shortcut_scan_plate_short">Scan plate</string>
+    <string name="shortcut_scan_plate_long">Scan a number plate</string>
+    <string name="shortcut_voice_search_short">Voice search</string>
+    <string name="shortcut_voice_search_long">Search with your voice</string>
+    <string name="shortcut_deal_of_day_short">Deal of the day</string>
+    <string name="shortcut_deal_of_day_long">Today\'s best deal</string>
+    <string name="shortcut_watchlist_short">Watchlist</string>
+    <string name="shortcut_watchlist_long">Open your watchlist</string>
+
+    <!-- Biometric -->
+    <string name="biometric_title">Motormila</string>
+    <string name="biometric_login_subtitle">Confirm it\'s you to sign in</string>
+    <string name="biometric_settings_subtitle">Verify to change this setting</string>
+
+    <!-- Auth -->
+    <string name="login_browse_market">Browse the market</string>
+    <string name="login_invite_hint">Motormila is invite-only. Sign in with the email your admin invited; new seats are issued from the Motormila admin console.</string>
+    <string name="login_forgot_password">Forgot password?</string>
+    <string name="login_forgot_password_message">Password resets are issued by the Motormila team. Ask your admin for a reset invite.</string>
+
+    <!-- Generic -->
+    <string name="offline_banner">You\'re offline — showing cached data</string>
+    <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Plate scan (Swarm E owned; all PlateScanScreen copy lives here) -->
+    <string name="scan_title">Scan plate</string>
+    <string name="scan_preview_desc">Camera preview for plate scanning</string>
+    <string name="scan_overlay_desc">Detected text regions</string>
+    <string name="scan_no_camera">No camera on this device — type the plate below.</string>
+    <string name="scan_rationale">Camera access lets you scan plates. You can also type the plate below.</string>
+    <string name="scan_need_permission">Camera permission needed — or type the plate below.</string>
+    <string name="scan_grant_camera">Grant camera access</string>
+    <string name="scan_tap_plate">Tap a plate to search</string>
+    <string name="scan_plate_label">Plate (e.g. CAB-1234)</string>
+    <string name="scan_lookup">Look up plate</string>
+    <string name="scan_type_first">Type the plate number first.</string>
+    <string name="scan_matching">%1$d matching listings</string>
+    <string name="scan_no_match">No live listings on this plate</string>
+    <string name="scan_search">Search</string>
+    <string name="scan_open_fmv">Open FMV</string>
+    <string name="scan_result_desc">Plate result for %1$s</string>
+
+    <!-- Share import (Swarm E owned) -->
+    <string name="share_title">Opening shared link</string>
+    <string name="share_unsupported_title">Link not supported</string>
+    <string name="share_unsupported_body">We open ikman, Riyasewana and PatPat links. Got: %1$s</string>
+    <string name="share_browse">Browse instead</string>
+    <string name="share_taking_you">Taking you to that vehicle…</string>
+    <string name="share_resolving">Resolving shared link</string>
+    <string name="share_open_search">Open search</string>
+    <string name="share_open_compare">Open compare</string>
+    <string name="share_open_valuation">Open valuation</string>
+
+    <!-- Deal widget (Swarm E owned) -->
+    <string name="widget_deal_title">Deal of the day</string>
+    <string name="widget_deal_desc">Motormila deal of the day widget</string>
+    <string name="widget_index_missing">Index —</string>
+    <string name="widget_open_deal">Open deal</string>
+
+    <!-- In-app update checker (sideload channel) -->
+    <string name="profile_app_version">App version</string>
+    <string name="profile_check_updates">tap to check</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_body">Motormila %1$s is ready to install. It takes a few seconds and keeps your data.</string>
+    <string name="update_now">Update now</string>
+    <string name="update_later">Later</string>
+    <string name="update_downloading">Downloading update…</string>
+    <string name="update_download_failed">Couldn\'t download the update. Check your connection and try again.</string>
+    <string name="update_up_to_date">You\'re on the latest version.</string>
+</resources>

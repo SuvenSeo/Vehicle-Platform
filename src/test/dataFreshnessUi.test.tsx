@@ -53,6 +53,7 @@ const freshSnapshot: LiveMarketSnapshot = {
       listings_new: 12,
     },
   ],
+  latest_listings: [],
 };
 
 describe("DataFreshnessIndicator", () => {

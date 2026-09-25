@@ -1,9 +1,12 @@
 import { MotionConfig } from "framer-motion";
 import { Suspense, useState, useEffect } from "react";
-import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { ScrollRestoration } from "@/components/ScrollRestoration";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { RouteFallback } from "@/components/RouteFallback";
+import { RouteTransition } from "@/components/RouteTransition";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import { prefetchAppShellRoutes } from "@/lib/routePrefetch";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,15 +16,21 @@ import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
 import { RouteMeta } from "@/components/RouteMeta";
 import { SettingsFloatingIcon } from "@/components/SettingsFloatingIcon";
-import { AuthProvider } from "@/lib/authContext";
+import { MobileAppPromo } from "@/components/MobileAppPromo";
+import { AuthProvider, useAuth } from "@/lib/authContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RequireAuth } from "@/components/RequireAuth";
-import { RequireAdmin } from "@/components/RequireAdmin";
 import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const AIChatWidget = lazyWithRetry(() => import("@/components/AIChatWidget").then((m) => ({ default: m.AIChatWidget })));
 const FeedbackWidget = lazyWithRetry(() =>
   import("@/components/FeedbackWidget").then((m) => ({ default: m.FeedbackWidget }))
+);
+import { CompareTray } from "@/components/CompareTray";
+import { FontStudioBar } from "@/components/FontStudioBar";
+// Trial banner lives in Pricing to avoid a new chunk; lazy keeps it out of first paint.
+const TrialCountdownBanner = lazyWithRetry(() =>
+  import("./pages/Pricing").then((m) => ({ default: m.TrialCountdownBanner }))
 );
 
 // Lazy load heavy page chunks
@@ -40,7 +49,8 @@ const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
 const SignUp = lazyWithRetry(() => import("./pages/SignUp"));
 const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
 const ProPreview = lazyWithRetry(() => import("./pages/ProPreview"));
-const AdminDashboard = lazyWithRetry(() => import("./pages/AdminDashboard"));
+const AdminConsole = lazyWithRetry(() => import("./pages/AdminConsole"));
+const MobileApp = lazyWithRetry(() => import("./pages/MobileApp"));
 const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
 const MakeHub = lazyWithRetry(() => import("./pages/MakeHub"));
 const DistrictHub = lazyWithRetry(() => import("./pages/DistrictHub"));
@@ -70,43 +80,74 @@ const queryClient = new QueryClient({
   },
 });
 
-const MinimalLoader = () => (
-  <div className="flex h-[50vh] w-full items-center justify-center" aria-label="Loading" role="status">
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative w-10 h-10">
-        <div className="absolute inset-0 rounded-full border-2 border-foreground/[0.08]" />
-        <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin" />
-      </div>
-      <p className="tech-label">Loading</p>
-    </div>
-  </div>
-);
+const MinimalLoader = () => <RouteFallback />;
 
-function MainLayout({ chatMounted }: { chatMounted: boolean }) {
+/**
+ * Internal hero A/B lab. It is a design tool, not a product surface, so it
+ * stays reachable in dev (or with `?heroLab=1`) and redirects home otherwise.
+ */
+function HeroLabGate() {
+  const { search } = useLocation();
+  const enabled = import.meta.env.DEV || new URLSearchParams(search).get("heroLab") === "1";
+  return enabled ? <HeroLab /> : <Navigate to="/" replace />;
+}
+
+function TrialBannerSlot() {
+  const { user } = useAuth();
+  // Defer the Pricing chunk until the banner can actually render: anonymous
+  // and paid users always render null, so skip the dynamic import entirely.
+  if (!user) return null;
+  if (user.subscriptionStatus !== "trialing" && user.plan !== "free") return null;
+  return (
+    <div className="mx-auto w-full max-w-[1560px] px-5 pt-3 sm:px-6">
+      <Suspense fallback={null}>
+        <TrialCountdownBanner />
+      </Suspense>
+    </div>
+  );
+}
+
+function AppShell({ chatMounted }: { chatMounted: boolean }) {
+  return (
+    <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
+      <a href="#main-content" className="skip-to-content">Skip to main content</a>
+      <Navbar />
+      <SettingsFloatingIcon />
+      <Suspense fallback={null}>
+        <FeedbackWidget />
+      </Suspense>
+      {chatMounted && (
+        <Suspense fallback={null}>
+          <AIChatWidget />
+        </Suspense>
+      )}
+      <main id="main-content" className="relative z-[1] pt-[var(--nav-offset)] pb-36 md:pb-0">
+          <TrialBannerSlot />
+        <RouteErrorBoundary>
+          <Suspense fallback={<RouteFallback />}>
+            <RouteTransition />
+          </Suspense>
+        </RouteErrorBoundary>
+      </main>
+      <AppFooter />
+      <CompareTray />
+      <MobileAppPromo />
+      <MobileBottomNav />
+      <FontStudioBar />
+    </div>
+  );
+}
+
+// Public browse shell: no session required.
+function PublicLayout({ chatMounted }: { chatMounted: boolean }) {
+  return <AppShell chatMounted={chatMounted} />;
+}
+
+// Gated shell: sign-in required (invite-only signup unchanged).
+function ProtectedLayout({ chatMounted }: { chatMounted: boolean }) {
   return (
     <RequireAuth>
-      <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
-        <a href="#main-content" className="skip-to-content">Skip to main content</a>
-        <Navbar />
-        <SettingsFloatingIcon />
-        <Suspense fallback={null}>
-          <FeedbackWidget />
-        </Suspense>
-        {chatMounted && (
-          <Suspense fallback={null}>
-            <AIChatWidget />
-          </Suspense>
-        )}
-        <main id="main-content" className="relative z-[1] pt-[4rem] pb-16 md:pb-0">
-          <RouteErrorBoundary>
-            <Suspense fallback={<MinimalLoader />}>
-              <Outlet />
-            </Suspense>
-          </RouteErrorBoundary>
-        </main>
-        <AppFooter />
-        <MobileBottomNav />
-      </div>
+      <AppShell chatMounted={chatMounted} />
     </RequireAuth>
   );
 }
@@ -117,11 +158,19 @@ const App = () => {
   const [chatMounted, setChatMounted] = useState(false);
 
   useEffect(() => {
-    const id = window.setTimeout(() => setChatMounted(true), 2000);
-    // Do not clear chunk/css reload guards on mount — that re-arms infinite
-    // reload loops when a stale asset is still being served. Guards expire
-    // via TTL in lazyWithRetry / index.html instead.
-    return () => window.clearTimeout(id);
+    const chatId = window.setTimeout(() => setChatMounted(true), 2000);
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    if (typeof window.requestIdleCallback === "function") {
+      idleHandle = window.requestIdleCallback(() => prefetchAppShellRoutes(), { timeout: 2500 });
+    } else {
+      timeoutHandle = window.setTimeout(() => prefetchAppShellRoutes(), 1200);
+    }
+    return () => {
+      window.clearTimeout(chatId);
+      if (idleHandle !== undefined) window.cancelIdleCallback?.(idleHandle);
+      if (timeoutHandle !== undefined) window.clearTimeout(timeoutHandle);
+    };
   }, []);
 
   return (
@@ -135,10 +184,8 @@ const App = () => {
               <ScrollRestoration />
               <RouteMeta />
               <Routes>
-                <Route element={<MainLayout chatMounted={chatMounted} />}>
+                <Route element={<PublicLayout chatMounted={chatMounted} />}>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/dealer" element={<DealerDashboard />} />
-                  <Route path="/settings" element={<Settings />} />
                   <Route path="/trends" element={<Trends />} />
                   <Route path="/estimate" element={<Estimate />} />
                   <Route path="/calculator" element={<Calculator />} />
@@ -149,26 +196,23 @@ const App = () => {
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
                   <Route path="/cars/:make" element={<MakeHub />} />
                   <Route path="/locations/:district" element={<DistrictHub />} />
-                  <Route path="/alerts" element={<Alerts />} />
                   <Route path="/price-index" element={<PriceIndex />} />
                   <Route path="/official-pulse" element={<OfficialPulse />} />
                   <Route path="/official-pulse/guide/:key" element={<OfficialPulseGuide />} />
                   <Route path="/official-pulse/:id" element={<OfficialPulseDetail />} />
                   <Route path="/docs" element={<Docs />} />
                   <Route path="/pricing" element={<Pricing />} />
-                  <Route
-                    path="/admin"
-                    element={(
-                      <RequireAdmin>
-                        <AdminDashboard />
-                      </RequireAdmin>
-                    )}
-                  />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/terms" element={<TermsOfService />} />
                   <Route path="/compare" element={<Compare />} />
                   <Route path="/permits" element={<Permits />} />
+                  <Route path="/mobile-app" element={<MobileApp />} />
                   <Route path="*" element={<NotFound />} />
+                </Route>
+                <Route element={<ProtectedLayout chatMounted={chatMounted} />}>
+                  <Route path="/dealer" element={<DealerDashboard />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/alerts" element={<Alerts />} />
                 </Route>
                 <Route path="/sign-in" element={
                   <Suspense fallback={<MinimalLoader />}>
@@ -182,9 +226,21 @@ const App = () => {
                 } />
                 <Route path="/hero-lab" element={
                   <Suspense fallback={<MinimalLoader />}>
-                    <HeroLab />
+                    <HeroLabGate />
                   </Suspense>
                 } />
+                {/**
+                 * Admin console: unlisted, credential-gated, and deliberately
+                 * outside the marketing shell — no navbar, no footer, no links
+                 * from anywhere on the public site.
+                 */}
+                <Route path="/motormila/admin" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <AdminConsole />
+                  </Suspense>
+                } />
+                {/** Legacy path kept as a bare redirect so old bookmarks still land. */}
+                <Route path="/admin" element={<Navigate to="/motormila/admin" replace />} />
                 <Route path="/pro-preview" element={
                   <Suspense fallback={<MinimalLoader />}>
                     <ProPreview />
@@ -192,7 +248,7 @@ const App = () => {
                 } />
                 <Route path="/pro" element={
                   <Suspense fallback={<MinimalLoader />}>
-                    <ProtectedRoute><ProDashboard /></ProtectedRoute>
+                    <RequireAuth><ProtectedRoute><ProDashboard /></ProtectedRoute></RequireAuth>
                   </Suspense>
                 } />
               </Routes>

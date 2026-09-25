@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Bug, Lightbulb, MessageSquare, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppPreferences } from "@/lib/appPreferences";
+
+import { OPEN_FEEDBACK_EVENT } from "@/lib/feedbackEvents";
 
 const LOCAL_FEEDBACK_KEY = "autolens.feedback.offline.v1";
 
@@ -33,6 +35,12 @@ export function FeedbackWidget() {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener(OPEN_FEEDBACK_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_FEEDBACK_EVENT, handleOpen);
+  }, []);
 
   const categoryOptions = useMemo(
     () =>
@@ -77,7 +85,7 @@ export function FeedbackWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-primary active:scale-95 max-sm:hidden"
+        className="floating-action-menu-item floating-control fixed bottom-20 left-5 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-card/90 text-muted-foreground shadow-soft-lg backdrop-blur transition-all duration-200 hover:border-primary/40 hover:text-primary active:scale-95 max-sm:hidden"
         aria-label={t("feedback.sendAria", "Send feedback")}
         title={t("feedback.title", "Send Feedback")}
       >
@@ -102,7 +110,7 @@ export function FeedbackWidget() {
                     key={option.value}
                     type="button"
                     onClick={() => setCategory(option.value)}
-                    className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors duration-200 active:scale-95 ${
+                    className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold transition-colors duration-200 active:scale-95 ${
                       category === option.value
                         ? "border-primary/35 bg-primary/12 text-primary"
                         : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -137,7 +145,7 @@ export function FeedbackWidget() {
               <Button
                 disabled={!canSubmit}
                 onClick={submit}
-                className="h-10 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-transform duration-200 hover:bg-primary active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+              className="h-10 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition-transform duration-200 hover:bg-primary active:scale-95 disabled:opacity-50 disabled:active:scale-100"
               >
                 <Send className="mr-2 h-3.5 w-3.5" />
                 {submitting ? t("feedback.sending", "Sending") : t("feedback.send", "Send")}

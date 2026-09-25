@@ -48,11 +48,10 @@ DUMPS = [
 
 
 def test_extract_dump_timestamp_from_tag_or_bare_marker() -> None:
-    # Normalized to YYYYMMDDTHHMMSSZ so 4- and 6-digit markers compare equal-width.
     assert ddr.extract_dump_timestamp("manus-scrape-20260818T1547Z") == "20260818T154700Z"
-    assert ddr.extract_dump_timestamp("manus-scrape-20260818T154700Z") == "20260818T154700Z"
     assert ddr.extract_dump_timestamp("20260818T1547Z") == "20260818T154700Z"
     assert ddr.extract_dump_timestamp("  manus-scrape-20260815T1133Z\n") == "20260815T113300Z"
+    assert ddr.extract_dump_timestamp("20260818T154700Z") == "20260818T154700Z"
     assert ddr.extract_dump_timestamp("") == ""
 
 

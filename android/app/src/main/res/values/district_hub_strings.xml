@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="district_hub_title">District hub</string>
+    <string name="district_hub_back">Back</string>
+    <string name="district_hub_retry">Retry</string>
+    <string name="district_hub_loading">Loading district hub</string>
+    <string name="district_hub_na">N/A</string>
+    <string name="district_hub_price_na">Price N/A</string>
+    <string name="district_hub_eyebrow">District hub</string>
+    <string name="district_hub_description">Live inventory, average prices, and top models in %1$s.</string>
+    <string name="district_hub_live_listings">Live listings</string>
+    <string name="district_hub_avg_price">Average price</string>
+    <string name="district_hub_median_price">Median price</string>
+    <string name="district_hub_models">Models</string>
+    <string name="district_hub_popular">Popular in %1$s</string>
+    <string name="district_hub_listings_count">%1$d listings</string>
+    <string name="district_hub_live_inventory">Live inventory</string>
+    <string name="district_hub_recent">Recent listings</string>
+    <string name="district_hub_browse">Browse %1$s listings</string>
+    <string name="district_hub_nearby_eyebrow">Around this district</string>
+    <string name="district_hub_nearby">Nearby districts</string>
+    <string name="district_hub_change_30d">30-day change %1$s</string>
+    <string name="district_hub_new_7d">%1$d new this week</string>
+    <string name="district_hub_error_title">Couldn\'t load this district</string>
+    <string name="district_hub_empty_title">No listings in this district</string>
+    <string name="district_hub_empty_body">Inventory and prices will appear after the next market sync.</string>
+    <string name="district_hub_cd_refresh">Refresh district hub</string>
+    <string name="district_hub_cd_model">%1$s %2$s, %3$d listings</string>
+    <string name="district_hub_cd_nearby">Nearby district %1$s</string>
+    <string name="district_hub_cd_stat_count">Live listings, %1$s</string>
+    <string name="district_hub_cd_stat_avg">Average price, %1$s</string>
+    <string name="district_hub_cd_stat_median">Median price, %1$s</string>
+</resources>

@@ -129,6 +129,22 @@ describe("api module", () => {
     expect(similar[0]).toMatchObject({ id: 7 });
   });
 
+  it("reuses a short-lived listing detail fetch", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 4242, make: "Toyota", model: "Aqua" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const api: typeof import("@/services/api") = await import("@/services/api");
+    const first = await api.getListing("4242");
+    const second = await api.getListing("4242");
+
+    expect(first).toMatchObject({ id: 4242 });
+    expect(second).toMatchObject({ id: 4242 });
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).includes("/listings/4242")).length).toBe(1);
+  });
+
   it("does not infer listing specs from title or description text", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

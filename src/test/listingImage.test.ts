@@ -43,4 +43,14 @@ describe("getListingImageUrl", () => {
       } as ListingImageInput),
     ).toBe("https://ikman.lk/en/ad/gallery/cover.webp");
   });
+
+  it("keeps Motormila demo thumbs on the app origin instead of the listing source", () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    expect(
+      getListingImageUrl({
+        thumbnail_url: "/demo/aqua.webp",
+        url: "https://example.com/demo-aqua",
+      } as ListingImageInput),
+    ).toBe(`${origin}/demo/aqua.webp`);
+  });
 });

@@ -27,6 +27,10 @@ from app.api.v1.endpoints import listings as listings_endpoint  # noqa: E402
 from app.api.v1.endpoints import pipeline as pipeline_endpoint  # noqa: E402
 from app.api.v1.endpoints import stats as stats_endpoint  # noqa: E402
 from app.utils.districts import count_canonical_districts  # noqa: E402
+from app.utils.listing_snapshot import (  # noqa: E402
+    LISTING_SNAPSHOT_LOAD_ONLY,
+    listing_to_dict,
+)
 from db.models import CarListing, live_listing_filter  # noqa: E402
 from db.session import SessionLocal  # noqa: E402
 
@@ -84,39 +88,6 @@ def number_or_none(value: Any) -> float | None:
     if math.isfinite(number):
         return number
     return None
-
-
-def listing_to_dict(row: CarListing) -> dict[str, Any]:
-    return {
-        "id": int(row.id),
-        "source": row.source,
-        "source_id": row.source_id,
-        "url": row.url,
-        "detail_url": row.url,
-        "external_url": row.url,
-        "title": row.title or "",
-        "make": row.make or "",
-        "model": row.model or "",
-        "year": int(row.year) if row.year is not None else None,
-        "price_lkr": number_or_none(row.price_lkr),
-        "mileage": int(row.mileage) if row.mileage is not None else None,
-        "mileage_km": int(row.mileage) if row.mileage is not None else None,
-        "fuel_type": row.fuel_type,
-        "transmission": row.transmission,
-        "engine_capacity": int(row.engine_capacity) if row.engine_capacity is not None else None,
-        "engine_cc": int(row.engine_capacity) if row.engine_capacity is not None else None,
-        "condition": row.condition,
-        "body_type": row.body_type,
-        "district": row.district,
-        "city": row.city,
-        "thumbnail_url": row.thumbnail_url,
-        "scraped_at": to_utc_iso(row.scraped_at),
-        "first_seen_at": to_utc_iso(row.first_seen_at),
-        "last_seen_at": to_utc_iso(row.last_seen_at),
-        "deal_score": number_or_none(row.deal_score),
-        "market_median_lkr": number_or_none(row.market_median_lkr),
-        "is_outlier": bool(row.is_outlier),
-    }
 
 
 def build_stats_summary(db) -> dict[str, Any]:
@@ -185,10 +156,15 @@ def build_pipeline_status(db) -> dict[str, Any]:
     try:
         return pipeline_endpoint.pipeline_status(db=db, is_admin=False)
     except Exception:
-        logger.exception("Failed to build pipeline-status snapshot; using empty fallback")
+        logger.exception("Failed to build pipeline-status snapshot; using degraded fallback")
         return {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "overall_status": "ok",
+            # Deliberately NOT "ok": an empty job list derives "delayed" from
+            # pipeline._derive_overall_status, and consumers treat only
+            # "ok"/"running" as healthy. Publishing "ok" here would ship a
+            # green pipeline-status.json to the UI exactly when the export
+            # failed, hiding the breakage.
+            "overall_status": "delayed",
             "jobs": [],
         }
 
@@ -196,36 +172,12 @@ def build_pipeline_status(db) -> dict[str, Any]:
 def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
     query = (
         db.query(CarListing)
-        .options(
-            load_only(
-                CarListing.id,
-                CarListing.source,
-                CarListing.source_id,
-                CarListing.url,
-                CarListing.title,
-                CarListing.make,
-                CarListing.model,
-                CarListing.year,
-                CarListing.price_lkr,
-                CarListing.mileage,
-                CarListing.fuel_type,
-                CarListing.transmission,
-                CarListing.engine_capacity,
-                CarListing.condition,
-                CarListing.body_type,
-                CarListing.district,
-                CarListing.city,
-                CarListing.thumbnail_url,
-                CarListing.scraped_at,
-                CarListing.first_seen_at,
-                CarListing.last_seen_at,
-                CarListing.deal_score,
-                CarListing.market_median_lkr,
-                CarListing.is_outlier,
-            )
-        )
+        .options(load_only(*LISTING_SNAPSHOT_LOAD_ONLY))
         .filter(live_listing_filter())
-        .order_by(desc(CarListing.first_seen_at), desc(CarListing.id))
+        .order_by(
+            desc(CarListing.first_seen_at),
+            desc(CarListing.id),
+        )
     )
     if limit is not None and limit > 0:
         query = query.limit(limit)
@@ -291,6 +243,184 @@ def write_catalog_parts(output_dir: Path, catalog: list[dict[str, Any]], generat
     )
 
 
+def build_price_drops(db, days: int = 7, limit: int = 20) -> dict[str, Any]:
+    """Biggest recorded cuts in the window — same LAG logic as the endpoint.
+
+    Export runs anonymous (no plan gating); mirrors the free-browse limit.
+    """
+    from db.models import VehiclePriceHistory
+
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+    prev_price = (
+        func.lag(VehiclePriceHistory.price_lkr)
+        .over(
+            partition_by=VehiclePriceHistory.vehicle_id,
+            order_by=(VehiclePriceHistory.scraped_at, VehiclePriceHistory.id),
+        )
+        .label("prev_price")
+    )
+    ordered = (
+        db.query(
+            VehiclePriceHistory.vehicle_id.label("vehicle_id"),
+            VehiclePriceHistory.price_lkr.label("new_price"),
+            VehiclePriceHistory.scraped_at.label("dropped_at"),
+            prev_price,
+        )
+    ).subquery("ordered_history")
+    drops = (
+        db.query(
+            ordered.c.vehicle_id,
+            ordered.c.new_price,
+            ordered.c.prev_price,
+            ordered.c.dropped_at,
+        )
+        .filter(
+            ordered.c.prev_price.isnot(None),
+            ordered.c.new_price < ordered.c.prev_price,
+            ordered.c.dropped_at >= cutoff,
+        )
+        .subquery("drops")
+    )
+    rows = (
+        db.query(
+            CarListing,
+            drops.c.new_price,
+            drops.c.prev_price,
+            drops.c.dropped_at,
+        )
+        .join(drops, drops.c.vehicle_id == CarListing.id)
+        .filter(live_listing_filter(), CarListing.is_duplicate.is_(False))
+        .order_by(desc((drops.c.prev_price - drops.c.new_price) / drops.c.prev_price))
+        .limit(limit)
+        .all()
+    )
+    items = []
+    seen: set[int] = set()
+    for listing, new_price, prev, dropped_at in rows:
+        if listing.id in seen:
+            continue
+        seen.add(int(listing.id))
+        prev_f = float(prev)
+        new_f = float(new_price)
+        items.append(
+            {
+                "listing": listing_to_dict(listing),
+                "previous_price_lkr": prev_f,
+                "new_price_lkr": new_f,
+                "drop_pct": round((prev_f - new_f) / prev_f * 100, 1) if prev_f > 0 else 0.0,
+                "dropped_at": to_utc_iso(dropped_at),
+            }
+        )
+    return {"items": items, "window_days": days, "generated_at": now.isoformat()}
+
+
+def build_price_sparklines(db, max_listings: int = 100000, per_listing: int = 8) -> dict[str, Any]:
+    """Compact per-listing price trajectories for the offline price chart.
+
+    Only listings with at least two distinct observed prices are included
+    (single-point histories add nothing over the catalog row). Each entry is
+    the last ``per_listing`` [price_lkr, scraped_at] pairs, oldest first.
+    Fully defensive: a missing/shapeless history table just yields {}.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        from db.models import VehiclePriceHistory
+
+        changed_ids = [
+            row.vehicle_id
+            for row in (
+                db.query(
+                    VehiclePriceHistory.vehicle_id,
+                    func.max(VehiclePriceHistory.scraped_at).label("last_seen"),
+                )
+                .group_by(VehiclePriceHistory.vehicle_id)
+                .having(func.count(func.distinct(VehiclePriceHistory.price_lkr)) > 1)
+                .order_by(desc("last_seen"))
+                .limit(max_listings)
+                .all()
+            )
+        ]
+        sparklines: dict[str, list] = {}
+        batch_size = 5000
+        for start in range(0, len(changed_ids), batch_size):
+            batch = changed_ids[start : start + batch_size]
+            rows = (
+                db.query(
+                    VehiclePriceHistory.vehicle_id,
+                    VehiclePriceHistory.price_lkr,
+                    VehiclePriceHistory.scraped_at,
+                )
+                .filter(VehiclePriceHistory.vehicle_id.in_(batch))
+                .order_by(VehiclePriceHistory.vehicle_id, VehiclePriceHistory.scraped_at.desc())
+                .all()
+            )
+            per_id: dict[int, list] = {}
+            for vehicle_id, price, scraped_at in rows:
+                bucket = per_id.setdefault(int(vehicle_id), [])
+                if len(bucket) < per_listing:
+                    bucket.append([float(price), to_utc_iso(scraped_at)])
+            for vehicle_id, points in per_id.items():
+                sparklines[str(vehicle_id)] = points[::-1]
+        return {"sparklines": sparklines, "generated_at": now}
+    except Exception as exc:
+        logger.warning("price sparklines skipped: %s", exc)
+        return {"sparklines": {}, "generated_at": now, "unavailable": True}
+
+
+def build_permits_snapshot(db) -> dict[str, Any]:
+    """Export the admin-seeded permit table; merged SQLite may not have it."""
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        from db.models import VehiclePermit
+
+        rows = db.query(VehiclePermit).order_by(VehiclePermit.market_price_lkr.desc()).all()
+        return {
+            "items": [
+                {
+                    "id": row.id,
+                    "permit_name": row.permit_name,
+                    "permit_type": row.permit_type,
+                    "market_price_lkr": number_or_none(row.market_price_lkr),
+                }
+                for row in rows
+            ],
+            "generated_at": now,
+        }
+    except Exception as exc:
+        logger.warning("permits snapshot skipped: %s", exc)
+        return {"items": [], "generated_at": now, "unavailable": True}
+
+
+def build_small_snapshots(db) -> dict[str, Any]:
+    """Cheap aggregate files so the SPA survives a Neon outage.
+
+    Each builder is isolated: one failure logs and skips that file instead of
+    breaking the whole export (the previous file stays deployed).
+    """
+    builders: dict[str, Any] = {
+        # Reader exists but the file was never regenerated — fixes stale velocity.
+        "district-velocity.json": lambda: stats_endpoint.compute_district_velocity(db),
+        "price-index.json": lambda: stats_endpoint._compute_price_index_payload(db),
+        "fuel-mix.json": lambda: stats_endpoint.get_fuel_mix(db=db),
+        "hybrid-bands.json": lambda: stats_endpoint.get_hybrid_bands(db=db),
+        "import-era-split.json": lambda: stats_endpoint.get_import_era_split(db),
+        "permits.json": lambda: build_permits_snapshot(db),
+    }
+    # Aggregate trends use the same compute path as the live endpoint (free-tier
+    # depth: national overall, 12 months).
+    builders["price-trends.json"] = lambda: stats_endpoint._compute_price_trends_payload(db=db)
+    builders["price-sparklines.json"] = lambda: build_price_sparklines(db)
+    builders["price-drops.json"] = lambda: build_price_drops(db)
+    out: dict[str, Any] = {}
+    for filename, build in builders.items():
+        try:
+            out[filename] = build()
+        except Exception as exc:
+            logger.warning("snapshot %s skipped: %s", filename, exc)
+    return out
+
+
 def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_catalog: bool = False) -> dict[str, Any]:
     db = SessionLocal()
     generated_at = datetime.now(timezone.utc)
@@ -326,6 +456,15 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
                     "live-market.json",
                     "pipeline-status.json",
                     "district-prices.json",
+                    "district-velocity.json",
+                    "price-trends.json",
+                    "price-index.json",
+                    "fuel-mix.json",
+                    "hybrid-bands.json",
+                    "import-era-split.json",
+                    "permits.json",
+                    "price-sparklines.json",
+                    "price-drops.json",
                     "dashboard-insights.json",
                     "listing-sources.json",
                     "listing-makes.json",
@@ -341,6 +480,7 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
             "listing-makes.json": listings_endpoint.get_makes(db=db),
             "listing-models.json": build_models_by_make(catalog),
         }
+        files.update(build_small_snapshots(db))
 
         if skip_derived:
             files.pop("listing-models.json")
@@ -374,6 +514,8 @@ def parse_args() -> argparse.Namespace:
         "--skip-catalog",
         action="store_true",
         help="Stats-only export: skip the full listing-catalog read (saves Neon egress). "
+        "live-market.json still includes latest_listings (newest ads by first_seen_at) "
+        "so the homepage can update between weekly catalog refreshes. "
         "Use for daily refreshes; run a full export weekly or manually.",
     )
     return parser.parse_args()

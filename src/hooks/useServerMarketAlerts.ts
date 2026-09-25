@@ -5,6 +5,8 @@ import {
   deleteAlert,
   getAlerts,
   getOrCreateAlertToken,
+  updateAlertChannels,
+  type AlertChannelsUpdateInput,
   type AlertCreateInput,
   type ServerMarketAlert,
 } from "@/services/api";
@@ -18,6 +20,7 @@ export interface UseServerMarketAlertsResult {
   refresh: () => Promise<void>;
   create: (data: AlertCreateInput) => Promise<ServerMarketAlert>;
   remove: (id: number) => Promise<void>;
+  updateChannels?: (id: number, data: AlertChannelsUpdateInput) => Promise<ServerMarketAlert>;
 }
 
 export function useServerMarketAlerts(): UseServerMarketAlertsResult {
@@ -48,7 +51,13 @@ export function useServerMarketAlerts(): UseServerMarketAlertsResult {
     async (data: AlertCreateInput) => {
       const created = await createAlert(token, data);
       await refresh();
-      trackEvent("alert_created", { make: data.make, model: data.model, district: data.district });
+      trackEvent("alert_created", {
+        make: data.make,
+        model: data.model,
+        district: data.district,
+        user_token: token,
+        alert_token: token,
+      });
       return created;
     },
     [token, refresh],
@@ -62,5 +71,15 @@ export function useServerMarketAlerts(): UseServerMarketAlertsResult {
     [token],
   );
 
-  return { alerts, loading, error, token, refresh, create, remove };
+  const updateChannels = useCallback(
+    async (id: number, data: AlertChannelsUpdateInput) => {
+      const updated = await updateAlertChannels(token, id, data);
+      setAlerts((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      trackEvent("alert_channels_updated", { alert_id: id, ...data });
+      return updated;
+    },
+    [token],
+  );
+
+  return { alerts, loading, error, token, refresh, create, remove, updateChannels };
 }

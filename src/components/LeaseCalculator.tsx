@@ -101,7 +101,7 @@ export function LeaseCalculator({
       </div>
 
       {exceedsLtv ? (
-        <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90">
+        <p className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-200/90">
           Financed share exceeds typical CBSL LTV for this class. Raise down payment to at least{" "}
           {ltvMinDown}% (about {formatPrice(price * (ltvMinDown / 100))}) for a realistic cash gap.
         </p>
@@ -109,7 +109,7 @@ export function LeaseCalculator({
 
       <div className="pt-2">
         <div className="flex flex-col rounded-xl border border-primary/20 bg-primary/10 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <span className="mb-1 text-sm font-bold uppercase tracking-wider text-primary sm:mb-0">Est. monthly payment</span>
+          <span className="mb-1 text-sm font-semibold tracking-tight text-primary sm:mb-0">Est. monthly payment</span>
           <span className="text-2xl font-bold text-foreground tracking-tight num">
             {formatPrice(monthlyPayment)}
             <span className="ml-1 text-sm font-normal text-muted-foreground">/mo</span>

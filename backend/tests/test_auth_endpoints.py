@@ -295,6 +295,51 @@ def test_me_endpoint_rate_limited(monkeypatch):
     assert excinfo.value.status_code == 429
 
 
+def test_successful_login_never_rate_limited_by_failed_attempts(monkeypatch):
+    """Regression (v1.3.1): a burst of WRONG attempts from one client (old app
+    build auto-filling removed demo credentials, shared Wi-Fi, etc.) used to
+    trip the limiter and lock real users out of a CORRECT login. Budget is
+    only consumed by failures now; a valid login always goes through."""
+    from fastapi import Response
+
+    _configure(monkeypatch)
+    limiter = auth._login_rate_limiter
+    limiter.reset()
+    try:
+        # Exhaust the failure budget (limit is 10/min) with wrong passwords.
+        # Once tripped, later failures come back as 429 instead of 401.
+        statuses = []
+        for _ in range(14):
+            with pytest.raises(HTTPException) as excinfo:
+                auth.login(
+                    auth.LoginRequest(email="owner@example.com", password="wrong"),
+                    DummyRequest(),
+                    Response(),
+                )
+            statuses.append(excinfo.value.status_code)
+        assert 429 in statuses
+        assert statuses[:10] == [401] * 10
+
+        # The limiter is now tripped for this client...
+        with pytest.raises(HTTPException) as excinfo:
+            auth.login(
+                auth.LoginRequest(email="owner@example.com", password="also-wrong"),
+                DummyRequest(),
+                Response(),
+            )
+        assert excinfo.value.status_code == 429
+
+        # ...but the correct password still succeeds.
+        result = auth.login(
+            auth.LoginRequest(email="owner@example.com", password="correct-horse"),
+            DummyRequest(),
+            Response(),
+        )
+        assert result["user"]["email"] == "owner@example.com"
+    finally:
+        limiter.reset()
+
+
 def test_login_auth_users_overrides_stale_db_password(monkeypatch):
     """Rotating AUTH_USERS on HF must unlock login even if platform_users is stale."""
     from fastapi import Response

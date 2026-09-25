@@ -11,7 +11,7 @@ export function PriceUnavailableBadge({ label, actionLabel, className }: PriceUn
   return (
     <span
       className={cn(
-        "tech-label inline-flex items-center gap-1.5 rounded-lg border border-primary/60 bg-primary/18 px-2.5 py-1 text-primary",
+        "tech-label inline-flex items-center gap-1.5 rounded-2xl border border-primary/60 bg-primary/18 px-2.5 py-1 text-primary",
         className,
       )}
     >

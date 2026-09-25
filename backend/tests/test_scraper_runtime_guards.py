@@ -2,13 +2,18 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import run_alt_sync
 import run_sync
+from app.scrapers import ikman as ikman_module
 from app.scrapers.autolanka import AutoLankaScraper
 from app.scrapers.ikman import IkmanCarScraper
+from app.scrapers.patpat import PatpatBlockedError, PatpatScraper
 from app.scrapers.riyasewana import RiyasewanaBlockedError, RiyasewanaScraper
+from app.utils.listing_upsert import upsert_listing as shared_upsert_listing
 from bs4 import BeautifulSoup
 
 
@@ -158,6 +163,54 @@ def test_run_source_timeout_without_new_listings_stays_failed(monkeypatch):
             "error_message": "Source timed out after 0.05s",
         }
     ]
+
+
+def test_coerce_scrape_yield_reads_int_and_dict():
+    assert run_sync._coerce_scrape_yield(17) == 17
+    assert run_sync._coerce_scrape_yield({"inserted": 4}) == 4
+    assert run_sync._coerce_scrape_yield({"upserted": 9}) == 9
+    assert run_sync._coerce_scrape_yield(None) is None
+    assert run_sync._listings_found_from_scrape({"inserted": 0}, listings_after=86017) == 0
+    assert run_sync._listings_found_from_scrape(None, listings_after=86017) == 86017
+
+
+def test_run_source_uses_scraper_yield_not_inventory_total(monkeypatch):
+    class _YieldScraper:
+        SOURCE = "dummy-yield"
+
+        def __init__(self, _db):
+            return None
+
+        async def scrape(self, max_pages: int = 5):
+            return {"inserted": 0}
+
+    finalize_calls = []
+
+    monkeypatch.setattr(run_sync, "SessionLocal", lambda: _DummyDB())
+    monkeypatch.setattr(run_sync, "_count_source_listings_safe", lambda _source: 86017)
+    monkeypatch.setattr(run_sync, "_start_scrape_run", lambda _db, _source: type("R", (), {"id": 9})())
+    monkeypatch.setattr(
+        run_sync,
+        "_finalize_scrape_run_safe",
+        lambda run_id, **kwargs: finalize_calls.append({"run_id": run_id, **kwargs}),
+    )
+    monkeypatch.setattr(run_sync, "_close_db_session", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(run_sync, "_take_checkpoint_safe", lambda _source: None)
+
+    asyncio.run(run_sync._run_source(_YieldScraper, max_pages=2, source_timeout_seconds=None))
+
+    assert finalize_calls == [
+        {
+            "run_id": 9,
+            "status": "SUCCESS",
+            "listings_found": 0,
+            "listings_new": 0,
+        }
+    ]
+
+
+def test_ikman_playwright_upsert_helper_is_imported():
+    assert ikman_module.upsert_listing is shared_upsert_listing
 
 
 def test_run_sync_main_falls_back_for_non_positive_page_values_and_runs_sequentially(monkeypatch):
@@ -527,3 +580,29 @@ def test_ikman_detail_thumbnail_parser_skips_placeholder_and_uses_json_ld():
         IkmanCarScraper._extract_thumbnail_from_detail_html(html)
         == "https://img.ikman.lk/car-1.jpg"
     )
+
+
+def test_patpat_scrape_raises_on_http_403(monkeypatch):
+    class _Resp:
+        status_code = 403
+        text = "<html>blocked</html>"
+
+        def raise_for_status(self):
+            raise AssertionError("403 should raise PatpatBlockedError first")
+
+    class _Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url, timeout=30):
+            return _Resp()
+
+    monkeypatch.setattr("app.scrapers.patpat.httpx.AsyncClient", lambda **_kwargs: _Client())
+    scraper = PatpatScraper(_DummyDB())
+    scraper.CATEGORY_PATHS = ("car",)
+
+    with pytest.raises(PatpatBlockedError, match="HTTP 403"):
+        asyncio.run(scraper.scrape(max_pages=1))

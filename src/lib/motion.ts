@@ -35,3 +35,20 @@ export const revealItem = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: springSoft },
 } as const;
+
+/** Route enter/exit — opacity + rise + a whisper of scale. Transform-only. */
+export const pageEnter = {
+  opacity: 1,
+  y: 0,
+  scale: 1,
+  transition: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
+} as const;
+
+export const pageInitial = { opacity: 0, y: 14, scale: 0.992 } as const;
+
+export const pageExit = {
+  opacity: 0,
+  y: -8,
+  scale: 0.995,
+  transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+} as const;

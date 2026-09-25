@@ -30,12 +30,13 @@ export default function HeroLab() {
     setParams(next, { replace: true });
   };
 
+  const centered = variant.align === "center";
   const alignClass =
     variant.align === "left"
       ? "mr-auto max-w-xl text-left lg:max-w-2xl"
       : variant.align === "right"
         ? "ml-auto max-w-xl text-left lg:max-w-2xl"
-        : "mx-auto max-w-3xl text-center";
+        : "mx-auto flex w-full max-w-3xl flex-col items-center text-center";
   const copyTone = variant.tone === "dark" ? "text-white" : "text-foreground";
   const mutedTone =
     variant.tone === "dark" ? "text-white/75" : "text-foreground/80";
@@ -49,7 +50,7 @@ export default function HeroLab() {
       <header className="sticky top-0 z-40 border-b border-border bg-card/90 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            <p className="text-[12px] font-semibold text-muted-foreground">
               Local hero lab
             </p>
             <p className="text-sm font-semibold">
@@ -58,7 +59,7 @@ export default function HeroLab() {
           </div>
           <Link
             to={`/?hero=${activeId}`}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-[12px] font-bold hover:border-primary/40"
+            className="rounded-2xl border border-border bg-background px-3 py-2 text-[12px] font-bold hover:border-primary/40"
           >
             Open on home (needs sign-in)
           </Link>
@@ -109,7 +110,7 @@ export default function HeroLab() {
               {BRAND.name}
             </p>
             <p
-              className={`mt-4 inline-flex rounded-full border px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] backdrop-blur-md ${
+              className={`mt-4 inline-flex rounded-full border px-3.5 py-1.5 text-[12px] font-semibold tracking-tight backdrop-blur-md ${
                 variant.tone === "dark"
                   ? "border-white/15 bg-white/10 text-white/80"
                   : "border-border/80 bg-card/90 text-foreground/85"
@@ -117,23 +118,29 @@ export default function HeroLab() {
             >
               Vehicle Intelligence · Sri Lanka
             </p>
-            <h1 className={`display-hero mt-6 ${copyTone}`}>
-              Sri Lanka&apos;s entire vehicle market,
-              <span className="text-sheen"> decoded.</span>
+            <h1 className={`display-hero mt-6 ${centered ? "display-hero--lockup" : ""} ${copyTone}`}>
+              <span className={centered ? "display-hero__lead" : undefined}>
+                Sri Lanka&apos;s entire vehicle market,
+              </span>
+              <span className={`text-sheen ${centered ? "display-hero__accent" : ""}`}>
+                {centered ? "" : " "}decoded.
+              </span>
             </h1>
-            <p className={`text-body-lg mt-6 max-w-xl ${mutedTone}`}>
+            <p className={`text-body-lg mt-6 max-w-xl ${centered ? "mx-auto" : ""} ${mutedTone}`}>
               <span className={`font-bold num ${copyTone}`}>120,000+</span> live listings —
               real-time pricing, deal scores, and market intelligence.
             </p>
             <div
-              className={`mt-8 flex max-w-xl items-center gap-2 rounded-xl border px-3 py-2 ${
+              className={`mt-8 flex w-full max-w-xl items-center gap-2 rounded-xl border px-3 py-2 ${
+                centered ? "mx-auto" : ""
+              } ${
                 variant.tone === "dark"
                   ? "border-white/20 bg-white/10 text-white"
                   : "border-border bg-card"
               }`}
             >
               <span className="text-[13px] opacity-60">Search vehicles…</span>
-              <span className="ml-auto rounded-lg bg-primary px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white">
+              <span className="ml-auto rounded-2xl bg-primary px-4 py-2 text-[12px] font-medium text-white">
                 Search
               </span>
             </div>

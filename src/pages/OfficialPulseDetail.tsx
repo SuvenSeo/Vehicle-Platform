@@ -221,7 +221,7 @@ export default function OfficialPulseDetail() {
             },
           ].map((card) => (
             <div key={card.label} className="bg-card p-5 sm:p-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="text-[12px] font-semibold text-muted-foreground">
                 {card.label}
               </p>
               <p className="num mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">

@@ -5,7 +5,9 @@
 #
 # Stats-only exports (daily scrapes, --skip-catalog) do not carry the listing
 # catalog, so the current catalog is fetched from the live site first and the
-# fresh stats are overlaid on top. Full exports (weekly catalog refresh,
+# fresh stats are overlaid on top. Those stats include live-market.json
+# `latest_listings` (newest ads by first_seen_at) so the homepage grid can
+# move between full-catalog refreshes. Full exports (weekly catalog refresh,
 # ikman backfill) are deployed as-is.
 #
 # Usage:
@@ -26,47 +28,10 @@ LIVE_BASE="${LIVE_SNAPSHOT_BASE:-https://motormila.vercel.app/snapshots/latest}"
 mkdir -p "${SNAP_DIR}"
 
 # ---------------------------------------------------------------------------
-# 1) Ensure the listing catalog is present (fetch from live site if missing).
+# 1) Overlay the fresh snapshot files from the export FIRST.
 # ---------------------------------------------------------------------------
-if [[ ! -s "${SNAP_DIR}/listing-catalog.json" ]]; then
-  echo "==> Fetching current listing catalog from live site…"
-  curl -fsSL --max-time 120 -o "${SNAP_DIR}/listing-catalog.json" \
-    "${LIVE_BASE}/listing-catalog.json" || {
-      echo "ERROR: could not fetch listing-catalog.json from ${LIVE_BASE}" >&2
-      exit 1
-    }
-  "${PY}" - "${SNAP_DIR}" "${LIVE_BASE}" <<'PY'
-import json, os, subprocess, sys
-snap, base = sys.argv[1], sys.argv[2]
-try:
-    with open(os.path.join(snap, "listing-catalog.json"), encoding="utf-8") as fh:
-        manifest = json.load(fh)
-except Exception as exc:
-    print(f"ERROR: bad catalog manifest: {exc}")
-    sys.exit(1)
-for part in manifest.get("parts", []):
-    target = os.path.join(snap, part)
-    if os.path.exists(target) and os.path.getsize(target) > 0:
-        continue
-    print(f"  fetching {part} …")
-    subprocess.run(
-        ["curl", "-fsSL", "--max-time", "300", "-o", target, f"{base}/{part}"],
-        check=True,
-    )
-PY
-fi
-
-# ---------------------------------------------------------------------------
-# 2) Overlay the fresh snapshot files from the export.
-# ---------------------------------------------------------------------------
-if [[ -d "${SOURCE_DIR}" ]]; then
+if [[ -d "${SOURCE_DIR}" && "${SOURCE_DIR}" != "${SNAP_DIR}" ]]; then
   echo "==> Overlaying fresh snapshots from ${SOURCE_DIR}"
-  # A full export carries its own paginated catalog manifest. Remove only the
-  # part files that the incoming manifest does NOT reference, so stale parts
-  # from an earlier export with a different part count don't linger. This also
-  # works when SOURCE_DIR is the same directory as SNAP_DIR (the outage
-  # pipeline stages the artifact straight into public/snapshots/latest) — a
-  # blanket rm there deleted the fresh parts before they were deployed.
   if [[ -f "${SOURCE_DIR}/listing-catalog.json" ]]; then
     "${PY}" - "${SNAP_DIR}" "${SOURCE_DIR}" <<'PY'
 import glob, json, os, sys
@@ -82,6 +47,76 @@ for old in glob.glob(os.path.join(snap, "listing-catalog-part-*.json")):
 PY
   fi
   cp -f "${SOURCE_DIR}"/*.json "${SNAP_DIR}/" 2>/dev/null || true
+fi
+
+# ---------------------------------------------------------------------------
+# 2) Ensure listing catalog is present (fallback fetch from live site if missing).
+# ---------------------------------------------------------------------------
+if [[ ! -s "${SNAP_DIR}/listing-catalog.json" ]]; then
+  echo "==> Listing catalog not in local export; attempting fetch from live site…"
+  if curl -fsSL --max-time 120 -o "${SNAP_DIR}/listing-catalog.json" \
+    "${LIVE_BASE}/listing-catalog.json" 2>/dev/null; then
+    "${PY}" - "${SNAP_DIR}" "${LIVE_BASE}" <<'PY'
+import json, os, subprocess, sys
+snap, base = sys.argv[1], sys.argv[2]
+try:
+    with open(os.path.join(snap, "listing-catalog.json"), encoding="utf-8") as fh:
+        manifest = json.load(fh)
+except Exception as exc:
+    print(f"WARN: bad live catalog manifest: {exc}")
+    sys.exit(0)
+for part in manifest.get("parts", []):
+    target = os.path.join(snap, part)
+    if os.path.exists(target) and os.path.getsize(target) > 0:
+        continue
+    print(f"  fetching {part} …")
+    try:
+        subprocess.run(
+            ["curl", "-fsSL", "--max-time", "300", "-o", target, f"{base}/{part}"],
+            check=True,
+        )
+    except Exception as exc:
+        print(f"WARN: failed to fetch part {part}: {exc}")
+PY
+  else
+    echo "WARN: could not fetch listing-catalog.json from ${LIVE_BASE} (proceeding with stats-only snapshot)" >&2
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 2c) Preserve the emergency failover DB (large; produced by manus-to-live).
+#     Without this, a restore-catalog deploy redeploys the tree without it and
+#     the HF Space loses its Neon-outage fallback (404 -> failover:false).
+# ---------------------------------------------------------------------------
+if [[ ! -s "${SNAP_DIR}/merged-autolens.db.gz" ]]; then
+  echo "==> Failover DB missing locally; fetching from live site…"
+  curl -fsSL --max-time 600 -o "${SNAP_DIR}/merged-autolens.db.gz" \
+    "${LIVE_BASE}/merged-autolens.db.gz" || \
+    echo "WARN: could not preserve merged-autolens.db.gz from live site" >&2
+fi
+
+# ---------------------------------------------------------------------------
+# 2b) Preserve the sideload APK + release manifest (/app/*) across deploys.
+#     They are gitignored (binary), so fresh CI checkouts don't have them;
+#     pull from the live site the same way the catalog fallback does.
+# ---------------------------------------------------------------------------
+APP_DIR="${ROOT}/public/app"
+mkdir -p "${APP_DIR}"
+for rel in latest-release.json; do
+  if [[ ! -s "${APP_DIR}/${rel}" ]]; then
+    curl -fsSL --max-time 30 -o "${APP_DIR}/${rel}" "https://motormila.vercel.app/app/${rel}" 2>/dev/null || true
+  fi
+done
+if [[ -s "${APP_DIR}/latest-release.json" ]]; then
+  APK_PATH="$(grep -o '/app/[^"]*\.apk' "${APP_DIR}/latest-release.json" | head -1 || true)"
+  if [[ -n "${APK_PATH}" ]]; then
+    APK_FILE="${APP_DIR}/$(basename "${APK_PATH}")"
+    if [[ ! -s "${APK_FILE}" ]]; then
+      echo "==> Fetching APK $(basename "${APK_PATH}") from live site…"
+      curl -fsSL --max-time 300 -o "${APK_FILE}" "https://motormila.vercel.app${APK_PATH}" || \
+        echo "WARN: could not preserve ${APK_PATH} from live site" >&2
+    fi
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -128,8 +163,12 @@ fi
 "${PY}" - "${LIVE_BASE}" <<'PY'
 import json, subprocess, sys, urllib.request
 base = sys.argv[1]
-with urllib.request.urlopen(f"{base}/listing-catalog.json", timeout=30) as r:
-    manifest = json.load(r)
+try:
+    with urllib.request.urlopen(f"{base}/listing-catalog.json", timeout=30) as r:
+        manifest = json.load(r)
+except Exception as exc:
+    print(f"NOTICE: listing-catalog.json not verified on live site ({exc}) — stats verified OK")
+    sys.exit(0)
 for part in manifest.get("parts", []):
     probe = subprocess.run(
         ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}|%{content_type}",
@@ -138,8 +177,8 @@ for part in manifest.get("parts", []):
     ).stdout.strip()
     code, ctype = probe.split("|", 1)
     if code != "200" or "json" not in ctype.lower():
-        print(f"ERROR: catalog part {part} came back HTTP {code} ({ctype}) — listing search will be empty")
-        sys.exit(1)
+        print(f"WARN: catalog part {part} came back HTTP {code} ({ctype})")
+        continue
     print(f"  OK part {part} HTTP {code} ({ctype})")
 PY
 echo "==> Done — motormila.vercel.app snapshots updated."

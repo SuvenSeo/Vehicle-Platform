@@ -55,7 +55,7 @@ export const HERO_VARIANTS: HeroVariant[] = [
     imageOpacity: "opacity-[0.78]",
     align: "left",
     tone: "dark",
-    hideSideSignals: true,
+    hideSideSignals: false,
     scrims: [
       "bg-gradient-to-r from-background via-background/85 to-background/20 sm:to-transparent",
       "bg-gradient-to-b from-background/55 via-transparent to-background",
@@ -64,17 +64,17 @@ export const HERO_VARIANTS: HeroVariant[] = [
   {
     id: "expressway-dusk",
     label: "3 · Expressway dusk",
-    blurb: "Lotus Tower + light-trail expressway — SUV right, brand left.",
+    blurb: "Lotus Tower + light-trail expressway — centered lockup, SUV on the right.",
     image: visuals.pageHomeHeroDusk,
-    // Bias right so the blue SUV stays in frame; left sky stays open for type
-    objectPosition: "68% 42%",
+    // Keep the SUV in the right third so the centered type sits over the darker road
+    objectPosition: "62% 42%",
     imageOpacity: "opacity-[0.88]",
-    align: "left",
+    align: "center",
     tone: "dark",
-    hideSideSignals: true,
+    hideSideSignals: false,
     scrims: [
-      "bg-gradient-to-r from-background/92 via-background/55 to-background/10 sm:to-transparent",
-      "bg-gradient-to-b from-background/45 via-transparent to-background/90",
+      "bg-gradient-to-b from-background/55 via-background/22 to-background/88",
+      "bg-gradient-to-t from-background/70 via-transparent to-background/35",
     ],
   },
   {
@@ -86,7 +86,7 @@ export const HERO_VARIANTS: HeroVariant[] = [
     imageOpacity: "opacity-[0.9]",
     align: "left",
     tone: "golden",
-    hideSideSignals: true,
+    hideSideSignals: false,
     scrims: [
       "bg-gradient-to-r from-background/94 via-background/72 to-background/10 sm:to-transparent",
       "bg-gradient-to-b from-background/35 via-transparent to-background/80",
@@ -102,7 +102,7 @@ export const HERO_VARIANTS: HeroVariant[] = [
     imageOpacity: "opacity-[0.86]",
     align: "left",
     tone: "light",
-    hideSideSignals: true,
+    hideSideSignals: false,
     scrims: [
       // Lighter left wash — photo stays dominant; type uses text-shadow for contrast
       "bg-gradient-to-r from-background/82 via-background/45 to-transparent",
@@ -118,7 +118,7 @@ export const HERO_VARIANTS: HeroVariant[] = [
     imageOpacity: "opacity-[0.92]",
     align: "right",
     tone: "dark",
-    hideSideSignals: true,
+    hideSideSignals: false,
     scrims: [
       "bg-gradient-to-l from-background/30 via-background/75 to-background/95",
       "bg-gradient-to-b from-background/50 via-transparent to-background",

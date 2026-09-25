@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  calculateOwnershipBundle,
-  checkImportEligibility,
   formatPrice,
   type ImportEligibilityResult,
   type OwnershipBundleResult,
   type OwnershipVehicleClass,
 } from "@/services/api";
+import {
+  calculateOwnershipBundleResilient as calculateOwnershipBundle,
+  checkImportEligibilityResilient as checkImportEligibility,
+  type OfflineFlag,
+} from "@/lib/offlineCalculators";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, CheckCircle, Shield, FileBadge } from "lucide-react";
 import { toast } from "sonner";
@@ -38,8 +41,8 @@ export function OwnershipCostsPanel({
   const [consideration, setConsideration] = useState(initialPrice);
   const [includeTransfer, setIncludeTransfer] = useState(true);
   const [modelYear, setModelYear] = useState(2022);
-  const [bundle, setBundle] = useState<OwnershipBundleResult | null>(null);
-  const [eligibility, setEligibility] = useState<ImportEligibilityResult | null>(null);
+  const [bundle, setBundle] = useState<(OwnershipBundleResult & OfflineFlag) | null>(null);
+  const [eligibility, setEligibility] = useState<(ImportEligibilityResult & OfflineFlag) | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export function OwnershipCostsPanel({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <div className="h-fit space-y-5 rounded-2xl border border-border bg-card p-5 shadow-soft sm:p-6">
         <div className="flex items-center gap-3 border-b border-border pb-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
             <FileBadge className="h-4 w-4 text-primary" />
           </div>
           <div>
@@ -95,7 +98,7 @@ export function OwnershipCostsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+          <label className="text-[12px] font-medium text-muted-foreground/80">
             Vehicle class
           </label>
           <div className="grid grid-cols-2 gap-1.5">
@@ -105,7 +108,7 @@ export function OwnershipCostsPanel({
                 type="button"
                 onClick={() => setVehicleClass(item.id)}
                 aria-pressed={vehicleClass === item.id}
-                className={`min-h-[36px] rounded-lg border py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${
+                className={`min-h-[36px] rounded-full border py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${
                   vehicleClass === item.id
                     ? "border-primary/40 bg-primary/10 text-primary-bright"
                     : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -118,7 +121,7 @@ export function OwnershipCostsPanel({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+          <label className="text-[12px] font-medium text-muted-foreground/80">
             Fuel
           </label>
           <div className="grid grid-cols-4 gap-1.5">
@@ -128,7 +131,7 @@ export function OwnershipCostsPanel({
                 type="button"
                 onClick={() => setFuelType(fuel)}
                 aria-pressed={fuelType === fuel}
-                className={`min-h-[36px] rounded-lg border py-2 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
+                className={`min-h-[36px] rounded-full border py-2 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                   fuelType === fuel
                     ? "border-primary/40 bg-primary/10 text-primary-bright"
                     : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -142,7 +145,7 @@ export function OwnershipCostsPanel({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label htmlFor="own-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-cc" className="text-[12px] font-medium text-muted-foreground/80">
               Engine CC
             </label>
             <Input
@@ -154,7 +157,7 @@ export function OwnershipCostsPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="own-kg" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-kg" className="text-[12px] font-medium text-muted-foreground/80">
               Unladen kg (optional)
             </label>
             <Input
@@ -170,7 +173,7 @@ export function OwnershipCostsPanel({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label htmlFor="own-year" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-year" className="text-[12px] font-medium text-muted-foreground/80">
               Model year (import check)
             </label>
             <Input
@@ -182,7 +185,7 @@ export function OwnershipCostsPanel({
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="own-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+            <label htmlFor="own-price" className="text-[12px] font-medium text-muted-foreground/80">
               Transfer consideration (LKR)
             </label>
             <Input
@@ -211,6 +214,7 @@ export function OwnershipCostsPanel({
           <h3 className="text-sm font-bold text-foreground">First-year statutory outlay</h3>
           <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
             Gazette-aligned planning figures — confirm eRL / insurer / RMV before paying
+            {bundle?.offline ? " · computed on-device" : ""}
           </p>
         </div>
 
@@ -257,7 +261,7 @@ export function OwnershipCostsPanel({
               aria-live="polite"
               className="rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center shadow-soft"
             >
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">
+              <span className="text-[12px] font-semibold text-primary-bright">
                 Statutory cash this year
               </span>
               <p className="display-1 num mt-2 text-foreground">
@@ -266,7 +270,7 @@ export function OwnershipCostsPanel({
             </div>
 
             {eligibility ? (
-              <div className={`rounded-xl border p-4 ${statusTone}`}>
+              <div className={`rounded-2xl border p-4 ${statusTone}`}>
                 <div className="flex items-start gap-2">
                   {eligibility.status === "likely_allowed" ? (
                     <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -287,7 +291,7 @@ export function OwnershipCostsPanel({
               </div>
             ) : null}
 
-            <div className="flex gap-2 rounded-lg border border-border bg-surface p-3">
+            <div className="flex gap-2 rounded-2xl border border-border bg-surface p-3">
               <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
               <p className="text-[10px] font-semibold leading-relaxed text-muted-foreground">
                 {bundle.notes} {bundle.revenue_licence.schedule_note}

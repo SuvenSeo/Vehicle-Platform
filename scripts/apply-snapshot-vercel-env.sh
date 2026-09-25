@@ -12,7 +12,7 @@
 set -euo pipefail
 
 SNAPSHOT_BASE_URL="https://motormila.vercel.app/snapshots/latest"
-SNAPSHOT_ONLY="true"
+SNAPSHOT_ONLY="false"
 
 # Environments to configure (Vercel target names)
 TARGETS=("production" "preview")

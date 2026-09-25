@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <cache-path name="share" path="share/" />
+    <!-- Downloaded update APKs (AppUpdateChecker writes here before install). -->
+    <external-files-path name="update_apk" path="updates/" />
+</paths>

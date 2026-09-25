@@ -23,9 +23,9 @@
 #   MANUS_RELEASE_REPO  default SuvenSeo/Vehicle-Platform
 #   MANUS_MAX_PAGES     per-source page budget, default 120
 #
-# NOTE: use this for API / plain-HTTP friendly sources (ikman, autolanka,
-# hitad, autostream, saleme, riyahub, carshop, dimo, autodirect, cartivate).
-# riyasewana/patpat Cloudflare-wall datacenter IPs — keep those on the laptop.
+# NOTE: use this for API / plain-HTTP friendly sources (riyasewana, ikman,
+# autolanka, hitad, autostream, saleme, riyahub, carshop, dimo, autodirect,
+# cartivate). riyasewana uses curl_cffi Chrome impersonation over HTTP.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
@@ -42,7 +42,12 @@ python3 -m pip install -q -r requirements.txt
 # Fresh local DB for this run so the dump contains exactly what was scraped.
 rm -f autolens.db autolens.db.gz
 
-for src in "$@"; do
+SOURCES=("$@")
+if [ ${#SOURCES[@]} -eq 0 ]; then
+  SOURCES=(riyasewana ikman autolanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
+fi
+
+for src in "${SOURCES[@]}"; do
   upper="$(printf '%s' "$src" | tr '[:lower:]' '[:upper:]')"
   echo "== scraping ${src} (max ${MAX} pages) =="
   env \
@@ -55,6 +60,8 @@ for src in "$@"; do
     SCRAPE_ENABLED_SOURCES="${src}" \
     "SCRAPE_MAX_PAGES_${upper}=${MAX}" \
     SCRAPE_SOURCE_TIMEOUT_SECONDS="${SOURCE_TIMEOUT}" \
+    RIYASEWANA_SCRAPE_MODE=http \
+    RIYASEWANA_ARCHIVE_FALLBACK=0 \
     timeout --foreground --kill-after=30s "${SOURCE_TIMEOUT}s" python3 run_sync.py || echo "!! ${src} scrape failed or timed out — continuing with the rest"
 done
 

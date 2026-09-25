@@ -15,6 +15,7 @@ function notifyAll(status: PipelineStatusResponse | null) {
 }
 
 function startPolling() {
+  if (intervalId !== null) return;
   getPipelineStatus().then(notifyAll).catch(() => {});
   intervalId = setInterval(() => {
     getPipelineStatus().then(notifyAll).catch(() => {});

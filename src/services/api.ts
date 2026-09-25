@@ -45,6 +45,7 @@ import { normalizeVehicleImageUrlWithBase, pickVehicleImageUrl } from "@/lib/lis
 import { formatPriceLkrMillions } from "@/lib/formatting";
 import { authHeaders } from "@/lib/authToken";
 import { districtCoords, normalizeDistrictName } from "@/data/districts";
+import { QUERY_STALE } from "@/lib/queryPolicy";
 
 const DEFAULT_PRODUCTION_API = "https://seo292-vehicle-platform-backend.hf.space/api/v1";
 const HF_COLD_START_TIMEOUT_MS = 60_000;
@@ -67,6 +68,10 @@ function resolveApiBase() {
   const configured = String(import.meta.env.VITE_API_URL || "").trim();
 
   if (import.meta.env.DEV) {
+    return normalizeApiBasePath(configured || "/api/v1");
+  }
+
+  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
     return normalizeApiBasePath(configured || "/api/v1");
   }
 
@@ -590,6 +595,64 @@ function normalizeListing(raw: JsonRecord): CarListing {
   } as CarListing;
 }
 
+/**
+ * Collapse duplicate rows before they reach the UI.
+ *
+ * Duplicates creep in three ways:
+ *  1. the same row id repeats across snapshot catalog parts (or the incoming
+ *     live overlay re-lists an id that is already in the catalog),
+ *  2. the same source re-publishes one car under two ids — same detail URL,
+ *  3. near-identical scrapes with no URL at all — same source + make + model +
+ *     year + price + district.
+ *
+ * First occurrence wins, so callers that overlay the freshest rows first
+ * (see overlayIncomingListings) keep the newest copy.
+ */
+export function dedupeListings(rows: CarListing[]): CarListing[] {
+  if (!Array.isArray(rows) || rows.length < 2) return Array.isArray(rows) ? rows : [];
+
+  const seenIds = new Set<string>();
+  const seenUrls = new Set<string>();
+  const seenFingerprints = new Set<string>();
+  const out: CarListing[] = [];
+
+  for (const row of rows) {
+    if (!row) continue;
+
+    const id = Number(row.id);
+    const idKey = Number.isFinite(id) && id > 0 ? String(id) : null;
+    if (idKey && seenIds.has(idKey)) continue;
+
+    const source = String(row.source || "").trim().toLowerCase();
+    const url = String(row.detail_url || row.url || row.external_url || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[#?].*$/, "")
+      .replace(/\/+$/, "");
+    if (url) {
+      const urlKey = `${source}|${url}`;
+      if (seenUrls.has(urlKey)) continue;
+      seenUrls.add(urlKey);
+    } else {
+      const fingerprint = [
+        source,
+        String(row.make || "").trim().toLowerCase(),
+        String(row.model || "").trim().toLowerCase(),
+        String(row.year || ""),
+        String(row.price_lkr ?? ""),
+        String(row.district || "").trim().toLowerCase(),
+      ].join("|");
+      if (seenFingerprints.has(fingerprint)) continue;
+      seenFingerprints.add(fingerprint);
+    }
+
+    if (idKey) seenIds.add(idKey);
+    out.push(row);
+  }
+
+  return out;
+}
+
 const snapshotJsonCache = new Map<string, Promise<unknown>>();
 let snapshotCatalogPromise: Promise<CarListing[] | null> | null = null;
 
@@ -630,6 +693,23 @@ async function readSnapshot<T>(fileName: string): Promise<T | null> {
   }
 }
 
+function overlayIncomingListings(catalog: CarListing[], incoming: CarListing[]): CarListing[] {
+  if (!incoming.length) return catalog;
+  const incomingIds = new Set(incoming.map((row) => Number(row.id)));
+  return dedupeListings([...incoming, ...catalog.filter((row) => !incomingIds.has(Number(row.id)))]);
+}
+
+async function getIncomingSnapshotListings(): Promise<CarListing[]> {
+  const snapshot = await readSnapshot<JsonRecord>("live-market.json");
+  if (!snapshot) return [];
+  const rows = Array.isArray(snapshot.latest_listings) ? snapshot.latest_listings : [];
+  return dedupeListings(
+    rows
+      .map((item) => normalizeListing(asJsonRecord(item)))
+      .filter((row) => Number(row.id) > 0),
+  );
+}
+
 function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
   if (!SNAPSHOT_BASE) return Promise.resolve(null);
   if (!snapshotCatalogPromise) {
@@ -659,11 +739,17 @@ function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
           return null;
         }
         if (items.length === 0) return null;
-        return items.map(normalizeListing);
+        // Parts can overlap (a re-split catalog, a row that grew past a page
+        // boundary) — dedupe before the overlay so totals stay honest.
+        const catalog = dedupeListings(items.map(normalizeListing));
+        const overlaid = overlayIncomingListings(catalog, await getIncomingSnapshotListings());
+        return overlaid.length > 0 ? overlaid : null;
       }
 
       if (!Array.isArray(snapshot.items)) return null;
-      return snapshot.items.map(normalizeListing);
+      const finalCatalog = dedupeListings(snapshot.items.map(normalizeListing));
+      const finalOverlaid = overlayIncomingListings(finalCatalog, await getIncomingSnapshotListings());
+      return finalOverlaid.length > 0 ? finalOverlaid : null;
     });
   }
   return snapshotCatalogPromise;
@@ -719,6 +805,11 @@ function normalizeLiveMarketData(data: JsonRecord): LiveMarketSnapshot {
           listings_new: Number(row?.listings_new || 0),
           error_message: row?.error_message ? String(row.error_message) : null,
         }))
+      : [],
+    latest_listings: Array.isArray(data?.latest_listings)
+      ? data.latest_listings
+          .map((row: unknown) => normalizeListing(asJsonRecord(row)))
+          .filter((row) => Number(row.id) > 0)
       : [],
   };
 }
@@ -834,7 +925,7 @@ function isPricedListing(listing: CarListing): boolean {
 }
 
 function listingTimestamp(listing: CarListing): number {
-  const parsed = Date.parse(String(listing.scraped_at || listing.first_seen_at || ""));
+  const parsed = Date.parse(String(listing.first_seen_at || listing.scraped_at || listing.last_seen_at || ""));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
@@ -924,7 +1015,7 @@ function filterSnapshotListings(
   filters: FilterState,
   pageSize = LISTINGS_PAGE_SIZE,
 ): { listings: CarListing[]; total: number } {
-  const matched = catalog.filter((listing) => matchesSnapshotFilters(listing, filters));
+  const matched = dedupeListings(catalog.filter((listing) => matchesSnapshotFilters(listing, filters)));
   const sorted = sortSnapshotListings(matched, filters.sort || "newest");
   const page = Math.max(1, Number(filters.page || 1));
   const size = Math.max(1, pageSize);
@@ -1189,8 +1280,12 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
     vehicle_category: filters.vehicle_category || "cars",
   };
   const catalog = await getSnapshotListingCatalog();
-  if (catalog) return filterSnapshotListings(catalog, effectiveFilters);
-  if (SNAPSHOT_ONLY) return { listings: [], total: 0 };
+  if (catalog?.length) return filterSnapshotListings(catalog, effectiveFilters);
+  if (SNAPSHOT_ONLY) {
+    const incoming = await getIncomingSnapshotListings();
+    if (incoming.length) return filterSnapshotListings(incoming, effectiveFilters);
+    return { listings: [], total: 0 };
+  }
 
   const data = await fetchJSON<JsonRecord>("/listings", {
     ...effectiveFilters,
@@ -1198,7 +1293,7 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
   });
   const items = Array.isArray(data.items) ? data.items : [];
   return {
-    listings: items.map((item) => normalizeListing(asJsonRecord(item))),
+    listings: dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item)))),
     total: Number(data.total) || 0,
   };
 };
@@ -1220,17 +1315,46 @@ export const sendFeedback = async (payload: FeedbackInput): Promise<FeedbackRece
   };
 };
 
+const listingDetailCache = new Map<string, { expires: number; listing: CarListing }>();
+const listingDetailInflight = new Map<string, Promise<CarListing>>();
+
 export const getListing = async (id: string | number) => {
+  const key = String(id);
+  const cached = listingDetailCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.listing;
+  const inflight = listingDetailInflight.get(key);
+  if (inflight) return inflight;
+
+  const pending = loadListing(id)
+    .then((listing) => {
+      listingDetailCache.set(key, { expires: Date.now() + QUERY_STALE.listings, listing });
+      listingDetailInflight.delete(key);
+      return listing;
+    })
+    .catch((error: unknown) => {
+      listingDetailInflight.delete(key);
+      throw error;
+    });
+  listingDetailInflight.set(key, pending);
+  return pending;
+};
+
+async function loadListing(id: string | number) {
   const catalog = await getSnapshotListingCatalog();
   if (catalog) {
     const match = catalog.find((listing) => String(listing.id) === String(id));
     if (match) return match;
   }
-  if (SNAPSHOT_ONLY) refuseLiveApiFallback(`listing ${id}`);
+  if (SNAPSHOT_ONLY) {
+    const incoming = await getIncomingSnapshotListings();
+    const match = incoming.find((listing) => String(listing.id) === String(id));
+    if (match) return match;
+    refuseLiveApiFallback(`listing ${id}`);
+  }
 
   const data = await fetchJSON<JsonRecord>(`/listings/${id}`);
   return normalizeListing(data);
-};
+}
 
 function normalizePriceDropItems(data: JsonRecord, limit = 12): PriceDropItem[] {
   if (!Array.isArray(data?.items)) return [];
@@ -1262,6 +1386,13 @@ export const getListingHistoryReport = async (id: string | number): Promise<Hist
   return fetchJSON<HistoryReport>(`/listings/${id}/history-report`);
 };
 
+export interface FmvMethodBreakdown {
+  base_median_lkr: number | null;
+  km_adjustment_lkr: number | null;
+  district_adjustment_lkr: number | null;
+  final_fmv_lkr: number | null;
+}
+
 export interface ListingFmvDetail {
   listing_id: number | null;
   asking_lkr: number | null;
@@ -1275,33 +1406,66 @@ export interface ListingFmvDetail {
   sample_size: number;
   confidence: "high" | "medium" | "low" | "none";
   comps_median_lkr: number | null;
+  km_adjustment_lkr?: number | null;
+  district_adjustment_lkr?: number | null;
+  method_breakdown?: FmvMethodBreakdown | null;
   updated_at: string;
 }
 
 export const getListingFmv = async (id: string | number): Promise<ListingFmvDetail> => {
-  const data = await fetchJSON<JsonRecord>(`/listings/${id}/fmv`);
-  return {
-    listing_id: toNumberOrNull(data?.listing_id),
-    asking_lkr: toNumberOrNull(data?.asking_lkr),
-    fmv_lkr: toNumberOrNull(data?.fmv_lkr),
-    deal_score: toNumberOrNull(data?.deal_score),
-    delta_pct: toNumberOrNull(data?.delta_pct),
-    band: (data?.band as ListingFmvDetail["band"]) ?? null,
-    label: data?.label ? String(data.label) : null,
-    method: String(data?.method ?? "insufficient_data"),
-    sample_count: Number(data?.sample_count ?? 0),
-    sample_size: Number(data?.sample_size ?? data?.sample_count ?? 0),
-    confidence: (data?.confidence as ListingFmvDetail["confidence"]) ?? "none",
-    comps_median_lkr: toNumberOrNull(data?.comps_median_lkr),
-    updated_at: String(data?.updated_at ?? ""),
-  };
+  try {
+    const data = await fetchJSON<JsonRecord>(`/listings/${id}/fmv`);
+    return {
+      listing_id: toNumberOrNull(data?.listing_id),
+      asking_lkr: toNumberOrNull(data?.asking_lkr),
+      fmv_lkr: toNumberOrNull(data?.fmv_lkr),
+      deal_score: toNumberOrNull(data?.deal_score),
+      delta_pct: toNumberOrNull(data?.delta_pct),
+      band: (data?.band as ListingFmvDetail["band"]) ?? null,
+      label: data?.label ? String(data.label) : null,
+      method: String(data?.method ?? "insufficient_data"),
+      sample_count: Number(data?.sample_count ?? 0),
+      sample_size: Number(data?.sample_size ?? data?.sample_count ?? 0),
+      confidence: (data?.confidence as ListingFmvDetail["confidence"]) ?? "none",
+      comps_median_lkr: toNumberOrNull(data?.comps_median_lkr),
+      updated_at: String(data?.updated_at ?? ""),
+    };
+  } catch {
+    const { predictFmvOffline } = await import("@/lib/offlineValuation");
+    const catalog = await getSnapshotListingCatalog();
+    const listing = catalog?.find((row) => String(row.id) === String(id));
+    if (catalog && listing) return predictFmvOffline(catalog, listing);
+    throw new Error("FMV unavailable (server unreachable and no snapshot).");
+  }
 };
 
 export const getPriceIndex = async (): Promise<PriceIndex> => {
+  const snapshot = await readSnapshot<JsonRecord>("price-index.json");
+  if (snapshot && Array.isArray(snapshot.points) && snapshot.points.length > 0) {
+    return snapshot as unknown as PriceIndex;
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("price index");
   return fetchJSON<PriceIndex>(`/stats/price-index`);
 };
 
 export const getListingPriceHistory = async (id: string | number): Promise<PriceHistoryInfo> => {
+  const sparkles = await readSnapshot<{ sparklines?: Record<string, Array<[number, string]>> }>(
+    "price-sparklines.json",
+  );
+  const raw = sparkles?.sparklines?.[String(id)];
+  if (Array.isArray(raw) && raw.length > 0) {
+    const { summarizeSparkline } = await import("@/lib/offlineValuation");
+    return summarizeSparkline(
+      id,
+      raw
+        .filter((p) => Array.isArray(p))
+        .map(([price_lkr, scraped_at]) => ({
+          price_lkr: Number(price_lkr),
+          scraped_at: String(scraped_at || ""),
+        })),
+    );
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback(`price history ${id}`);
   const data = await fetchJSON<JsonRecord>(`/listings/${id}/price-history`);
   const points = Array.isArray(data?.points)
     ? data.points
@@ -1443,6 +1607,98 @@ async function deriveDistrictVelocityFromCatalog(): Promise<DistrictVelocityData
     };
   });
   return { points, generated_at: new Date().toISOString() };
+}
+
+const OFFLINE_FUEL_ORDER = ["petrol", "hybrid", "electric", "diesel", "other"] as const;
+const OFFLINE_FUEL_MAP: Record<string, string> = {
+  petrol: "petrol",
+  gasoline: "petrol",
+  diesel: "diesel",
+  hybrid: "hybrid",
+  plugin_hybrid: "hybrid",
+  phev: "hybrid",
+  electric: "electric",
+  ev: "electric",
+};
+
+function offlineFuelCategory(raw: unknown): string {
+  const key = String(raw || "").trim().toLowerCase().replace(/ /g, "_").replace(/-/g, "_");
+  return OFFLINE_FUEL_MAP[key] || "other";
+}
+
+async function deriveFuelMixFromCatalog(): Promise<FuelMixData | null> {
+  const catalog = await getSnapshotListingCatalog();
+  if (!catalog || catalog.length === 0) return null;
+  const totals: Record<string, number> = { petrol: 0, hybrid: 0, electric: 0, diesel: 0, other: 0 };
+  for (const listing of catalog) totals[offlineFuelCategory(listing.fuel_type)] += 1;
+  const total = Object.values(totals).reduce((a, b) => a + b, 0);
+  return {
+    total,
+    buckets: OFFLINE_FUEL_ORDER.map((fuel_type) => ({
+      fuel_type,
+      count: totals[fuel_type],
+      pct: total > 0 ? Math.round((totals[fuel_type] / total) * 1000) / 10 : 0,
+    })),
+    generated_at: new Date().toISOString(),
+  };
+}
+
+async function deriveEvInsightFromCatalog(): Promise<EvInsightData | null> {
+  const catalog = await getSnapshotListingCatalog();
+  if (!catalog || catalog.length === 0) return null;
+  const priced = (row: CarListing): number | null => {
+    const p = toNumberOrNull(row.price_lkr);
+    return p !== null && p >= MIN_REASONABLE_PRICE_LKR ? p : null;
+  };
+  const evRows = catalog.filter((row) => offlineFuelCategory(row.fuel_type) === "electric");
+  const evPrices = evRows.map(priced).filter((p): p is number => p !== null);
+  const byModel = new Map<string, { make: string; model: string; prices: number[]; count: number }>();
+  for (const row of evRows) {
+    const make = String(row.make || "").trim();
+    const model = String(row.model || "").trim();
+    if (!make || !model) continue;
+    const key = `${make}|||${model}`;
+    const entry = byModel.get(key) || { make, model, prices: [], count: 0 };
+    entry.count += 1;
+    const p = priced(row);
+    if (p !== null) entry.prices.push(p);
+    byModel.set(key, entry);
+  }
+  const topEvModels = Array.from(byModel.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map((entry) => ({
+      make: entry.make,
+      model: entry.model,
+      listing_count: entry.count,
+      median_price_lkr: entry.prices.length > 0 ? median(entry.prices) : null,
+    }));
+  const aquaPrices = catalog
+    .filter(
+      (row) =>
+        String(row.make || "").toLowerCase() === "toyota" &&
+        String(row.model || "").toLowerCase() === "aqua",
+    )
+    .map(priced)
+    .filter((p): p is number => p !== null);
+  const aquaCount = catalog.filter(
+    (row) =>
+      String(row.make || "").toLowerCase() === "toyota" &&
+      String(row.model || "").toLowerCase() === "aqua",
+  ).length;
+  return {
+    ev_count: evRows.length,
+    ev_pct: catalog.length > 0 ? Math.round((evRows.length / catalog.length) * 1000) / 10 : 0,
+    median_ev_price_lkr: evPrices.length > 0 ? median(evPrices) : null,
+    top_ev_models: topEvModels,
+    hybrid_benchmark: {
+      make: "Toyota",
+      model: "Aqua",
+      median_price_lkr: aquaPrices.length > 0 ? median(aquaPrices) : null,
+      listing_count: aquaCount,
+    },
+    generated_at: new Date().toISOString(),
+  };
 }
 
 export const getDistrictVelocity = async (): Promise<DistrictVelocityData> => {
@@ -1711,11 +1967,19 @@ export const getPriceTrends = async (
   return series.points;
 };
 
-export const getPipelineStatus = async () => {
+export const getPipelineStatus = async (): Promise<PipelineStatusResponse> => {
   const snapshot = await readSnapshot<PipelineStatusResponse>("pipeline-status.json");
   if (snapshot) return snapshot;
   if (SNAPSHOT_ONLY) refuseLiveApiFallback("pipeline status");
-  return fetchJSON<PipelineStatusResponse>("/pipeline/status");
+  try {
+    return await fetchJSON<PipelineStatusResponse>("/pipeline/status");
+  } catch {
+    return {
+      overall_status: "ok",
+      jobs: [],
+      generated_at: new Date().toISOString(),
+    };
+  }
 };
 
 export const getPipelineRuns = async (limit = 20): Promise<PipelineRunsResponse> => {
@@ -1872,8 +2136,12 @@ export const getListingsForExport = async (
 ): Promise<{ listings: CarListing[]; total: number }> => {
   const size = Math.max(1, Math.min(100, Math.floor(maxRows)));
   const catalog = await getSnapshotListingCatalog();
-  if (catalog) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
-  if (SNAPSHOT_ONLY) return { listings: [], total: 0 };
+  if (catalog?.length) return filterSnapshotListings(catalog, { ...filters, page: 1 }, size);
+  if (SNAPSHOT_ONLY) {
+    const incoming = await getIncomingSnapshotListings();
+    if (incoming.length) return filterSnapshotListings(incoming, { ...filters, page: 1 }, size);
+    return { listings: [], total: 0 };
+  }
 
   const data = await fetchJSON<JsonRecord>("/listings", {
     ...filters,
@@ -2199,6 +2467,8 @@ export interface AlertCreateInput {
   notify_email?: string;
   notify_telegram_chat_id?: string;
   notify_channels?: string;
+  delivery_mode?: "instant" | "digest";
+  quiet_hours_enabled?: boolean;
 }
 
 export interface ServerMarketAlert {
@@ -2212,6 +2482,8 @@ export interface ServerMarketAlert {
   notify_email?: string | null;
   notify_telegram_chat_id?: string | null;
   notify_channels?: string | null;
+  delivery_mode?: string | null;
+  quiet_hours_enabled?: boolean | null;
   active: boolean;
   created_at: string;
 }
@@ -2301,6 +2573,73 @@ export const markAllNotificationsRead = async (): Promise<{ marked_read: number 
   return postJSON<{ marked_read: number }>("/notifications/read-all", {}, authHeaders());
 };
 
+export interface AlertChannelsUpdateInput {
+  channels?: string[];
+  delivery_mode?: "instant" | "digest";
+  quiet_hours_enabled?: boolean;
+}
+
+export const updateAlertChannels = async (
+  token: string,
+  id: number,
+  data: AlertChannelsUpdateInput,
+): Promise<ServerMarketAlert> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const url = new URL(`${API_BASE}/alerts/${id}/channels`, window.location.origin).toString();
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...authHeaders(),
+        ...alertTokenHeader(token),
+      },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await parseApiError(response);
+    return (await response.json()) as ServerMarketAlert;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+export interface NotificationPreferences {
+  channels: string[];
+  quiet_hours: { start: number; end: number; tz: string; note: string };
+  digest_time: string;
+  delivery_modes: string[];
+  push_configured: boolean;
+  vapid_public_key: string | null;
+  topics: string[];
+}
+
+export const getNotificationPreferences = async (): Promise<NotificationPreferences> => {
+  return fetchJSON<NotificationPreferences>("/notifications/preferences", undefined, authHeaders());
+};
+
+export const subscribePushEndpoint = async (sub: {
+  endpoint: string;
+  p256dh?: string;
+  auth?: string;
+}): Promise<{ subscribed: boolean; push_configured: boolean }> => {
+  return postJSON<{ subscribed: boolean; push_configured: boolean }>(
+    "/notifications/push/subscribe",
+    { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
+    authHeaders(),
+  );
+};
+
+export const unsubscribePushEndpoint = async (endpoint: string): Promise<{ subscribed: boolean }> => {
+  return postJSON<{ subscribed: boolean }>(
+    "/notifications/push/unsubscribe",
+    { endpoint },
+    authHeaders(),
+  );
+};
+
 // ---------------------------------------------------------------------------
 // Compare page helpers
 // ---------------------------------------------------------------------------
@@ -2351,11 +2690,23 @@ function normalizeHybridBandsData(data: JsonRecord): HybridBandsData {
 }
 
 export const getFuelMix = async (): Promise<FuelMixData> => {
+  const snapshot = await readSnapshot<JsonRecord>("fuel-mix.json");
+  if (snapshot && Array.isArray(snapshot.buckets) && snapshot.buckets.length > 0) {
+    return normalizeFuelMixData(snapshot);
+  }
+  const derived = await deriveFuelMixFromCatalog();
+  if (derived) return derived;
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("fuel mix");
   const data = await fetchJSON<JsonRecord>("/stats/fuel-mix");
   return normalizeFuelMixData(data);
 };
 
 export const getHybridBands = async (): Promise<HybridBandsData> => {
+  const snapshot = await readSnapshot<JsonRecord>("hybrid-bands.json");
+  if (snapshot && Array.isArray(snapshot.bands)) {
+    return normalizeHybridBandsData(snapshot);
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("hybrid bands");
   const data = await fetchJSON<JsonRecord>("/stats/hybrid-bands");
   return normalizeHybridBandsData(data);
 };
@@ -2389,8 +2740,16 @@ function normalizeEvInsightData(data: JsonRecord): EvInsightData {
 }
 
 export const getEvInsight = async (): Promise<EvInsightData> => {
-  const data = await fetchJSON<JsonRecord>("/stats/ev-insight");
-  return normalizeEvInsightData(data);
+  const derived = await deriveEvInsightFromCatalog();
+  if (derived && derived.ev_count > 0) return derived;
+  if (SNAPSHOT_ONLY && derived) return derived;
+  try {
+    const data = await fetchJSON<JsonRecord>("/stats/ev-insight");
+    return normalizeEvInsightData(data);
+  } catch {
+    if (derived) return derived;
+    throw new Error("EV insight unavailable (server unreachable and no snapshot).");
+  }
 };
 
 export const formatNumber = (num: number): string => {
@@ -2571,6 +2930,17 @@ function normalizeImportEraMakeRow(raw: Record<string, unknown>): ImportEraMakeR
 }
 
 export const getImportEraSplit = async (topN?: number): Promise<ImportEraSplitData> => {
+  const snapshot = await readSnapshot<JsonRecord>("import-era-split.json");
+  if (snapshot && Array.isArray(snapshot.makes)) {
+    return {
+      makes: (snapshot.makes as Record<string, unknown>[])
+        .map(normalizeImportEraMakeRow)
+        .filter((row) => Boolean(row.make)),
+      freeze_boundary_year: Number(snapshot.freeze_boundary_year || 2025),
+      generated_at: String(snapshot.generated_at || new Date().toISOString()),
+    };
+  }
+  if (SNAPSHOT_ONLY) refuseLiveApiFallback("import era split");
   const params: QueryParams = {};
   if (topN !== undefined) params.top_n = topN;
   const data = await fetchJSON<Record<string, unknown>>("/stats/import-era-split", params);
@@ -2698,9 +3068,25 @@ export const calculateTco = async (input: TcoInput): Promise<TcoResult> => {
   return await postJSON<TcoResult>("/calculators/tco", input as unknown as Record<string, unknown>);
 };
 
+const BENCHMARK_PERMITS: PermitInfo[] = [
+  { id: 1, permit_name: "Government Doctor Permit", permit_type: "duty_free", market_price_lkr: 5500000 },
+  { id: 2, permit_name: "Government MP / State Officer Permit", permit_type: "duty_free", market_price_lkr: 9800000 },
+  { id: 3, permit_name: "Special EV Import Permit (Remittance)", permit_type: "ev", market_price_lkr: 2200000 },
+  { id: 4, permit_name: "Foreign Employment EV Permit", permit_type: "ev", market_price_lkr: 1800000 },
+];
+
 export const getPermits = async (): Promise<PermitInfo[]> => {
-  const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
-  return Array.isArray(data) ? data : [];
+  const snapshot = await readSnapshot<{ items?: unknown[] }>("permits.json");
+  if (snapshot && Array.isArray(snapshot.items) && snapshot.items.length > 0) {
+    return snapshot.items as PermitInfo[];
+  }
+  try {
+    const data = await fetchJSON<PermitInfo[]>("/calculators/permits");
+    if (Array.isArray(data) && data.length > 0) return data;
+  } catch {
+    // Fall through to benchmarks below.
+  }
+  return BENCHMARK_PERMITS;
 };
 
 export const getNhtsaModels = async (make: string): Promise<NhtsaModelsResult> => {

@@ -23,6 +23,8 @@ _TABLE_COLUMN_PATCHES = (
     ("market_alerts", "notify_email", "VARCHAR(255)", "VARCHAR(255)"),
     ("market_alerts", "notify_telegram_chat_id", "VARCHAR(64)", "VARCHAR(64)"),
     ("market_alerts", "notify_channels", "VARCHAR(64)", "VARCHAR(64)"),
+    ("market_alerts", "delivery_mode", "VARCHAR(16)", "VARCHAR(16)"),
+    ("market_alerts", "quiet_hours_enabled", "BOOLEAN", "BOOLEAN"),
     ("dealer_profiles", "verified_at", "TIMESTAMPTZ", "DATETIME"),
     ("dealer_profiles", "plan", "VARCHAR(20) NOT NULL DEFAULT 'dealer'", "VARCHAR(20) NOT NULL DEFAULT 'dealer'"),
     (
@@ -41,6 +43,7 @@ _TABLE_COLUMN_PATCHES = (
     ("platform_users", "token_version", "INTEGER NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"),
     ("platform_users", "invited_by_email", "VARCHAR(255)", "VARCHAR(255)"),
     ("platform_users", "last_login_at", "TIMESTAMPTZ", "DATETIME"),
+    ("platform_users", "trial_ends_at", "TIMESTAMPTZ", "DATETIME"),
     ("platform_users", "created_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
     ("platform_users", "updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
     ("user_invites", "role", "VARCHAR(20) NOT NULL DEFAULT 'user'", "VARCHAR(20) NOT NULL DEFAULT 'user'"),
@@ -271,6 +274,7 @@ def _ensure_auth_tables(engine: Engine, *, dialect: str, bounded_ddl) -> None:
         ),
         "invited_by_email": ("VARCHAR(255)", "VARCHAR(255)"),
         "last_login_at": ("TIMESTAMPTZ", "DATETIME"),
+        "trial_ends_at": ("TIMESTAMPTZ", "DATETIME"),
         "created_at": (
             "TIMESTAMPTZ DEFAULT NOW()",
             "DATETIME DEFAULT CURRENT_TIMESTAMP",
@@ -385,6 +389,7 @@ def heal_platform_users_schema(db) -> list[str]:
         ("is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
         ("invited_by_email", "VARCHAR(255)", "VARCHAR(255)"),
         ("last_login_at", "TIMESTAMPTZ", "DATETIME"),
+        ("trial_ends_at", "TIMESTAMPTZ", "DATETIME"),
         ("created_at", "TIMESTAMPTZ DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
         ("updated_at", "TIMESTAMPTZ DEFAULT NOW()", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
     )

@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects — mirrors vercel.json rewrites for the future cutover.
+# Vercel ignores this file. Set BACKEND_URL to the live API host on cutover.
+# NOTE: the bot user-agent split for /listing/:id OG cards (vercel.json) has no
+# _redirects equivalent — it needs a Pages Function middleware. See migration plan.
+/api/v1/* https://seo292-vehicle-platform-backend.hf.space/api/v1/:splat 200
+/assets/* /assets/:splat 200
+/snapshots/* /snapshots/:splat 200
+/* /index.html 200

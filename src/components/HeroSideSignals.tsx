@@ -1,5 +1,13 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, Flame, Radar, Sparkles, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import {
+  Building2,
+  Flame,
+  Layers,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCountUp } from "@/hooks/useCountUp";
 import { prefersReducedMotion, springSoft } from "@/lib/motion";
@@ -42,52 +50,107 @@ type Props = {
   priceDrop?: PriceDropRow | null;
   newListings24h?: number;
   goodDealsCount?: number;
+  avgPriceLkr?: number | null;
+  sourceCount?: number;
+  districtCount?: number;
   onTrendingClick?: () => void;
   onBrowseNewest?: () => void;
+  onGoodDealsClick?: () => void;
 };
 
 type Accent = "primary" | "emerald" | "amber" | "violet";
 type FloatVariant = "a" | "b" | "c";
-type SlantVariant = "a" | "b" | "c" | "d" | "e";
 
-function FloatingSignalCard({
-  children,
-  className = "",
-  delay = 0,
+/**
+ * A single glass chip. Three of these flank each side of the centred hero
+ * lockup, so they stay compact: one hairline label and one value line.
+ */
+function SignalChip({
+  label,
+  value,
   accent = "primary",
   float = "a",
-  slant = "a",
+  delay = 0,
+  icon,
+  thumb,
+  align = "left",
+  onClick,
+  to,
+  ariaLabel,
 }: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
+  label: string;
+  value: React.ReactNode;
   accent?: Accent;
   float?: FloatVariant;
-  slant?: SlantVariant;
+  delay?: number;
+  icon: React.ComponentType<{ className?: string }>;
+  thumb?: React.ReactNode;
+  align?: "left" | "right";
+  onClick?: () => void;
+  to?: string;
+  ariaLabel?: string;
 }) {
   const reduced = prefersReducedMotion();
+  const Icon = icon;
+
+  const inner = (
+    <span className={cn("flex w-full items-center gap-2.5", align === "right" && "flex-row-reverse text-right")}>
+      {thumb ?? (
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-foreground/[0.05]">
+          <Icon className="h-3.5 w-3.5 text-primary" aria-hidden />
+        </span>
+      )}
+      <span className={cn("min-w-0 flex-1", align === "right" && "items-end")}>
+        <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+          {label}
+        </span>
+        <span className="mt-0.5 block truncate text-[13px] font-semibold tracking-tight text-foreground num">
+          {value}
+        </span>
+      </span>
+    </span>
+  );
+
+  const shellClass = cn(
+    "hero-signal-card group block w-full p-2.5 no-underline outline-none",
+    `hero-signal-card--accent-${accent}`,
+  );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 14, x: align === "left" ? -12 : 12 }}
+      animate={{ opacity: 1, y: 0, x: 0 }}
       transition={{ delay, ...springSoft }}
       className={cn(
         "hero-signal-float-wrap",
         `hero-signal-float-wrap--float-${float}`,
-        `hero-signal-float-wrap--slant-${slant}`,
         !reduced && "hero-signal-float-wrap--animate",
       )}
     >
-      <div
-        className={cn(
-          "hero-signal-card group p-3.5",
-          `hero-signal-card--accent-${accent}`,
-          className,
-        )}
-      >
+      <div className={shellClass}>
         <span className="hero-signal-card__glow" aria-hidden />
-        <div className="relative z-10">{children}</div>
+        <span className="relative z-10 block">
+          {to ? (
+            <Link
+              to={to}
+              aria-label={ariaLabel}
+              className="flex w-full items-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              {inner}
+            </Link>
+          ) : onClick ? (
+            <button
+              type="button"
+              onClick={onClick}
+              aria-label={ariaLabel}
+              className="flex w-full items-center rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              {inner}
+            </button>
+          ) : (
+            <span className="flex w-full items-center">{inner}</span>
+          )}
+        </span>
       </div>
     </motion.div>
   );
@@ -99,177 +162,178 @@ function MetricValue({ value, fallback }: { value: number; fallback: string }) {
   return <>{display.toLocaleString()}</>;
 }
 
+function ListingThumb({
+  src,
+  listingId,
+  alt,
+  ring,
+}: {
+  src?: string | null;
+  listingId?: number;
+  alt: string;
+  ring: string;
+}) {
+  return (
+    <span className={cn("hero-signal-thumb h-9 w-12 shrink-0 bg-black/25 ring-1", ring)}>
+      <VehicleThumbnail
+        src={src}
+        listingId={listingId}
+        alt={alt}
+        priority
+        sizes="48px"
+        className="h-full w-full object-cover"
+        placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
+      />
+    </span>
+  );
+}
+
 export function HeroSideSignals({
   trending,
   hotDeal,
   priceDrop,
   newListings24h = 0,
   goodDealsCount = 0,
+  avgPriceLkr,
+  sourceCount = 0,
+  districtCount = 0,
   onTrendingClick,
   onBrowseNewest,
+  onGoodDealsClick,
 }: Props) {
-  const reduced = prefersReducedMotion();
+  const railClass =
+    "pointer-events-none absolute inset-y-0 hidden w-[min(19vw,236px)] xl:flex xl:flex-col xl:justify-center";
+  const stackClass = "pointer-events-auto flex flex-col gap-3.5 px-1";
 
   return (
     <>
-      {/* Left rail */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[min(18vw,248px)] xl:block">
-        <div className="pointer-events-auto sticky top-28 flex flex-col gap-4 pt-6">
+      {/* Left rail — what buyers are watching */}
+      <div className={cn(railClass, "left-0 items-start")}>
+        <div className={stackClass}>
           {trending ? (
-            <FloatingSignalCard delay={0.1} accent="primary" float="a" slant="a">
-              <button
-                type="button"
-                onClick={onTrendingClick}
-                className="flex w-full items-center gap-3 text-left outline-none transition-transform duration-300 group-hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-primary/25 transition-shadow group-hover:ring-primary/45">
-                  <VehicleThumbnail
-                    src={trending.thumbnail_url}
-                    alt={`${trending.make} ${trending.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-bright">
-                    <TrendingUp className="h-3 w-3" />
-                    Trending now
-                  </p>
-                  <p className="truncate text-[13px] font-semibold tracking-tight text-foreground">
-                    {trending.make} {trending.model}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground num">
-                    {trending.listing_count.toLocaleString()} listed
-                    {trending.avg_price_lkr ? ` · ${formatPrice(trending.avg_price_lkr)}` : ""}
-                  </p>
-                </div>
-              </button>
-            </FloatingSignalCard>
+            <SignalChip
+              delay={0.06}
+              accent="primary"
+              float="a"
+              label="Trending now"
+              icon={TrendingUp}
+              thumb={
+                <ListingThumb
+                  src={trending.thumbnail_url}
+                  alt={`${trending.make} ${trending.model}`}
+                  ring="ring-primary/25"
+                />
+              }
+              value={`${trending.make} ${trending.model}`}
+              ariaLabel={`Trending: ${trending.make} ${trending.model}, ${trending.listing_count} listed`}
+              onClick={onTrendingClick}
+            />
           ) : null}
 
           {priceDrop ? (
-            <FloatingSignalCard delay={0.22} accent="emerald" float="b" slant="b">
-              <Link
-                to={`/listing/${priceDrop.id}`}
-                className="group/drop flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-emerald-400/30 transition-shadow group-hover/drop:ring-emerald-400/55">
-                  <VehicleThumbnail
-                    src={priceDrop.thumbnail_url}
-                    listingId={priceDrop.id}
-                    alt={`${priceDrop.make} ${priceDrop.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover/drop:scale-105"
-                    placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
-                    <TrendingDown className="h-3 w-3" />
-                    Fresh price cut
-                  </p>
-                  <p className="truncate text-[13px] font-semibold tracking-tight text-foreground">
-                    {priceDrop.make} {priceDrop.model} {priceDrop.year || ""}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground num">
-                    <span className="line-through opacity-70">{formatPrice(priceDrop.previous_price_lkr)}</span>{" "}
-                    <span className="font-semibold text-foreground">{formatPrice(priceDrop.new_price_lkr)}</span>
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-300 num">
-                  −{priceDrop.drop_pct}%
+            <SignalChip
+              delay={0.16}
+              accent="emerald"
+              float="b"
+              label="Fresh price cut"
+              icon={TrendingDown}
+              thumb={
+                <ListingThumb
+                  src={priceDrop.thumbnail_url}
+                  listingId={priceDrop.id}
+                  alt={`${priceDrop.make} ${priceDrop.model}`}
+                  ring="ring-emerald-400/30"
+                />
+              }
+              value={`−${priceDrop.drop_pct}% · ${formatPrice(priceDrop.new_price_lkr)}`}
+              ariaLabel={`${priceDrop.make} ${priceDrop.model} cut ${priceDrop.drop_pct}% to ${formatPrice(priceDrop.new_price_lkr)}`}
+              to={`/listing/${priceDrop.id}`}
+            />
+          ) : null}
+
+          {newListings24h > 0 ? (
+            <SignalChip
+              delay={0.26}
+              accent="violet"
+              float="c"
+              label="New in 24h"
+              icon={Zap}
+              value={
+                <span>
+                  +
+                  <MetricValue value={newListings24h} fallback="—" />
                 </span>
-              </Link>
-            </FloatingSignalCard>
-          ) : newListings24h > 0 ? (
-            <FloatingSignalCard delay={0.22} accent="emerald" float="b" slant="b">
-              <button
-                type="button"
-                onClick={onBrowseNewest}
-                className="flex w-full flex-col text-left outline-none transition-transform duration-300 group-hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
-                  <Zap className="h-3 w-3" />
-                  New today
-                </p>
-                <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
-                  +<MetricValue value={newListings24h} fallback="—" />
-                </p>
-                <p className="mt-1.5 text-[11px] text-muted-foreground">listings added in the last 24 hours</p>
-              </button>
-            </FloatingSignalCard>
+              }
+              ariaLabel={`${newListings24h} listings added in the last 24 hours`}
+              onClick={onBrowseNewest}
+            />
           ) : null}
         </div>
       </div>
 
-      {/* Right rail */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[min(18vw,248px)] xl:block">
-        <div className="pointer-events-auto sticky top-32 flex flex-col gap-4 pt-10">
+      {/* Right rail — where the value is */}
+      <div className={cn(railClass, "right-0 items-end")}>
+        <div className={stackClass}>
           {hotDeal ? (
-            <FloatingSignalCard delay={0.14} accent="amber" float="c" slant="c">
-              <Link
-                to={`/listing/${hotDeal.id}`}
-                className="group/deal flex w-full items-center gap-3 no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
-              >
-                <div className="hero-signal-thumb h-12 w-[3.6rem] shrink-0 bg-black/25 ring-1 ring-amber-400/30 transition-shadow group-hover/deal:ring-amber-400/55">
-                  <VehicleThumbnail
-                    src={hotDeal.thumbnail_url}
-                    alt={`${hotDeal.make} ${hotDeal.model}`}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover/deal:scale-105"
-                    placeholderClassName="flex h-full w-full items-center justify-center bg-black/10"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300">
-                    <Flame className="h-3 w-3" />
-                    Top deal
-                  </p>
-                  <p className="truncate text-[13px] font-semibold tracking-tight text-foreground">
-                    {hotDeal.make} {hotDeal.model} {hotDeal.year || ""}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground num">
-                    {hotDeal.price_lkr ? formatPrice(hotDeal.price_lkr) : "—"}
-                    {hotDeal.deal_score ? ` · ${Number(hotDeal.deal_score).toFixed(1)} score` : ""}
-                  </p>
-                </div>
-                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover/deal:translate-x-0.5 group-hover/deal:-translate-y-0.5 group-hover/deal:text-primary-bright" />
-              </Link>
-            </FloatingSignalCard>
+            <SignalChip
+              delay={0.12}
+              accent="amber"
+              float="b"
+              align="right"
+              label="Top deal"
+              icon={Flame}
+              thumb={
+                <ListingThumb
+                  src={hotDeal.thumbnail_url}
+                  alt={`${hotDeal.make} ${hotDeal.model}`}
+                  ring="ring-amber-400/30"
+                />
+              }
+              value={`${hotDeal.price_lkr ? formatPrice(hotDeal.price_lkr) : "—"}${
+                hotDeal.deal_score ? ` · ${Number(hotDeal.deal_score).toFixed(1)}` : ""
+              }`}
+              ariaLabel={`Top deal: ${hotDeal.make} ${hotDeal.model}`}
+              to={`/listing/${hotDeal.id}`}
+            />
           ) : null}
 
-          <FloatingSignalCard delay={0.26} accent="violet" float="b" slant="d">
-            <Link
-              to="/best-picks"
-              className="group/radar block no-underline outline-none transition-transform duration-300 hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-primary/50"
-            >
-              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                <Radar className="h-3 w-3" />
-                Deal radar
-              </p>
-              <p className="mt-2 font-display text-[26px] font-semibold leading-none tracking-tight text-foreground num">
-                <MetricValue value={goodDealsCount} fallback="—" />
-              </p>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">scored 8+ on the market right now</p>
-            </Link>
-          </FloatingSignalCard>
+          {goodDealsCount > 0 ? (
+            <SignalChip
+              delay={0.2}
+              accent="primary"
+              float="c"
+              align="right"
+              label="Score 8+ deals"
+              icon={Sparkles}
+              value={<MetricValue value={goodDealsCount} fallback="—" />}
+              ariaLabel={`${goodDealsCount} listings scoring 8 or better`}
+              onClick={onGoodDealsClick}
+            />
+          ) : null}
 
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.34, ...springSoft }}
-            className={cn(
-              "hero-signal-chip-wrap hero-signal-chip-wrap--slant-e",
-              !reduced && "hero-signal-chip-wrap--animate",
-            )}
-          >
-            <Link
-              to="/best-picks"
-              className="hero-signal-chip inline-flex w-full items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground"
-            >
-              <Sparkles className="h-3 w-3 text-primary-bright" />
-              Best picks
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </motion.div>
+          {avgPriceLkr && avgPriceLkr > 0 ? (
+            <SignalChip
+              delay={0.28}
+              accent="emerald"
+              float="a"
+              align="right"
+              label="Market average"
+              icon={Layers}
+              value={`${formatPrice(avgPriceLkr)}${sourceCount ? ` · ${sourceCount} src` : ""}`}
+              ariaLabel={`Market average asking price ${formatPrice(avgPriceLkr)} across ${sourceCount} sources`}
+            />
+          ) : districtCount > 0 ? (
+            <SignalChip
+              delay={0.28}
+              accent="emerald"
+              float="a"
+              align="right"
+              label="Coverage"
+              icon={Building2}
+              value={`${districtCount} districts`}
+              ariaLabel={`Live inventory across ${districtCount} districts`}
+            />
+          ) : null}
         </div>
       </div>
     </>

@@ -2,19 +2,23 @@
 # weekly on Mondays; public browsing reads R2 snapshots, not this API.
 name: Weekly Pro Digest
 
+# Dispatch-only: the digest is a pro feature, and the scheduled Monday run
+# kept Neon warm weekly (compute-hours) for a job that only ever ran during
+# manual verification. Run it manually when you want to send a digest.
 on:
-  schedule:
-    - cron: "0 1 * * 1"   # Monday 01:00 UTC
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Print to stdout only (no email sent)"
+        description: "Dry run (print to stdout only, no emails sent)"
         required: false
         default: "true"
         type: choice
         options:
           - "true"
           - "false"
+
+permissions:
+  contents: read
 
 jobs:
   send-digest:
@@ -27,10 +31,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
           cache: "pip"

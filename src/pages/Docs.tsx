@@ -57,7 +57,7 @@ export default function Docs() {
                 <a
                   key={section.id}
                   href={`#${section.id}`}
-                  className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-[12px] font-semibold text-muted-foreground no-underline transition-colors hover:border-primary/30 hover:text-foreground lg:border-transparent lg:bg-transparent lg:px-0 lg:py-1.5"
+                  className="shrink-0 rounded-2xl border border-border bg-surface px-3 py-2 text-[12px] font-semibold text-muted-foreground no-underline transition-colors hover:border-primary/30 hover:text-foreground lg:border-transparent lg:bg-transparent lg:px-0 lg:py-1.5"
                 >
                   {section.title}
                 </a>
@@ -75,7 +75,7 @@ export default function Docs() {
               >
                 <div className="mb-2 inline-flex items-center gap-2">
                   <FileText aria-hidden className="h-3.5 w-3.5 text-primary" />
-                  <span className="num text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  <span className="num text-[12px] font-semibold text-muted-foreground">
                     {section.id}
                   </span>
                 </div>

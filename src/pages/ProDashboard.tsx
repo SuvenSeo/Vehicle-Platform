@@ -61,6 +61,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ArbitrageTable } from "@/components/ArbitrageTable";
+import { VelocityBadge } from "@/components/VelocityBadge";
 import { SourceQualityScorecard } from "@/components/SourceQualityScorecard";
 import { Checkbox } from "@/components/ui/checkbox";
 // Surface and AmbientBackground removed — using direct styling
@@ -75,6 +77,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PRO_EXPORTS_ENFORCED, useAuth } from "@/lib/authContext";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { customizeProReport } from "@/lib/proReportCustomize";
+import { exportLanePack, type LanePackFormat } from "@/lib/laneExport";
 import { formatPriceLkrMillions, formatRelativeTime } from "@/lib/formatting";
 import {
   getImportEraSplit,
@@ -189,7 +192,7 @@ function SectionTitle({ title, eyebrow, children }: { title: string; eyebrow: st
   return (
     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div className="max-w-2xl">
-        <p className="mb-2.5 inline-flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary">
+        <p className="mb-2.5 inline-flex items-center gap-2 text-[0.6875rem] font-medium tracking-tight text-primary">
           <span aria-hidden className="h-1 w-1 rounded-full bg-primary" />
           {eyebrow}
         </p>
@@ -204,7 +207,7 @@ function MetricCard({ label, value, detail, icon: Icon }: { label: string; value
   return (
     <div className="metric-tile group rounded-2xl p-5 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+        <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
         <Icon className="h-3.5 w-3.5 text-primary/70" aria-hidden="true" />
       </div>
       <p className="mt-3 text-[1.75rem] font-bold leading-none tracking-tight text-foreground num">{value}</p>
@@ -477,7 +480,10 @@ function DetailDialog({
                           {listing.district || "Sri Lanka"} · {listing.source}
                         </p>
                       </div>
-                      <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
+                        <VelocityBadge firstSeenAt={listing.first_seen_at ?? null} lastSeenAt={listing.last_seen_at ?? null} />
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -501,7 +507,7 @@ function DetailDialog({
 }
 
 export default function ProDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasProAccess } = useAuth();
   const { t } = useAppPreferences();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
@@ -816,8 +822,32 @@ export default function ProDashboard() {
     return "Full market";
   }, [districts.length, filteredLanes.length, lanes.length, reportDistrict, reportScope, reportSource, reportVehicleKey]);
 
-  const getModeDetail = (id: WorkspaceTab): string => {
-    switch (id) {
+  // Trial gate (B2-D): free visitors see 1 lane sharp, the rest blurred + locked.
+  const displayLanes = hasProAccess ? filteredLanes : filteredLanes.slice(0, 1);
+  const teaserLanes = hasProAccess ? [] : filteredLanes.slice(1, 3);
+  const lockedLaneCount = Math.max(0, filteredLanes.length - displayLanes.length);
+
+  const runLanePack = async (format: LanePackFormat) => {
+    try {
+      await exportLanePack(
+        {
+          lanes: displayLanes,
+          gaps: arbitrageGaps,
+          comps: snapshot?.top_opportunities || [],
+          watermark: !hasProAccess,
+          laneLabel: "vehicle lanes",
+        },
+        format,
+      );
+      toast.success(`${format.toUpperCase()} lane pack started`);
+    } catch (error) {
+      toast.error("Lane pack failed", {
+        description: error instanceof Error ? error.message : "Unable to create this pack.",
+      });
+    }
+  };
+
+  const getModeDetail = (id: WorkspaceTab): string => {    switch (id) {
       case "overview":
         return `${fmtCount(snapshot?.hot_deal_count)} hot deals`;
       case "vehicles":
@@ -853,20 +883,20 @@ export default function ProDashboard() {
       <div className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-md ring-1 ring-border" />
+            <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-full ring-1 ring-border" />
             <div>
               <p className="text-[13px] font-bold text-foreground">Motormila</p>
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
+              <p className="text-[11px] font-medium text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-lg border-border bg-surface text-foreground hover:bg-card text-[10px] font-bold">
+            <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading} className="h-8 gap-1.5 rounded-2xl border-border bg-surface text-foreground hover:bg-card text-[10px] font-bold">
               <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> Refresh
             </Button>
-            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary-bright">
               <Crown className="h-3 w-3" /> {user?.plan || "pro"}
             </span>
-            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-600 dark:hover:text-rose-400">
+            <button type="button" onClick={handleLogout} className="inline-flex h-8 items-center gap-1.5 rounded-2xl border border-border bg-surface px-2.5 text-[10px] font-bold text-muted-foreground transition-all hover:border-rose-500/25 hover:text-rose-600 dark:hover:text-rose-400">
               <LogOut className="h-3 w-3" /> Sign out
             </button>
           </div>
@@ -877,7 +907,7 @@ export default function ProDashboard() {
         <motion.header variants={itemVariants} className="pt-4 pb-2 md:pt-8">
           <div className="grid gap-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-end">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-primary-bright">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.6875rem] font-medium tracking-tight text-primary-bright">
                 <Lock className="h-3 w-3" aria-hidden="true" /> {t("pro.eyebrow", "Professional intelligence")}
               </span>
               <h1 className="display-hero mt-5 text-foreground">
@@ -975,6 +1005,11 @@ export default function ProDashboard() {
                       <div className="text-right">
                         <p className="text-sm font-bold text-primary num">{fmtMoney(listing.price_lkr)}</p>
                         <p className="ui-caption font-bold">Score {listing.deal_score?.toFixed(1) || "N/A"}</p>
+                        <VelocityBadge
+                          firstSeenAt={listing.first_seen_at ?? null}
+                          lastSeenAt={listing.last_seen_at ?? null}
+                          className="mt-1"
+                        />
                       </div>
                     </Link>
                     ))
@@ -1054,6 +1089,32 @@ export default function ProDashboard() {
                 </Select>
               </div>
             </SectionTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">
+                {hasProAccess
+                  ? `${filteredLanes.length.toLocaleString()} lanes in focus`
+                  : `Trial: 1 lane visible${lockedLaneCount > 0 ? ` · ${lockedLaneCount} locked` : ""}`}
+              </span>
+              <span className="flex-1" />
+              <button
+                type="button"
+                onClick={() => runLanePack("csv")}
+                disabled={loading || displayLanes.length === 0}
+                className="action-soft h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Lane pack CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => runLanePack("pdf")}
+                disabled={loading || displayLanes.length === 0}
+                className="action-soft h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Lane pack PDF
+              </button>
+            </div>
             {!loading && filteredLanes.length === 0 ? (
               <div className="console-empty flex flex-col items-center gap-4">
                 <Search className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
@@ -1084,7 +1145,7 @@ export default function ProDashboard() {
                             ))}
                           </tr>
                         ))
-                      : filteredLanes.map((lane) => (
+                      : displayLanes.map((lane) => (
                           <tr key={`${lane.make}-${lane.model}`} className="border-t border-border transition-colors hover:bg-surface">
                             <td className="px-4 py-3">
                               <button type="button" onClick={() => openVehicleDetail(lane)} className="text-left">
@@ -1100,6 +1161,30 @@ export default function ProDashboard() {
                             <td className="px-4 py-3 text-muted-foreground">{lane.top_source || "N/A"}</td>
                           </tr>
                         ))}
+                    {teaserLanes.map((lane) => (
+                      <tr
+                        key={`locked-${lane.make}-${lane.model}`}
+                        aria-hidden="true"
+                        className="select-none border-t border-border blur-sm"
+                      >
+                        <td className="px-4 py-3 font-bold text-foreground">{lane.make} {lane.model}</td>
+                        <td className="px-4 py-3 text-foreground num">{lane.listing_count.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-primary num">{fmtMoney(lane.median_price_lkr)}</td>
+                        <td className="px-4 py-3 text-muted-foreground num">{fmtMoney(lane.min_price_lkr)} - {fmtMoney(lane.max_price_lkr)}</td>
+                        <td className="px-4 py-3 text-foreground num">{lane.avg_deal_score?.toFixed(1) || "N/A"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{lane.top_district || "N/A"} · {lane.district_count}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{lane.top_source || "N/A"}</td>
+                      </tr>
+                    ))}
+                    {lockedLaneCount > 0 && (
+                      <tr className="border-t border-border bg-primary/5">
+                        <td colSpan={7} className="px-4 py-3 text-center text-xs font-bold">
+                          <Link to="/pricing" className="text-primary-bright no-underline hover:underline">
+                            {lockedLaneCount} more lane{lockedLaneCount === 1 ? "" : "s"} locked — start a 7-day free trial to unlock
+                          </Link>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1186,33 +1271,7 @@ export default function ProDashboard() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-auto rounded-xl border border-border" aria-label="Arbitrage gaps table">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead className="sticky top-0 z-10 bg-surface">
-                    <tr>
-                      {["Buy in", "Sell in", "Buy median", "Sell median", "Gap %", "Buy depth", "Sell depth"].map((heading) => (
-                        <th key={heading} className="border-b border-border px-4 py-3 text-left field-label">{heading}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {arbitrageGaps.map((gap) => (
-                      <tr
-                        key={`${gap.buy_district}-${gap.sell_district}`}
-                        className="border-t border-border hover:bg-surface"
-                      >
-                        <td className="px-4 py-3 font-semibold text-emerald-600 dark:text-emerald-400">{gap.buy_district}</td>
-                        <td className="px-4 py-3 font-semibold text-primary">{gap.sell_district}</td>
-                        <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.buy_median_lkr)}</td>
-                        <td className="px-4 py-3 text-foreground num">{fmtMoney(gap.sell_median_lkr)}</td>
-                        <td className="px-4 py-3 font-bold text-primary num">+{gap.gap_pct.toFixed(1)}%</td>
-                        <td className="px-4 py-3 text-muted-foreground num">{gap.buy_listing_count}</td>
-                        <td className="px-4 py-3 text-muted-foreground num">{gap.sell_listing_count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ArbitrageTable gaps={arbitrageGaps} visibleLimit={hasProAccess ? undefined : 3} />
             )}
           </TabsContent>
 
@@ -1265,10 +1324,10 @@ export default function ProDashboard() {
             {/* Import-era depreciation cohort split */}
             <SectionTitle eyebrow="Import-era market" title="Pre-freeze vs post-freeze cohorts">
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                   Pre-freeze ≤2024
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-600 dark:text-sky-400">
                   Post-freeze ≥2025
                 </span>
               </div>
@@ -1321,7 +1380,7 @@ export default function ProDashboard() {
                 )}
               </div>
               {(eraData?.makes?.length ?? 0) > 0 && (
-                <div className="mt-4 overflow-auto rounded-lg border border-border" aria-label="Import era split table">
+                <div className="mt-4 overflow-auto rounded-2xl border border-border" aria-label="Import era split table">
                   <table className="w-full min-w-[580px] text-sm">
                     <thead className="bg-surface">
                       <tr>

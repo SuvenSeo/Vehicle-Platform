@@ -15,11 +15,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        display: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        body: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
-        mono: ['"Geist Mono"', '"SFMono-Regular"', "Consolas", "monospace"],
-        numeric: ['"Geist Sans"', "system-ui", "-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "sans-serif"],
+        sans: ['var(--font-sans)', '"Plus Jakarta Sans"', '"Geist Sans"', "system-ui", "-apple-system", "sans-serif"],
+        display: ['var(--font-display)', '"Azonix"', '"Clash Display"', '"Orbitron"', "sans-serif"],
+        body: ['var(--font-body)', '"Plus Jakarta Sans"', '"Geist Sans"', "system-ui", "-apple-system", "sans-serif"],
+        mono: ['var(--font-numeric)', '"Geist Mono"', '"SFMono-Regular"', "monospace"],
+        numeric: ['var(--font-numeric)', '"Rajdhani"', '"Plus Jakarta Sans"', "sans-serif"],
       },
       fontSize: {
         xs: ["0.75rem", { lineHeight: "1.5" }],
@@ -104,12 +104,15 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 4px)",
-        sm: "calc(var(--radius) - 8px)",
-        xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 8px)",
-        "3xl": "calc(var(--radius) + 14px)",
+        sm: "calc(var(--radius) - 16px)",
+        DEFAULT: "calc(var(--radius) - 12px)",
+        md: "calc(var(--radius) - 10px)",
+        lg: "calc(var(--radius) - 6px)",
+        xl: "calc(var(--radius) - 2px)",
+        "2xl": "var(--radius)",
+        "3xl": "calc(var(--radius) + 8px)",
+        "4xl": "calc(var(--radius) + 16px)",
+        full: "9999px",
       },
       boxShadow: {
         console: "0 2px 8px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04)",
@@ -128,6 +131,10 @@ export default {
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
+        },
+        "ken-burns": {
+          from: { transform: "scale(1) translate3d(0, 0, 0)" },
+          to: { transform: "scale(1.08) translate3d(-1.4%, -0.8%, 0)" },
         },
         "motion-rise": {
           from: { opacity: "0", transform: "translateY(16px)" },
@@ -157,6 +164,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "ken-burns": "ken-burns 28s cubic-bezier(0.33, 1, 0.68, 1) infinite alternate",
         "motion-rise": "motion-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both",
         "motion-fade": "motion-fade 0.5s ease both",
         "fade-up": "fade-up var(--duration-slow) var(--ease-out) both",

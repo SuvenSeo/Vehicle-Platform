@@ -94,13 +94,18 @@ class CarListing(Base):
 
 def live_listing_filter():
     """Single boolean expression for "count this listing in market views":
-    not a statistical outlier AND still live at its source.
+    not a statistical outlier AND still live at its source AND not flagged
+    as a cross-source duplicate (canonical row carries the signal).
 
     Composes safely inside filter()/and_()/or_() because it is one expression.
     """
     from sqlalchemy import and_
 
-    return and_(CarListing.is_outlier == False, CarListing.is_active == True)  # noqa: E712
+    return and_(
+        CarListing.is_outlier == False,  # noqa: E712
+        CarListing.is_active == True,  # noqa: E712
+        CarListing.is_duplicate == False,  # noqa: E712
+    )
 
 class PriceAggregate(Base):
     __tablename__ = 'price_aggregates'
@@ -285,9 +290,15 @@ class MarketAlert(Base):
     notify_email = Column(String(255), nullable=True)
     # Optional Telegram chat_id (numeric id or @username) for Telegram notifications.
     notify_telegram_chat_id = Column(String(64), nullable=True)
-    # Comma-separated list of channels to notify: "whatsapp", "email", "telegram".
+    # Comma-separated list of channels to notify: "inapp", "whatsapp", "email", "telegram", "push".
     # When null/empty, infer active channels from whichever destination fields are set.
+    # "inapp" is always fail-open immediate even when other channels queue.
     notify_channels = Column(String(64), nullable=True)
+    # "instant" (default) vs "digest" (07:00 Asia/Colombo daily batch).
+    delivery_mode = Column(String(16), nullable=True)
+    # When True, external channels (email/whatsapp/telegram/push) queue during
+    # quiet hours 21:00-07:00 Asia/Colombo instead of sending immediately.
+    quiet_hours_enabled = Column(Boolean, nullable=True)
     active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
@@ -417,6 +428,8 @@ class PlatformUser(Base):
     token_version = Column(Integer, nullable=False, default=0, server_default="0")
     invited_by_email = Column(String(255), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
+    # Self-serve trial expiry (SELF_SIGNUP trialing). Null = no trial / legacy rows.
+    trial_ends_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
@@ -447,6 +460,42 @@ class UserInvite(Base):
         Index("idx_user_invites_email", "email"),
         Index("idx_user_invites_token", "token"),
         Index("idx_user_invites_status", "status"),
+    )
+
+
+class PushSubscription(Base):
+    """Web-push subscription for one user_token (VAPID, fail-open to in-app)."""
+
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True)
+    user_token = Column(String(64), nullable=False)
+    endpoint = Column(Text, nullable=False, unique=True)
+    p256dh = Column(Text, nullable=True)
+    auth = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_push_subscriptions_user_token", "user_token"),
+    )
+
+
+class NotificationDeliveryLog(Base):
+    """Receipt log for channel delivery with dedupe key alert_id:listing_id:channel."""
+
+    __tablename__ = "notification_delivery_log"
+
+    id = Column(Integer, primary_key=True)
+    dedupe_key = Column(String(180), nullable=False, unique=True)
+    alert_id = Column(Integer, nullable=True)
+    listing_id = Column(Integer, nullable=True)
+    channel = Column(String(32), nullable=True)
+    status = Column(String(20), nullable=False, default="sent")
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_notification_delivery_log_dedupe", "dedupe_key"),
+        Index("idx_notification_delivery_log_alert", "alert_id"),
     )
 
 

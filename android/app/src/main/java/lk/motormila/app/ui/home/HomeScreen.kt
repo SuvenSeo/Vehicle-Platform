@@ -1,0 +1,1327 @@
+package lk.motormila.app.ui.home
+
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CellTower
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.ElectricCar
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
+import lk.motormila.app.R
+import lk.motormila.app.core.format.LkrFormat
+import lk.motormila.app.ui.components.BrandLogo
+import lk.motormila.app.ui.components.BrandLogoSize
+import lk.motormila.app.ui.components.EmptyState
+import lk.motormila.app.ui.components.ErrorState
+import lk.motormila.app.ui.components.LivePulse
+import lk.motormila.app.ui.components.LoadingSkeletonCard
+import lk.motormila.app.ui.components.MotormilaGlass
+import lk.motormila.app.ui.components.MotormilaMetricTile
+import lk.motormila.app.ui.components.MotormilaSurface
+import lk.motormila.app.ui.components.OfflineBanner
+import lk.motormila.app.ui.components.rememberReducedMotion
+import lk.motormila.app.ui.theme.MotormilaGlassBorder
+import lk.motormila.app.ui.theme.MotormilaOnSurface
+import lk.motormila.app.ui.theme.MotormilaOutline
+import lk.motormila.app.ui.theme.MotormilaPrimary
+import lk.motormila.app.ui.theme.MotormilaPrimaryBright
+import lk.motormila.app.ui.theme.MotormilaSecondaryText
+import lk.motormila.app.ui.theme.applePress
+import lk.motormila.app.ui.theme.rememberHaptics
+
+/** Data representation for Trending Models rail. */
+data class TrendingModelItem(
+    val make: String,
+    val model: String,
+    val countText: String,
+    val avgPriceText: String,
+    val imageUrl: String? = null,
+)
+
+/** Data representation for Live Incoming Feed ticker item. */
+data class LiveFeedItem(
+    val title: String,
+    val district: String,
+    val dealScoreText: String,
+    val listingId: Int? = null,
+)
+
+/**
+ * Home: Cinematic Hero Header, Context Eyebrow Capsule Badges, Feature Banners,
+ * Live Incoming Feed Ticker, Trending Models Rail, and Market Inventory.
+ *
+ * Events: [onListingClick], [onSearchClick], [onAlertsClick], [onSeeAll]
+ * (section key: "drops" | "deals" | "districts" | "feed" | "trends").
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    onListingClick: (Int) -> Unit,
+    onSearchClick: () -> Unit,
+    onAlertsClick: () -> Unit,
+    onSeeAll: (String) -> Unit,
+    onLoginClick: () -> Unit = {},
+    onEvHubClick: () -> Unit = {},
+    onBestPicksClick: () -> Unit = {},
+    onPulseClick: () -> Unit = {},
+    onMakeModelClick: (make: String, model: String) -> Unit = { _, _ -> },
+    onDistrictClick: (district: String) -> Unit = {},
+    onCalculatorClick: () -> Unit = {},
+    onPriceIndexClick: () -> Unit = {},
+    onPermitsClick: () -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val live by viewModel.liveStrip.collectAsStateWithLifecycle()
+    val haptics = rememberHaptics()
+    val reducedMotion = rememberReducedMotion()
+
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = viewModel::refresh,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            // Extra bottom clearance so the last card clears the nav dock
+            // and the floating AI/scan buttons instead of sliding under them.
+            contentPadding = PaddingValues(bottom = 128.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            // 1. Top Brand Lockup Bar
+            item {
+                Column(Modifier.padding(top = 10.dp)) {
+                    if (state.isOffline || state.showCachedBadge) {
+                        OfflineBanner(
+                            visible = true,
+                            onDismiss = viewModel::dismissCachedBadge,
+                        )
+                    }
+                    TopBrandBar(onAlertsClick = onAlertsClick)
+                }
+            }
+
+            // 2. Cinematic Hero Header
+            item {
+                CinematicHeroHeader(
+                    total = state.summary.totalListings,
+                    onSearchClick = onSearchClick,
+                    summarySourceCount = state.summary.sourceCount,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
+            // 3. Stats Row / Bento Metrics Card
+            item {
+                if (state.isLoading) {
+                    LoadingSkeletonCard(Modifier.padding(horizontal = 16.dp))
+                } else if (state.error != null && state.summary.totalListings == 0) {
+                    ErrorState(
+                        message = state.error ?: "Unknown error",
+                        onRetry = viewModel::retry,
+                        cachedAvailable = false,
+                        onLogin = onLoginClick,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                } else {
+                    HeroStatsCard(
+                        total = state.summary.totalListings,
+                        goodDeals = state.summary.goodDealsCount,
+                        new24h = state.insights.newListings24h,
+                        avgPrice = state.summary.avgPriceLkr?.let { LkrFormat.price(it) },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+
+            // 4. Feature Banners (VEHICLE TYPES & VERIFIED SIGNALS)
+            item {
+                FeatureBannersRow(
+                    onVehicleTypesClick = onSearchClick,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
+            item {
+                HubShortcutsRow(
+                    onEvHubClick = onEvHubClick,
+                    onPulseClick = onPulseClick,
+                    onBestPicksClick = onBestPicksClick,
+                    onCalculatorClick = onCalculatorClick,
+                    onPriceIndexClick = onPriceIndexClick,
+                    onPermitsClick = onPermitsClick,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
+            // 5. Live Incoming Feed Ticker — real listings only (no placeholder cars)
+            item {
+                val feedItems = remember(state.insights.hotDeals, live, state.priceDrops) {
+                    when {
+                        state.insights.hotDeals.isNotEmpty() ->
+                            state.insights.hotDeals.take(4).map { deal ->
+                                LiveFeedItem(
+                                    title = "${deal.make} ${deal.model}",
+                                    district = deal.district ?: "Sri Lanka",
+                                    dealScoreText = "+${deal.dealScore.toInt()} deal",
+                                    listingId = deal.id,
+                                )
+                            }
+                        live.isNotEmpty() ->
+                            live.take(4).map { listing ->
+                                LiveFeedItem(
+                                    title = "${listing.make} ${listing.model}",
+                                    district = listing.district ?: "Sri Lanka",
+                                    dealScoreText = listing.formattedPrice(),
+                                    listingId = listing.id,
+                                )
+                            }
+                        state.priceDrops.isNotEmpty() ->
+                            state.priceDrops.take(4).map { drop ->
+                                LiveFeedItem(
+                                    title = drop.listing.displayName,
+                                    district = drop.listing.district ?: "Sri Lanka",
+                                    dealScoreText = LkrFormat.price(drop.newPriceLkr),
+                                    listingId = drop.listing.id,
+                                )
+                            }
+                        else -> emptyList()
+                    }
+                }
+                if (feedItems.isNotEmpty()) {
+                    LiveIncomingFeedTicker(
+                        items = feedItems,
+                        onItemClick = { item ->
+                            if (item.listingId != null) {
+                                onListingClick(item.listingId)
+                            } else {
+                                onSearchClick()
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+
+            // 6. Trending Models Rail
+            if (state.insights.trendingModels.isNotEmpty()) {
+                item {
+                    val trendingList = remember(state.insights.trendingModels) {
+                        state.insights.trendingModels.take(4).map {
+                            TrendingModelItem(
+                                make = it.make,
+                                model = it.model,
+                                countText = "${LkrFormat.count(it.listingCount)} listed",
+                                avgPriceText = "avg ${LkrFormat.price(it.avgPriceLkr)}",
+                                imageUrl = it.thumbnailUrl,
+                            )
+                        }
+                    }
+                    TrendingModelsRail(
+                        models = trendingList,
+                        onSeeAllTrends = { onSeeAll("trends") },
+                        onModelClick = { onMakeModelClick(it.make, it.model) },
+                    )
+                }
+            }
+
+            // 7. Live Now Strip (if available from streaming backend)
+            if (live.isNotEmpty()) {
+                item {
+                    SectionRow(title = "Live now", onSeeAll = null)
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(live, key = { it.id }) { l ->
+                            val tickerInteraction = remember(l.id) { MutableInteractionSource() }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .applePress(tickerInteraction, pressedScale = 0.95f)
+                                    .clickable(
+                                        interactionSource = tickerInteraction,
+                                        indication = null,
+                                    ) {
+                                        if (!reducedMotion) haptics.tick()
+                                        onListingClick(l.id)
+                                    }
+                                    .padding(end = 12.dp),
+                            ) {
+                                LivePulse()
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    "${l.make} ${l.model} · ${l.formattedPrice()}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MotormilaOnSurface,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 8. Hot Deals / Best Picks (with Context Eyebrow Capsule Badge)
+            if (state.insights.hotDeals.isNotEmpty()) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        ContextCapsuleBadge(text = "• ✩ BEST PICKS", isAccent = true)
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    SectionRow(title = "Hot deals", onSeeAll = { onSeeAll("deals") })
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(state.insights.hotDeals.take(10), key = { it.id }) { deal ->
+                            HotDealCard(
+                                title = "${deal.make} ${deal.model} ${deal.year ?: ""}".trim(),
+                                imageUrl = deal.thumbnailUrl,
+                                price = LkrFormat.price(deal.priceLkr),
+                                score = deal.dealScore,
+                                isPro = state.isPro,
+                                onClick = { onListingClick(deal.id) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 9. Price Drops Rail
+            if (state.priceDrops.isNotEmpty()) {
+                item {
+                    SectionRow(title = "Price drops", onSeeAll = { onSeeAll("drops") })
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(state.priceDrops.take(10), key = { it.listing.id }) { drop ->
+                            PriceDropCard(
+                                title = drop.listing.displayName,
+                                imageUrl = drop.listing.heroImageUrl,
+                                newPrice = LkrFormat.price(drop.newPriceLkr),
+                                dropPct = drop.dropPct,
+                                onClick = { onListingClick(drop.listing.id) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 10. Fuel Mix
+            if (state.fuelMix.isNotEmpty()) {
+                item {
+                    SectionRow(title = "Fuel mix", onSeeAll = null)
+                    FuelMixRow(
+                        buckets = state.fuelMix,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+
+            // 11. Districts
+            if (state.districts.isNotEmpty()) {
+                item {
+                    SectionRow(title = "Districts", onSeeAll = { onSeeAll("districts") })
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        items(state.districts.take(12), key = { it.district }) { d ->
+                            DistrictChip(
+                                district = d.district,
+                                count = d.count,
+                                median = LkrFormat.price(d.medianPriceLkr),
+                                onClick = { onDistrictClick(d.district) },
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 12. Empty State
+            if (!state.isLoading && state.priceDrops.isEmpty() && state.insights.hotDeals.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = "No market data yet",
+                        body = "Pull to refresh — new listings appear here as scrapers run.",
+                        ctaLabel = "Browse all vehicles",
+                        onCta = onSearchClick,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Top navigation brand bar with live squircle mark and notification action. */
+@Composable
+private fun TopBrandBar(onAlertsClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        BrandLogo(
+            size = BrandLogoSize.NAV,
+            showLiveIndicator = true,
+        )
+        IconButton(
+            onClick = onAlertsClick,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .border(1.dp, MotormilaOutline, CircleShape),
+        ) {
+            Icon(
+                Icons.Filled.Notifications,
+                contentDescription = "Price alerts",
+                tint = MotormilaOnSurface,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Signature context capsule badge (e.g. `• MARKET PULSE`, `• ✩ BEST PICKS`).
+ */
+@Composable
+fun ContextCapsuleBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    isAccent: Boolean = false,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFF141419))
+            .border(
+                width = 1.dp,
+                color = if (isAccent) Color(0x440A7AFF) else MotormilaGlassBorder,
+                shape = RoundedCornerShape(999.dp),
+            )
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(if (isAccent) MotormilaPrimaryBright else Color(0xFF10B981)),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = text,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.2.sp,
+            color = if (isAccent) MotormilaPrimaryBright else MotormilaOnSurface,
+        )
+    }
+}
+
+/**
+ * Cinematic Hero Header with negative-tracked headline, electric blue accent,
+ * dynamic subtitle, and dark liquid glass search pill with blue button.
+ */
+@Composable
+private fun CinematicHeroHeader(
+    total: Int,
+    onSearchClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    summarySourceCount: Int = 0,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        ContextCapsuleBadge(
+            text = "• MARKET PULSE",
+            isAccent = true,
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        // Headline: "Sri Lanka's entire vehicle market, decoded."
+        Text(
+            text = buildAnnotatedString {
+                withStyle(
+                    SpanStyle(
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                ) {
+                    append("Sri Lanka's entire vehicle market, ")
+                }
+                withStyle(
+                    SpanStyle(
+                        color = MotormilaPrimaryBright,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                ) {
+                    append("decoded.")
+                }
+            },
+            fontSize = 28.sp,
+            lineHeight = 34.sp,
+            letterSpacing = (-0.8).sp,
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        // Subtitle with live listings count
+        val countText = if (total > 0) "${LkrFormat.count(total)} live listings" else "Sri Lanka's live market"
+        val sourcesText = if (summarySourceCount > 0) "$summarySourceCount sources" else "13 sources"
+        Text(
+            text = "$countText across $sourcesText — pricing, deal scores, and market intel in one place.",
+            color = MotormilaSecondaryText,
+            fontSize = 14.sp,
+            lineHeight = 21.sp,
+            fontWeight = FontWeight.Normal,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Dark liquid glass pill with search icon and electric blue "SEARCH" button
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color(0xFF131318))
+                .border(1.dp, MotormilaOutline, RoundedCornerShape(999.dp))
+                .clickable(onClick = onSearchClick)
+                .padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)
+                .semantics { contentDescription = "Search vehicles" },
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = null,
+                    tint = Color(0x99FFFFFF),
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Toyota Aqua, Honda Vezel, Wagon R...",
+                    color = MotormilaSecondaryText,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MotormilaPrimary)
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "SEARCH",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Stats row / Bento card with LIVE LISTINGS eyebrow, DATA AS OF 1H AGO pill,
+ * large bold count, sub-label, and metrics grid (AVG PRICE, NEW 24H, GOOD DEALS).
+ */
+@Composable
+private fun HeroStatsCard(
+    total: Int,
+    goodDeals: Int,
+    new24h: Int,
+    avgPrice: String?,
+    modifier: Modifier = Modifier,
+) {
+    val reduced = rememberReducedMotion()
+    var shown by remember { mutableStateOf(reduced) }
+    LaunchedEffect(total) { shown = true }
+    val animatedTotal by animateIntAsState(
+        targetValue = if (shown) total else 0,
+        animationSpec = tween(if (reduced) 1 else 650),
+        label = "hero-stat-count",
+    )
+
+    MotormilaGlass(
+        modifier = modifier.fillMaxWidth(),
+        specular = true,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0x180A7AFF),
+                            Color(0x000A7AFF),
+                        )
+                    )
+                )
+                .padding(16.dp)
+        ) {
+            // Eyebrow LIVE LISTINGS with DATA AS OF 1H AGO pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "LIVE LISTINGS",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = MotormilaSecondaryText,
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0x1F10B981))
+                        .border(0.75.dp, Color(0x3310B981), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981))
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        text = "DATA AS OF 1H AGO",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = Color(0xFF6EE7B7),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Bold count (207,786 or dynamic)
+            Text(
+                text = if (total > 0) LkrFormat.count(animatedTotal) else "—",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.03).em,
+                color = Color.White,
+            )
+
+            Spacer(Modifier.height(3.dp))
+
+            // Sub-label
+            Text(
+                text = if (total > 0) "Live indexed inventory across Sri Lanka" else "Connect to the market feed to load listings",
+                fontSize = 12.sp,
+                color = MotormilaSecondaryText,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Metrics Grid (AVG PRICE: Rs. 8.63M, NEW 24H: 5,649, GOOD DEALS: 2,184)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MotormilaMetricTile(
+                    label = "AVG PRICE",
+                    value = avgPrice ?: "—",
+                    modifier = Modifier.weight(1f),
+                )
+                MotormilaMetricTile(
+                    label = "NEW 24H",
+                    value = if (new24h > 0) LkrFormat.count(new24h) else "—",
+                    modifier = Modifier.weight(1f),
+                )
+                MotormilaMetricTile(
+                    label = "GOOD DEALS",
+                    value = if (goodDeals > 0) LkrFormat.count(goodDeals) else "—",
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Bento highlight cards matching web:
+ * - VEHICLE TYPES ("Browse cars, vans, and SUVs across the live index.")
+ * - VERIFIED SIGNALS ("Deal scores and seller trust baked into every listing.")
+ */
+@Composable
+private fun FeatureBannersRow(
+    onVehicleTypesClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        MotormilaGlass(
+            onClick = onVehicleTypesClick,
+            specular = true,
+            modifier = Modifier
+                .weight(1f)
+                .height(115.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(Color(0x1F0A7AFF), Color(0x000A7AFF)),
+                            radius = 280f,
+                        )
+                    )
+                    .padding(14.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "VEHICLE TYPES",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.4.sp,
+                            color = MotormilaPrimaryBright,
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.DirectionsCar,
+                            contentDescription = null,
+                            tint = MotormilaPrimaryBright.copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = "Browse cars, vans, and SUVs across the live index.",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MotormilaOnSurface,
+                        lineHeight = 16.sp,
+                    )
+                }
+            }
+        }
+
+        MotormilaGlass(
+            specular = true,
+            modifier = Modifier
+                .weight(1f)
+                .height(115.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(Color(0x1A10B981), Color(0x0010B981)),
+                            radius = 280f,
+                        )
+                    )
+                    .padding(14.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "VERIFIED SIGNALS",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.4.sp,
+                            color = Color(0xFF6EE7B7),
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.Verified,
+                            contentDescription = null,
+                            tint = Color(0xFF6EE7B7).copy(alpha = 0.5f),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Text(
+                        text = "Deal scores and seller trust baked into every listing.",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MotormilaOnSurface,
+                        lineHeight = 16.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HubShortcutsRow(
+    onEvHubClick: () -> Unit,
+    onPulseClick: () -> Unit,
+    onBestPicksClick: () -> Unit,
+    onCalculatorClick: () -> Unit,
+    onPriceIndexClick: () -> Unit,
+    onPermitsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.hub_home_row).uppercase(),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.4.sp,
+            color = MotormilaPrimaryBright,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_ev_title),
+                hint = stringResource(R.string.hub_home_ev_hint),
+                icon = Icons.Filled.ElectricCar,
+                contentDescription = stringResource(R.string.hub_open_ev),
+                onClick = onEvHubClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_pulse_title),
+                hint = stringResource(R.string.hub_home_pulse_hint),
+                icon = Icons.Filled.CellTower,
+                contentDescription = stringResource(R.string.hub_open_pulse),
+                onClick = onPulseClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_picks_title),
+                hint = stringResource(R.string.hub_home_picks_hint),
+                icon = Icons.Filled.Star,
+                contentDescription = stringResource(R.string.hub_open_picks),
+                onClick = onBestPicksClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_calc_title),
+                hint = stringResource(R.string.hub_home_calc_hint),
+                icon = Icons.Filled.Calculate,
+                contentDescription = stringResource(R.string.hub_open_calc),
+                onClick = onCalculatorClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            HubShortcutCard(
+                title = stringResource(R.string.hub_index_title),
+                hint = stringResource(R.string.hub_home_index_hint),
+                icon = Icons.AutoMirrored.Filled.TrendingUp,
+                contentDescription = stringResource(R.string.hub_open_index),
+                onClick = onPriceIndexClick,
+                modifier = Modifier.weight(1f),
+            )
+            HubShortcutCard(
+                title = stringResource(R.string.hub_permits_title),
+                hint = stringResource(R.string.hub_home_permits_hint),
+                icon = Icons.Filled.Verified,
+                contentDescription = stringResource(R.string.hub_open_permits),
+                onClick = onPermitsClick,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HubShortcutCard(
+    title: String,
+    hint: String,
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    MotormilaSurface(
+        onClick = onClick,
+        modifier = modifier
+            .heightIn(min = 96.dp)
+            .semantics { this.contentDescription = contentDescription },
+        contentPadding = PaddingValues(12.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MotormilaPrimaryBright,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = MotormilaOnSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = hint,
+            fontSize = 10.sp,
+            color = MotormilaSecondaryText,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * Live incoming feed ticker with pulse eyebrow and real-time deal scoring stream.
+ */
+@Composable
+private fun LiveIncomingFeedTicker(
+    items: List<LiveFeedItem>,
+    onItemClick: (LiveFeedItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    MotormilaGlass(
+        modifier = modifier.fillMaxWidth(),
+        specular = true,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header Row: Pulse icon + LIVE INCOMING FEED + ((•)) SYNCED 2H
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 0.5.dp,
+                        color = MotormilaOutline,
+                        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    LivePulse()
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "LIVE INCOMING FEED",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.3.sp,
+                        color = MotormilaSecondaryText,
+                    )
+                }
+                Text(
+                    text = "((•)) SYNCED 2H",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MotormilaPrimaryBright,
+                )
+            }
+
+            // Real-time List Items with Flame Icon and Deal Score Badge
+            Column(modifier = Modifier.fillMaxWidth()) {
+                items.forEachIndexed { index, item ->
+                    if (index > 0) {
+                        Spacer(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(0.5.dp)
+                                .background(MotormilaOutline),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onItemClick(item) }
+                            .padding(horizontal = 16.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = MotormilaPrimaryBright,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = item.title,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MotormilaOnSurface,
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = "· ${item.district}",
+                                fontSize = 12.sp,
+                                color = MotormilaSecondaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        // Deal score badge in blue
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0x2E0A7AFF))
+                                .border(0.5.dp, Color(0x550A7AFF), RoundedCornerShape(999.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = item.dealScoreText,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MotormilaPrimaryBright,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Trending models rail with ALL TRENDS ↗ action and rounded capsule cards.
+ */
+@Composable
+private fun TrendingModelsRail(
+    models: List<TrendingModelItem>,
+    onSeeAllTrends: () -> Unit,
+    onModelClick: (TrendingModelItem) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "Trending models",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MotormilaOnSurface,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(onClick = onSeeAllTrends)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    text = "ALL TRENDS ↗",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp,
+                    color = MotormilaPrimaryBright,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items(models, key = { "${it.make}-${it.model}" }) { item ->
+                TrendingModelCard(
+                    item = item,
+                    onClick = { onModelClick(item) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendingModelCard(
+    item: TrendingModelItem,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    MotormilaGlass(
+        onClick = onClick,
+        modifier = modifier.width(260.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color(0xFF1B1B22)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (item.imageUrl != null) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = "${item.make} ${item.model}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.DirectionsCar,
+                        contentDescription = null,
+                        tint = MotormilaPrimaryBright,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "${item.make} ${item.model}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MotormilaOnSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "${item.countText} · ${item.avgPriceText}",
+                    fontSize = 11.sp,
+                    color = MotormilaSecondaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = MotormilaSecondaryText,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun SectionRow(title: String, onSeeAll: (() -> Unit)?) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        if (onSeeAll != null) {
+            Text(
+                "See all",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MotormilaPrimaryBright,
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(onClick = onSeeAll)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PriceDropCard(title: String, imageUrl: String?, newPrice: String, dropPct: Double, onClick: () -> Unit) {
+    MotormilaGlass(
+        onClick = onClick,
+        modifier = Modifier.width(220.dp),
+    ) {
+        Column {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Photo of $title",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().height(118.dp),
+            )
+            Column(Modifier.padding(12.dp)) {
+                Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(newPrice, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0x2E10B981))
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "▼ ${LkrFormat.deltaPct(dropPct)}",
+                        fontSize = 11.sp,
+                        color = Color(0xFF6EE7B7),
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HotDealCard(title: String, imageUrl: String?, price: String, score: Double, isPro: Boolean, onClick: () -> Unit) {
+    MotormilaGlass(
+        onClick = onClick,
+        modifier = Modifier.width(220.dp),
+    ) {
+        Column {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Photo of $title",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().height(118.dp),
+            )
+            Column(Modifier.padding(12.dp)) {
+                Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(price, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (isPro) Color(0x2E10B981) else Color(0x2E0A7AFF))
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        if (isPro) "★ %.1f DEAL".format(score) else "🔒 PRO SCORE",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isPro) Color(0xFF6EE7B7) else MotormilaPrimaryBright,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FuelMixRow(buckets: List<lk.motormila.app.domain.model.FuelMixBucket>, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        buckets.take(5).forEach { b ->
+            MotormilaMetricTile(
+                label = b.fuelType.replaceFirstChar(Char::uppercase),
+                value = "${b.pct}%",
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DistrictChip(district: String, count: Int, median: String, onClick: () -> Unit) {
+    MotormilaSurface(
+        onClick = onClick,
+        fillMaxWidth = false,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier.heightIn(min = 48.dp),
+    ) {
+        Text(district, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MotormilaOnSurface)
+        Text("$count · $median", fontSize = 11.sp, color = MotormilaSecondaryText)
+    }
+}

@@ -1,36 +1,26 @@
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
-import { AtmosphericImage } from "@/components/AtmosphericImage";
-import { visuals } from "@/lib/visualAssets";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, ExternalLink } from "lucide-react";
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { PrefetchLink } from "@/components/PrefetchLink";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
-
-function GitHubIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.777-1.333-1.777-1.09-.745.083-.729.083-.729 1.205.084 1.84 1.236 1.84 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-    </svg>
-  );
-}
 
 function FooterColumn({ title, links }: { title: string; links: Array<{ label: string; to: string }> }) {
   return (
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">{title}</p>
+      <p className="text-[12px] font-semibold text-white/50">{title}</p>
       <ul className="mt-6 space-y-4">
         {links.map((link) => (
           <li key={link.label}>
-            <Link
+            <PrefetchLink
               to={link.to}
-              className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <span>{link.label}</span>
               <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
-            </Link>
+            </PrefetchLink>
           </li>
         ))}
       </ul>
@@ -66,10 +56,12 @@ export function AppFooter() {
 
   const moreLinks = useMemo(
     () => [
+      { label: t("nav.mobileApp", "Mobile App"), to: "/mobile-app" },
       { label: t("nav.officialPulse", "Official Pulse"), to: "/official-pulse" },
       { label: t("nav.dealer", "Dealer"), to: "/dealer" },
       { label: t("nav.bestPicks", "Best Picks"), to: "/best-picks" },
       { label: t("nav.priceIndex", "Price Index"), to: "/price-index" },
+      { label: t("nav.compare", "Compare"), to: "/compare" },
       { label: t("nav.proPreview", "Pro Preview"), to: "/pro-preview" },
       { label: t("nav.alerts", "Alerts"), to: "/alerts" },
       { label: t("nav.settings", "Settings"), to: "/settings" },
@@ -88,18 +80,12 @@ export function AppFooter() {
   const studioLinks = useMemo(
     () => [
       { label: t("footer.ardenoStudio", "Ardeno Studio"), href: "https://ardeno-studio-website.vercel.app/", external: true },
-      { label: t("nav.github", "GitHub"), href: "https://github.com/SuvenSeo/Vehicle-Platform", external: true },
     ],
     [t],
   );
 
   const socialLinks = useMemo(
     () => [
-      {
-        label: t("nav.github", "GitHub"),
-        href: "https://github.com/SuvenSeo/Vehicle-Platform",
-        icon: GitHubIcon,
-      },
       {
         label: t("footer.ardenoStudio", "Ardeno Studio"),
         href: "https://ardeno-studio-website.vercel.app/",
@@ -109,11 +95,9 @@ export function AppFooter() {
     [t],
   );
 
-  const githubLabel = t("nav.github", "GitHub");
-
   return (
     <footer
-      className="app-footer relative z-10 overflow-hidden px-3 pb-20 pt-8 md:px-6 md:pb-6 md:pt-12"
+      className="app-footer relative z-10 overflow-hidden px-3 pb-32 pt-8 sm:pb-36 md:px-6 md:pb-6 md:pt-12"
       aria-labelledby="platform-footer-title"
     >
       <motion.div
@@ -121,38 +105,20 @@ export function AppFooter() {
         whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: EASE }}
-        className="app-footer__panel relative mx-auto max-w-[1680px] overflow-hidden rounded-[30px] border border-white/[0.1] px-5 py-12 shadow-[0_-24px_90px_rgba(8,47,73,0.28)] sm:px-8 md:rounded-[42px] md:px-14 md:py-16 lg:px-20"
+        className="app-footer__panel relative mx-auto max-w-[1680px] overflow-hidden rounded-[36px] border border-white/[0.1] px-5 py-12 shadow-[0_-24px_90px_rgba(8,47,73,0.28)] sm:px-8 md:rounded-[48px] md:px-14 md:py-16 lg:px-20"
       >
-        {/* Atmosphere — cyan / blue gradient field + texture */}
+        {/* Atmosphere — one quiet brand glow, no noise */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(10,122,255,0.22),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(34,211,238,0.16),transparent_50%),linear-gradient(160deg,#030914_0%,#04101f_42%,#02060d_100%)]"
-        />
-        <AtmosphericImage
-          src={visuals.pageFooterTexture.src}
-          srcSm={visuals.pageFooterTexture.srcSm}
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-[0.14]"
-          sizes="100vw"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(10,122,255,0.16),transparent_55%),linear-gradient(160deg,#05080f_0%,#060c18_42%,#04070d_100%)]"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-            backgroundSize: "128px",
-          }}
+          className="pointer-events-none absolute right-[-14rem] top-[-16rem] h-[32rem] w-[32rem] rounded-full bg-[radial-gradient(circle,rgba(10,122,255,0.18),transparent_68%)] blur-[110px]"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute right-[-14rem] top-[-16rem] h-[32rem] w-[32rem] rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.28),transparent_68%)] blur-[100px]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-[-18rem] left-[-10rem] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(10,122,255,0.26),transparent_70%)] blur-[110px]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
         />
 
         <div className="relative z-10 grid gap-12 lg:grid-cols-[minmax(260px,0.9fr)_minmax(0,1.45fr)] lg:gap-16">
@@ -160,9 +126,9 @@ export function AppFooter() {
             <h2 id="platform-footer-title" className="sr-only">
               Motormila
             </h2>
-            <Link
+            <PrefetchLink
               to="/"
-              className="group inline-flex items-center gap-3 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              className="group inline-flex items-center no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               aria-label={t("footer.homeAria", "Go to Motormila home")}
             >
               <img
@@ -174,14 +140,14 @@ export function AppFooter() {
                 decoding="async"
               />
               <span className="flex flex-col leading-none">
-                <span className="font-display text-[17px] font-extrabold italic tracking-[-0.045em] text-white">
-                  Motor<span className="bg-gradient-to-r from-sky-300 via-cyan-300 to-teal-300 bg-clip-text text-transparent">mila</span>
+                <span className="font-display text-[17px] font-bold tracking-[-0.03em] text-white">
+                  Motor<span className="text-[#3D94FF]">mila</span>
                 </span>
-                <span className="mt-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-100/45">
+                <span className="mt-1.5 text-[10px] font-medium tracking-[-0.005em] text-white/45">
                   {t("footer.tagline", "Market Intelligence")}
                 </span>
               </span>
-            </Link>
+            </PrefetchLink>
 
             <p className="mt-6 text-[14px] leading-7 text-zinc-400">
               {t(
@@ -191,13 +157,13 @@ export function AppFooter() {
             </p>
 
             <motion.div whileHover={reduceMotion ? undefined : { y: -2 }} whileTap={reduceMotion ? undefined : { scale: 0.98 }}>
-              <Link
+              <PrefetchLink
                 to="/pricing"
-                className="mt-8 inline-flex items-center gap-2 rounded-[14px] bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-300 px-6 py-4 text-[13px] font-semibold text-[#04101f] no-underline shadow-[0_10px_40px_rgba(34,211,238,0.25)] transition-[filter] duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"
+                className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#0A7AFF] px-6 py-3.5 text-[13px] font-semibold text-white no-underline shadow-[0_10px_40px_rgba(10,122,255,0.28)] transition-[filter,background-color] duration-200 hover:bg-[#3D94FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               >
                 {t("footer.explorePro", "Explore Pro")}
                 <ArrowUpRight className="h-4 w-4" />
-              </Link>
+              </PrefetchLink>
             </motion.div>
           </div>
 
@@ -208,7 +174,7 @@ export function AppFooter() {
             <FooterColumn title={t("footer.legal", "Legal")} links={legalLinks} />
 
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/35">{t("footer.studio", "Studio")}</p>
+              <p className="text-[12px] font-semibold text-white/50">{t("footer.studio", "Studio")}</p>
               <ul className="mt-6 space-y-4">
                 {studioLinks.map((link) => (
                   <li key={link.label}>
@@ -216,9 +182,8 @@ export function AppFooter() {
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                      className="group inline-flex items-center gap-1.5 text-[14px] leading-none text-zinc-400 no-underline transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
-                      {link.label === githubLabel && <GitHubIcon className="h-3.5 w-3.5" />}
                       <span>{link.label}</span>
                       <ArrowUpRight className="h-3 w-3 opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
                     </a>
@@ -242,11 +207,11 @@ export function AppFooter() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="flex h-9 w-9 items-center justify-center rounded-[11px] border border-white/[0.1] bg-white/[0.04] text-zinc-400 transition-colors duration-200 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.04] text-zinc-400 transition-colors duration-200 hover:border-primary/35 hover:bg-primary/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 whileHover={
                   reduceMotion
                     ? undefined
-                    : { y: -2, borderColor: "rgba(103,232,249,0.35)", backgroundColor: "rgba(34,211,238,0.12)" }
+                    : { y: -2, borderColor: "rgba(10,122,255,0.4)", backgroundColor: "rgba(10,122,255,0.14)" }
                 }
                 whileTap={reduceMotion ? undefined : { scale: 0.97 }}
               >
@@ -256,7 +221,7 @@ export function AppFooter() {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: scrollBehavior() })}
-              className="ml-1 rounded-[11px] border border-white/[0.1] bg-white/[0.04] px-3.5 py-2 text-[12px] font-medium text-zinc-400 transition-colors duration-200 hover:border-cyan-300/30 hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+              className="ml-1 rounded-full border border-white/[0.1] bg-white/[0.04] px-3.5 py-2 text-[12px] font-medium text-zinc-400 transition-colors duration-200 hover:border-primary/35 hover:bg-primary/12 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               {t("footer.backToTop", "Back to top")}
             </button>
@@ -267,7 +232,7 @@ export function AppFooter() {
           aria-hidden="true"
           className="relative z-0 mt-10 flex select-none items-center justify-center overflow-hidden border-t border-white/[0.06] pt-8 md:mt-12 md:pt-10"
         >
-          <span className="app-footer__watermark whitespace-nowrap bg-gradient-to-b from-cyan-200/20 via-sky-300/10 to-transparent bg-clip-text font-display text-[clamp(3.4rem,11.5vw,12rem)] font-black uppercase leading-none tracking-[-0.03em] text-transparent">
+          <span className="app-footer__watermark whitespace-nowrap bg-gradient-to-b from-white/[0.10] via-white/[0.05] to-transparent bg-clip-text font-display text-[clamp(3.4rem,11.5vw,12rem)] font-bold uppercase leading-none tracking-[-0.03em] text-transparent">
             Motormila
           </span>
         </div>

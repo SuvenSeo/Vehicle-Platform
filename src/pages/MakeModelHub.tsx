@@ -125,28 +125,8 @@ export default function MakeModelHub() {
       tag.setAttribute("content", content);
     };
 
-    const setCanonical = (href: string) => {
-      let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-      if (!link) {
-        link = document.createElement("link");
-        link.setAttribute("rel", "canonical");
-        document.head.appendChild(link);
-      }
-      link.setAttribute("href", href);
-    };
-
-    const setJsonLd = (data: Record<string, unknown>) => {
-      const id = "autolens-jsonld";
-      let script = document.getElementById(id) as HTMLScriptElement | null;
-      if (!script) {
-        script = document.createElement("script");
-        script.id = id;
-        script.type = "application/ld+json";
-        document.head.appendChild(script);
-      }
-      script.textContent = JSON.stringify(data);
-    };
-
+    // Canonical + JSON-LD owned by global RouteMeta (id autolens-jsonld) —
+    // page-level writes removed to avoid last-write-wins collision.
     const pathname = `/cars/${encodeURIComponent(makeParam)}/${encodeURIComponent(modelParam)}`;
     setMeta("description", description);
     setProperty("og:title", title);
@@ -154,15 +134,6 @@ export default function MakeModelHub() {
     setProperty("og:url", `${ORIGIN}${pathname}`);
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
-    setCanonical(`${ORIGIN}${pathname}`);
-    setJsonLd({
-      "@context": "https://schema.org",
-      "@type": "ItemList",
-      name: t("hub.jsonLdName", "{vehicle} listings in Sri Lanka", { vehicle }),
-      description,
-      url: `${ORIGIN}${pathname}`,
-      numberOfItems: insight?.total ?? undefined,
-    });
   }, [title, description, makeParam, modelParam, insight, vehicle, t]);
 
   const isPending = insightQuery.isPending;
@@ -251,14 +222,14 @@ export default function MakeModelHub() {
         <div className="mt-10 sm:mt-12">
           <div className="flex items-center gap-2.5">
             <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-live-dot" />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <h2 className="text-[12px] font-semibold text-muted-foreground">
               {t("hub.snapshot", "Market snapshot")}
             </h2>
           </div>
           <div className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-soft sm:grid-cols-3">
             {statsCards.map((card) => (
               <div key={card.label} className="bg-card p-6">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <p className="text-[12px] font-semibold text-muted-foreground">
                   {card.label}
                 </p>
                 <p className="num mt-2.5 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -397,7 +368,7 @@ export default function MakeModelHub() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface transition-colors group-hover:border-primary/30 group-hover:bg-primary/10">
               <BarChart2 className="h-4 w-4 text-primary" aria-hidden />
             </div>
-            <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mt-5 text-[12px] font-semibold text-muted-foreground">
               {t("hub.browseAll", "Browse all {vehicle} listings", { vehicle })}
             </p>
             <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
@@ -421,7 +392,7 @@ export default function MakeModelHub() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface transition-colors group-hover:border-primary/30 group-hover:bg-primary/10">
               <TrendingUp className="h-4 w-4 text-primary" aria-hidden />
             </div>
-            <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mt-5 text-[12px] font-semibold text-muted-foreground">
               {t("hub.priceHistory", "Price history")}
             </p>
             <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">
@@ -445,7 +416,7 @@ export default function MakeModelHub() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface transition-colors group-hover:border-primary/30 group-hover:bg-primary/10">
               <Car className="h-4 w-4 text-primary" aria-hidden />
             </div>
-            <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mt-5 text-[12px] font-semibold text-muted-foreground">
               {t("hub.marketDepth", "Market depth")}
             </p>
             <p className="mt-2 flex-1 text-[13px] leading-relaxed text-muted-foreground">

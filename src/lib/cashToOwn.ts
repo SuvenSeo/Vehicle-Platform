@@ -26,6 +26,12 @@ export interface CashToOwnInput {
   insuranceAnnualLkr?: number;
   /** Stamp duty + fees as share of financed principal (default 2%). */
   stampDutyPct?: number;
+  /** DMT ownership-transfer processing allowance (default DRIVE_AWAY_TRANSFER_LKR). */
+  transferFeeLkr?: number;
+  /** Set false to exclude the transfer allowance (default true — never understate). */
+  includeTransfer?: boolean;
+  /** EV home wallbox + install allowance, 0 for non-EVs (default 0). */
+  chargerLkr?: number;
 }
 
 export interface CashToOwnResult {
@@ -37,6 +43,12 @@ export interface CashToOwnResult {
   stampDutyLkr: number;
   insuranceAnnualLkr: number;
   cashToOwnTodayLkr: number;
+  /** Transfer processing included in the drive-away figure. */
+  transferFeeLkr: number;
+  /** EV charger allowance included in the drive-away figure (0 for non-EVs). */
+  chargerAllowanceLkr: number;
+  /** down + 2% stamp + transfer + charger + 1-mo insurance — never understates. */
+  trueCashTodayLkr: number;
   monthlyPaymentLkr: number;
   totalInterestLkr: number;
   termYears: number;
@@ -63,6 +75,20 @@ export const VEHICLE_FINANCE_CLASSES: readonly VehicleFinanceClass[] = [
 export const DEFAULT_INTEREST_RATE_PCT = 15;
 export const DEFAULT_TERM_YEARS = 5;
 export const DEFAULT_STAMP_DUTY_PCT = 2;
+
+/**
+ * Drive-away planning add-ons (NOT CBSL — indicative LK figures, kept here so
+ * the cash-today math lives next to the LTV table it builds on).
+ * Transfer processing mirrors backend/app/services/ownership_costs.py
+ * TRANSFER_FEE_MOTOR_CAR_LKR (motor-car band).
+ */
+export const DRIVE_AWAY_TRANSFER_LKR = 6_500;
+/** EV home wallbox + install planning allowance (assumption — confirm quote). */
+export const EV_HOME_CHARGER_LKR = 250_000;
+/** Salary DSR pre-check cap: instalments ≤ 60% of net monthly salary. */
+export const SALARY_DSR_CAP = 0.6;
+/** Lease-vs-loan indicative nominal annual rates for the compare table. */
+export const LEASE_VS_LOAN_RATES_PCT = [19, 20.5, 22] as const;
 
 const FINANCE_CLASS_LABELS: Record<VehicleFinanceClass, string> = {
   registered_used: "Registered used (>1yr)",
@@ -110,6 +136,36 @@ function amortizeMonthly(principal: number, annualRatePct: number, termYears: nu
   return (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
 }
 
+/** Standard amortising monthly payment (PMT) for a principal. */
+export function monthlyPaymentForPrincipal(
+  principalLkr: number,
+  annualRatePct: number,
+  termYears: number,
+): number {
+  return amortizeMonthly(principalLkr, annualRatePct, termYears);
+}
+
+/**
+ * PMT inversion: max financeable principal for a monthly instalment.
+ * P = PMT · (1 − (1+r)^−n) / r (r = 0 → PMT · n).
+ */
+export function maxPrincipalForInstalment(
+  monthlyRs: number,
+  annualRatePct: number,
+  termYears: number,
+): number | null {
+  const pmt = Number(monthlyRs);
+  const years = Number(termYears);
+  if (!Number.isFinite(pmt) || pmt <= 0 || !Number.isFinite(years) || years <= 0) return null;
+  const n = years * 12;
+  const r = Number(annualRatePct) / 100 / 12;
+  if (!Number.isFinite(r) || r < 0) return null;
+  if (r === 0) return Math.round(pmt * n);
+  const principal = (pmt * (1 - Math.pow(1 + r, -n))) / r;
+  if (!Number.isFinite(principal) || principal <= 0) return null;
+  return Math.round(principal);
+}
+
 export function computeCashToOwn(input: CashToOwnInput): CashToOwnResult | null {
   const price = Number(input.priceLkr);
   if (!Number.isFinite(price) || price < 100_000) return null;
@@ -126,6 +182,12 @@ export function computeCashToOwn(input: CashToOwnInput): CashToOwnResult | null 
   const insuranceAnnualLkr =
     input.insuranceAnnualLkr ?? estimateInsuranceAnnual(price);
   const cashToOwnTodayLkr = minCashDownLkr + stampDutyLkr + Math.round(insuranceAnnualLkr / 12);
+  const transferFeeLkr =
+    input.includeTransfer === false
+      ? 0
+      : Math.max(0, Math.round(input.transferFeeLkr ?? DRIVE_AWAY_TRANSFER_LKR));
+  const chargerAllowanceLkr = Math.max(0, Math.round(input.chargerLkr ?? 0));
+  const trueCashTodayLkr = cashToOwnTodayLkr + transferFeeLkr + chargerAllowanceLkr;
 
   const monthlyPaymentLkr = amortizeMonthly(maxFinanceLkr, interestRatePct, termYears);
   const totalInterestLkr = Math.max(0, monthlyPaymentLkr * termYears * 12 - maxFinanceLkr);
@@ -139,6 +201,9 @@ export function computeCashToOwn(input: CashToOwnInput): CashToOwnResult | null 
     stampDutyLkr,
     insuranceAnnualLkr,
     cashToOwnTodayLkr,
+    transferFeeLkr,
+    chargerAllowanceLkr,
+    trueCashTodayLkr,
     monthlyPaymentLkr: Math.round(monthlyPaymentLkr),
     totalInterestLkr: Math.round(totalInterestLkr),
     termYears,
@@ -176,6 +241,40 @@ export function sortListingsByAffordability<
     const bDown =
       minCashDownForPrice(Number(b.price_lkr || 0), financeClass) ?? Number.POSITIVE_INFINITY;
     if (aDown !== bDown) return aDown - bDown;
+    return Number(b.deal_score || 0) - Number(a.deal_score || 0);
+  });
+}
+
+/** True drive-away cash for a price (down + stamp + transfer + charger + insurance). */
+export function trueCashTodayForPrice(
+  priceLkr: number,
+  financeClass: VehicleFinanceClass = "registered_used",
+  chargerLkr = 0,
+): number | null {
+  return (
+    computeCashToOwn({ priceLkr, financeClass, chargerLkr })?.trueCashTodayLkr ?? null
+  );
+}
+
+/**
+ * Rank listings by ascending TRUE cash-today (never understates drive-away).
+ * Ties break by higher deal_score.
+ */
+export function sortListingsByCashToday<
+  T extends { price_lkr?: number | null; deal_score?: number | null },
+>(
+  listings: T[],
+  financeClass: VehicleFinanceClass = "registered_used",
+  chargerFor?: (listing: T) => number,
+): T[] {
+  return [...listings].sort((a, b) => {
+    const aCash =
+      trueCashTodayForPrice(Number(a.price_lkr || 0), financeClass, chargerFor?.(a) ?? 0) ??
+      Number.POSITIVE_INFINITY;
+    const bCash =
+      trueCashTodayForPrice(Number(b.price_lkr || 0), financeClass, chargerFor?.(b) ?? 0) ??
+      Number.POSITIVE_INFINITY;
+    if (aCash !== bCash) return aCash - bCash;
     return Number(b.deal_score || 0) - Number(a.deal_score || 0);
   });
 }

@@ -15,8 +15,10 @@ export const BRAND = {
     sheet: "/brand-sheet.png",
   },
   copilot: "Motormila Copilot",
-  contactEmail: "s.seoras@rgu.ac.uk",
-  contactMailto: "mailto:s.seoras@rgu.ac.uk?subject=Motormila%20custom%20pricing",
+  contactEmail: "suvenseoras@gmail.com",
+  contactMailto: "mailto:suvenseoras@gmail.com?subject=Motormila%20custom%20pricing",
+  contactPhone: "0758504424",
+  contactPhoneHref: "tel:0758504424",
   origin: "https://motormila.vercel.app",
   vision:
     "Make Sri Lanka’s vehicle market transparent — so every dealer, broker, importer, and serious buyer can see the real price by district, duty, and deal quality.",

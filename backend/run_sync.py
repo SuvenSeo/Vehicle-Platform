@@ -340,6 +340,36 @@ def _start_scrape_run(db, source_name: str) -> ScrapeRun:
     return run
 
 
+def _coerce_scrape_yield(result) -> int | None:
+    """Read this-run upsert count from a scraper's return value.
+
+    Scrapers may return an int, or a dict with ``upserted`` / ``inserted`` /
+    ``listings_found``. ``None`` means the scraper did not report a yield.
+    """
+    if result is None:
+        return None
+    if isinstance(result, bool):
+        return None
+    if isinstance(result, int):
+        return max(0, result)
+    if isinstance(result, dict):
+        for key in ("upserted", "inserted", "listings_found"):
+            if result.get(key) is None:
+                continue
+            try:
+                return max(0, int(result[key]))
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def _listings_found_from_scrape(scrape_result, listings_after: int) -> int:
+    yielded = _coerce_scrape_yield(scrape_result)
+    if yielded is not None:
+        return yielded
+    return max(0, int(listings_after))
+
+
 def _finalize_scrape_run(
     db,
     run: ScrapeRun,
@@ -501,18 +531,20 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
         log.info("scraping_source_started", source=source_name, max_pages=max_pages)
         scraper = scraper_cls(db)
         if source_timeout_seconds is None:
-            await scraper.scrape(max_pages=max_pages)
+            scrape_result = await scraper.scrape(max_pages=max_pages)
         else:
-            await asyncio.wait_for(
+            scrape_result = await asyncio.wait_for(
                 scraper.scrape(max_pages=max_pages),
                 timeout=source_timeout_seconds,
             )
         listings_after = _count_source_listings_safe(source_name)
+        listings_new = max(0, listings_after - listings_before)
+        listings_found = _listings_found_from_scrape(scrape_result, listings_after)
         _finalize_scrape_run_safe(
             run_id,
             status="SUCCESS",
-            listings_found=listings_after,
-            listings_new=max(0, listings_after - listings_before),
+            listings_found=listings_found,
+            listings_new=listings_new,
         )
         log.info("scraping_source_completed", source=source_name)
         if checkpoint is not None:

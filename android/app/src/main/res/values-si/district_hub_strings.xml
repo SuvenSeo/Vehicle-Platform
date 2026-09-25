@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="district_hub_title">දිස්ත්‍රික්ක මධ්‍යස්ථානය</string>
+    <string name="district_hub_back">ආපසු</string>
+    <string name="district_hub_retry">නැවත උත්සාහ කරන්න</string>
+    <string name="district_hub_loading">දිස්ත්‍රික්ක මධ්‍යස්ථානය පූරණය වෙමින්</string>
+    <string name="district_hub_na">න/අ</string>
+    <string name="district_hub_price_na">මිල න/අ</string>
+    <string name="district_hub_eyebrow">දිස්ත්‍රික්ක මධ්‍යස්ථානය</string>
+    <string name="district_hub_description">%1$s හි සජීවී තොගය, සාමාන්‍ය මිල සහ ඉහළ මාදිලි.</string>
+    <string name="district_hub_live_listings">සජීවී ලැයිස්තු</string>
+    <string name="district_hub_avg_price">සාමාන්‍ය මිල</string>
+    <string name="district_hub_median_price">මධ්‍ය මිල</string>
+    <string name="district_hub_models">මාදිලි</string>
+    <string name="district_hub_popular">%1$s හි ජනප්‍රිය</string>
+    <string name="district_hub_listings_count">ලැයිස්තු %1$d</string>
+    <string name="district_hub_live_inventory">සජීවී තොගය</string>
+    <string name="district_hub_recent">මෑත ලැයිස්තු</string>
+    <string name="district_hub_browse">%1$s ලැයිස්තු බලන්න</string>
+    <string name="district_hub_nearby_eyebrow">මෙම දිස්ත්‍රික්කය අවට</string>
+    <string name="district_hub_nearby">අසල දිස්ත්‍රික්ක</string>
+    <string name="district_hub_change_30d">දින 30 වෙනස %1$s</string>
+    <string name="district_hub_new_7d">මේ සතියේ අලුත් %1$d</string>
+    <string name="district_hub_error_title">මෙම දිස්ත්‍රික්කය පූරණය කළ නොහැකි විය</string>
+    <string name="district_hub_empty_title">මෙම දිස්ත්‍රික්කයේ ලැයිස්තු නැත</string>
+    <string name="district_hub_empty_body">ඊළඟ වෙළඳපොළ සමමුහුර්තයෙන් පසු තොගය සහ මිල පෙනෙනු ඇත.</string>
+    <string name="district_hub_cd_refresh">දිස්ත්‍රික්ක මධ්‍යස්ථානය නැවුම් කරන්න</string>
+    <string name="district_hub_cd_model">%1$s %2$s, ලැයිස්තු %3$d</string>
+    <string name="district_hub_cd_nearby">අසල දිස්ත්‍රික්කය %1$s</string>
+    <string name="district_hub_cd_stat_count">සජීවී ලැයිස්තු, %1$s</string>
+    <string name="district_hub_cd_stat_avg">සාමාන්‍ය මිල, %1$s</string>
+    <string name="district_hub_cd_stat_median">මධ්‍ය මිල, %1$s</string>
+</resources>

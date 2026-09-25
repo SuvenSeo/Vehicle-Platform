@@ -8,6 +8,7 @@ import {
   UserNotification,
 } from "@/services/api";
 import { useAuth } from "@/lib/authContext";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 const POLL_INTERVAL_MS = 60_000;
@@ -90,10 +91,19 @@ export function NotificationBell() {
     }
   };
 
+  const pushOn = (() => {
+    try {
+      return window.localStorage?.getItem("motormila.push_subscribed") === "1";
+    } catch {
+      return false;
+    }
+  })();
+
   const handleNotifClick = async (notif: UserNotification) => {
     if (!notif.read) {
       await handleMarkRead(notif.id);
     }
+    trackEvent("listing_view", { notification_id: notif.id, link: notif.link });
     if (notif.link) {
       setOpen(false);
       navigate(notif.link);
@@ -186,8 +196,8 @@ export function NotificationBell() {
           </div>
 
           {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="border-t border-border px-4 py-2.5">
+          <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-2.5">
+            {notifications.length > 0 ? (
               <button
                 type="button"
                 onClick={() => { setOpen(false); navigate("/alerts"); }}
@@ -195,8 +205,26 @@ export function NotificationBell() {
               >
                 View all alerts →
               </button>
-            </div>
-          )}
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setOpen(false); navigate("/alerts"); }}
+                className="text-[11px] font-medium text-primary-bright outline-none transition-opacity hover:opacity-80"
+              >
+                Channel center →
+              </button>
+            )}
+            <span
+              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/70"
+              title={pushOn ? "Web push on — price-drop topics active" : "In-app always delivers; push dormant until enabled"}
+            >
+              <span
+                aria-hidden
+                className={cn("h-1.5 w-1.5 rounded-full", pushOn ? "bg-emerald-500" : "bg-muted-foreground/40")}
+              />
+              {pushOn ? "push" : "in-app"}
+            </span>
+          </div>
         </div>
       )}
     </div>

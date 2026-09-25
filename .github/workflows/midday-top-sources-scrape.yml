@@ -1,5 +1,5 @@
-# Neon-first: scrapers WRITE to NeonDB (ingress is free). Stats-only snapshot
-# export keeps dashboards fresh without a full-catalog read (egress control).
+# Neon-backed midday archive scrapes. When Neon transfer quota is exhausted
+# this workflow skips; Manus → merged SQLite still refreshes the live catalog.
 name: Midday Top Sources Scraper
 
 on:
@@ -13,8 +13,29 @@ concurrency:
   group: scrape-midday-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
+  neon-guard:
+    name: Skip when Neon transfer quota is exhausted
+    uses: ./.github/workflows/probe-neon.yml
+    secrets: inherit
+
+  neon-skipped:
+    name: Neon blocked — SQLite pipeline still live
+    runs-on: ubuntu-latest
+    needs: neon-guard
+    if: ${{ needs.neon-guard.outputs.available != 'true' }}
+    steps:
+      - run: |
+          echo "Neon Free has blocked connections (monthly transfer quota)."
+          echo "This workflow writes to Neon, so it is skipping until quota resets."
+          echo "Listings and scrapes continue via manus-to-live.yml (merged SQLite + snapshots)."
+
   scrape-source:
+    needs: neon-guard
+    if: ${{ needs.neon-guard.outputs.available == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
@@ -28,10 +49,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
           cache: "pip"
@@ -45,7 +66,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: cache-playwright
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('backend/requirements.txt') }}
@@ -75,6 +96,7 @@ jobs:
           "
 
       - name: Run scraper — ${{ matrix.source }}
+        continue-on-error: ${{ matrix.source == 'riyasewana' }}
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
@@ -91,11 +113,12 @@ jobs:
           SCRAPE_SOURCE_TIMEOUT_SECONDS: "3600"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_IKMAN: "3600"
           SCRAPE_SOURCE_TIMEOUT_SECONDS_RIYASEWANA: "3600"
+          RIYASEWANA_ARCHIVE_FALLBACK: "0"
         run: python run_sync.py
 
       - name: Upload debug artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: midday-scrape-${{ matrix.source }}-failure-${{ github.run_id }}
           path: |
@@ -119,8 +142,8 @@ jobs:
 
   market-analysis:
     runs-on: ubuntu-latest
-    needs: scrape-source
-    if: ${{ !cancelled() }}
+    needs: [neon-guard, scrape-source]
+    if: ${{ needs.neon-guard.outputs.available == 'true' && always() && !cancelled() }}
     # First pass after a migration/dedup rebuild is heavy (deal scores,
     # lifecycle, outlier, thumbnail/phash backfill over the full table).
     timeout-minutes: 180
@@ -131,10 +154,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
           cache: "pip"
@@ -144,11 +167,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run market analysis once
-        # Midday is intentionally analysis-light: the heavy full-table stages
-        # (aggregates, deal scores, outliers, price recovery, alert match,
-        # thumbnail/phash backfill) run once on the daily 03:00 UTC job. Keeping
-        # only the cheap passes here halves Neon public-network transfer (the
-        # 5 GB/mo free cap was 80% used) without stalling the pipeline.
+        # Midday is analysis-light: lifecycle ran in the morning job and the
+        # heavy Python-side full-table passes (dedup, outlier, aggregates,
+        # deal scores) run weekly in heavy-maintenance.yml. Keeping only the
+        # cheap SQL-side stats refresh here keeps Neon transfer near zero.
         env:
           COLD_DATABASE_URL: ${{ secrets.HOT_DATABASE_URL }}
           ALLOW_SQLITE_FALLBACK: "false"
@@ -158,8 +180,8 @@ jobs:
           RUN_MARKET_SIGNALS: "false"
           RUN_DEAL_SCORE_REFRESH: "false"
           RUN_STATS_CACHE_REFRESH: "true"
-          RUN_DEDUP: "true"
-          RUN_LISTING_LIFECYCLE: "true"
+          RUN_DEDUP: "false"
+          RUN_LISTING_LIFECYCLE: "false"
           RUN_OUTLIER_DETECTION: "false"
           RUN_PRICE_RECOVERY: "false"
           RUN_ALERT_MATCH: "false"
@@ -182,8 +204,8 @@ jobs:
 
   snapshot-export:
     runs-on: ubuntu-latest
-    needs: [scrape-source, market-analysis]
-    if: ${{ !cancelled() && needs.market-analysis.result == 'success' }}
+    needs: [neon-guard, scrape-source, market-analysis]
+    if: ${{ needs.neon-guard.outputs.available == 'true' && always() && !cancelled() && needs.market-analysis.result == 'success' }}
     timeout-minutes: 30
 
     defaults:
@@ -192,10 +214,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
           cache: "pip"
@@ -221,7 +243,7 @@ jobs:
         run: python upload_snapshots_r2.py
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -235,7 +257,7 @@ jobs:
         run: bash scripts/deploy-snapshots-to-prod.sh
 
       - name: Upload manifest artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: midday-public-snapshot-manifest-${{ github.run_id }}
           path: backend/snapshots/latest/manifest.json
