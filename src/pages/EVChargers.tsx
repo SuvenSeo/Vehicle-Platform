@@ -122,7 +122,7 @@ export default function EVChargers() {
       <PageBody className="space-y-10 lg:space-y-14">
         <motion.section variants={revealItem} className="flex flex-wrap items-end gap-4">
           <div className="min-w-[12rem]">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mb-2 text-[12px] font-semibold text-muted-foreground">
               {t("common.district", "District")}
             </p>
             <Select value={district} onValueChange={(value) => updateParam("district", value)}>
@@ -139,7 +139,7 @@ export default function EVChargers() {
             </Select>
           </div>
           <div className="min-w-[10rem]">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="mb-2 text-[12px] font-semibold text-muted-foreground">
               {t("ev.chargersRadius", "Radius")}
             </p>
             <Select value={String(radiusKm)} onValueChange={(value) => updateParam("radius_km", value)}>
@@ -203,7 +203,7 @@ export default function EVChargers() {
                     href={osmStationUrl(station.lat, station.lng)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-primary no-underline hover:underline"
+                    className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary no-underline hover:underline"
                   >
                     {t("ev.chargersOpenMap", "Open in OpenStreetMap")}
                     <ExternalLink className="h-3 w-3" aria-hidden />

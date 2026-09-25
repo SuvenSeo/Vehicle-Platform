@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { CarListing } from "@/types/car";
-import { formatPrice } from "@/services/api";
-import { Gauge, MapPin, ArrowRight, Heart, Check, Plus, Lock } from "lucide-react";
+import { formatPrice, getListing } from "@/services/api";
+import { Gauge, MapPin, ArrowRight, Heart, Check, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
@@ -16,6 +16,7 @@ import { MileageTrustChip } from "@/components/MileageTrustChip";
 import { summarizeFmv } from "@/lib/fmv";
 import { useAuth } from "@/lib/authContext";
 import { hasFullPlatformAccess } from "@/lib/planLimits";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import { useAppPreferences } from "@/lib/appPreferences";
 
 interface ListingCardProps {
@@ -24,6 +25,7 @@ interface ListingCardProps {
   isComparing?: boolean;
   onWatchlistToggle?: (listing: CarListing) => void;
   isWatchlisted?: boolean;
+  priority?: boolean;
 }
 
 function getDealBadgeClasses(label: ReturnType<typeof getListingDealLabel>): string {
@@ -68,6 +70,7 @@ export const ListingCard = memo(function ListingCard({
   isComparing,
   onWatchlistToggle,
   isWatchlisted,
+  priority = false,
 }: ListingCardProps) {
   const { t } = useAppPreferences();
   const { hasProAccess, isAdmin } = useAuth();
@@ -95,40 +98,41 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
-      className="group relative isolate h-full overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-500 ease-apple hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg"
+      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-border/80 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft dark:border-white/12"
+      onPointerEnter={() => {
+        prefetchRoute(`/listing/${listing.id}`);
+        void getListing(listing.id);
+      }}
     >
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" />
       <Link
         to={`/listing/${listing.id}`}
         aria-label={t("listingCard.openAria", "Open {title}", { title: listingTitle || "vehicle listing" })}
-        className="absolute inset-0 z-10 rounded-2xl"
+        className="absolute inset-0 z-10 rounded-3xl"
       />
 
       <div className="pointer-events-none relative z-20 flex h-full flex-col">
-        {/* Image */}
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
           <VehicleThumbnail
             src={imageUrl}
             listingId={listing.id}
             alt={`${listing.make} ${listing.model}`}
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            priority={priority}
+            className="h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-transparent" />
 
-          {/* Overlay badges */}
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
             <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
               {formatToken(listing.condition)}
             </span>
           </div>
 
-          {/* Action buttons */}
           <div className="absolute right-3 top-3 flex items-center gap-1.5">
             {onWatchlistToggle && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onWatchlistToggle(listing); }}
-                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
+                className={`pointer-events-auto relative z-30 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isWatchlisted
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
@@ -142,7 +146,7 @@ export const ListingCard = memo(function ListingCard({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onCompareToggle(listing); }}
-                className={`pointer-events-auto relative z-30 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
+                className={`pointer-events-auto relative z-30 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isComparing
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
@@ -154,10 +158,9 @@ export const ListingCard = memo(function ListingCard({
             )}
           </div>
 
-          {/* Price overlay */}
           <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
             {hasKnownPrice ? (
-              <p className="text-xl font-bold tracking-tight text-white num leading-none">
+              <p className="font-display text-[1.35rem] font-semibold leading-none tracking-tight text-white num">
                 {formatPrice(priceValue)}
               </p>
             ) : (
@@ -167,36 +170,35 @@ export const ListingCard = memo(function ListingCard({
               />
             )}
             {hasDealScore && (
-              <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] num ${getDealBadgeClasses(dealLabel)}`}>
+              <span className={`rounded-full border px-2 py-0.5 text-[12px] font-semibold num ${getDealBadgeClasses(dealLabel)}`}>
                 {t("listingCard.deal", "{score} deal", { score: `${dealScore >= 0 ? "+" : ""}${dealScore.toFixed(0)}` })}
               </span>
             )}
-            {!fullAccess && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white/85 backdrop-blur-md">
-                <Lock className="h-2.5 w-2.5" aria-hidden />
-                {t("listingCard.proScore", "Pro score")}
-              </span>
-            )}          </div>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="flex flex-1 flex-col p-4 space-y-3">
+        <div className="flex flex-1 flex-col gap-4 p-5">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="font-display text-[16px] font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary truncate">
+            <h3 className="font-display text-[1.05rem] font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary truncate">
               {listingTitle}
             </h3>
             <span className="shrink-0 text-[13px] font-semibold text-muted-foreground num">{listing.year || t("common.na", "N/A")}</span>
           </div>
 
-          {/* Spec grid */}
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px] font-medium text-muted-foreground">
-            <span className="flex items-center gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
+            <span className="spec-pill">
               <Gauge className="h-3 w-3 text-muted-foreground/70" />
               {formatToken(listing.transmission)}
             </span>
-            <span className="num">{Number.isFinite(listing.mileage_km) ? formatMileage(listing.mileage_km) : t("listingCard.mileageNa", "Mileage N/A")}</span>
-            <span>{formatToken(listing.fuel_type)}</span>
-            <span className="num">{(Number.isFinite(listing.engine_cc) && Number(listing.engine_cc) > 0) ? formatEngineCc(listing.engine_cc) : t("listingCard.ccNa", "CC N/A")}</span>
+            <span className="spec-pill num">
+              {Number.isFinite(listing.mileage_km) ? formatMileage(listing.mileage_km) : t("listingCard.mileageNa", "Mileage N/A")}
+            </span>
+            <span className="spec-pill">{formatToken(listing.fuel_type)}</span>
+            <span className="spec-pill num">
+              {(Number.isFinite(listing.engine_cc) && Number(listing.engine_cc) > 0)
+                ? formatEngineCc(listing.engine_cc)
+                : t("listingCard.ccNa", "CC N/A")}
+            </span>
           </div>
           <HybridCliffBadge
             fuelType={listing.fuel_type}
@@ -207,13 +209,12 @@ export const ListingCard = memo(function ListingCard({
           <MileageTrustChip
             mileageKm={listing.mileage_km}
             year={listing.year}
-            className="self-start !px-1.5 !py-0.5 !text-[9px]"
+            className="self-start !px-2 !py-0.5 !text-[10px]"
           />
 
-          {/* Market position bar */}
-          <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="mt-auto">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <p className="text-[12px] font-medium text-muted-foreground">
                 {t("listingCard.fmv", "Fair market value")}
               </p>
               <p className={`text-[11px] font-semibold num ${
@@ -249,8 +250,7 @@ export const ListingCard = memo(function ListingCard({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="mt-auto flex items-center justify-between pt-3 border-t border-border">
+          <div className="flex items-center justify-between pt-3.5 border-t border-border">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
@@ -261,8 +261,8 @@ export const ListingCard = memo(function ListingCard({
                 {daysOnMarketLabel ? ` · ${daysOnMarketLabel}` : ""}
               </p>
             </div>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:text-primary" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border transition-all group-hover:border-primary/30 group-hover:bg-primary/10">
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
             </div>
           </div>
         </div>

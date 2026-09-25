@@ -46,7 +46,7 @@ export function DataFreshnessIndicator({
     return (
       <div
         className={cn(
-          "flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/[0.06] px-4 py-2.5",
+          "flex items-start gap-2 rounded-2xl border border-primary/20 bg-primary/[0.06] px-4 py-2.5",
           className,
         )}
         role="status"
@@ -56,7 +56,7 @@ export function DataFreshnessIndicator({
         <div className="min-w-0">
           <p className="text-[12px] font-semibold text-primary-bright">{freshness.staleNotice}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {freshness.dataAsOfLabel}
+            {freshness.dataAsOfLabel} · Updated {freshness.relativeLabel}
             {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
               <span className="ml-1">· stats refreshed {freshness.statsAt ? formatStatsNote(freshness, now) : "pending"}</span>
             ) : null}
@@ -76,7 +76,7 @@ export function DataFreshnessIndicator({
         className={cn("tech-label text-muted-foreground", className)}
         title={freshness.primaryAt ? freshness.absoluteLabel : undefined}
       >
-        {freshness.dataAsOfLabel}
+        {freshness.dataAsOfLabel} · Updated {freshness.relativeLabel}
         {freshness.listingAt && freshness.statsAt && freshness.listingAt !== freshness.statsAt ? (
           <span> · stats {formatStatsNote(freshness, now)}</span>
         ) : null}
@@ -88,7 +88,7 @@ export function DataFreshnessIndicator({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em]",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[12px] font-medium",
         tone.border,
         tone.text,
         className,
@@ -108,9 +108,9 @@ export function DataFreshnessIndicator({
         </span>
       )}
       {freshness.isStale ? (
-        <span>Stale · {freshness.compactLabel}</span>
+        <span>Stale · {freshness.compactLabel} · Updated {freshness.relativeLabel}</span>
       ) : (
-        <span>{freshness.dataAsOfLabel}</span>
+        <span>{freshness.dataAsOfLabel} · Updated {freshness.relativeLabel}</span>
       )}
     </span>
   );

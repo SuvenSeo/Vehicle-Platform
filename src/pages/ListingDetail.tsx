@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
   Share2, Fuel, Gauge, Settings2, MessageCircle,
-  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap
+  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap, Scale
 } from 'lucide-react';
 import { getListing, getListingFmv, getListingGeo, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
 import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
@@ -17,6 +17,8 @@ import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
 import { SafetyResearchCard } from '@/components/SafetyResearchCard';
 import { ListingGeoCard } from '@/components/ListingGeoCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
+import { FmvExplainer } from '@/components/FmvExplainer';
+import { useCompareTray } from '@/lib/compareTray';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
@@ -62,6 +64,7 @@ export default function ListingDetail() {
   const [safetyResearch, setSafetyResearch] = useState<SafetyResearchResponse | null>(null);
   const [listingGeo, setListingGeo] = useState<EnrichmentEnvelope | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toggle: toggleCompare, isPinned: isPinnedForCompare } = useCompareTray();
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -94,6 +97,26 @@ export default function ListingDetail() {
   const handleWhatsAppShare = () => {
     const text = `${buildShareText()}\n${window.location.href}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleComparePin = () => {
+    if (!listing) return;
+    const price = Number(listing.price_lkr || 0);
+    const priced = Number.isFinite(price) && price >= 100_000 && price <= 500_000_000;
+    const median = Number(listing.market_median_lkr);
+    const result = toggleCompare({
+      id: Number(listing.id),
+      make: listing.make,
+      model: listing.model,
+      year: listing.year,
+      price_lkr: priced ? price : null,
+      fmv_lkr: fmvDetail?.fmv_lkr ?? (Number.isFinite(median) && median > 0 ? median : null),
+      mileage_km: Number(listing.mileage_km) || null,
+      district: listing.district,
+      deal_score: typeof listing.deal_score === 'number' ? listing.deal_score : null,
+    });
+    if (result.atCap) toast.error(t("listing.compareFull", "Compare tray is full (max 3) — remove one first"));
+    else if (result.pinned) toast.success(t("listing.compareAdded", "Pinned to compare tray"));
   };
 
   useEffect(() => {
@@ -171,8 +194,8 @@ export default function ListingDetail() {
           <div className="skeleton-shimmer h-4 w-28 rounded" />
           <div className="skeleton-shimmer h-10 w-2/3 rounded" />
           <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-            <div className="skeleton-shimmer h-[320px] rounded-xl" />
-            <div className="skeleton-shimmer h-[320px] rounded-xl" />
+            <div className="skeleton-shimmer h-[320px] rounded-[2rem]" />
+            <div className="skeleton-shimmer h-[320px] rounded-[2rem]" />
           </div>
         </div>
       </div>
@@ -185,10 +208,10 @@ export default function ListingDetail() {
       <div className="flex min-h-[70vh] items-center justify-center px-5">
         <div className="text-center">
           <CarIcon className="mx-auto mb-4 h-8 w-8 text-muted-foreground" />
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.unavailable", "Unavailable")}</p>
+          <p className="text-[12px] font-medium text-muted-foreground">{t("listing.unavailable", "Unavailable")}</p>
           <h1 className="mt-2 font-display text-xl font-semibold text-foreground">{t("listing.notFound", "Listing not found")}</h1>
           <p className="mt-2 max-w-sm text-[12px] text-muted-foreground">{t("listing.notFoundBody", "The source may have removed it or the ID is no longer in the live index.")}</p>
-          <button type="button" onClick={() => navigate('/')} className="mt-5 rounded-full bg-primary px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-primary-foreground shadow-soft transition-all hover:bg-primary/95 hover:shadow-soft-lg active:scale-[0.97]">{t("listing.returnInventory", "Return to inventory")}</button>
+          <button type="button" onClick={() => navigate('/')} className="mt-5 rounded-full bg-primary px-5 py-2.5 text-[12px] font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary/95 hover:shadow-soft-lg active:scale-[0.97]">{t("listing.returnInventory", "Return to inventory")}</button>
         </div>
       </div>
     );
@@ -266,20 +289,20 @@ export default function ListingDetail() {
       <div aria-hidden className="pointer-events-none absolute bottom-[20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-primary/5 blur-[150px]" />
 
       {/* Header — the editorial hero: eyebrow, towering title, ask + verdict */}
-      <motion.section variants={revealItem} className="relative z-10 -mt-16 border-b border-border bg-card/30 pt-16 backdrop-blur-md">
+      <motion.section variants={revealItem} className="relative z-10 -mt-[var(--nav-offset)] border-b border-border bg-card/30 pt-[var(--nav-offset)] backdrop-blur-md">
         <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 sm:py-10">
-          <button type="button" onClick={handleBack} className="group mb-5 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground">
+          <button type="button" onClick={handleBack} className="group mb-5 inline-flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground">
             <ArrowLeft aria-hidden className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /> {t("common.back", "Back")}
           </button>
 
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="section-eyebrow text-[10px] tracking-[0.18em]">{t("listing.inspection", "Inspection")}</span>
             <span aria-hidden className="text-muted-foreground/40 text-xs">•</span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{listing.source}</span>
+            <span className="text-[11px] font-medium tracking-tight text-muted-foreground">{listing.source}</span>
           </div>
 
           {listing.is_active === false && (
-            <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-400/[0.06] p-3.5 max-w-2xl">
+            <div className="mb-5 flex items-start gap-2.5 rounded-3xl border border-amber-500/25 bg-amber-400/[0.06] p-3.5 max-w-2xl">
               <AlertTriangle aria-hidden className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-bold text-amber-700 dark:text-amber-300">{t("listing.possiblySold", "Possibly sold or delisted")}</p>
@@ -315,20 +338,20 @@ export default function ListingDetail() {
 
           <div className="mt-6 flex flex-wrap items-center gap-2.5">
             {listingUrl && (
-              <a href={listingUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 hover:shadow-soft-lg active:scale-[0.97]">
+              <a href={listingUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 hover:shadow-soft-lg active:scale-[0.97]">
                 {t("listing.viewOnSource", "View on {source}", { source: listing.source })} <ExternalLink aria-hidden className="h-3 w-3" />
               </a>
             )}
-            <button type="button" onClick={handleWhatsAppShare} className="flex h-9 items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-700 dark:text-emerald-400 transition-all hover:bg-emerald-500/15 active:scale-[0.97]">
+            <button type="button" onClick={handleWhatsAppShare} className="flex h-9 items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 transition-all hover:bg-emerald-500/15 active:scale-[0.97]">
               <MessageCircle aria-hidden className="h-3 w-3" /> {t("listing.shareWhatsApp", "Share on WhatsApp")}
             </button>
-            <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
+            <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[12px] font-semibold text-muted-foreground transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
               <Share2 aria-hidden className="h-3 w-3" /> {t("listing.share", "Share")}
             </button>
             {importFuelType === 'electric' && (
               <Link
                 to={listing.district ? `/ev-chargers?district=${encodeURIComponent(listing.district)}` : '/ev-chargers'}
-                className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[10px] font-bold uppercase tracking-[0.06em] text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]"
+                className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[12px] font-semibold text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]"
               >
                 <PlugZap aria-hidden className="h-3 w-3" /> {t("listing.chargersNearby", "Charging stations")}
               </Link>
@@ -345,8 +368,8 @@ export default function ListingDetail() {
           <div className="space-y-6">
 
             {/* Image — the car is the hero; overlays stay dark (they sit on the photo) */}
-            <motion.div variants={revealItem} className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-              <div className="relative aspect-[16/10] min-h-[220px] bg-black/40 overflow-hidden group">
+            <motion.div variants={revealItem} className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-soft">
+              <div className="relative aspect-[16/10] min-h-[220px] overflow-hidden bg-black/40 group">
                 {heroImage ? (
                   <VehicleThumbnail src={heroImage} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" placeholderClassName="flex h-full w-full items-center justify-center bg-black/40" />
                 ) : (
@@ -355,8 +378,10 @@ export default function ListingDetail() {
                 <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
-                  <span className="rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">{listing.make} {listing.model} · {listing.year || 'N/A'}</span>
-                  <span className="flex items-center gap-1 rounded-md border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-primary-bright backdrop-blur-md"><Database aria-hidden className="h-3 w-3" /> {listing.source}</span>
+                  <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-md">{listing.make} {listing.model} · {listing.year || 'N/A'}</span>
+                  {/* Fixed bright blue: this badge sits on a black photo scrim, where the
+                      light-theme `--primary-bright` token is unreadable. */}
+                  <span className="flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-[#6CB8FF] backdrop-blur-md"><Database aria-hidden className="h-3 w-3" /> {listing.source}</span>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-4 border-t border-border px-4 py-3 bg-card">
@@ -368,14 +393,14 @@ export default function ListingDetail() {
 
             {/* Specs Bento Grid */}
             <motion.div variants={revealItem} className="space-y-3">
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.specifications", "Specifications")}</h2>
+              <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.specifications", "Specifications")}</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {specs.map((s) => (
                   <motion.div
                     key={s.label}
                     whileHover={{ scale: 1.02, y: -3 }}
                     transition={springSnappy}
-                    className="rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30 relative overflow-hidden group shadow-soft"
+                    className="rounded-[1.6rem] border border-border bg-card p-4 transition-colors hover:border-primary/30 relative overflow-hidden group shadow-soft"
                   >
                     <div aria-hidden className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <s.icon aria-hidden className="mb-2 h-4 w-4 text-primary" />
@@ -399,8 +424,8 @@ export default function ListingDetail() {
             {listing.id != null && <ListingHistoryReport listingId={listing.id} />}
 
             {/* Description */}
-            <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-              <h2 className="mb-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.description", "Description")}</h2>
+            <motion.div variants={revealItem} className="rounded-[1.75rem] border border-border bg-card p-5 shadow-soft">
+              <h2 className="mb-3.5 text-[12px] font-semibold text-muted-foreground">{t("listing.description", "Description")}</h2>
               <p className="whitespace-pre-wrap text-[13px] leading-[1.8] text-muted-foreground font-medium">
                 {listing.description || 'No description provided. Market intelligence indicates this vehicle is priced within the range of comparable models.'}
               </p>
@@ -414,7 +439,7 @@ export default function ListingDetail() {
 
               return (
                 <motion.div variants={revealItem} className="space-y-4">
-                  <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.ownershipPlanning", "Ownership planning")}</h2>
+                  <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.ownershipPlanning", "Ownership planning")}</h2>
 
                   <CashToOwnStrip
                     priceLkr={listingPrice}
@@ -440,7 +465,7 @@ export default function ListingDetail() {
                       initialFuelType={importFuelType}
                     />
                   ) : (
-                    <div className="page-panel flex flex-col justify-between gap-3 rounded-xl p-6">
+                    <div className="page-panel flex flex-col justify-between gap-3 rounded-[1.75rem] p-6">
                       <div>
                         <h2 className="field-label text-foreground">{t("listing.importDutyTax", "Import duty and tax")}</h2>
                         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -451,7 +476,7 @@ export default function ListingDetail() {
                       </div>
                       <Link
                         to={`/calculator?tab=landed-cost&fuel=${importFuelType}${typeof listing.engine_cc === 'number' ? `&cc=${listing.engine_cc}` : ''}`}
-                        className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.08em] text-primary-bright no-underline transition-all hover:bg-primary/15"
+                        className="inline-flex w-fit items-center gap-1.5 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-[12px] font-semibold text-primary-bright no-underline transition-all hover:bg-primary/15"
                       >
                         Model a fresh import <ArrowRight aria-hidden className="h-3 w-3" />
                       </Link>
@@ -469,11 +494,11 @@ export default function ListingDetail() {
             {/* Price — the money hero: the number towers, verdict reads in signal colour */}
             <motion.div
               variants={revealItem}
-              className="rounded-2xl border border-border bg-card p-5 relative overflow-hidden shadow-soft-lg"
+              className="rounded-[1.75rem] border border-border bg-card p-5 relative overflow-hidden shadow-soft-lg"
               style={{ backgroundImage: 'radial-gradient(circle at 100% 0%, hsl(var(--primary) / 0.06) 0%, transparent 60%)' }}
             >
               <div aria-hidden className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary to-transparent" />
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.askingPrice", "Asking price")}</h2>
+              <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.askingPrice", "Asking price")}</h2>
               <p className="num mt-2 text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-foreground">{hasPrice ? formatPrice(listingPrice) : t("listing.unlisted", "Unlisted")}</p>
 
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
@@ -483,7 +508,7 @@ export default function ListingDetail() {
                 <AdvertHealthChip listing={listing} />
                 {priceHistory && priceHistory.cut_count > 0 && (
                   <span
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300"
                     title={`Tracked since first sighting: ${priceHistory.cut_count} downward price ${priceHistory.cut_count === 1 ? 'move' : 'moves'}${priceHistory.change_pct !== null ? `, ${priceHistory.change_pct}% overall` : ''}`}
                   >
                     <Clock aria-hidden className="h-3 w-3" />
@@ -515,8 +540,8 @@ export default function ListingDetail() {
               )}
 
               {fmvSummary && (
-                <div className="mt-3 rounded-xl border border-border bg-surface px-3.5 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                <div className="mt-3 rounded-3xl border border-border bg-surface px-3.5 py-3">
+                  <p className="text-[12px] font-semibold text-muted-foreground">
                     {t("listing.fmv", "Fair market value")}
                   </p>
                   <p
@@ -540,6 +565,24 @@ export default function ListingDetail() {
                       {fmvDetail.confidence !== "none" ? ` · ${fmvDetail.confidence} confidence` : ""}
                     </p>
                   )}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-border/70 pt-2.5">
+                    <FmvExplainer
+                      compsCount={fmvDetail?.sample_size ?? 0}
+                      confidence={fmvDetail?.confidence ?? "none"}
+                      method={fmvDetail?.method}
+                      fmvLkr={fmvSummary.fmv_lkr}
+                      updatedAt={fmvDetail?.updated_at}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleComparePin}
+                      aria-pressed={isPinnedForCompare(Number(listing.id))}
+                      className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[12px] font-semibold text-primary-bright transition-all hover:bg-primary/15 active:scale-[0.97]"
+                    >
+                      <Scale aria-hidden className="h-3 w-3" />
+                      {isPinnedForCompare(Number(listing.id)) ? t("listing.pinned", "Pinned ✓") : t("listing.addToCompare", "Add to compare")}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -553,10 +596,10 @@ export default function ListingDetail() {
             </motion.div>
 
             {/* Seller */}
-            <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <motion.div variants={revealItem} className="rounded-[1.75rem] border border-border bg-card p-5 shadow-soft">
               <div className="mb-3.5 flex items-center gap-2 border-b border-border pb-2.5">
                 <ShieldCheck aria-hidden className="h-4 w-4 text-primary" />
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.sellerInfo", "Seller information")}</h2>
+                <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.sellerInfo", "Seller information")}</h2>
               </div>
 
               <div className="flex items-start justify-between gap-3">
@@ -564,7 +607,7 @@ export default function ListingDetail() {
                   <p className="text-[14px] font-bold text-foreground leading-tight">{sellerHeadline}</p>
                   <p className="mt-1 truncate text-[12px] text-muted-foreground font-medium">{sellerName}</p>
                 </div>
-                <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-primary-bright">{trustBadges[0] || 'Source'}</span>
+                <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-[11px] font-medium text-primary-bright">{trustBadges[0] || 'Source'}</span>
               </div>
 
               <p className="mt-3 text-[11px] text-muted-foreground font-medium">{trustMeta}</p>
@@ -586,13 +629,13 @@ export default function ListingDetail() {
                 <div className="mt-4 flex flex-wrap gap-1.5 pt-1">
                   {phonePreview.map((p) => (
                     <a key={p} href={`tel:${p.replace(/[^\d+]/g, "")}`}
-                      className="num rounded-md border border-border bg-surface px-2 py-1 text-[10px] font-bold text-foreground no-underline transition-colors hover:border-primary/30 hover:bg-card">
+                      className="num rounded-full border border-border bg-surface px-2 py-1 text-[10px] font-bold text-foreground no-underline transition-colors hover:border-primary/30 hover:bg-card">
                       {p}
                     </a>
                   ))}
                   {whatsappPreview.map((p) => (
                     <a key={`wa-${p}`} href={`https://wa.me/${p.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
-                      className="num rounded-md border border-emerald-500/25 bg-emerald-500/5 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 no-underline transition-colors hover:bg-emerald-500/10">
+                      className="num rounded-full border border-emerald-500/25 bg-emerald-500/5 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 no-underline transition-colors hover:bg-emerald-500/10">
                       WA {p}
                     </a>
                   ))}
@@ -601,9 +644,9 @@ export default function ListingDetail() {
             </motion.div>
 
             {/* Peers */}
-            <motion.div variants={revealItem} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+            <motion.div variants={revealItem} className="rounded-[1.75rem] border border-border bg-card p-5 shadow-soft">
               <div className="mb-3.5 flex items-center justify-between border-b border-border pb-2.5">
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{t("listing.marketPeers", "Market peers")}</h2>
+                <h2 className="text-[12px] font-semibold text-muted-foreground">{t("listing.marketPeers", "Market peers")}</h2>
                 <ArrowRight aria-hidden className="h-3.5 w-3.5 text-primary" />
               </div>
 
@@ -613,7 +656,7 @@ export default function ListingDetail() {
                     <Link
                       key={s.id}
                       to={`/listing/${s.id}`}
-                      className="group flex items-center justify-between rounded-lg border border-border bg-surface px-3.5 py-2.5 no-underline transition-all hover:bg-card hover:border-primary/30 hover:translate-y-[-1px]"
+                      className="group flex items-center justify-between rounded-2xl border border-border bg-surface px-3.5 py-2.5 no-underline transition-all hover:bg-card hover:border-primary/30 hover:translate-y-[-1px]"
                     >
                       <div className="min-w-0">
                         <p className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">{s.make} {s.model} · {s.year}</p>

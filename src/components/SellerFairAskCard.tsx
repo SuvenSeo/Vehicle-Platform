@@ -56,10 +56,10 @@ export function SellerFairAskCard({
 
   return (
     <section
-      className={cn("rounded-lg border border-border bg-surface p-4", className)}
+      className={cn("rounded-2xl border border-border bg-surface p-4", className)}
       aria-label="Private seller fair ask"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[12px] font-medium text-muted-foreground">
         Instant Offer · Fair ask
       </p>
       <p className="mt-1 text-[11px] text-muted-foreground">
@@ -80,7 +80,7 @@ export function SellerFairAskCard({
       <button
         type="button"
         onClick={handleCopyWhatsApp}
-        className="mt-4 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-600 transition-colors hover:bg-emerald-500/15 dark:text-emerald-400"
+        className="mt-4 flex h-9 w-full items-center justify-center gap-1.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 text-[12px] font-semibold text-emerald-600 transition-colors hover:bg-emerald-500/15 dark:text-emerald-400"
       >
         {copied ? (
           <>
@@ -106,8 +106,8 @@ function Metric({
   emphasize?: boolean;
 }) {
   return (
-    <div className="rounded-md border border-border bg-card/40 p-3">
-      <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+    <div className="rounded-full border border-border bg-card/40 p-3">
+      <p className="text-[12px] font-medium text-muted-foreground">{label}</p>
       <p
         className={cn(
           "num mt-1 text-[13px] font-bold",

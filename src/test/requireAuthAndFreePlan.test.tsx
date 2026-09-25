@@ -80,9 +80,15 @@ describe("RequireAuth + free plan locks", () => {
       </AppPreferencesProvider>,
     );
 
-    expect(screen.getByText(/you're on the/i)).toBeInTheDocument();
+    // B1/B2 copy: en.ts freeBanner.body + FreePlanBanner Upgrade CTA + ProFeatureLock trial lock.
+    expect(screen.getByText(/you're on the free plan/i)).toBeInTheDocument();
     expect(screen.getAllByText(/lane intelligence/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /view plans/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^upgrade$/i })).toHaveAttribute("href", "/pricing");
+    expect(screen.getByText(/start your 7-day free trial/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /start 7-day free trial/i })).toHaveAttribute(
+      "href",
+      "/pricing",
+    );
   });
 
   it("does not blur content for pro users", () => {

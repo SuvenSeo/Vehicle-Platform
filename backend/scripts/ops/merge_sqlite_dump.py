@@ -30,7 +30,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from sqlalchemy import create_engine, text  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-from db.models import CarListing  # noqa: E402
+from db.models import CarListing, ScrapeRun  # noqa: E402
+from app.services.source_aliases import canonical_source_key  # noqa: E402
 from app.utils.listing_upsert import upsert_listing  # noqa: E402
 
 # Derived/flags columns that the local analysis recomputes — never copy these
@@ -43,9 +44,12 @@ EXCLUDE_COLS = {
     "deal_score",
     "thumbnail_url_cached",
     "image_phash",
-    "vehicle_category",
     "content_updated_at",
     "last_seen_at",
+    # Dump first_seen_at is usually the scrape clock. upsert_listing also
+    # refuses to overwrite it; keep it out of the payload so inserts use the
+    # DB default and existing rows keep their original discovery time.
+    "first_seen_at",
 }
 
 CONTENT_COLS = [
@@ -110,6 +114,131 @@ def load_dump_path(path: str) -> Path:
             shutil.copyfileobj(fin, fout)
         return tmp
     return p
+
+
+def _parse_dump_datetime(value):
+    """Parse SQLite datetime values and normalize them to naive UTC."""
+    from datetime import datetime, timezone
+
+    if isinstance(value, datetime):
+        parsed = value
+    else:
+        text_value = str(value or "").strip()
+        if not text_value:
+            return None
+        parsed = None
+        for candidate in (text_value, text_value.replace("Z", "+00:00")):
+            try:
+                parsed = datetime.fromisoformat(candidate)
+                break
+            except ValueError:
+                continue
+        if parsed is None:
+            return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def _latest_dump_scrape_runs(dump_engine) -> list[dict]:
+    """Return the newest scrape run for each canonical source in a dump."""
+    with dump_engine.connect() as conn:
+        has_table = conn.execute(
+            text(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='scrape_runs'"
+            )
+        ).first()
+        if not has_table:
+            return []
+
+        columns = {
+            str(row[1])
+            for row in conn.execute(text("PRAGMA table_info('scrape_runs')"))
+        }
+        if not {"source", "started_at"}.issubset(columns):
+            return []
+
+        rows = conn.execute(
+            text(
+                "SELECT source, started_at, finished_at, status, "
+                "listings_found, listings_new, error_message "
+                "FROM scrape_runs "
+                "WHERE started_at IS NOT NULL "
+                "ORDER BY started_at ASC, id ASC"
+            )
+        ).mappings().all()
+
+    latest: dict[str, dict] = {}
+    for index, row in enumerate(rows):
+        source = canonical_source_key(row.get("source"))
+        started_at = _parse_dump_datetime(row.get("started_at"))
+        if not source or started_at is None:
+            continue
+        candidate = dict(row)
+        candidate["_source"] = source
+        candidate["_started_at"] = started_at
+        candidate["_order"] = index
+        previous = latest.get(source)
+        if previous is None or (
+            candidate["_started_at"], candidate["_order"]
+        ) >= (
+            previous["_started_at"], previous["_order"]
+        ):
+            latest[source] = candidate
+    return list(latest.values())
+
+
+def import_scrape_runs(dump_engine, target_engine, TargetSession) -> int:
+    """Merge operational scrape telemetry without duplicating runs.
+
+    The outage merge path historically copied only listings and price history.
+    That left a fresh failover catalog with an empty ``scrape_runs`` table,
+    making the public pipeline monitor report every source as delayed. Keep
+    the newest run per source and never replace a newer target run.
+    """
+    rows = _latest_dump_scrape_runs(dump_engine)
+    if not rows:
+        return 0
+
+    imported = 0
+    db = TargetSession()
+    try:
+        for row in rows:
+            source = str(row["_source"])
+            started_at = row["_started_at"]
+            existing = (
+                db.query(ScrapeRun)
+                .filter(ScrapeRun.source == source)
+                .order_by(ScrapeRun.started_at.desc(), ScrapeRun.id.desc())
+                .first()
+            )
+            if existing is not None:
+                existing_started = _parse_dump_datetime(existing.started_at)
+                if existing_started is not None and existing_started >= started_at:
+                    continue
+                target = existing
+            else:
+                target = ScrapeRun(source=source)
+                db.add(target)
+
+            status = str(row.get("status") or "SUCCESS").upper()[:10]
+            finished_at = _parse_dump_datetime(row.get("finished_at"))
+            if finished_at is None and status != "RUNNING":
+                finished_at = started_at
+            target.started_at = started_at
+            target.finished_at = finished_at
+            target.status = status
+            target.listings_found = max(0, int(row.get("listings_found") or 0))
+            target.listings_new = max(0, int(row.get("listings_new") or 0))
+            target.error_message = (
+                str(row.get("error_message") or "").strip()[:2000] or None
+            )
+            imported += 1
+        db.commit()
+        return imported
+    finally:
+        db.close()
 
 
 def main() -> int:
@@ -185,6 +314,14 @@ def main() -> int:
         total_new = sum(v[1] for v in per_source.values())
         print(f"\nDRY-RUN: would insert {total_new} new rows, update the rest.")
         return 0
+
+    try:
+        runs_imported = import_scrape_runs(dump_engine, target_engine, TargetSession)
+        if runs_imported:
+            print(f"scrape runs imported={runs_imported}")
+    except Exception as exc:
+        # Telemetry is useful but must never invalidate a catalog merge.
+        print(f"WARNING: scrape-run import failed ({exc}) - continuing without it")
 
     # Neon exports carry a vehicle_price_history_src table keyed by
     # (source, source_id); re-attach those price points to the just-upserted

@@ -26,7 +26,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
             transition={springSnappy}
             className="premium-surface p-8 shadow-soft-lg md:p-10"
           >
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-bright">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[12px] font-semibold text-primary-bright">
               <Lock className="h-3 w-3" /> Subscription required
             </span>
             <h1 className="mt-5 font-display text-[2.1rem] font-semibold tracking-tight text-foreground md:text-[2.55rem]">
@@ -39,7 +39,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
             <div className="mt-7 flex flex-wrap gap-2.5">
               <Link
                 to="/pricing"
-                className="inline-flex h-11 items-center gap-1.5 rounded-full bg-primary px-5 text-[12px] font-bold uppercase tracking-[0.08em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95"
+                className="inline-flex h-11 items-center gap-1.5 rounded-full bg-primary px-5 text-[12px] font-semibold tracking-tight text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95"
               >
                 <Crown className="h-3.5 w-3.5" /> View plans
               </Link>

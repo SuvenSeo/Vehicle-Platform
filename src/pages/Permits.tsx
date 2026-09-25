@@ -154,13 +154,13 @@ export default function Permits() {
               <motion.table variants={revealContainer} className="w-full text-left">
                 <thead>
                   <tr className="border-b border-border bg-surface">
-                    <th className="py-3 pl-5 pr-4 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="py-3 pl-5 pr-4 text-[12px] font-semibold text-muted-foreground">
                       {t("permits.colName", "Permit name")}
                     </th>
-                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground hidden sm:table-cell">
+                    <th className="py-3 px-4 text-[12px] font-semibold text-muted-foreground hidden sm:table-cell">
                       {t("permits.colType", "Type")}
                     </th>
-                    <th className="py-3 pl-4 pr-5 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="py-3 pl-4 pr-5 text-right text-[12px] font-semibold text-muted-foreground">
                       {t("permits.colPrice", "Market price")}
                     </th>
                   </tr>

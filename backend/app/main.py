@@ -11,7 +11,14 @@ from sqlalchemy import text
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.services.daily_sync_scheduler import start_daily_sync_scheduler, stop_daily_sync_scheduler
-from db.session import hot_engine, init_db
+from app.services.digest_flush_scheduler import start_digest_flush_scheduler, stop_digest_flush_scheduler
+from db import session as db_session
+from db.session import init_db
+from db.sqlite_failover import (
+    failover_active,
+    failover_enabled,
+    start_sqlite_failover_background,
+)
 
 from .api.v1.api import api_router
 
@@ -46,24 +53,63 @@ _MAX_BODY_SIZE = 1_048_576  # 1 MB
 
 
 class BodySizeLimitMiddleware:
-    """Reject requests whose Content-Length exceeds _MAX_BODY_SIZE bytes."""
+    """Reject request bodies larger than _MAX_BODY_SIZE bytes.
+
+    Content-Length is the cheap first gate, but a header-only check is bypassable:
+    a client can omit Content-Length and stream a chunked body instead
+    (``Transfer-Encoding: chunked``), which never trips the declared-length
+    comparison. Every endpoint here accepts bounded JSON bodies, so
+    length-less chunked requests are rejected with 411 rather than buffered —
+    that keeps the cap enforceable without reimplementing stream accounting.
+    """
 
     def __init__(self, app) -> None:
         self.app = app
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] == "http":
+            declared: int | None = None
+            chunked = False
             for name, value in scope.get("headers", []):
                 if name == b"content-length":
-                    if int(value) > _MAX_BODY_SIZE:
-                        response = JSONResponse(
-                            status_code=413,
-                            content={"detail": "Request body too large"},
-                        )
-                        await response(scope, receive, send)
-                        return
-                    break
+                    try:
+                        declared = int(value)
+                    except (TypeError, ValueError):
+                        declared = None
+                elif name == b"transfer-encoding":
+                    chunked = "chunked" in value.decode("latin-1").lower()
+
+            if declared is not None and declared > _MAX_BODY_SIZE:
+                await self._reject(scope, receive, send, 413, "Request body too large")
+                return
+            if chunked and declared is None:
+                await self._reject(
+                    scope,
+                    receive,
+                    send,
+                    411,
+                    "Content-Length required; chunked request bodies are not accepted",
+                )
+                return
         await self.app(scope, receive, send)
+
+    @staticmethod
+    async def _reject(scope, receive, send, status_code: int, detail: str) -> None:
+        response = JSONResponse(status_code=status_code, content={"detail": detail})
+        await response(scope, receive, send)
+
+
+def _failover_can_take_over() -> bool:
+    """True when the SQLite failover monitor can rebind the API off Postgres.
+
+    In that case a failed/timed-out Neon init must not abort startup: the
+    monitor thread rebinds to the merged dump within a couple of minutes,
+    whereas aborting puts the Space into a restart crash-loop for the rest of
+    the outage.
+    """
+    return failover_enabled() and not str(
+        getattr(db_session, "HOT_URL", "") or ""
+    ).startswith("sqlite")
 
 
 @asynccontextmanager
@@ -74,6 +120,12 @@ async def lifespan(app: FastAPI):
     # Runs in a thread with a hard timeout: init_db() is a blocking sync call,
     # and a stuck DB connection here would otherwise freeze the whole event
     # loop forever, so the app never starts accepting requests.
+    # Neon Free blocks all connections after the transfer quota is exhausted.
+    # Kick a background monitor that downloads the public merged SQLite dump
+    # (and fails back to Neon on recovery) so listings recover without
+    # blocking uvicorn listen (HF HEALTHCHECK start-period is 10s).
+    start_sqlite_failover_background()
+
     if SKIP_DB_INIT:
         logger.info("db_init_skipped", reason="SKIP_DB_INIT=true")
     else:
@@ -82,18 +134,31 @@ async def lifespan(app: FastAPI):
             logger.info("db_initialized")
         except asyncio.TimeoutError as e:
             logger.critical("db_init_timeout", timeout_seconds=DB_INIT_TIMEOUT_SECONDS)
-            raise RuntimeError("Database initialization timed out. Aborting startup.") from e
+            if not _failover_can_take_over():
+                raise RuntimeError("Database initialization timed out. Aborting startup.") from e
+            logger.critical("db_init_deferred_to_sqlite_failover")
         except Exception as e:
             logger.critical("db_init_failed", error=str(e))
-            raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
+            if not _failover_can_take_over():
+                raise RuntimeError(f"Database initialization failed: {e}. Aborting startup.") from e
+            logger.critical("db_init_deferred_to_sqlite_failover")
 
     try:
         start_daily_sync_scheduler()
     except Exception as e:
         logger.error("daily_sync_scheduler_start_failed", error=str(e))
 
+    try:
+        start_digest_flush_scheduler()
+    except Exception as e:
+        logger.error("digest_flush_scheduler_start_failed", error=str(e))
+
     yield
 
+    try:
+        stop_digest_flush_scheduler()
+    except Exception as e:
+        logger.error("digest_flush_scheduler_stop_failed", error=str(e))
     try:
         stop_daily_sync_scheduler()
     except Exception as e:
@@ -190,11 +255,12 @@ HEALTH_DB_PROBE_TIMEOUT_SECONDS = 5
 
 
 def _probe_db() -> None:
-    with hot_engine.connect() as conn:
+    with db_session.hot_engine.connect() as conn:
         conn.execute(text("SELECT 1"))
 
 
 @app.get("/health")
+@app.get("/api/v1/health")
 async def health_check():
     # A cheap bounded read probe: a Space with a dead database must not
     # keep reporting itself healthy to uptime monitoring.
@@ -208,6 +274,10 @@ async def health_check():
     content = {
         "status": "ok" if db_status == "ok" else "degraded",
         "db": db_status,
+        # True while serving from the downloaded SQLite dump (Neon quota
+        # block); the DB probe above then targets SQLite, so "ok" +
+        # failover=true is the expected outage posture.
+        "failover": failover_active(),
         "version": "1.0.0",
     }
 
@@ -217,7 +287,8 @@ async def health_check():
 
 
 SECURITY_TXT = """\
-Contact: mailto:security@motormila.com
+Contact: mailto:suvenseoras@gmail.com
+Contact: tel:0758504424
 Preferred-Languages: en
 Policy: https://motormila.vercel.app/security
 Expires: 2027-01-01T00:00:00.000Z

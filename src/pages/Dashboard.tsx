@@ -17,7 +17,9 @@ import { FuelMixStrip } from "@/components/FuelMixStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { HeroSideSignals } from "@/components/HeroSideSignals";
-import { HeroVariantPicker, useHeroVariantLab } from "@/components/HeroVariantPicker";
+import { HeroVariantPicker } from "@/components/HeroVariantPicker";
+import { useHeroVariantLab } from "@/hooks/useHeroVariantLab";
+import type { HeroAlign } from "@/lib/heroVariants";
 import { RevealSection } from "@/components/RevealSection";
 import { SectionHeader } from "@/components/SectionHeader";
 import { visuals } from "@/lib/visualAssets";
@@ -47,6 +49,7 @@ import { useAppPreferences } from "@/lib/appPreferences";
 import { loadWatchlistIds, saveWatchlistIds, toggleWatchlistId } from "@/lib/watchlist";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
+import { cn } from "@/lib/utils";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { ListingCardSkeleton } from "@/components/ListingCardSkeleton";
@@ -140,6 +143,30 @@ const HERO_POPULAR_SCANS = [
 ] as const;
 
 const SORT_VALUES = ["newest", "deal_score", "price_asc", "price_desc", "mileage_asc"] as const;
+
+function heroCopyAlignClass(align: HeroAlign, hideSideSignals: boolean): string {
+  switch (align) {
+    case "left":
+      return cn(
+        "mr-auto max-w-xl text-left lg:max-w-2xl",
+        !hideSideSignals && "xl:ml-[min(22vw,292px)] xl:max-w-[36rem]",
+      );
+    case "right":
+      return cn(
+        "ml-auto max-w-xl text-left lg:max-w-2xl",
+        !hideSideSignals && "xl:mr-[min(22vw,292px)] xl:max-w-[36rem]",
+      );
+    case "center":
+      return cn(
+        "mx-auto flex w-full max-w-3xl flex-col items-center text-center",
+        !hideSideSignals && "xl:max-w-2xl 2xl:max-w-3xl",
+      );
+    default: {
+      const _exhaustive: never = align;
+      return _exhaustive;
+    }
+  }
+}
 
 function parseOptionalNumber(value: string | null) {
   if (!value) return undefined;
@@ -237,7 +264,7 @@ export default function Dashboard() {
     () => (fullAccess ? filters : { ...filters, page: 1 }),
     [filters, fullAccess],
   );
-  const { t } = useAppPreferences();
+  const { t, resolvedTheme } = useAppPreferences();
   const queryClient = useQueryClient();
   const liveMarketSnapshot = useLiveMarketSnapshot();
   const [compareListings, setCompareListings] = useState<CarListing[]>([]);
@@ -532,6 +559,11 @@ export default function Dashboard() {
     scrollToMarket();
   }, [scrollToMarket]);
 
+  const sortByDealScore = useCallback(() => {
+    startTransition(() => { setFilters((prev) => ({ ...prev, sort: "deal_score", page: 1 })); });
+    scrollToMarket();
+  }, [scrollToMarket]);
+
   const browseNewestListings = useCallback(() => {
     startTransition(() => { setFilters((prev) => ({ ...prev, sort: "newest", page: 1, vehicle_category: prev.vehicle_category || "cars" })); });
     scrollToMarket();
@@ -604,32 +636,33 @@ export default function Dashboard() {
   const isPriceUnavailableMode = filters.price_availability === "unavailable";
   const listingFreshnessAt = liveMarketSnapshot?.latest_listing_at ?? stats?.last_updated ?? null;
   const { variant: heroVariant, setVariantId: setHeroVariantId, showPicker: showHeroLab } = useHeroVariantLab();
-  const heroAlignClass =
-    heroVariant.align === "left"
-      ? "mr-auto max-w-xl text-left lg:max-w-2xl"
-      : heroVariant.align === "right"
-        ? "ml-auto max-w-xl text-left lg:max-w-2xl"
-        : "mx-auto max-w-3xl text-center";
+  const heroFilmTone = resolvedTheme === "light" ? "light" : (heroVariant.tone === "light" ? "light" : "cinematic");
+  const heroCentered = heroVariant.align === "center";
+  const heroAlignClass = heroCopyAlignClass(heroVariant.align, heroVariant.hideSideSignals);
   const heroCopyTone =
-    heroVariant.tone === "dark"
-      ? "text-white"
+    heroFilmTone === "cinematic"
+      ? "text-white [text-shadow:0_18px_48px_rgba(0,0,0,0.45)]"
       : "text-foreground [text-shadow:0_1px_18px_hsl(var(--background)/0.55)]";
   const heroMutedTone =
-    heroVariant.tone === "dark"
-      ? "text-white/75"
+    heroFilmTone === "cinematic"
+      ? "text-white/92 [text-shadow:0_2px_18px_rgba(0,0,0,0.85),0_8px_32px_rgba(0,0,0,0.55)]"
       : "text-foreground/80 [text-shadow:0_1px_14px_hsl(var(--background)/0.45)]";
   const heroSearchShellClass =
-    heroVariant.tone === "dark"
-      ? "border-white/20 bg-white/10 shadow-soft-lg backdrop-blur-md focus-within:border-primary/50"
-      : "border-border bg-card/95 shadow-soft-lg backdrop-blur-md focus-within:border-primary/40 focus-within:shadow-gold-glow";
+    heroFilmTone === "cinematic"
+      ? "border-white/18 bg-white/10 shadow-soft-xl backdrop-blur-2xl focus-within:border-primary/55 focus-within:shadow-gold-glow"
+      : "border-border/80 bg-card/90 shadow-soft-lg backdrop-blur-2xl focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20";
   const heroInputClass =
-    heroVariant.tone === "dark"
+    heroFilmTone === "cinematic"
       ? "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-white placeholder:text-white/45 outline-none [&::-webkit-search-cancel-button]:hidden"
       : "h-14 min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground placeholder:text-muted-foreground outline-none [&::-webkit-search-cancel-button]:hidden";
   const heroPopularBtnClass =
-    heroVariant.tone === "dark"
-      ? "w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-white/85 transition-colors hover:bg-white/10"
-      : "w-full rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-foreground transition-colors hover:bg-surface";
+    heroFilmTone === "cinematic"
+      ? "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-medium text-white/85 transition-colors hover:bg-white/10"
+      : "w-full rounded-2xl px-3 py-2.5 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-surface";
+  const heroKickerClass =
+    heroFilmTone === "cinematic"
+      ? "border-white/16 bg-white/10 text-white/88 backdrop-blur-xl"
+      : "border-border bg-card/80 text-foreground backdrop-blur-xl";
 
   // ═════════════════════════════════════════════════════════════════
   // RENDER
@@ -642,18 +675,20 @@ export default function Dashboard() {
         <HeroVariantPicker activeId={heroVariant.id} onSelect={setHeroVariantId} />
       ) : null}
 
-      {/* ── HERO — brand, headline, one line, search ─────────────── */}
+      {/* ── HERO — cinematic showroom ─────────────────────────────── */}
       <section
         id="overview"
-        className={`relative -mt-16 overflow-hidden border-b border-border pt-16 ${
-          heroVariant.tone === "dark" ? "bg-background" : "bg-surface"
-        }`}
+        className={cn(
+          "hero-cinematic relative -mt-[var(--nav-offset)] overflow-hidden border-b border-border pt-[var(--nav-offset)]",
+          heroFilmTone === "cinematic" ? "bg-[#070605]" : "bg-surface",
+          heroCentered && "hero-cinematic--centered",
+        )}
       >
-        <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <AtmosphericImage
             src={heroVariant.image.src}
             srcSm={heroVariant.image.srcSm}
-            className={`h-full w-full object-cover ${heroVariant.imageOpacity}`}
+            className={`hero-cinematic__media h-full w-full object-cover ${heroVariant.imageOpacity}`}
             style={{ objectPosition: heroVariant.objectPosition }}
             priority
             sizes="100vw"
@@ -661,20 +696,22 @@ export default function Dashboard() {
           {heroVariant.scrims.map((scrim) => (
             <div key={scrim} className={`absolute inset-0 ${scrim}`} />
           ))}
+          <div className="hero-cinematic__vignette" />
+          <div className="hero-cinematic__grain" />
+          <div className="hero-cinematic__letterbox" />
         </div>
-        {heroVariant.tone !== "dark" ? (
-          <>
-            <div aria-hidden className="pointer-events-none absolute left-[20%] top-[-20%] h-[500px] w-[500px] rounded-full bg-primary/10 blur-[130px]" />
-            <div aria-hidden className="pointer-events-none absolute bottom-[-10%] right-[10%] h-[450px] w-[450px] rounded-full bg-primary/5 blur-[110px]" />
-          </>
-        ) : null}
 
         <motion.div
           key={heroVariant.id}
           initial="hidden"
           animate="show"
           variants={heroContainerVariants}
-          className="relative z-10 mx-auto max-w-[1560px] px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
+          className={cn(
+            "relative z-10 mx-auto flex w-full max-w-[1560px] flex-1 flex-col px-5 sm:px-6",
+            heroCentered
+              ? "min-h-[min(calc(88svh-var(--nav-offset)),calc(900px-var(--nav-offset)))] items-center justify-center py-24 sm:py-28"
+              : "justify-end pb-28 pt-24 sm:pb-24 sm:pt-28 lg:pb-28 lg:pt-32",
+          )}
         >
           {!heroVariant.hideSideSignals ? (
             <HeroSideSignals
@@ -683,48 +720,81 @@ export default function Dashboard() {
               priceDrop={heroPriceDrop}
               newListings24h={heroNewListings24h}
               goodDealsCount={heroGoodDealsCount}
+              avgPriceLkr={stats?.avg_price_lkr ?? null}
+              sourceCount={marketPulseSources}
+              districtCount={Number(stats?.district_count || 0)}
               onTrendingClick={() => {
                 const row = trendingModels[0];
                 if (row) focusModel(row.make, row.model);
               }}
               onBrowseNewest={browseNewestListings}
+              onGoodDealsClick={sortByDealScore}
             />
           ) : null}
 
           <div className={`relative ${heroAlignClass}`}>
-            <motion.p
-              variants={heroItemVariants}
-              className={`brand-wordmark font-display text-5xl font-extrabold italic tracking-[-0.045em] sm:text-6xl lg:text-7xl ${heroCopyTone}`}
-            >
-              Motor<span className="text-primary">mila</span>
+            <motion.p variants={heroItemVariants} className={cn("hero-pill", heroCentered && "flex justify-center")}>
+              <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-medium tracking-tight ${heroKickerClass}`}>
+                <span aria-hidden className="relative inline-flex h-1.5 w-1.5">
+                  <span className="animate-live-dot absolute inset-0 rounded-full bg-primary" />
+                  <span className="relative h-1.5 w-1.5 rounded-full bg-primary" />
+                </span>
+                {t("hero.kicker", "Sri Lanka live market")}
+              </span>
             </motion.p>
 
             <motion.h1
               variants={heroItemVariants}
-              className={`display-1 mt-5 max-w-3xl ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroCopyTone}`}
+              className={cn(
+                "display-hero mt-6",
+                heroCentered ? "display-hero--lockup" : "max-w-3xl",
+                heroCopyTone,
+              )}
             >
-              {t("hero.title", "Sri Lanka's entire vehicle market,")}
-              <span className="text-sheen"> {t("hero.titleAccent", "decoded.")}</span>
+              <span className={heroCentered ? "display-hero__lead" : undefined}>
+                {t("hero.title", "Sri Lanka's entire vehicle market,")}
+              </span>
+              <span className={cn("italic text-primary", heroCentered ? "display-hero__accent" : undefined)}>
+                {heroCentered ? null : " "}
+                {t("hero.titleAccent", "decoded.")}
+              </span>
             </motion.h1>
 
             <motion.p
               variants={heroItemVariants}
-              className={`text-body-lg mt-4 max-w-lg ${heroVariant.align === "center" ? "mx-auto" : ""} ${heroMutedTone}`}
+              className={cn(
+                "text-body-lg mt-5 text-pretty",
+                heroCentered ? "mx-auto max-w-xl text-balance" : "max-w-lg",
+                heroMutedTone,
+              )}
             >
-              <span className={`font-bold num ${heroCopyTone}`}>
-                {marketPulseListings > 0 ? marketPulseListings.toLocaleString() : "120,000+"}
-              </span>{" "}
-              {t(
-                "hero.bodyShort",
-                "live listings across {sources} sources — pricing, deal scores, and market intel in one place.",
-              ).replace("{sources}", String(marketPulseSources || 10))}
+              {/* Never invent market size: when the feed has no numbers yet the
+                  hero drops the count instead of printing a marketing figure. */}
+              {marketPulseListings > 0 ? (
+                <>
+                  <span className={`font-semibold num ${heroCopyTone}`}>
+                    {marketPulseListings.toLocaleString()}
+                  </span>{" "}
+                </>
+              ) : null}
+              {marketPulseSources > 0
+                ? t(
+                    "hero.bodyShort",
+                    "live listings across {sources} sources — pricing, deal scores, and market intel in one place.",
+                  ).replace("{sources}", String(marketPulseSources))
+                : t(
+                    "hero.bodyShortNoSources",
+                    "Live market pricing, deal scores, and intel in one place — sourced from Sri Lanka's vehicle marketplaces.",
+                  )}
             </motion.p>
 
-            {/* Search — sole interactive card in the hero */}
-            <motion.div variants={heroItemVariants} className="mt-8 max-w-2xl text-left">
+            <motion.div
+              variants={heroItemVariants}
+              className={cn("mt-9 w-full max-w-2xl", heroCentered ? "mx-auto" : "text-left")}
+            >
                 <div className="relative">
-                  <div className={`flex items-center gap-2 rounded-xl border transition-all ${heroSearchShellClass}`}>
-                    <Search aria-hidden className={`ml-4 h-5 w-5 shrink-0 ${heroVariant.tone === "dark" ? "text-white/55" : "text-muted-foreground"}`} />
+                  <div className={`flex items-center gap-2 rounded-full border p-1.5 transition-all ${heroSearchShellClass}`}>
+                    <Search aria-hidden className={`ml-3.5 h-5 w-5 shrink-0 ${heroFilmTone === "cinematic" ? "text-white/55" : "text-muted-foreground"}`} />
                     <label htmlFor="hero-search" className="sr-only">{t("common.search", "Search")} vehicles</label>
                     <input
                       id="hero-search"
@@ -772,7 +842,7 @@ export default function Dashboard() {
                           else runHeroSearch();
                         }
                       }}
-                      placeholder="Toyota Aqua, Honda Vezel, Wagon R..."
+                      placeholder="Aqua, Vezel, Wagon R…"
                       spellCheck={false}
                       autoCorrect="off"
                       autoCapitalize="none"
@@ -785,14 +855,14 @@ export default function Dashboard() {
                       enterKeyHint="search"
                       className={heroInputClass}
                     />
-                    <button type="button" onClick={runHeroSearch} className="mr-2 h-10 rounded-lg bg-primary px-6 text-[11px] font-bold uppercase tracking-[0.1em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
+                    <button type="button" onClick={runHeroSearch} className="mr-0.5 h-11 rounded-full bg-primary px-6 text-[13px] font-semibold tracking-[-0.005em] text-white shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97]">
                       {t("common.search", "Search")}
                     </button>
                   </div>
 
                   {showHeroPopular ? (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-border bg-card/95 p-1 shadow-soft-xl backdrop-blur-xl">
-                      <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 bottom-full z-50 mb-2 overflow-hidden rounded-[1.75rem] border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
+                      <p className="px-3 py-2 text-[11px] font-semibold text-muted-foreground">
                         {t("home.popular", "Popular")}
                       </p>
                       {HERO_POPULAR_SCANS.map((item, idx) => (
@@ -817,7 +887,7 @@ export default function Dashboard() {
                   ) : null}
 
                   {showHeroSuggestions && (
-                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-border bg-card/95 p-1 shadow-soft-xl backdrop-blur-xl">
+                    <div id="hero-suggestions" role="listbox" className="absolute inset-x-0 bottom-full z-50 mb-2 overflow-hidden rounded-[1.75rem] border border-border bg-card/95 p-1.5 shadow-soft-xl backdrop-blur-xl">
                       {heroSuggestionsLoading ? (
                         <p className="px-3 py-2 text-[11px] text-muted-foreground">{t("common.searching", "Searching...")}</p>
                       ) : heroSuggestions.length ? (
@@ -828,10 +898,10 @@ export default function Dashboard() {
                               id={`hero-suggestion-${idx}`}
                               aria-selected={idx === heroActiveIdx}
                               onMouseDown={(e) => e.preventDefault()} onClick={() => applyHeroSuggestion(s)}
-                              className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
+                              className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-surface ${idx === heroActiveIdx ? "bg-surface" : ""}`}
                             >
-                              <span className="text-[13px] font-bold text-foreground">{s.make} {s.model} {s.year}</span>
-                              <span className="text-[12px] font-bold text-primary-bright num">
+                              <span className="text-[13px] font-medium text-foreground">{s.make} {s.model} {s.year}</span>
+                              <span className="text-[12px] font-semibold text-primary-bright num">
                                 {isReasonableListingPrice(Number(s.price_lkr)) ? formatPrice(s.price_lkr || null) : "—"}
                               </span>
                             </button>
@@ -843,7 +913,17 @@ export default function Dashboard() {
                 </div>
 
                 {heroSearchMessage && (
-                  <p className="mt-2 text-[11px] font-medium text-primary-bright">{heroSearchMessage}</p>
+                  <p
+                    className={cn(
+                      "mt-2 text-[11px] font-medium",
+                      // Over the cinematic photo the light-theme token is a dark
+                      // navy — use the bright brand blue for small text there.
+                      heroFilmTone === "cinematic" ? "text-[#6CB8FF]" : "text-primary-bright",
+                      heroCentered && "text-center",
+                    )}
+                  >
+                    {heroSearchMessage}
+                  </p>
                 )}
             </motion.div>
           </div>
@@ -861,33 +941,29 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Categories + trust — one visual job each, outside hero */}
-      <section className="border-b border-border bg-surface">
-        <div className="mx-auto grid max-w-[1560px] gap-4 px-5 py-8 sm:px-6 lg:grid-cols-[1.4fr_1fr] lg:py-10">
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-            <AtmosphericImage
-              src={visuals.categoriesLineup.src}
-              srcSm={visuals.categoriesLineup.srcSm}
-              className="h-36 w-full object-cover object-center sm:h-40"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Vehicle types</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">Browse cars, vans, and SUVs across the live index.</p>
+      {/* ── Market trust bar — three real numbers, no photos ─────── */}
+      <section className="border-b border-border bg-background">
+        <div className="mx-auto max-w-[1560px] px-5 py-8 sm:px-6">
+          <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+            <div>
+              <dt className="text-[13px] font-medium text-muted-foreground">Vehicle types covered</dt>
+              <dd className="mt-1 text-[15px] font-semibold text-foreground">
+                Cars, vans, SUVs, bikes and more
+              </dd>
             </div>
-          </div>
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-card/40">
-            <AtmosphericImage
-              src={visuals.trustVerification.src}
-              srcSm={visuals.trustVerification.srcSm}
-              className="h-36 w-full object-cover object-[center_30%] sm:h-40"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">Verified signals</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">Deal scores and seller trust baked into every listing.</p>
+            <div>
+              <dt className="text-[13px] font-medium text-muted-foreground">Verified signals</dt>
+              <dd className="mt-1 text-[15px] font-semibold text-foreground">
+                Deal scores and seller trust on every listing
+              </dd>
             </div>
-          </div>
+            <div>
+              <dt className="text-[13px] font-medium text-muted-foreground">Data freshness</dt>
+              <dd className="mt-1 text-[15px] font-semibold text-foreground">
+                Re-scanned across sources every few hours
+              </dd>
+            </div>
+          </dl>
         </div>
       </section>
 
@@ -901,17 +977,17 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground">{t("home.trendingModels", "Trending models")}</h3>
-                <Link to="/trends" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
-                  All trends <ArrowUpRight className="h-3 w-3" />
+                <Link to="/trends" className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright">
+                  All trends <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
               {trendingModels.length ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {trendingModels.slice(0, 4).map((row) => (
                     <button key={`${row.make}-${row.model}`} type="button" onClick={() => focusModel(row.make, row.model)}
-                      className="group/trend flex items-center gap-3 rounded-xl border border-border bg-surface p-3 text-left transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]"
+                      className="inventory-tile group/trend flex items-center gap-3 p-3 text-left active:scale-[0.99]"
                     >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                         <VehicleThumbnail src={row.thumbnail_url} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -934,24 +1010,24 @@ export default function Dashboard() {
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
                   <Flame className="h-4 w-4 text-primary/70" /> Best deals
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
-                  All picks <ArrowUpRight className="h-3 w-3" />
+                <Link to="/best-picks" className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright">
+                  All picks <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
               {hotDeals.length ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {hotDeals.slice(0, 4).map((row) => (
                     <Link key={row.id} to={`/listing/${row.id}`}
-                      className="group/deal flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]"
+                      className="inventory-tile group/deal flex items-center gap-3 p-3 no-underline active:scale-[0.99]"
                     >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                         <VehicleThumbnail src={row.thumbnail_url} listingId={row.id} alt={`${row.make} ${row.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[14px] font-semibold text-foreground">{row.make} {row.model} {row.year}</p>
                         <p className="mt-0.5 text-[11px] text-muted-foreground num">{formatPrice(row.price_lkr)} · {row.district || "LK"}</p>
                       </div>
-                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
+                      <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
                         +{Number(row.deal_score || 0).toFixed(0)}
                       </span>
                     </Link>
@@ -966,19 +1042,19 @@ export default function Dashboard() {
             <div>
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="font-display text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-emerald-400/80" /> Price cuts &middot; 7d
+                  <TrendingDown className="h-4 w-4 text-emerald-500" /> Price cuts &middot; 7d
                 </h3>
-                <Link to="/best-picks" className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright">
-                  All cuts <ArrowUpRight className="h-3 w-3" />
+                <Link to="/best-picks" className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright">
+                  All cuts <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
               {(dropsQuery.data || []).length ? (
                 <div className="grid gap-2">
                   {(dropsQuery.data || []).slice(0, 4).map((drop) => (
                     <Link key={drop.listing.id} to={`/listing/${drop.listing.id}`}
-                      className="group/drop flex items-center gap-3 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]"
+                      className="inventory-tile group/drop flex items-center gap-3 p-3 no-underline active:scale-[0.99]"
                     >
-                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                         <VehicleThumbnail src={drop.listing.thumbnail_url} listingId={drop.listing.id} alt={`${drop.listing.make} ${drop.listing.model}`} className="w-full h-full object-cover" placeholderClassName="flex h-full w-full items-center justify-center bg-black/20" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -988,7 +1064,7 @@ export default function Dashboard() {
                           <span className="font-semibold text-foreground">{formatPrice(drop.new_price_lkr)}</span>
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
+                      <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 num">
                         &minus;{drop.drop_pct}%
                       </span>
                     </Link>
@@ -1009,7 +1085,7 @@ export default function Dashboard() {
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:gap-2.5">
               <div className="flex items-baseline gap-2.5">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                <h2 className="text-[15px] font-semibold tracking-tight text-foreground">
                   {isPriceUnavailableMode ? t("common.unpricedInventory", "Unpriced inventory") : t("common.inventory", "Inventory")}
                 </h2>
                 {loadingListings ? (
@@ -1033,21 +1109,35 @@ export default function Dashboard() {
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowMobileFilter(true)}
+                className="inline-flex lg:hidden items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-[12px] font-semibold text-primary-bright transition-colors hover:bg-primary/15 active:scale-[0.97]"
+                aria-label={t("filter.title", "Filters")}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                {t("filter.title", "Filters")}
+                {activeFilterLabels.length > 0 && (
+                  <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
+                    {activeFilterLabels.length}
+                  </span>
+                )}
+              </button>
               <button type="button" onClick={() => setShowSavedListings(true)}
-                className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+                className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:border-border hover:text-foreground"
               >{watchlistIds.length} {t("common.saved", "saved")}</button>
               <button type="button" onClick={saveCurrentMarketAlert}
-                className="rounded-md border border-primary/15 bg-primary/5 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-primary-bright transition-colors hover:bg-primary/10"
+                className="rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[12px] font-medium text-primary-bright transition-colors hover:bg-primary/10"
               >{t("common.saveAlert", "Save alert")}</button>
               <button type="button" onClick={() => setShowMarketAlerts(true)}
-                className="rounded-md border border-border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full border border-border px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >{marketAlerts.length} {t("common.alerts", "alerts")}</button>
               <div className="hidden items-center gap-0.5 md:flex">
                 <button type="button" onClick={() => setMarketView("grid")} aria-label={t("home.gridView", "Grid view")} aria-pressed={marketView === "grid"}
-                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
+                  className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${marketView === "grid" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><LayoutGrid className="h-3.5 w-3.5" /></button>
                 <button type="button" onClick={() => setMarketView("list")} aria-label={t("home.listView", "List view")} aria-pressed={marketView === "list"}
-                  className={`h-8 w-8 rounded-md border transition-colors flex items-center justify-center ${marketView === "list" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
+                  className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${marketView === "list" ? "border-border bg-foreground/[0.03] text-foreground" : "border-transparent text-muted-foreground hover:text-muted-foreground"}`}
                 ><List className="h-3.5 w-3.5" /></button>
               </div>
             </div>
@@ -1057,19 +1147,19 @@ export default function Dashboard() {
           {activeFilterLabels.length > 0 && (
             <div className="mb-5 flex flex-wrap items-center gap-1.5">
               {activeFilterLabels.map((label) => (
-                <span key={label} className="rounded-md border border-border bg-foreground/[0.03] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{label}</span>
+                <span key={label} className="rounded-full border border-border bg-foreground/[0.03] px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{label}</span>
               ))}
               <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
-                className="rounded-md px-2 py-1 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                className="rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >Clear all</button>
             </div>
           )}
 
           {newLiveListingsAvailable && (
-            <div className="mb-5 flex items-center justify-between rounded-lg border border-primary/15 bg-primary/5 px-4 py-2.5">
+            <div className="mb-5 flex items-center justify-between rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5">
               <span className="text-[12px] font-semibold text-primary-bright">New listings available</span>
               <button type="button" onClick={() => { setFilters((p) => ({ ...p, sort: "newest", page: 1 })); setNewLiveListingsAvailable(false); }}
-                className="text-[10px] font-bold uppercase tracking-[0.1em] text-primary-bright transition-colors hover:text-primary-bright"
+                className="text-[12px] font-semibold text-primary-bright transition-colors hover:text-primary-bright"
               >Refresh</button>
             </div>
           )}
@@ -1089,48 +1179,55 @@ export default function Dashboard() {
 
             <div className="min-w-0 flex-1">
               {loadingListings ? (
-                <div className={marketView === "grid" ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-2"}>
+                <div className={marketView === "grid" ? "grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}>
                   {Array.from({ length: marketView === "grid" ? 9 : 6 }).map((_, i) => (
                     <ListingCardSkeleton key={`skel-${i}`} />
                   ))}
                 </div>
               ) : listingsFailed ? (
-                <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface px-4 py-20 text-center">
+                <div className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border border-border bg-surface px-4 py-20 text-center">
                   <p className="text-sm text-muted-foreground">
                     Listings temporarily unavailable — market API returned an error.
                   </p>
                   <button
                     type="button"
                     onClick={retryListings}
-                    className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+                    className="min-h-11 rounded-2xl border border-border bg-card px-5 py-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
                   >
                     Retry
                   </button>
                 </div>
               ) : listings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-4 py-16 text-center">
+                <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-border px-4 py-16 text-center">
                   <AtmosphericImage
                     src={visuals.emptyState.src}
                     srcSm={visuals.emptyState.srcSm}
                     className="mb-5 h-28 w-auto max-w-[220px] object-contain opacity-90"
                     sizes="220px"
                   />
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("home.noResults", "No results")}</p>
+                  <p className="text-[13px] font-semibold text-foreground">{t("home.noResults", "No results")}</p>
                   <p className="mt-2 text-sm text-muted-foreground">{t("home.widenFilters", "Widen your filters or clear them to browse.")}</p>
                   <button type="button" onClick={() => setFilters({ sort: "newest", page: 1, vehicle_category: "cars" })}
-                    className="mt-4 rounded-lg border border-border px-4 py-2 text-[11px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03]"
+                    className="mt-4 min-h-11 rounded-2xl border border-border px-5 py-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-foreground/[0.03] active:scale-[0.98]"
                   >Reset filters</button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileFilter(true)}
+                    className="mt-2 min-h-11 rounded-2xl bg-primary px-5 py-3 text-[13px] font-bold text-primary-foreground transition-colors hover:bg-primary/95 active:scale-[0.98]"
+                  >
+                    {t("home.adjustFilters", "Adjust filters")}
+                  </button>
                 </div>
               ) : marketView === "grid" ? (
                 <motion.div
                   initial="hidden"
                   animate="show"
                   variants={cardContainerVariants}
-                  className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+                  className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
                 >
-                  {listings.map((listing) => (
+                  {listings.map((listing, index) => (
                     <motion.div key={listing.id} variants={cardItemVariants}>
-                      <ListingCard listing={listing} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
+                      <ListingCard listing={listing} priority={index < 6} onCompareToggle={toggleCompare} isComparing={compareIdSet.has(listing.id)} onWatchlistToggle={toggleWatchlist} isWatchlisted={watchlistIdSet.has(listing.id)} />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -1139,14 +1236,14 @@ export default function Dashboard() {
                   initial="hidden"
                   animate="show"
                   variants={cardContainerVariants}
-                  className="space-y-2"
+                  className="space-y-3"
                 >
                   {listings.map((listing) => {
                     const hasPrice = isReasonableListingPrice(Number(listing.price_lkr));
                     return (
                       <motion.div key={listing.id} variants={cardItemVariants}>
-                        <Link to={`/listing/${listing.id}`} className="group flex items-center gap-4 rounded-xl border border-border bg-surface p-3 no-underline transition-all hover:border-primary/30 hover:bg-card hover:shadow-soft active:scale-[0.99]">
-                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-black/30">
+                        <Link to={`/listing/${listing.id}`} className="inventory-tile group flex items-center gap-4 p-3 no-underline active:scale-[0.99]">
+                          <div className="h-16 w-24 shrink-0 overflow-hidden rounded-2xl bg-black/30">
                             <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.detail_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -1182,11 +1279,11 @@ export default function Dashboard() {
                   </p>
                   <div className="flex items-center gap-1.5">
                     <button type="button" aria-label="Previous page" disabled={filters.page <= 1} onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronLeft className="h-3.5 w-3.5" /></button>
                     <span className="px-2 text-[11px] font-semibold text-muted-foreground num">{filters.page} / {totalPages}</span>
                     <button type="button" aria-label="Next page" disabled={filters.page >= totalPages} onClick={() => setFilters((p) => ({ ...p, page: p.page + 1 }))}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
                     ><ChevronRight className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
@@ -1230,14 +1327,14 @@ export default function Dashboard() {
             <ProFeatureLock label="District demand velocity">
             <div className="mb-5 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary-bright">Demand velocity</p>
+                <p className="text-[13px] font-medium text-primary">Demand velocity</p>
                 <h3 className="mt-1 font-display text-base font-semibold tracking-tight text-foreground">
                   Regional listing momentum — last 7 days
                 </h3>
               </div>
               <Link
                 to="/#market"
-                className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground no-underline transition-colors hover:text-primary-bright"
+                className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground no-underline transition-colors hover:text-primary-bright"
               >
                 Market feed <ArrowUpRight className="h-3 w-3" />
               </Link>
@@ -1269,7 +1366,7 @@ export default function Dashboard() {
 
           {/* Tool links */}
           <div className="mt-12 border-t border-border pt-8">
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Intelligence tools</p>
+            <p className="mb-4 text-[13px] font-medium text-muted-foreground">Intelligence tools</p>
             <div className="flex flex-wrap gap-2">
             {[
               { label: "Valuation", to: "/estimate" },
@@ -1279,7 +1376,7 @@ export default function Dashboard() {
               { label: "Official Pulse", to: "/official-pulse" },
             ].map((tool) => (
               <Link key={tool.label} to={tool.to}
-                className="group/tool flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2.5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/30 hover:bg-primary/[0.06] hover:shadow-soft active:scale-[0.98]"
+                className="group/tool flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2.5 text-[12px] font-semibold text-foreground no-underline transition-all hover:border-primary/30 hover:bg-primary/[0.06] hover:shadow-soft active:scale-[0.98]"
               >
                 {tool.label}
                 <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground transition-all group-hover/tool:text-primary group-hover/tool:translate-x-0.5" />
@@ -1290,33 +1387,17 @@ export default function Dashboard() {
         </div>
       </RevealSection>
 
-      {/* ── MOBILE QUICK FILTER BUTTON ──────────────────────────── */}
-      <button
-        type="button"
-        aria-label="Open quick filters"
-        onClick={() => setShowMobileFilter(true)}
-        className="md:hidden fixed bottom-[4.75rem] right-4 z-[1100] flex h-12 items-center gap-2 rounded-full border border-border bg-card/95 pl-3.5 pr-4 shadow-soft-xl backdrop-blur-xl transition-all hover:bg-card active:scale-95"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-      >
-        <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-        <span className="text-[12px] font-semibold text-foreground">Filters</span>
-        {activeFilterLabels.length > 0 && (
-          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
-            {activeFilterLabels.length}
-          </span>
-        )}
-      </button>
 
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-[1200] w-[min(94vw,720px)] -translate-x-1/2">
+        <div className="fixed bottom-24 left-1/2 z-[1200] w-[min(94vw,720px)] -translate-x-1/2 md:bottom-4">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-3 py-2.5 shadow-soft-xl backdrop-blur-xl md:px-4">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex -space-x-2">
                 {compareListings.slice(0, 4).map((listing) => (
                   <div
                     key={listing.id}
-                    className="relative h-9 w-9 overflow-hidden rounded-lg border-2 border-card bg-muted ring-1 ring-border"
+                    className="relative h-9 w-9 overflow-hidden rounded-2xl border-2 border-card bg-muted ring-1 ring-border"
                   >
                     <VehicleThumbnail
                       src={pickVehicleImageUrl(
@@ -1372,31 +1453,31 @@ export default function Dashboard() {
 
       {/* ── DIALOGS ─────────────────────────────────────────────── */}
       <Dialog open={showMarketAlerts} onOpenChange={setShowMarketAlerts}>
-        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-border bg-card text-foreground">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-3xl border-white/40 bg-card/80 text-foreground backdrop-blur-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Market alerts</DialogTitle>
           </DialogHeader>
-          <div className="rounded-lg border border-border bg-surface p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Current lane</p>
+          <div className="rounded-2xl border border-border bg-surface p-4">
+            <p className="text-[11px] font-medium text-muted-foreground">Current lane</p>
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
-              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-lg border-border bg-transparent text-base md:text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-lg bg-primary px-4 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-primary/95">Save</button>
+              <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-2xl border-border bg-transparent text-base md:text-sm" />
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-full bg-primary px-4 text-[12px] font-semibold text-white hover:bg-primary/95">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (
             <div className="space-y-1.5">
               {marketAlerts.map((alert) => (
-                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+                <div key={alert.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{alert.label}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : t("home.newListingsAvailable", "New listings available")}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{alert.target_price_lkr ? `Under ${formatPrice(alert.target_price_lkr)}` : t("home.newListingsAvailable", "New listings available")}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
-                      className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Open</button>
+                      className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Open</button>
                     <button type="button" onClick={() => deleteMarketAlert(alert.id)}
-                      className="h-7 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
+                      className="h-7 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
                   </div>
                 </div>
               ))}
@@ -1406,23 +1487,23 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={showSavedListings} onOpenChange={setShowSavedListings}>
-        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-xl border-border bg-card text-foreground">
+        <DialogContent className="max-h-[86vh] max-w-2xl overflow-y-auto rounded-3xl border-white/40 bg-card/80 text-foreground backdrop-blur-2xl">
           <DialogHeader>
             <DialogTitle className="font-display text-lg font-semibold tracking-tight">Saved listings</DialogTitle>
           </DialogHeader>
           {savedListingsLoading ? (
-            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-shimmer h-16 rounded-lg" />)}</div>
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton-shimmer h-16 rounded-2xl" />)}</div>
           ) : savedListings.length ? (
             <div className="space-y-1.5">
               {savedListings.map((listing) => (
-                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3">
+                <div key={listing.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3">
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-semibold text-foreground">{listing.make} {listing.model} {listing.year || ""}</p>
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-md border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">{t("home.remove", "Remove")}</button>
-                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-md border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">{t("home.remove", "Remove")}</button>
+                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
                       Open <ExternalLink className="h-2.5 w-2.5" />
                     </Link>
                   </div>

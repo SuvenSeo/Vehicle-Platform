@@ -5,11 +5,15 @@ import { describe, expect, it } from "vitest";
 import Docs from "@/pages/Docs";
 import Pricing from "@/pages/Pricing";
 import { AppPreferencesProvider } from "@/lib/appPreferences";
+import { AuthProvider } from "@/lib/authContext";
+import { PRICING_COMING_SOON } from "@/lib/pricingContent";
 
 function wrap(ui: ReactElement) {
   return render(
     <AppPreferencesProvider>
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>
+      <AuthProvider>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>{ui}</MemoryRouter>
+      </AuthProvider>
     </AppPreferencesProvider>,
   );
 }
@@ -25,9 +29,20 @@ describe("Docs and Pricing pages", () => {
   it("renders pricing tiers and ICP personas", () => {
     wrap(<Pricing />);
     expect(screen.getByRole("heading", { name: /Pricing that funds the pipeline/i })).toBeInTheDocument();
-    expect(screen.getByText("LKR 999")).toBeInTheDocument();
-    expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
+    if (PRICING_COMING_SOON) {
+      // Paid plans are in Coming Soon mode: tiers render placeholder copy
+      // ("Coming soon") instead of live LKR prices. Assert the shipped state
+      // so this test tracks the flag rather than stale pricing copy.
+      expect(screen.getAllByText(/^coming soon$/i).length).toBeGreaterThan(0);
+    } else {
+      expect(screen.getByText("LKR 999")).toBeInTheDocument();
+      expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
+    }
     expect(screen.getByText("Dealers")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
+      "href",
+      "/sign-up",
+    );
     expect(screen.getAllByRole("link", { name: /Message us/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Message us/i })[0]).toHaveAttribute(
       "href",

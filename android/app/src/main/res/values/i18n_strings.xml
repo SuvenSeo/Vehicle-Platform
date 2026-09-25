@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_language">Language</string>
+    <!-- Chip labels stay in native script in every locale (web LocaleSwitcher). -->
+    <string name="language_en" translatable="false">EN</string>
+    <string name="language_si" translatable="false">සිංහල</string>
+    <string name="language_ta" translatable="false">தமிழ்</string>
+    <string name="language_en_cd">English</string>
+    <string name="language_si_cd">Sinhala</string>
+    <string name="language_ta_cd">Tamil</string>
+</resources>

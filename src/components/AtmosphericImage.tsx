@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 type AtmosphericImageProps = {
@@ -26,9 +26,20 @@ export function AtmosphericImage({
   sizes = "(max-width: 768px) 100vw, 1600px",
 }: AtmosphericImageProps) {
   const srcSet = srcSm ? `${srcSm} 960w, ${src} 1920w` : undefined;
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // React 18 does not recognise camelCase `fetchPriority` on <img> — it drops
+  // the attribute and logs a "React does not recognize the `fetchPriority`
+  // prop" warning (visible in vitest stderr on every hero-image page), while
+  // its JSX types have no lowercase `fetchpriority` member either. Set the
+  // real HTML attribute imperatively so the browser hint applies warning-free.
+  useEffect(() => {
+    imgRef.current?.setAttribute("fetchpriority", priority ? "high" : "low");
+  }, [priority]);
 
   return (
     <img
+      ref={imgRef}
       src={src}
       srcSet={srcSet}
       sizes={srcSet ? sizes : undefined}
@@ -37,7 +48,6 @@ export function AtmosphericImage({
       style={style}
       loading={priority ? "eager" : "lazy"}
       decoding={priority ? "sync" : "async"}
-      fetchPriority={priority ? "high" : "low"}
       draggable={false}
     />
   );

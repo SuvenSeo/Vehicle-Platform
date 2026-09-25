@@ -18,9 +18,10 @@
 #      dumps file always ends with a newline so a single pending dump is not
 #      skipped by `wc -l` / `while read`),
 #   3. runs market analysis + dedup,
-#   4. exports public snapshots and deploys them to Vercel,
-#   5. re-publishes the merged DB + marker — only after a successful deploy,
-#      so a failed run is retried from the same point next time.
+#   4. publishes the merged DB + marker,
+#   5. exports the public snapshots from the merged SQLite DB and deploys
+#      them to Vercel — this is now the PERMANENT zero-egress catalog path:
+#      the live site's listings refresh from SQLite and never read Neon.
 name: Manus to Live (hosted merge and deploy)
 
 on:
@@ -30,13 +31,21 @@ on:
     types: [completed]
   schedule:
     # Fallback schedule every 6 hours (catches any missed dumps and retries cleanly).
-    - cron: "0 */6 * * *"
+    # The :25 offset keeps the merge/publish clear of the :00 scrape starts
+    # (daily-scrape 02:00, manus-scrape 02:10), so it does not read the merged
+    # DB while scrapers are launching writes.
+    - cron: "25 */6 * * *"
   workflow_dispatch:
     inputs:
       release-tag:
         description: "Force-merge this exact dump release tag (e.g. manus-scrape-20260814T1601Z)"
         required: false
         type: string
+      publish-full-catalog:
+        description: "Force a snapshot export+deploy even when no new dumps were merged (scheduled merges always deploy when new data lands)."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -65,10 +74,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
           cache: pip
@@ -134,8 +143,17 @@ jobs:
           RUN_MARKET_ANALYSIS: "true"
           RUN_MARKET_SIGNALS: "true"
           RUN_DEAL_SCORE_REFRESH: "true"
-          RUN_DEDUP: "true"
-          DEDUP_FULL_PASS: "true"
+          # Dedup marking DISABLED (2026-09-17): the make/model/year/price±3%
+          # matcher was flagging >50% of the catalog as cross-source duplicates
+          # (incl. distinct cars in different districts), collapsing public
+          # live counts 207k → 106k. Keep off until the matcher requires
+          # district + seller/photo evidence. The repair step below clears any
+          # residual flags before every export so the catalog stays whole.
+          RUN_DEDUP: "false"
+          # Incremental (48h window) dedup — a full sweep re-reads 240k rows
+          # and adds ~40 min to every merge. Full passes run on-demand via
+          # heavy-maintenance.yml against SQLite (zero egress cost).
+          DEDUP_FULL_PASS: "false"
           RUN_STATS_CACHE_REFRESH: "true"
           RUN_LISTING_LIFECYCLE: "true"
           RUN_OUTLIER_DETECTION: "true"
@@ -146,12 +164,23 @@ jobs:
           RUN_IMAGE_PHASH: "false"
         run: python run_sync.py
 
-      - name: Export public snapshots (full, includes catalog)
-        if: steps.discover.outputs.count != '0'
-        run: python export_public_snapshots.py --output snapshots/latest
+      - name: Repair duplicate flags (keep catalog whole)
+        # Clears is_duplicate/duplicate_of set by earlier dedup passes so the
+        # export counts every row. Same run condition as the export step so a
+        # forced publish-full-catalog redeploy also heals.
+        if: steps.discover.outputs.count != '0' || github.event.inputs.publish-full-catalog == 'true'
+        env:
+          COLD_DATABASE_URL: sqlite:///motormila.db
+          MOTORMILA_LOCAL_DB: motormila.db
+          ALLOW_SQLITE_FALLBACK: "true"
+        run: python scripts/ops/repair_duplicate_flags.py --apply
 
-      - name: Stage snapshots and deploy to Vercel production
-        if: steps.discover.outputs.count != '0'
+      - name: Export and deploy SQLite snapshots (zero-egress catalog refresh)
+        # Permanent path: whenever new dump data was merged, refresh the live
+        # catalog from the merged SQLite DB (zero Neon reads) and deploy.
+        # Manual runs with publish-full-catalog=true force a deploy even when
+        # no new dumps landed (e.g. redeploying after a bad snapshot push).
+        if: steps.discover.outputs.count != '0' || github.event.inputs.publish-full-catalog == 'true'
         working-directory: ${{ github.workspace }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -160,14 +189,41 @@ jobs:
           SNAPSHOT_SOURCE_DIR: public/snapshots/latest
         run: |
           set -euo pipefail
+          echo "Full catalog export from merged SQLite (zero Neon egress)"
+          COLD_DATABASE_URL="sqlite:///${GITHUB_WORKSPACE}/backend/motormila.db" python backend/export_public_snapshots.py --output backend/snapshots/latest
           mkdir -p public/snapshots/latest
           cp -r backend/snapshots/latest/. public/snapshots/latest/
+          # Public failover DB for the HF Space. The GitHub `merged-db` release
+          # is unreachable anonymously (private repo -> 404), so the Space's
+          # sqlite_failover downloads this Vercel copy instead. User/alert/event
+          # tables are empty by design (auth lives only in Neon) but wipe them
+          # anyway so account data can never ship in a public artifact.
+          python - <<'PY'
+          import sqlite3
+          con = sqlite3.connect("backend/motormila.db")
+          for table in (
+              "platform_users", "user_invites", "market_alerts",
+              "market_alert_matches", "user_notifications", "user_feedback",
+              "analytics_events", "dealer_profiles",
+          ):
+              con.execute(f'DELETE FROM "{table}"')
+          con.commit()
+          con.close()
+          PY
+          gzip -f -c backend/motormila.db > public/snapshots/latest/merged-autolens.db.gz
+          ls -lh public/snapshots/latest/merged-autolens.db.gz
+          # Sideload APK + release manifest for /app/* (private repo: the
+          # release asset can only be fetched with a token, and the binary is
+          # gitignored, so it must ride the CLI deploy).
+          bash scripts/fetch-apk-for-deploy.sh
           bash scripts/deploy-snapshots-to-prod.sh
 
-      # Only publish the marker after the deploy succeeded — otherwise the
-      # next run re-merges everything (idempotent) and retries the deploy.
+      # Always advance the merge marker after a successful merge so a skipped
+      # Vercel deploy (Neon is healthy) does not re-merge the same dumps.
+      # Also persists the repaired DB on forced publish-full-catalog runs so
+      # the healed flags survive (the export alone would not save them back).
       - name: Publish merged DB back to release
-        if: steps.discover.outputs.count != '0'
+        if: steps.discover.outputs.count != '0' || github.event.inputs.publish-full-catalog == 'true'
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail

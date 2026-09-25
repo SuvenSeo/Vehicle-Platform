@@ -85,7 +85,7 @@ export function PriceHistoryChart({
   const trendTone = changePct === null ? "Awaiting signal" : changePositive ? "Market heating" : "Price cooling";
 
   return (
-    <div className="asset-surface w-full rounded-xl p-4 sm:p-6 md:p-7">
+    <div className="asset-surface w-full rounded-3xl p-4 sm:p-6 md:p-7">
       <div className="grid gap-5 lg:grid-cols-[0.78fr_1.32fr]">
         <aside className="data-card p-5">
           <div className="headline-kicker text-muted-foreground">
@@ -105,7 +105,7 @@ export function PriceHistoryChart({
             </div>
             <div className="data-card p-3">
               <p className="tech-label">Movement</p>
-              <div className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${
+              <div className={`mt-2 inline-flex items-center gap-1.5 rounded-2xl px-2.5 py-1 text-xs font-bold ${
                 !hasChangeSignal
                   ? "bg-foreground/[0.03] text-muted-foreground"
                   : changePositive
@@ -164,7 +164,7 @@ export function PriceHistoryChart({
                   <button
                     type="button"
                     onClick={onEmptyAction}
-                    className="tech-label rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-all duration-150 hover:bg-primary/20 active:scale-[0.97]"
+                    className="tech-label rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2 text-primary-bright transition-all duration-150 hover:bg-primary/20 active:scale-[0.97]"
                   >
                     {emptyActionLabel}
                   </button>
@@ -190,13 +190,13 @@ export function PriceHistoryChart({
                     dataKey="label"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Nofex" }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Geist Mono" }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10, fontWeight: 600, fontFamily: "Nofex" }}
                     tickFormatter={(value: number) => `${value.toFixed(1)}M`}
                     width={56}
                   />

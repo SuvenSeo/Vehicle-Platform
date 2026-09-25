@@ -28,14 +28,18 @@ from app.models.schemas import DistrictVelocityResponse, StatsSummary
 from app.utils import stats_cache
 from app.utils.stats_cache import (
     CACHE_TTL_SECONDS,
+    PRICE_INDEX_TTL_SECONDS,
+    TRENDS_TTL_SECONDS,
     _is_fresh,
     build_trends_cache_key,
+    get_cache_meta,
     get_cached_district_prices,
     get_cached_district_velocity,
     get_cached_insights,
     get_cached_price_index,
     get_cached_summary,
     get_cached_trends,
+    read_export_section,
     refresh_stats_cache,
     store_district_prices_cache,
     store_district_velocity_cache,
@@ -43,6 +47,8 @@ from app.utils.stats_cache import (
     store_price_index_cache,
     store_summary_cache,
     store_trends_cache,
+    ttl_for_key,
+    with_degraded_flag,
 )
 from db.models import Base, CarListing, MarketStatsCache, PriceAggregate
 from unittest.mock import MagicMock
@@ -169,14 +175,22 @@ def test_get_cached_summary_returns_none_when_no_entry():
 def test_get_cached_summary_returns_none_when_stale():
     db = _session()
     _stale_summary_entry(db)
-    assert get_cached_summary(db) is None
+    assert get_cached_summary(db, allow_stale=False) is None
 
 
 def test_get_cached_summary_allow_stale_returns_stale_entry():
     db = _session()
     _stale_summary_entry(db)
-    assert get_cached_summary(db) is None
+    assert get_cached_summary(db, allow_stale=False) is None
     stale = get_cached_summary(db, allow_stale=True)
+    assert stale is not None
+    assert stale.total_listings == 99
+
+
+def test_get_cached_summary_defaults_to_allow_stale_swr():
+    db = _session()
+    _stale_summary_entry(db)
+    stale = get_cached_summary(db)
     assert stale is not None
     assert stale.total_listings == 99
 
@@ -223,7 +237,7 @@ def test_get_cached_district_prices_returns_none_when_stale():
     )
     db.add(entry)
     db.commit()
-    assert get_cached_district_prices(db) is None
+    assert get_cached_district_prices(db, allow_stale=False) is None
 
 
 def test_get_cached_district_prices_allow_stale_returns_stale_entry():
@@ -238,7 +252,7 @@ def test_get_cached_district_prices_allow_stale_returns_stale_entry():
         )
     )
     db.commit()
-    assert get_cached_district_prices(db) is None
+    assert get_cached_district_prices(db, allow_stale=False) is None
     stale = get_cached_district_prices(db, allow_stale=True)
     assert stale is not None
     assert stale["points"][0]["district"] == "Gampaha"
@@ -396,12 +410,12 @@ def test_trends_cache_ttl_and_allow_stale():
         MarketStatsCache(
             cache_key=cache_key,
             payload=payload,
-            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 5),
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=TRENDS_TTL_SECONDS + 5),
         )
     )
     db.commit()
 
-    assert get_cached_trends(db, cache_key) is None
+    assert get_cached_trends(db, cache_key, allow_stale=False) is None
     stale = get_cached_trends(db, cache_key, allow_stale=True)
     assert stale is not None
     assert stale["coverage_scope"] == "exact"
@@ -517,7 +531,7 @@ def test_refresh_stats_cache_overwrites_stale_entry():
     db.add(_listing("fresh-car", 5_000_000, 4.0))
     db.commit()
 
-    assert get_cached_summary(db) is None  # stale → miss
+    assert get_cached_summary(db, allow_stale=False) is None  # stale → miss
 
     refresh_stats_cache(db)
 
@@ -725,7 +739,7 @@ def test_trends_endpoint_serves_stale_on_compute_failure(monkeypatch):
         MarketStatsCache(
             cache_key=cache_key,
             payload=stale_payload,
-            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 10),
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=TRENDS_TTL_SECONDS + 10),
         )
     )
     db.commit()
@@ -737,6 +751,8 @@ def test_trends_endpoint_serves_stale_on_compute_failure(monkeypatch):
     )
     result = stats_module.get_price_trends(request=MagicMock(), months=12, db=db)
     assert result["coverage_note"] == "cached stale"
+    assert result["degraded"] is True
+    assert result["stale_age_seconds"] is not None
 
 
 def test_insights_endpoint_returns_cached_on_hit(monkeypatch):
@@ -853,7 +869,7 @@ def test_price_index_endpoint_serves_stale_on_compute_failure(monkeypatch):
         MarketStatsCache(
             cache_key="price_index",
             payload=stale_payload,
-            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 10),
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=PRICE_INDEX_TTL_SECONDS + 10),
         )
     )
     db.commit()
@@ -902,7 +918,7 @@ def test_get_cached_district_velocity_returns_none_when_stale():
         )
     )
     db.commit()
-    assert get_cached_district_velocity(db) is None
+    assert get_cached_district_velocity(db, allow_stale=False) is None
     stale = get_cached_district_velocity(db, allow_stale=True)
     assert stale is not None
     assert stale.points[0].district == "Colombo"
@@ -982,3 +998,117 @@ def test_store_district_velocity_cache_round_trip():
     cached = get_cached_district_velocity(db)
     assert cached is not None
     assert cached.points[0].velocity_score == 0.2
+
+
+# ---------------------------------------------------------------------------
+# Track D: per-key TTLs, stale-age meta, degraded envelopes
+# ---------------------------------------------------------------------------
+
+
+def test_ttl_for_key_matches_policy_table():
+    assert ttl_for_key("summary") == 15 * 60
+    assert ttl_for_key("district_prices") == 3600
+    assert ttl_for_key("district_velocity") == 3600
+    assert ttl_for_key("price_index") == 24 * 3600
+    trends_key = build_trends_cache_key(
+        make=None, model=None, condition=None, district=None, months=12
+    )
+    assert ttl_for_key(trends_key) == 6 * 3600
+    assert ttl_for_key("unknown_future_key") == CACHE_TTL_SECONDS
+
+
+def test_summary_expires_after_15min_not_1h():
+    db = _session()
+    payload = StatsSummary(
+        total_listings=3,
+        avg_price_lkr=7_000_000.0,
+        good_deals_count=0,
+        listings_this_week=1,
+        districts_covered=1,
+        source_count=1,
+    ).model_dump(mode="json")
+    db.add(
+        MarketStatsCache(
+            cache_key="summary",
+            payload=payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(minutes=20),
+        )
+    )
+    db.commit()
+    assert get_cached_summary(db, allow_stale=False) is None
+    assert get_cached_summary(db) is not None  # SWR default serves stale
+
+
+def test_price_index_stays_fresh_for_24h():
+    db = _session()
+    payload = {"series": [], "top_makes": [], "generated_at": datetime.now(timezone.utc).isoformat()}
+    db.add(
+        MarketStatsCache(
+            cache_key="price_index",
+            payload=payload,
+            refreshed_at=datetime.now(timezone.utc) - timedelta(hours=2),
+        )
+    )
+    db.commit()
+    assert get_cached_price_index(db, allow_stale=False) is not None
+
+
+def test_get_cache_meta_reports_stale_age():
+    db = _session()
+    assert get_cache_meta(db, "summary")["present"] is False
+    _fresh_summary_entry(db, total_listings=5)
+    meta = get_cache_meta(db, "summary")
+    assert meta["present"] is True
+    assert meta["ttl_seconds"] == 15 * 60
+    assert meta["is_stale"] is False
+    assert meta["stale_age_seconds"] is not None and meta["stale_age_seconds"] >= 0
+
+
+def test_with_degraded_flag_marks_stale_payload():
+    payload = {"points": []}
+    marked = with_degraded_flag(payload, stale_age_seconds=3725.4)
+    assert marked["degraded"] is True
+    assert marked["stale_age_seconds"] == 3725.4
+    assert marked["points"] == []
+    assert "degraded" not in payload  # input untouched
+    assert with_degraded_flag(marked, stale_age_seconds=1) is marked  # idempotent
+
+
+def test_read_export_section_serves_stale_degraded_without_raising():
+    db = _session()
+    _stale_summary_entry(db)
+    section = read_export_section(db, "summary")
+    assert section["degraded"] is True
+    assert section["stale_age_seconds"] is not None
+    assert section["total_listings"] == 99
+
+
+def test_read_export_section_miss_returns_degraded_envelope():
+    db = _session()
+    section = read_export_section(db, "price_index")
+    assert section == {
+        "degraded": True,
+        "degraded_reason": "cache_miss",
+        "stale_age_seconds": None,
+    }
+
+
+def test_district_prices_stale_fallback_is_marked_degraded(monkeypatch):
+    db = _session()
+    db.add(
+        MarketStatsCache(
+            cache_key="district_prices",
+            payload={"points": [{"district": "Colombo", "count": 42}]},
+            refreshed_at=datetime.now(timezone.utc) - timedelta(seconds=CACHE_TTL_SECONDS + 60),
+        )
+    )
+    db.commit()
+    monkeypatch.setattr(
+        stats_module,
+        "build_district_median_map",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("db down")),
+    )
+    result = stats_module.get_district_prices(db=db)
+    assert result["points"][0]["count"] == 42
+    assert result["degraded"] is True
+    assert result["stale_age_seconds"] is not None

@@ -26,25 +26,11 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://motormila.vercel.app/map</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://motormila.vercel.app/ev-hub</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-  <url>
-    <loc>https://motormila.vercel.app/blogs</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://motormila.vercel.app/dealer</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
+  <!-- /dealer is auth-gated: intentionally not indexed -->
   <!-- Make-model hub pages follow the pattern /cars/:make/:model -->
   <!-- e.g. /cars/toyota/prius, /cars/honda/fit, /cars/suzuki/alto -->
   <!-- These are dynamically rendered; add high-volume make-model combos here for crawling -->

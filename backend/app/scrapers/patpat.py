@@ -15,6 +15,12 @@ from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffe
 
 log = structlog.get_logger()
 
+_BLOCKED_HTTP_STATUSES = frozenset({403, 429})
+
+
+class PatpatBlockedError(RuntimeError):
+    """Raised when patpat.lk hard-blocks the scraper (Cloudflare / WAF)."""
+
 
 class PatpatScraper:
     SOURCE = "patpat"
@@ -154,6 +160,10 @@ class PatpatScraper:
 
                     try:
                         res = await client.get(url, timeout=30)
+                        if res.status_code in _BLOCKED_HTTP_STATUSES:
+                            raise PatpatBlockedError(
+                                f"patpat.lk returned HTTP {res.status_code} for {url}"
+                            )
                         res.raise_for_status()
                         soup = BeautifulSoup(res.text, "lxml")
 
@@ -287,6 +297,8 @@ class PatpatScraper:
                         consecutive_empty_pages = 0
                         consecutive_page_errors = 0
                         page_num += 1
+                    except PatpatBlockedError:
+                        raise
                     except Exception as e:
                         log.error(
                             "patpat_page_error",

@@ -23,6 +23,32 @@ export type IcpPersona = {
   fit: string;
 };
 
+export const TRIAL_OFFER = {
+  days: 7,
+  plan: "pro" as const,
+  cta: "Start 7-day free trial",
+  ctaTo: "/sign-up",
+} as const;
+
+/** Paid plans are in Coming Soon mode: display is hidden, all tier codes/routes/checkout stay intact. */
+export const PRICING_COMING_SOON = true as const;
+
+export const COMING_SOON_COPY = {
+  badge: "Coming soon",
+  note: "Paid plans launch soon — free browse stays open.",
+} as const;
+
+export const ANNUAL_SAVE_NUDGE = {
+  pro: "Annual saves 2 months — LKR 9,990/yr vs LKR 999/mo",
+  dealer: "Annual saves 2 months — LKR 19,990/yr vs LKR 1,999/mo",
+} as const;
+
+export const MANUAL_PAY_COPY = {
+  title: "Pay manually — activated within 2 hours",
+  body: "Bank transfer or KOKO, then WhatsApp us your receipt. We activate your Pro / Dealer seat within 2 hours.",
+  cta: "See manual-pay steps",
+} as const;
+
 export const PRICING_TIERS: PricingTier[] = [
   {
     id: "free",
@@ -45,9 +71,10 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    priceLkr: "LKR 999",
-    priceNote: "/mo",
-    annualNote: "LKR 9,990/yr (2 months free)",
+    priceLkr: "Coming soon",
+    priceNote: "launching soon",
+    // Live price (kept in code): LKR 999 /mo, LKR 9,990/yr (2 months free)
+    annualNote: "Coming soon",
     audience: "Brokers, analysts, and serious buyers who need depth",
     features: [
       "Full Pro terminal (/pro)",
@@ -55,17 +82,18 @@ export const PRICING_TIERS: PricingTier[] = [
       "Deeper alerts and match refresh",
       "Lane drill-downs and source coverage",
       "CSV / PDF export packs",
-      "Pro preview available before you pay",
+      "7-day free trial — no invite needed",
     ],
-    ctaLabel: "Sign in or preview",
-    ctaTo: "/pro-preview",
+    ctaLabel: "Start 7-day free trial",
+    ctaTo: "/sign-up",
   },
   {
     id: "dealer",
     name: "Dealer",
-    priceLkr: "LKR 1,999",
-    priceNote: "/mo",
-    annualNote: "LKR 19,990/yr (2 months free)",
+    priceLkr: "Coming soon",
+    priceNote: "launching soon",
+    // Live price (kept in code): LKR 1,999 /mo, LKR 19,990/yr (2 months free)
+    annualNote: "Coming soon",
     audience: "Yards and multi-lot dealers running inventory every day",
     highlight: true,
     features: [
@@ -82,7 +110,7 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: "custom",
     name: "Custom",
-    priceLkr: "Custom",
+    priceLkr: "Coming soon",
     priceNote: "message us",
     audience: "Banks, leasing desks, multi-branch importers — priced for your scope",
     features: [
@@ -138,7 +166,7 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can I try Pro before paying?",
-    a: "Yes. /pro-preview shows the locked terminal layout. Sign in activates /pro when your subscription is live.",
+    a: "Yes. Start a 7-day free Pro trial from Sign up — no invite needed. After the trial, pay by bank transfer or KOKO and WhatsApp us your receipt for activation within 2 hours. /pro-preview shows a live sample lane first.",
   },
   {
     q: "How does Dealer onboarding work?",
@@ -146,7 +174,12 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is annual billing cheaper?",
-    a: "Pro is LKR 9,990/yr and Dealer is LKR 19,990/yr — two months free versus paying monthly.",
+    // Live answer (kept in code): "Yes — annual saves 2 months. Pro is LKR 9,990/yr (vs LKR 999/mo) and Dealer is LKR 19,990/yr (vs LKR 1,999/mo)."
+    a: "Coming soon — annual pricing will be announced at launch. Free browse stays open meanwhile.",
+  },
+  {
+    q: "How do I pay without a card?",
+    a: "Coming soon — bank transfer / KOKO manual pay will go live with paid plans. Contact suvenseoras@gmail.com or 0758504424 meanwhile.",
   },
   {
     q: "What is Custom?",

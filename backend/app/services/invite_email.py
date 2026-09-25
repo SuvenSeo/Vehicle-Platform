@@ -67,6 +67,34 @@ def try_send_invite_email(*, to_email: str, plan: str, token: str, invited_by: O
     return False
 
 
+def try_send_waitlist_confirmation(*, to_email: str) -> bool:
+    """Best-effort confirmation for mobile-app launch-list signups.
+
+    Uses Resend when RESEND_API_KEY is set; silently skips otherwise.
+    Never raises — callers treat this as fire-and-forget.
+    """
+    resend_key = os.getenv("RESEND_API_KEY", "").strip()
+    if not resend_key:
+        log.info("waitlist_email_skipped", reason="no_email_provider_configured", to=to_email)
+        return False
+    subject = "You're on the Motormila launch list"
+    text = (
+        "Thanks for joining the Motormila mobile launch list.\n\n"
+        "We'll email you the moment the Android APK drops — beta invites go out first.\n\n"
+        "— The Motormila team"
+    )
+    html = (
+        "<p>Thanks for joining the <strong>Motormila mobile</strong> launch list.</p>"
+        "<p>We'll email you the moment the Android APK drops — beta invites go out first.</p>"
+        "<p style='color:#666;font-size:12px'>One email at launch. No marketing lists.</p>"
+    )
+    try:
+        return _send_resend(api_key=resend_key, to_email=to_email, subject=subject, text=text, html=html)
+    except Exception as exc:  # noqa: BLE001 — email must never break signup
+        log.warning("waitlist_email_failed", error=str(exc), to=to_email)
+        return False
+
+
 def _send_resend(*, api_key: str, to_email: str, subject: str, text: str, html: str) -> bool:
     from_addr = os.getenv("RESEND_FROM", "").strip() or "Motormila <onboarding@resend.dev>"
     payload = json.dumps(

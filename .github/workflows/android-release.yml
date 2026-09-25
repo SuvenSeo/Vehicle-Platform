@@ -1,0 +1,207 @@
+# Publishes an installable Motormila APK as a GitHub Release.
+# Trigger: git tag android-v* (e.g. android-v1.0.0) or workflow_dispatch.
+#
+# The APK is sideload-signed (SDK debug key unless ANDROID_KEYSTORE_* secrets
+# are set). Not for Play Store. Enable "install unknown apps" on the device.
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "android-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-apk:
+    name: Build and publish APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Accept Android SDK licenses
+        working-directory: .
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          SDKMANAGER=""
+          for candidate in \
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "$ANDROID_HOME/cmdline-tools/bin/sdkmanager"; do
+            if [[ -x "$candidate" ]]; then
+              SDKMANAGER="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$SDKMANAGER" ]]; then
+            echo "No sdkmanager found under $ANDROID_HOME; relying on runner defaults"
+            exit 0
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Verify sideload keystore present
+        working-directory: .
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ secrets.ANDROID_KEYSTORE_FILE }}
+        run: |
+          set -euo pipefail
+          # The committed android/ci-signing.keystore gives every release the
+          # same signature, so in-app updates install over previous versions.
+          # (Before 1.5.1 a fresh debug key was generated per CI run, which
+          # blocked in-place upgrades — do not reintroduce key generation.)
+          #
+          # Migration path: set ANDROID_KEYSTORE_FILE (base64-encoded real
+          # keystore) + ANDROID_KEYSTORE_PASSWORD/ANDROID_KEY_ALIAS/
+          # ANDROID_KEY_PASSWORD secrets and the committed public keystore is
+          # bypassed automatically — no build change needed. Until then every
+          # release keeps the legacy co-install signature.
+          # See docs/ANDROID_SIGNING.md. Do not delete ci-signing.keystore
+          # before the first secret-keyed release ships.
+          if [ -n "${ANDROID_KEYSTORE_FILE:-}" ]; then
+            echo "ANDROID_KEYSTORE_FILE secret present: committed keystore bypassed."
+          else
+            test -f android/ci-signing.keystore || {
+              echo "ERROR: android/ci-signing.keystore missing — release would get a new signature and block in-place updates"
+              exit 1
+            }
+            echo "WARNING: using committed sideload keystore (public, shared dev identity)."
+            echo "Migrate to ANDROID_KEYSTORE_FILE; see docs/ANDROID_SIGNING.md."
+          fi
+          echo "Using stable sideload signature."
+
+      - name: Assemble release APK
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Stage APK
+        id: apk
+        working-directory: .
+        run: |
+          set -euo pipefail
+          SRC="android/app/build/outputs/apk/release/app-release.apk"
+          if [[ ! -f "$SRC" ]]; then
+            echo "ERROR: $SRC missing"
+            ls -la android/app/build/outputs/apk/release || true
+            exit 1
+          fi
+          VERSION="$(echo "${GITHUB_REF_NAME}" | sed 's/^android-v//')"
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            VERSION="1.0.0-${GITHUB_SHA:0:7}"
+          fi
+          NAME="motormila-${VERSION}.apk"
+          mkdir -p dist
+          cp "$SRC" "dist/${NAME}"
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "path=dist/${NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          ls -lh "dist/${NAME}"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: motormila-apk
+          path: dist/${{ steps.apk.outputs.name }}
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        working-directory: .
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            TAG="android-v${{ steps.apk.outputs.version }}"
+          fi
+          NOTES_FILE="$(mktemp)"
+          {
+            echo "Sideload preview of the Motormila Android app (package \`lk.motormila.app\`)."
+            echo
+            echo "- Install: download the APK, enable **Install unknown apps**, open the file."
+            echo "- API: production Hugging Face backend."
+            echo "- Signed with the stable Motormila sideload key (not a Play Store upload key). Future releases install over this one without uninstalling."
+            echo "- Guest browse works without signing in; Pro / alerts / dealer still need an invite."
+            echo
+            echo "Built from \`${GITHUB_SHA}\`."
+          } > "$NOTES_FILE"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${{ steps.apk.outputs.path }}" --clobber
+            gh release edit "$TAG" --notes-file "$NOTES_FILE"
+          else
+            gh release create "$TAG" "${{ steps.apk.outputs.path }}" \
+              --title "Motormila Android ${{ steps.apk.outputs.version }}" \
+              --notes-file "$NOTES_FILE" \
+              --prerelease \
+              --latest=false
+          fi
+          echo "Published $TAG"
+
+      - name: Commit release manifest (drives the in-app update checker)
+        working-directory: .
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.apk.outputs.version }}"
+          VERSION_CODE="$(grep -oP 'versionCode\s*=\s*\K[0-9]+' android/app/build.gradle.kts | head -1)"
+          APK_URL="https://motormila.vercel.app/app/${{ steps.apk.outputs.name }}"
+          PUBLISHED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          mkdir -p android
+          cat > android/latest-release.json <<EOF
+          {
+            "version": "${VERSION}",
+            "version_code": ${VERSION_CODE},
+            "apk_url": "${APK_URL}",
+            "published_at": "${PUBLISHED_AT}",
+            "tag": "${GITHUB_REF_NAME}"
+          }
+          EOF
+          cat android/latest-release.json
+          git config user.name "motormila-release-bot"
+          git config user.email "noreply@motormila.lk"
+          git add android/latest-release.json
+          if git diff --cached --quiet; then
+            echo "Manifest unchanged; nothing to commit"
+          else
+            git commit -m "chore(release): android-v${VERSION} (versionCode ${VERSION_CODE}) [skip ci]"
+            git push origin "HEAD:main"
+            echo "Manifest pushed to main"
+          fi
+
+      - name: Publish APK to the website (public/app)
+        working-directory: .
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "VERCEL_TOKEN not set; APK published as a private release asset only."
+            exit 0
+          fi
+          mkdir -p public/app
+          cp "android/dist/${{ steps.apk.outputs.name }}" "public/app/${{ steps.apk.outputs.name }}"
+          cp android/latest-release.json public/app/latest-release.json
+          # Whole-tree CLI deploy (same mechanism as snapshot publishes) so the
+          # gitignored APK ships; deploy-snapshots-to-prod.sh preserves the
+          # catalog from the live site automatically.
+          bash scripts/deploy-snapshots-to-prod.sh

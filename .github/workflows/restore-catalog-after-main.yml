@@ -1,0 +1,181 @@
+# Restore the public listing catalog after every Git → Vercel production deploy.
+#
+# GitHub's Vercel integration deploys the git tree only. listing-catalog*.json
+# is gitignored (too large), so a main push wipes the catalog and the SPA
+# falls through to the live API. When Neon Free has exhausted transfer quota,
+# that API is down until the 1st of the month.
+#
+# This job rebuilds the catalog from the durable merged SQLite release
+# (zero Neon reads) and CLI-deploys it onto production so browsing never
+# depends on Neon again.
+name: Restore production catalog snapshots
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: restore-production-catalog
+  # Do not cancel an in-flight restore. This job is what re-publishes the
+  # listing catalog after a deploy, so killing it part-way (e.g. a rapid push
+  # pair, where the newer run cancels the older) can leave production serving a
+  # stale or partial catalog. Runs in this group are serialized instead.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    name: Export SQLite catalog and deploy snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # `secrets` is not an allowed context in an `if:` expression — GitHub
+      # rejects the whole workflow file for it, which is why this workflow
+      # failed instantly on every push to main. Presence is exposed as a step
+      # output instead, keeping the token scoped to the steps that need it.
+      - name: Detect Vercel credentials
+        id: vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${VERCEL_TOKEN:-}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Restore merged SQLite catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view merged-db >/dev/null 2>&1; then
+            gh release download merged-db \
+              --pattern "merged-autolens.db.gz" \
+              --dir . --clobber
+          else
+            echo "ERROR: merged-db release is missing" >&2
+            exit 1
+          fi
+          gunzip -f -c merged-autolens.db.gz > backend/motormila.db
+          python - <<'PY'
+          import sqlite3
+          con = sqlite3.connect("backend/motormila.db")
+          n = con.execute("SELECT COUNT(*) FROM car_listings").fetchone()[0]
+          print(f"merged SQLite listings: {n}")
+          if n < 1000:
+              raise SystemExit("merged DB looks empty; refusing to deploy")
+          PY
+
+      - name: Export public snapshots from SQLite
+        env:
+          ALLOW_SQLITE_FALLBACK: "true"
+          COLD_DATABASE_URL: sqlite:///backend/motormila.db
+        run: |
+          set -euo pipefail
+          python backend/export_public_snapshots.py --output backend/snapshots/latest
+          mkdir -p public/snapshots/latest
+          cp -r backend/snapshots/latest/. public/snapshots/latest/
+
+      - name: Wait for the GitHub → Vercel production deploy
+        if: steps.vercel.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.parse, urllib.request
+
+          token = os.environ["VERCEL_TOKEN"]
+          org = os.environ.get("VERCEL_ORG_ID", "").strip()
+          project = os.environ["VERCEL_PROJECT_ID"]
+          sha = os.environ["GITHUB_SHA"]
+          query = {"projectId": project, "limit": "20"}
+          if org:
+              query["teamId"] = org
+          url = "https://api.vercel.com/v6/deployments?" + urllib.parse.urlencode(query)
+          req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+          deadline = time.time() + 480
+          while time.time() < deadline:
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  payload = json.load(response)
+              for deployment in payload.get("deployments") or []:
+                  meta = deployment.get("meta") or {}
+                  commit = str(meta.get("githubCommitSha") or "")
+                  if commit != sha:
+                      continue
+                  state = str(deployment.get("readyState") or deployment.get("state") or "")
+                  target = deployment.get("target")
+                  print(f"git deploy {state} target={target}")
+                  if state == "READY":
+                      raise SystemExit(0)
+                  if state in {"ERROR", "CANCELED"}:
+                      print("git deploy failed; restoring snapshots onto current tree anyway")
+                      raise SystemExit(0)
+              time.sleep(15)
+          print("timed out waiting for git deploy; restoring snapshots anyway")
+          PY
+
+      - name: Upload restored snapshots
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: restored-catalog-${{ github.sha }}
+          path: public/snapshots/latest
+          retention-days: 7
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.vercel.outputs.configured == 'true'
+        with:
+          node-version: "20"
+
+      - name: Fetch sideload APK for the deploy (private release asset)
+        if: steps.vercel.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/fetch-apk-for-deploy.sh
+
+      - name: Deploy snapshots to Vercel production
+        if: steps.vercel.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SNAPSHOT_SOURCE_DIR: public/snapshots/latest
+        run: bash scripts/deploy-snapshots-to-prod.sh
+
+      - name: Skip Vercel deploy when token is unset
+        if: steps.vercel.outputs.configured != 'true'
+        run: echo "VERCEL_TOKEN not set; catalog exported as a workflow artifact only."
+
+      - name: Upload snapshots to R2 when configured
+        working-directory: backend
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PREFIX: ${{ secrets.R2_PREFIX }}
+          SNAPSHOT_SOURCE_DIR: snapshots/latest
+        run: |
+          if [ -z "${R2_ACCOUNT_ID}" ] || [ -z "${R2_ACCESS_KEY_ID}" ] || [ -z "${R2_SECRET_ACCESS_KEY}" ] || [ -z "${R2_BUCKET}" ]; then
+            echo "R2 secrets not set; skipping CDN upload (Vercel snapshots still deployed)."
+            exit 0
+          fi
+          python upload_snapshots_r2.py

@@ -1,6 +1,6 @@
 # Motormila Disaster Recovery Plan
 
-**Owner:** s.seoras@rgu.ac.uk  
+**Owner:** suvenseoras@gmail.com · 0758504424  
 **Last reviewed:** 2026-07-28  
 **Scope:** Production data, backend API, pipeline auth
 

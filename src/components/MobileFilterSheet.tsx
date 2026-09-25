@@ -45,7 +45,7 @@ function PillBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150 active:scale-[0.97] ${
+      className={`min-h-11 rounded-2xl border px-3 py-2.5 text-[12px] font-medium transition-all duration-150 active:scale-[0.97] ${
         active
           ? "border-primary/35 bg-primary/[0.12] text-primary"
           : "border-border bg-surface text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -65,7 +65,7 @@ function FilterSection({
 }) {
   return (
     <div className="space-y-2 border-t border-border pt-4 first:border-0 first:pt-0">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[12px] font-medium text-muted-foreground">
         {label}
       </p>
       {children}
@@ -191,7 +191,7 @@ export function MobileFilterSheet({
   );
 
   const selectTriggerClass =
-    "h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
+    "h-11 min-h-11 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors hover:border-primary/40";
   const selectContentClass =
     "max-h-64 border-border bg-popover text-foreground";
 
@@ -217,7 +217,7 @@ export function MobileFilterSheet({
             <button
               type="button"
               onClick={handleClear}
-              className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="min-h-11 min-w-11 rounded-full px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               aria-label={t("filter.clearAllAria", "Clear all filters")}
             >
               {t("common.clearAll", "Clear all")}
@@ -322,7 +322,7 @@ export function MobileFilterSheet({
                   inputMode="numeric"
                   placeholder={t("filter.minLkr", "Min LKR")}
                   aria-label={t("filter.minPriceAria", "Minimum price")}
-                  className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
+                  className="h-11 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
                 <Input
                   value={localPriceMax}
@@ -332,7 +332,7 @@ export function MobileFilterSheet({
                   inputMode="numeric"
                   placeholder={t("filter.maxLkr", "Max LKR")}
                   aria-label={t("filter.maxPriceAria", "Maximum price")}
-                  className="h-9 rounded-lg border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
+                  className="h-11 rounded-2xl border-border bg-surface text-sm text-foreground transition-colors focus-visible:border-primary/40"
                 />
               </div>
             </FilterSection>
@@ -359,22 +359,22 @@ export function MobileFilterSheet({
           </FilterSection>
         </div>
 
-        {/* Action footer */}
+        {/* Action footer — sticky so Apply stays reachable while scrolling filters */}
         <div
-          className="flex gap-3 border-t border-border px-5 py-4"
+          className="sticky bottom-0 z-10 flex gap-3 border-t border-border bg-card/95 px-5 py-4 backdrop-blur-md"
           style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
         >
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="flex-1 rounded-xl border border-border py-3 text-[13px] font-semibold text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:text-foreground active:scale-[0.98]"
+            className="min-h-11 flex-1 rounded-xl border border-border py-3 text-[13px] font-semibold text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:text-foreground active:scale-[0.98]"
           >
             {t("common.cancel", "Cancel")}
           </button>
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 rounded-xl bg-primary py-3 text-[13px] font-bold text-primary-foreground shadow-soft transition-all duration-150 hover:bg-primary/95 active:scale-[0.98]"
+            className="min-h-11 flex-1 rounded-xl bg-primary py-3 text-[13px] font-bold text-primary-foreground shadow-soft transition-all duration-150 hover:bg-primary/95 active:scale-[0.98]"
           >
             {t("filter.apply", "Apply filters")}
           </button>

@@ -16,9 +16,16 @@ from app.utils.districts import (
 )
 from app.utils.import_era import classify_import_era, era_label, FREEZE_BOUNDARY_YEAR
 from app.utils.pricing import build_district_median_map, median_from_values, median_price_for_listings
+from app.utils.memory_cache import get_cached as _mem_get
+from app.utils.memory_cache import set_cached as _mem_set
+from app.utils.memory_cache import MISSING as _MEM_MISS
+from app.utils.stats_cache import (
+    get_cache_anchor,
+)
 from app.utils.stats_cache import (
     build_trends_cache_key,
     compute_district_velocity,
+    get_cache_age_seconds,
     get_cached_district_prices,
     get_cached_district_velocity,
     get_cached_insights,
@@ -31,6 +38,7 @@ from app.utils.stats_cache import (
     store_price_index_cache,
     store_summary_cache,
     store_trends_cache,
+    with_degraded_flag,
 )
 from app.utils.time import utc_now
 from app.utils.plan_limits import (
@@ -49,11 +57,19 @@ from app.models.schemas import PriceIndexResponse
 from app.utils.price_index import build_price_index
 from app.services.rate_limit import RateLimiter
 from app.services.model_price_history import build_model_price_history
+from app.utils.listing_snapshot import query_latest_listings
 
 _stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
 
 router = APIRouter(dependencies=[Depends(_stats_rate_limiter)])
 MIN_REASONABLE_PRICE_LKR = 100_000
+
+# Process-local TTL cache in front of the materialized market_stats_cache.
+# Repeat hits within the TTL cost ZERO database round-trips (Neon egress);
+# after expiry the normal DB-side cache/fresh-recompute flow runs. Listings
+# land 2-3x/day, so 5 minutes of payload staleness is well inside budget.
+STATS_MEMORY_TTL_SECONDS = int(os.getenv("STATS_MEMORY_CACHE_TTL_SECONDS", "300"))
+
 LIVE_STREAM_INTERVAL_SECONDS = int(os.getenv("LIVE_STREAM_INTERVAL_SECONDS", "120"))
 RECENT_SUCCESS_HOURS = 24
 
@@ -169,29 +185,50 @@ def build_live_market_snapshot(db: Session) -> dict:
             }
             for source, run in sorted(latest_by_source.items())
         ],
+        # Cheap homepage feed: rebuilt on every stats-only export so the
+        # public grid can show newly discovered ads without a full catalog.
+        "latest_listings": query_latest_listings(db),
     }
 
 @router.get("/price-index", response_model=PriceIndexResponse)
 def get_price_index(
     request: Request,
+    response: Response = None,  # type: ignore[assignment]
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
     """Mix-adjusted monthly used-vehicle price index (overall + top makes)."""
-    cached = get_cached_price_index(db)
-    if cached is not None:
-        result = cached
+    pi_anchor = get_cache_anchor(db, "price_index")
+    if pi_anchor is not None:
+        memory_hit = _mem_get(pi_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            result = memory_hit
+        else:
+            cached = get_cached_price_index(db, allow_stale=False)
+            if cached is not None:
+                result = cached
+                _mem_set(pi_anchor, cached, STATS_MEMORY_TTL_SECONDS)
+            else:
+                result = None
     else:
+        result = None
+
+    if result is None:
         try:
             result = _compute_price_index_payload(db)
         except Exception:
             stale = get_cached_price_index(db, allow_stale=True)
             if stale is not None:
-                result = stale
+                age = get_cache_age_seconds(db, "price_index")
+                _mark_stale_response(response, age)
+                result = with_degraded_flag(stale, stale_age_seconds=age)
             else:
                 raise
         else:
             store_price_index_cache(db, result)
+            fresh_anchor = get_cache_anchor(db, "price_index")
+            if fresh_anchor is not None:
+                _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
 
     plan, role = resolve_request_access(request, authorization, db)
     if is_free_browse_plan(plan, role=role):
@@ -214,11 +251,36 @@ def _set_cache_control(response, value: str = "public, max-age=60") -> None:
         response.headers["Cache-Control"] = value
 
 
+def _mark_stale_response(response, age_seconds) -> None:
+    """Additive SWR markers for stale fallbacks.
+
+    Typed payloads (StatsSummary / DistrictVelocityResponse) cannot carry
+    extra fields through their response_model, so staleness travels via
+    headers; dict payloads additionally get the ``degraded`` envelope.
+    """
+    if response is not None:
+        response.headers["X-Cache-Status"] = "stale"
+        if age_seconds is not None:
+            response.headers["X-Cache-Age"] = str(int(age_seconds))
+
+
 @router.get("/summary", response_model=StatsSummary)
 def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    # Serve from materialized cache when fresh (< 1 hour).
-    cached = get_cached_summary(db)
+    # Memory hit (same materialized entry) → zero payload transfer. The
+    # anchor changes whenever the DB-side entry is invalidated, so the
+    # documented DELETE FROM market_stats_cache lever keeps working.
+    summary_anchor = get_cache_anchor(db, "summary")
+    if summary_anchor is not None:
+        memory_hit = _mem_get(summary_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            _set_cache_control(response)
+            return memory_hit
+
+    # Serve from materialized cache when fresh (summary TTL: 15 min).
+    cached = get_cached_summary(db, allow_stale=False)
     if cached is not None:
+        if summary_anchor is not None:
+            _mem_set(summary_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         _set_cache_control(response)
         return cached
 
@@ -280,10 +342,14 @@ def get_stats_summary(response: Response = None, db: Session = Depends(get_db)):
         stale = get_cached_summary(db, allow_stale=True)
         if stale is not None:
             _set_cache_control(response)
+            _mark_stale_response(response, get_cache_age_seconds(db, "summary"))
             return stale
         raise
 
     store_summary_cache(db, result)
+    fresh_anchor = get_cache_anchor(db, "summary")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     _set_cache_control(response)
     return result
 
@@ -351,9 +417,19 @@ async def stream_live_market_snapshot(request: Request):
 
 @router.get("/district-prices")
 def get_district_prices(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    # Serve from materialized cache when fresh (< 1 hour).
-    cached = get_cached_district_prices(db)
+    # Memory hit (same materialized entry) → zero payload transfer.
+    dp_anchor = get_cache_anchor(db, "district_prices")
+    if dp_anchor is not None:
+        memory_hit = _mem_get(dp_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            _set_cache_control(response)
+            return memory_hit
+
+    # Serve from materialized cache when fresh (district-prices TTL: 1 hour).
+    cached = get_cached_district_prices(db, allow_stale=False)
     if cached is not None:
+        if dp_anchor is not None:
+            _mem_set(dp_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         _set_cache_control(response)
         return cached
 
@@ -500,11 +576,16 @@ def get_district_prices(response: Response = None, db: Session = Depends(get_db)
     except Exception:
         stale = get_cached_district_prices(db, allow_stale=True)
         if stale is not None:
+            age = get_cache_age_seconds(db, "district_prices")
             _set_cache_control(response)
-            return stale
+            _mark_stale_response(response, age)
+            return with_degraded_flag(stale, stale_age_seconds=age)
         raise
 
     store_district_prices_cache(db, result)
+    fresh_anchor = get_cache_anchor(db, "district_prices")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     _set_cache_control(response)
     return result
 
@@ -812,6 +893,7 @@ def get_price_trends(
     condition: Optional[str] = None,
     district: Optional[str] = None,
     months: int = Query(12, ge=3, le=24),
+    response: Response = None,  # type: ignore[assignment]
     authorization: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
 ):
@@ -835,7 +917,7 @@ def get_price_trends(
         district=district,
         months=months_value,
     )
-    cached = get_cached_trends(db, cache_key)
+    cached = get_cached_trends(db, cache_key, allow_stale=False)
     if cached is not None:
         return cached
 
@@ -851,7 +933,9 @@ def get_price_trends(
     except Exception:
         stale = get_cached_trends(db, cache_key, allow_stale=True)
         if stale is not None:
-            return stale
+            age = get_cache_age_seconds(db, cache_key)
+            _mark_stale_response(response, age)
+            return with_degraded_flag(stale, stale_age_seconds=age)
         raise
 
     store_trends_cache(db, cache_key, result)
@@ -1039,9 +1123,19 @@ def _compute_dashboard_insights_payload(db: Session) -> dict:
 
 
 @router.get("/insights", response_model=DashboardInsightsResponse)
-def get_dashboard_insights(db: Session = Depends(get_db)):
-    cached = get_cached_insights(db)
+def get_dashboard_insights(
+    response: Response = None,  # type: ignore[assignment]
+    db: Session = Depends(get_db),
+):
+    ins_anchor = get_cache_anchor(db, "insights")
+    if ins_anchor is not None:
+        memory_hit = _mem_get(ins_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            return memory_hit
+
+    cached = get_cached_insights(db, allow_stale=False)
     if cached is not None:
+        _mem_set(ins_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         return cached
 
     try:
@@ -1049,10 +1143,15 @@ def get_dashboard_insights(db: Session = Depends(get_db)):
     except Exception:
         stale = get_cached_insights(db, allow_stale=True)
         if stale is not None:
-            return stale
+            age = get_cache_age_seconds(db, "insights")
+            _mark_stale_response(response, age)
+            return with_degraded_flag(stale, stale_age_seconds=age)
         raise
 
     store_insights_cache(db, result)
+    fresh_anchor = get_cache_anchor(db, "insights")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     return result
 
 
@@ -1654,8 +1753,16 @@ def get_ev_insight(
 
 @router.get("/district-velocity", response_model=DistrictVelocityResponse)
 def get_district_velocity(response: Response = None, db: Session = Depends(get_db)):  # type: ignore[assignment]
-    cached = get_cached_district_velocity(db)
+    dv_anchor = get_cache_anchor(db, "district_velocity")
+    if dv_anchor is not None:
+        memory_hit = _mem_get(dv_anchor, STATS_MEMORY_TTL_SECONDS)
+        if memory_hit is not _MEM_MISS:
+            _set_cache_control(response)
+            return memory_hit
+
+    cached = get_cached_district_velocity(db, allow_stale=False)
     if cached is not None:
+        _mem_set(dv_anchor, cached, STATS_MEMORY_TTL_SECONDS)
         _set_cache_control(response)
         return cached
 
@@ -1665,10 +1772,14 @@ def get_district_velocity(response: Response = None, db: Session = Depends(get_d
         stale = get_cached_district_velocity(db, allow_stale=True)
         if stale is not None:
             _set_cache_control(response)
+            _mark_stale_response(response, get_cache_age_seconds(db, "district_velocity"))
             return stale
         raise
 
     store_district_velocity_cache(db, result)
+    fresh_anchor = get_cache_anchor(db, "district_velocity")
+    if fresh_anchor is not None:
+        _mem_set(fresh_anchor, result, STATS_MEMORY_TTL_SECONDS)
     _set_cache_control(response)
     return result
 

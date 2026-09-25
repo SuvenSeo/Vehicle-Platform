@@ -2,6 +2,11 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { BRAND } from "@/lib/brand";
+import {
+  canonicalComparePath,
+  fromCompareSlug,
+  isCompareSlugPath,
+} from "@/lib/compareSlug";
 
 type Meta = { title: string; description: string };
 
@@ -38,7 +43,7 @@ function setCanonical(href: string) {
   link.setAttribute("href", href);
 }
 
-function setJsonLd(data: Record<string, unknown>) {
+function setJsonLd(data: unknown) {
   const id = "autolens-jsonld";
   let script = document.getElementById(id) as HTMLScriptElement | null;
   if (!script) {
@@ -50,8 +55,104 @@ function setJsonLd(data: Record<string, unknown>) {
   script.textContent = JSON.stringify(data);
 }
 
+/** "toyota" / "land-cruiser" -> "Toyota" / "Land Cruiser". */
+function toTitleCase(str: string): string {
+  return decodeURIComponent(str)
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/** Keep slugs canonical: lowercase, hyphens, no leading/trailing dashes. */
+function slugify(str: string): string {
+  return String(str || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+type HubKind =
+  | { kind: "make-model"; make: string; model: string; year?: number }
+  | { kind: "make"; make: string }
+  | { kind: "district"; district: string }
+  | { kind: "compare"; ids: number[] }
+  | { kind: "none" };
+
+function parseHubPath(pathname: string): HubKind {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] === "cars" && parts[1]) {
+    const make = toTitleCase(parts[1]);
+    if (parts[2]) {
+      const model = toTitleCase(parts[2]);
+      const year = parts[3] ? Number.parseInt(parts[3], 10) : NaN;
+      return {
+        kind: "make-model",
+        make,
+        model,
+        year: Number.isInteger(year) ? year : undefined,
+      };
+    }
+    return { kind: "make", make };
+  }
+  if (parts[0] === "locations" && parts[1]) {
+    return { kind: "district", district: toTitleCase(parts[1]) };
+  }
+  if (parts[0] === "compare" && parts[1] && isCompareSlugPath(pathname)) {
+    return { kind: "compare", ids: fromCompareSlug(parts[1]) };
+  }
+  return { kind: "none" };
+}
+
+function breadcrumbItems(
+  crumbs: Array<{ name: string; path: string }>,
+): Record<string, unknown> {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: crumbs.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.name,
+      item: `${ORIGIN}${crumb.path}`,
+    })),
+  };
+}
+
+/**
+ * Hub JSON-LD graph: Car + AggregateOffer (LKR) + BreadcrumbList.
+ * Counts/median are unknown client-side until the hub query resolves, so
+ * offerCount/lowPrice are omitted rather than fabricated — page-level
+ * effects (e.g. MakeModelHub) may enrich after data loads.
+ */
+function hubJsonLd(
+  vehicle: string,
+  url: string,
+  crumbs: Array<{ name: string; path: string }>,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Car",
+        name: `${vehicle} — Sri Lanka market`,
+        url,
+        brand: { "@type": "Brand", name: vehicle.split(" ")[0] },
+        offers: {
+          "@type": "AggregateOffer",
+          priceCurrency: "LKR",
+          availability: "https://schema.org/InStock",
+        },
+      },
+      breadcrumbItems(crumbs),
+    ],
+  };
+}
+
 export function RouteMeta() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { t } = useAppPreferences();
 
   useEffect(() => {
@@ -126,7 +227,7 @@ export function RouteMeta() {
         title: t("seo.dealerTitle", "Dealer Workspace — {site}", siteVars),
         description: t(
           "seo.dealerDesc",
-          "Inventory turnover, price-gap, and demand intelligence for vehicle dealers.",
+          "Inventory turnover, price-gap, and deal-score intelligence for vehicle dealers.",
         ),
       },
       "/settings": {
@@ -181,53 +282,165 @@ export function RouteMeta() {
         description: t(
           "seo.pricingDesc",
           "Free, Pro, Dealer, and Custom access for Sri Lanka vehicle market intelligence.",
+          siteVars,
         ),
       },
     };
 
-    const meta =
-      routeMeta[pathname] ??
-      (pathname.startsWith("/listing/")
-        ? {
-            title: t("seo.listingDetailTitle", "Vehicle Detail — {site}", siteVars),
-            description: defaultDescription,
-          }
-        : pathname.startsWith("/cars/")
-        ? {
-            title: t("seo.hubTitle", "Vehicle Market Hub — {site}", siteVars),
-            description: t(
-              "seo.hubDesc",
-              "Prices, district breakdown, and live listings for a specific vehicle in Sri Lanka.",
-            ),
-          }
-        : pathname.startsWith("/official-pulse/guide/")
-        ? {
-            title: t("seo.pulseGuideTitle", "Pulse Guide — {site}", siteVars),
-            description: t(
-              "seo.pulseGuideDesc",
-              "In-platform explanation of a government or import market signal source for Sri Lankan dealers.",
-            ),
-          }
-        : pathname.startsWith("/official-pulse/")
-        ? {
-            title: t("seo.pulseSignalTitle", "Pulse Signal — {site}", siteVars),
-            description: t(
-              "seo.pulseSignalDesc",
-              "Full official market signal with in-platform context from DMT, Customs, or import parity sources.",
-            ),
-          }
-        : { title: SITE, description: defaultDescription });
+    let meta: Meta | undefined = routeMeta[pathname];
+    let canonicalPath = pathname;
+    let ogImage = `${ORIGIN}/og-card.jpg`;
+    let jsonLd: unknown | undefined;
+
+    if (!meta) {
+      const hub = parseHubPath(pathname);
+      if (hub.kind === "make-model") {
+        const vehicle = `${hub.make} ${hub.model}`.trim();
+        const yearSuffix = hub.year ? ` ${hub.year}` : "";
+        meta = {
+          title: `${vehicle}${yearSuffix} Price Sri Lanka — Live Listings, Trends & Fair Value | ${SITE}`,
+          description:
+            `${vehicle}${yearSuffix} prices in Sri Lanka (LKR): live listings, district ` +
+            `breakdown, price trends and fair-value signals on ${SITE}.`,
+        };
+        jsonLd = hubJsonLd(`${vehicle}${yearSuffix}`, `${ORIGIN}${pathname}`, [
+          { name: "Home", path: "/" },
+          { name: hub.make, path: `/cars/${slugify(hub.make)}` },
+          { name: `${vehicle}${yearSuffix}`, path: pathname },
+        ]);
+      } else if (hub.kind === "make") {
+        meta = {
+          title: `${hub.make} Price Sri Lanka — Models, Listings & Trends | ${SITE}`,
+          description:
+            `${hub.make} prices in Sri Lanka (LKR): every tracked model with live ` +
+            `listings, trends and fair-value signals on ${SITE}.`,
+        };
+        jsonLd = hubJsonLd(hub.make, `${ORIGIN}${pathname}`, [
+          { name: "Home", path: "/" },
+          { name: hub.make, path: pathname },
+        ]);
+      } else if (hub.kind === "district") {
+        meta = {
+          title: `${hub.district} Vehicle Prices — District Market Hub | ${SITE}`,
+          description:
+            `Live vehicle prices in ${hub.district} district (LKR): listings, model mix, ` +
+            `price heatmap and market velocity on ${SITE}.`,
+        };
+        jsonLd = hubJsonLd(
+          `${hub.district} district vehicles`,
+          `${ORIGIN}${pathname}`,
+          [
+            { name: "Home", path: "/" },
+            { name: "Locations", path: "/locations/colombo" },
+            { name: hub.district, path: pathname },
+          ],
+        );
+      } else if (hub.kind === "compare") {
+        const label = hub.ids.length >= 2 ? hub.ids.join(" vs ") : "vehicles";
+        meta = {
+          title: `Compare ${label} — Side-by-Side Prices & Specs | ${SITE}`,
+          description:
+            `Side-by-side comparison of listings ${label}: price (LKR), mileage, ` +
+            `district, fuel and fair-value verdict on ${SITE}.`,
+        };
+        ogImage = `${ORIGIN}/api/compare-og?slug=${hub.ids.join("-vs-")}`;
+        jsonLd = {
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "ItemList",
+              name: `Vehicle comparison: ${label}`,
+              url: `${ORIGIN}${pathname}`,
+              numberOfItems: hub.ids.length,
+              itemListElement: hub.ids.map((id, index) => ({
+                "@type": "ListItem",
+                position: index + 1,
+                url: `${ORIGIN}/listing/${id}`,
+              })),
+            },
+            breadcrumbItems([
+              { name: "Home", path: "/" },
+              { name: "Compare", path: "/compare" },
+              { name: label, path: pathname },
+            ]),
+          ],
+        };
+      } else if (pathname === "/compare") {
+        // Legacy query form: canonicalize ?ids= to the slug path (no
+        // navigation here — the page/Vercel 301 owns the redirect).
+        const params = new URLSearchParams(search);
+        const ids = (params.get("ids") ?? "")
+          .split(",")
+          .map((s) => Number.parseInt(s.trim(), 10))
+          .filter((n) => Number.isInteger(n) && n > 0);
+        canonicalPath = canonicalComparePath(ids);
+        meta = {
+          title: t("seo.compareTitle", "Compare Vehicles — {site}", siteVars),
+          description: t(
+            "seo.compareDesc",
+            "Side-by-side Sri Lankan vehicle comparison: price, mileage, district and fair-value verdict.",
+          ),
+        };
+        jsonLd = {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: meta.title,
+          description: meta.description,
+          url: `${ORIGIN}${canonicalPath}`,
+          isPartOf: { "@type": "WebSite", name: SITE, url: ORIGIN },
+        };
+      }
+    }
+
+    if (!meta) {
+      meta =
+        routeMeta[pathname] ??
+        (pathname.startsWith("/listing/")
+          ? {
+              title: t("seo.listingDetailTitle", "Vehicle Detail — {site}", siteVars),
+              description: defaultDescription,
+            }
+          : pathname.startsWith("/cars/")
+          ? {
+              title: t("seo.hubTitle", "Vehicle Market Hub — {site}", siteVars),
+              description: t(
+                "seo.hubDesc",
+                "Prices, district breakdown, and live listings for a specific vehicle in Sri Lanka.",
+              ),
+            }
+          : pathname.startsWith("/official-pulse/guide/")
+          ? {
+              title: t("seo.pulseGuideTitle", "Pulse Guide — {site}", siteVars),
+              description: t(
+                "seo.pulseGuideDesc",
+                "In-platform explanation of a government or import market signal source for Sri Lankan dealers.",
+              ),
+            }
+          : pathname.startsWith("/official-pulse/")
+          ? {
+              title: t("seo.pulseSignalTitle", "Pulse Signal — {site}", siteVars),
+              description: t(
+                "seo.pulseSignalDesc",
+                "Full official market signal with in-platform context from DMT, Customs, or import parity sources.",
+              ),
+            }
+          : { title: SITE, description: defaultDescription });
+    }
 
     document.title = meta.title;
     setMeta("description", meta.description);
     setProperty("og:title", meta.title);
     setProperty("og:description", meta.description);
-    setProperty("og:url", `${ORIGIN}${pathname}`);
+    setProperty("og:url", `${ORIGIN}${canonicalPath}`);
+    setProperty("og:image", ogImage);
     setMeta("twitter:title", meta.title);
     setMeta("twitter:description", meta.description);
-    setCanonical(`${ORIGIN}${pathname}`);
+    setMeta("twitter:image", ogImage);
+    setCanonical(`${ORIGIN}${canonicalPath}`);
 
-    if (pathname === "/") {
+    if (jsonLd) {
+      setJsonLd(jsonLd);
+    } else if (pathname === "/") {
       setJsonLd({
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -239,6 +452,31 @@ export function RouteMeta() {
           target: { "@type": "EntryPoint", urlTemplate: `${ORIGIN}/?q={search_term_string}` },
           "query-input": "required name=search_term_string",
         },
+      });
+    } else if (pathname === "/price-index") {
+      // Dataset stub for the Market Price Index (MPI): describes the index
+      // dataset without fabricating observation values client-side.
+      setJsonLd({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebPage",
+            name: meta.title,
+            description: meta.description,
+            url: `${ORIGIN}${pathname}`,
+            isPartOf: { "@type": "WebSite", name: SITE, url: ORIGIN },
+          },
+          {
+            "@type": "Dataset",
+            name: `${SITE} Sri Lanka Used-Vehicle Price Index`,
+            description:
+              "Mix-adjusted used-vehicle price index for the Sri Lankan market, computed from live listing aggregates.",
+            url: `${ORIGIN}/price-index`,
+            keywords: ["Sri Lanka", "vehicle price index", "used cars", "LKR"],
+            measurementTechnique: "Hedonic/mix-adjusted aggregation of live listings",
+            variableMeasured: "Median asking price (LKR)",
+          },
+        ],
       });
     } else if (pathname === "/best-picks") {
       setJsonLd({
@@ -263,11 +501,11 @@ export function RouteMeta() {
         "@type": "WebPage",
         name: meta.title,
         description: meta.description,
-        url: `${ORIGIN}${pathname}`,
+        url: `${ORIGIN}${canonicalPath}`,
         isPartOf: { "@type": "WebSite", name: SITE, url: ORIGIN },
       });
     }
-  }, [pathname, t]);
+  }, [pathname, search, t]);
 
   return null;
 }

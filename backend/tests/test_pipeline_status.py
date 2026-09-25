@@ -130,6 +130,46 @@ def test_overall_status_ignores_secondary_source_delayed(monkeypatch):
     assert payload["overall_status"] == "ok"
 
 
+def test_pipeline_status_marks_latest_live_failure_delayed_even_if_older_success(monkeypatch):
+    db = _session()
+    now = datetime(2026, 7, 19, 14, 0, tzinfo=timezone.utc)
+    recent_success = now - timedelta(hours=2)
+    latest_fail = now - timedelta(minutes=10)
+    _freeze_now(monkeypatch, now)
+
+    _add_run(
+        db,
+        source="riyasewana",
+        status="SUCCESS",
+        started_at=recent_success - timedelta(minutes=8),
+        finished_at=recent_success,
+    )
+    _add_run(
+        db,
+        source="riyasewana",
+        status="FAILED",
+        started_at=latest_fail - timedelta(minutes=2),
+        finished_at=latest_fail,
+        error_message="HTTP 403 for https://riyasewana.com/search/cars",
+    )
+    _add_run(
+        db,
+        source="ikman",
+        status="SUCCESS",
+        started_at=latest_fail - timedelta(minutes=5),
+        finished_at=latest_fail,
+    )
+
+    payload = pipeline.pipeline_status(db=db, is_admin=False)
+
+    riyasewana = next(job for job in payload["jobs"] if job["name"] == "scrape_riyasewana")
+    ikman = next(job for job in payload["jobs"] if job["name"] == "scrape_ikman")
+    assert riyasewana["status"] == "delayed"
+    assert riyasewana["last_status"] == "FAILED"
+    assert ikman["status"] == "ok"
+    assert payload["overall_status"] == "delayed"
+
+
 def test_overall_status_delayed_when_core_source_stale(monkeypatch):
     db = _session()
     now = datetime(2026, 7, 19, 14, 0, tzinfo=timezone.utc)
@@ -308,7 +348,11 @@ def test_build_pipeline_status_falls_back_on_failure(monkeypatch):
 
     payload = export_public_snapshots.build_pipeline_status(db)
 
-    assert payload["overall_status"] == "ok"
+    # Must not claim health: only "ok"/"running" are treated as healthy by
+    # consumers (pipeline-monitor.yml, PipelineStatusBar), and an empty job list
+    # derives "delayed" from _derive_overall_status.
+    assert payload["overall_status"] == "delayed"
+    assert payload["overall_status"] == pipeline._derive_overall_status([])
     assert payload["jobs"] == []
     assert isinstance(payload["generated_at"], str)
 

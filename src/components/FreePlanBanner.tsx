@@ -22,7 +22,7 @@ export function FreePlanBanner() {
         </p>
         <Link
           to="/pricing"
-          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/95 active:scale-[0.98]"
         >
           <Crown className="h-3.5 w-3.5" aria-hidden />
           {t("common.upgrade", "Upgrade")}

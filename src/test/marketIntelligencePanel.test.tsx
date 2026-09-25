@@ -50,6 +50,7 @@ const syncedEmptySnapshot: LiveMarketSnapshot = {
   active_scrape_sources: [],
   latest_run: null,
   source_status: [],
+  latest_listings: [],
 };
 
 const emptyInsights: DashboardInsights = {

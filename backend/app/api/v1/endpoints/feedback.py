@@ -1,7 +1,10 @@
+import os
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.models.schemas import FeedbackCreate, FeedbackRead
+from app.services.invite_email import try_send_waitlist_confirmation
 from app.services.rate_limit import RateLimiter
 from db.models import UserFeedback
 from db.session import get_db
@@ -36,4 +39,15 @@ def create_feedback(payload: FeedbackCreate, request: Request, db: Session = Dep
     db.add(feedback)
     db.commit()
     db.refresh(feedback)
+
+    # Mobile-app launch-list signups get a best-effort confirmation email
+    # (Resend when configured; silently skipped otherwise).
+    if (
+        category == "idea"
+        and (payload.route or "").strip() == "/mobile-app"
+        and feedback.email
+        and os.getenv("MOBILE_WAITLIST_EMAIL_ENABLED", "true").strip().lower() == "true"
+    ):
+        try_send_waitlist_confirmation(to_email=feedback.email)
+
     return feedback

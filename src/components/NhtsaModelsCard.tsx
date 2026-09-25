@@ -50,7 +50,7 @@ export function NhtsaModelsCard({ make, model, compact = false }: NhtsaModelsCar
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <BookOpen aria-hidden className="h-4 w-4 shrink-0 text-primary" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground truncate">
+          <span className="text-[12px] font-semibold text-muted-foreground truncate">
             {label}
           </span>
         </div>
@@ -74,7 +74,7 @@ export function NhtsaModelsCard({ make, model, compact = false }: NhtsaModelsCar
               {isLoading && (
                 <div className="space-y-2">
                   {Array.from({ length: compact ? 3 : 6 }).map((_, i) => (
-                    <div key={i} className="h-7 rounded-lg bg-surface animate-pulse" />
+                    <div key={i} className="h-7 rounded-2xl bg-surface animate-pulse" />
                   ))}
                 </div>
               )}
@@ -104,7 +104,7 @@ export function NhtsaModelsCard({ make, model, compact = false }: NhtsaModelsCar
                     {displayModels.slice(0, compact ? 8 : 60).map((m) => (
                       <div
                         key={`${m.make_id}-${m.model_id}`}
-                        className="rounded-lg border border-border bg-surface px-2.5 py-1.5"
+                        className="rounded-2xl border border-border bg-surface px-2.5 py-1.5"
                       >
                         <p className="text-[11px] font-semibold text-foreground leading-snug">{m.model}</p>
                         {!compact && m.model_id && (

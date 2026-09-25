@@ -16,18 +16,18 @@ function SignalCard({ signal }: { signal: MarketSignal }) {
   return (
     <Link
       to={`/official-pulse/${signal.id}`}
-      className="min-w-[220px] flex-1 rounded-xl border border-border bg-card p-4 no-underline transition-colors hover:border-primary/40 hover:bg-card/90"
+      className="inventory-tile min-w-[220px] flex-1 p-4 no-underline"
     >
       <article>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/70">
+            <p className="text-[12px] font-medium text-primary/70">
               {labelPulseSource(signal.source)} · {signal.signal_type.replace(/_/g, " ")}
             </p>
             <h3 className="mt-2 text-sm font-semibold text-foreground">{title}</h3>
           </div>
           <span
-            className="rounded-md border border-border p-1.5 text-muted-foreground"
+            className="rounded-full border border-border p-1.5 text-muted-foreground"
             aria-hidden
           >
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -55,12 +55,12 @@ export function MarketSignalsStrip() {
   if (isError) return null;
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6" aria-label="Official market signals">
+    <section className="rounded-[2rem] border border-border bg-surface/80 p-5 sm:p-6" aria-label="Official market signals">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Landmark className="h-4 w-4 text-primary/80" />
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Official pulse</p>
+            <p className="text-[12px] font-medium text-muted-foreground">Official pulse</p>
             <h2 className="text-sm font-semibold text-foreground">Government & import market signals</h2>
           </div>
         </div>
@@ -75,7 +75,7 @@ export function MarketSignalsStrip() {
       {isLoading ? (
         <div className="grid gap-3 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
+            <div key={index} className="h-28 animate-pulse rounded-[1.75rem] border border-border bg-card" />
           ))}
         </div>
       ) : data && data.length > 0 ? (

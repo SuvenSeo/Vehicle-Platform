@@ -4,10 +4,14 @@
 # reads R2 snapshots, not this dump.
 name: Weekly DB Backup
 
+# on:
+#   schedule:
+#     - cron: "30 2 * * 0"   # Paused to protect Neon free transfer quota (550MB remaining until Oct 1)
 on:
-  schedule:
-    - cron: "30 2 * * 0"   # Sunday 02:30 UTC
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   backup:
@@ -65,7 +69,7 @@ jobs:
 
       - name: Upload backup artifact
         if: steps.check-secret.outputs.skip == 'false'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ env.BACKUP_FILE }}
           path: ${{ env.BACKUP_FILE }}

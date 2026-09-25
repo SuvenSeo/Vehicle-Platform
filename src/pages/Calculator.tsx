@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatPrice, calculateLandedCost, calculateTco, getPermits, getMacroContext, type LandedCostResult, type TcoResult, type PermitInfo, type MacroContext } from "@/services/api";
+import { formatPrice, getPermits, getMacroContext, type LandedCostResult, type TcoResult, type PermitInfo, type MacroContext } from "@/services/api";
+import {
+  calculateLandedCostResilient as calculateLandedCost,
+  calculateTcoResilient as calculateTco,
+  type OfflineFlag,
+} from "@/lib/offlineCalculators";
 import { Input } from "@/components/ui/input";
 import {
   Banknote,
@@ -29,6 +34,14 @@ import { FreePlanBanner } from "@/components/FreePlanBanner";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
+import { computeCashToOwn, EV_HOME_CHARGER_LKR } from "@/lib/cashToOwn";
+import {
+  AFFORDABILITY_DEFAULTS,
+  dsrPreCheck,
+  leaseVsLoanRows,
+  maxPriceFromInstalment,
+  monthlyForPrice,
+} from "@/utils/affordability";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import {
@@ -112,7 +125,7 @@ export default function Calculator() {
   const [lcMotorKw, setLcMotorKw] = useState(() => numParam(searchParams, "kw", 110));
   const [applySurcharge, setApplySurcharge] = useState(() => boolParam(searchParams, "surcharge", true));
   const [applySscl, setApplySscl] = useState(() => boolParam(searchParams, "sscl", true));
-  const [lcResult, setLcResult] = useState<LandedCostResult | null>(null);
+  const [lcResult, setLcResult] = useState<(LandedCostResult & OfflineFlag) | null>(null);
   // What this exact import saves if the 50% surcharge lapses on schedule.
   const [lcLapseSavings, setLcLapseSavings] = useState<number | null>(null);
   const [lcLoading, setLcLoading] = useState(false);
@@ -185,6 +198,13 @@ export default function Calculator() {
   // Lease / Cash-to-own state (original logic wrapper)
   const [leasePrice, setLeasePrice] = useState(() => numParam(searchParams, "price", 15000000));
   const [leaseCc, setLeaseCc] = useState(() => numParam(searchParams, "leasecc", 1500));
+  // Financing discovery (B3-E): EV charger allowance, DSR pre-check, instalment budget.
+  const [isEV, setIsEV] = useState(() => boolParam(searchParams, "ev", false));
+  const [salary, setSalary] = useState(() => numParam(searchParams, "sal", 0));
+  const [existingCommit, setExistingCommit] = useState(() => numParam(searchParams, "com", 0));
+  const [budget, setBudget] = useState(() => numParam(searchParams, "inst", AFFORDABILITY_DEFAULTS.budgetRs, { positive: true }));
+  const [finRate, setFinRate] = useState(() => numParam(searchParams, "rate", AFFORDABILITY_DEFAULTS.annualRatePct, { positive: true }));
+  const [finYears, setFinYears] = useState(() => Math.min(10, Math.max(1, numParam(searchParams, "yrs", AFFORDABILITY_DEFAULTS.termYears, { positive: true }))));
 
   // TCO Calculator State (seeded from the shareable URL when present)
   const [tcoDailyKm, setTcoDailyKm] = useState(() => numParam(searchParams, "km", 40));
@@ -195,7 +215,7 @@ export default function Calculator() {
   const [tcoService, setTcoService] = useState(() => numParam(searchParams, "svc", 60000));
   const [tcoTyres, setTcoTyres] = useState(() => numParam(searchParams, "tyres", 30000));
   const [tcoDepreciation, setTcoDepreciation] = useState(() => numParam(searchParams, "dep", 100000));
-  const [tcoResult, setTcoResult] = useState<TcoResult | null>(null);
+  const [tcoResult, setTcoResult] = useState<(TcoResult & OfflineFlag) | null>(null);
   const [tcoLoading, setTcoLoading] = useState(false);
 
   // Permit state
@@ -324,6 +344,12 @@ export default function Calculator() {
     } else if (activeTab === "lease") {
       params.set("price", String(leasePrice));
       params.set("leasecc", String(leaseCc));
+      if (isEV) params.set("ev", "1");
+      if (salary > 0) params.set("sal", String(salary));
+      if (existingCommit > 0) params.set("com", String(existingCommit));
+      params.set("inst", String(budget));
+      params.set("rate", String(finRate));
+      params.set("yrs", String(finYears));
     } else if (activeTab === "tco") {
       params.set("km", String(tcoDailyKm));
       params.set("tfuel", tcoFuelType);
@@ -339,7 +365,8 @@ export default function Calculator() {
     }
   }, [
     activeTab, cifUsd, exchangeRate, lcFuelType, lcEngineCc, lcMotorKw,
-    applySurcharge, applySscl, leasePrice, leaseCc, tcoDailyKm, tcoFuelType,
+    applySurcharge, applySscl, leasePrice, leaseCc, isEV, salary, existingCommit,
+    budget, finRate, finYears, tcoDailyKm, tcoFuelType,
     tcoKmpl, tcoLease, tcoInsurance, tcoService, tcoTyres, tcoDepreciation,
     setSearchParams,
   ]);
@@ -375,6 +402,14 @@ export default function Calculator() {
       />
 
       <FreePlanBanner />
+
+      {(lcResult?.offline || tcoResult?.offline) && (
+        <div className="mx-auto max-w-[1320px] px-4 pt-4">
+          <p className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-200">
+            {t("calc.offlineBadge", "On-device calculation — server unreachable, same gazette schedules.")}
+          </p>
+        </div>
+      )}
 
       <PageBody className="space-y-0 pb-0">
       <motion.div variants={itemVariants} className="flex max-w-[1320px] flex-nowrap items-center gap-3 pb-6">
@@ -462,7 +497,7 @@ export default function Calculator() {
                       type="button"
                       onClick={toggleSurchargeNotify}
                       aria-pressed={surchargeNotifyOn}
-                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-400/20 dark:text-amber-200"
+                      className="inline-flex min-h-[36px] items-center gap-1.5 rounded-2xl border border-amber-500/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-bold text-amber-800 transition-colors hover:bg-amber-400/20 dark:text-amber-200"
                     >
                       {surchargeNotifyOn ? (
                         <>
@@ -496,7 +531,7 @@ export default function Calculator() {
               {/* Inputs */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft h-fit space-y-5">
                 <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
                     <Banknote className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -508,11 +543,11 @@ export default function Calculator() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-cif" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.cifUsd", "CIF Price (USD)")}</label>
+                      <label htmlFor="lc-cif" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.cifUsd", "CIF Price (USD)")}</label>
                       <Input id="lc-cif" type="number" value={cifUsd} onChange={(e) => setCifUsd(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-fx" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.exchangeRate", "Exchange Rate (LKR)")}</label>
+                      <label htmlFor="lc-fx" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.exchangeRate", "Exchange Rate (LKR)")}</label>
                       <div className="flex gap-2">
                         <Input
                           id="lc-fx"
@@ -528,7 +563,7 @@ export default function Calculator() {
                           type="button"
                           onClick={() => void applyLiveFx()}
                           disabled={fxLoading}
-                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 text-[10px] font-bold text-foreground transition-colors hover:border-primary/40 disabled:opacity-60"
+                          className="inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-2xl border border-border bg-surface px-3 text-[10px] font-bold text-foreground transition-colors hover:border-primary/40 disabled:opacity-60"
                           title="Pull latest CBSL-linked USD/LKR"
                         >
                           <RefreshCw className={`h-3.5 w-3.5 ${fxLoading ? "animate-spin" : ""}`} />
@@ -548,14 +583,14 @@ export default function Calculator() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.fuelCategory", "Fuel Category")}</label>
+                    <label className="text-[12px] font-medium text-muted-foreground/80">{t("calc.fuelCategory", "Fuel Category")}</label>
                     <div className="grid grid-cols-4 gap-1.5">
                       {(["petrol", "diesel", "hybrid", "electric"] as const).map((fuel) => (
                         <button
                           key={fuel}
                           onClick={() => setLcFuelType(fuel)}
                           aria-pressed={lcFuelType === fuel}
-                          className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
+                          className={`min-h-[36px] rounded-2xl border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                             lcFuelType === fuel
                               ? "border-primary/40 bg-primary/10 text-primary-bright"
                               : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -569,7 +604,7 @@ export default function Calculator() {
 
                   {lcFuelType !== "electric" ? (
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.engineCc", "Engine Capacity (CC)")}</label>
+                      <label htmlFor="lc-cc" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.engineCc", "Engine Capacity (CC)")}</label>
                       <Input id="lc-cc" type="number" value={lcEngineCc} onChange={(e) => setLcEngineCc(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                       {lcFuelType === "hybrid" && lcEngineCc > 1500 && (
                         <p className="flex items-center gap-1.5 text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">
@@ -580,7 +615,7 @@ export default function Calculator() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <label htmlFor="lc-kw" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.motorKw", "Motor Power (kW)")}</label>
+                      <label htmlFor="lc-kw" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.motorKw", "Motor Power (kW)")}</label>
                       <Input id="lc-kw" type="number" value={lcMotorKw} onChange={(e) => setLcMotorKw(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                     </div>
                   )}
@@ -646,15 +681,15 @@ export default function Calculator() {
 
                     {/* Featured readout — landed cost towers, total taxes demoted below it */}
                     <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-5 sm:p-6 shadow-soft">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("calc.estLanded", "Est. Landed Cost")}</span>
+                      <span className="text-[12px] font-semibold text-primary-bright">{t("calc.estLanded", "Est. Landed Cost")}</span>
                       <p className="display-1 text-foreground num mt-2">{formatPrice(lcResult.landed_cost)}</p>
                       <div className="mt-4 flex items-center gap-3 border-t border-primary/15 pt-3">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Taxes &amp; Duties</span>
+                        <span className="text-[12px] font-medium text-muted-foreground">Total Taxes &amp; Duties</span>
                         <span className="ml-auto text-sm font-bold text-primary num">+{formatPrice(lcResult.total_tax)}</span>
                       </div>
                     </div>
 
-                    <div className="rounded-lg bg-surface border border-border p-3 flex gap-2">
+                    <div className="rounded-2xl bg-surface border border-border p-3 flex gap-2">
                       <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <p className="text-[10px] leading-relaxed text-muted-foreground font-semibold">{lcResult.notes}</p>
                     </div>
@@ -676,7 +711,7 @@ export default function Calculator() {
               {/* ORIGINAL CONFIG INPUTS */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft h-fit space-y-5">
                 <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
                     <WalletCards className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -687,12 +722,12 @@ export default function Calculator() {
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="lease-price" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.vehicleValuation", "Vehicle Valuation (LKR)")}</label>
+                    <label htmlFor="lease-price" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.vehicleValuation", "Vehicle Valuation (LKR)")}</label>
                     <Input id="lease-price" type="number" value={leasePrice} onChange={(e) => setLeasePrice(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40 font-semibold text-foreground text-base" />
                     <p className="text-[10px] text-muted-foreground font-semibold num">{formatPrice(leasePrice)}</p>
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="lease-cc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.engineCc", "Engine Capacity (CC)")}</label>
+                    <label htmlFor="lease-cc" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.engineCc", "Engine Capacity (CC)")}</label>
                     <Input id="lease-cc" type="number" value={leaseCc} onChange={(e) => setLeaseCc(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
@@ -739,11 +774,11 @@ export default function Calculator() {
                 })()}
                 </AnimatePresence>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("calc.cashRequirements", "Cash requirements")}</span>
+                  <span className="text-[12px] font-medium text-muted-foreground">{t("calc.cashRequirements", "Cash requirements")}</span>
                   <CashToOwnStrip priceLkr={leasePrice} financeClass="registered_used" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("calc.leaseModeling", "Lease Scenario modeling")}</span>
+                  <span className="text-[12px] font-medium text-muted-foreground">{t("calc.leaseModeling", "Lease Scenario modeling")}</span>
                   <LeaseCalculator price={leasePrice} financeClass="registered_used" />
                 </div>
               </div>
@@ -762,7 +797,7 @@ export default function Calculator() {
               {/* Inputs */}
               <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-soft space-y-4 h-fit">
                 <div className="flex items-center gap-3 border-b border-border pb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-surface">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-2xl border border-border bg-surface">
                     <Gauge className="h-4 w-4 text-primary" />
                   </div>
                   <div>
@@ -773,24 +808,24 @@ export default function Calculator() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-km" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.dailyCommute", "Daily Commute (KM)")}</label>
+                    <label htmlFor="tco-km" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.dailyCommute", "Daily Commute (KM)")}</label>
                     <Input id="tco-km" type="number" value={tcoDailyKm} onChange={(e) => setTcoDailyKm(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-kmpl" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.fuelEfficiency", "Fuel Efficiency (KMPL)")}</label>
+                    <label htmlFor="tco-kmpl" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.fuelEfficiency", "Fuel Efficiency (KMPL)")}</label>
                     <Input id="tco-kmpl" type="number" value={tcoKmpl} onChange={(e) => setTcoKmpl(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Fuel Type</label>
+                  <label className="text-[12px] font-medium text-muted-foreground/80">Fuel Type</label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {(["petrol", "diesel", "hybrid", "electric"] as const).map((fuel) => (
                       <button
                         key={fuel}
                         onClick={() => setTcoFuelType(fuel)}
                         aria-pressed={tcoFuelType === fuel}
-                        className={`min-h-[36px] rounded-lg border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
+                        className={`min-h-[36px] rounded-2xl border py-2.5 text-[10px] font-bold capitalize transition-all active:scale-[0.97] ${
                           tcoFuelType === fuel
                             ? "border-primary/40 bg-primary/10 text-primary-bright"
                             : "border-border bg-surface text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -803,28 +838,28 @@ export default function Calculator() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="tco-lease" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.monthlyLease", "Monthly Lease (LKR)")}</label>
+                  <label htmlFor="tco-lease" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.monthlyLease", "Monthly Lease (LKR)")}</label>
                   <Input id="tco-lease" type="number" value={tcoLease} onChange={(e) => setTcoLease(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-ins" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualInsurance", "Annual Insurance")}</label>
+                    <label htmlFor="tco-ins" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.annualInsurance", "Annual Insurance")}</label>
                     <Input id="tco-ins" type="number" value={tcoInsurance} onChange={(e) => setTcoInsurance(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-svc" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualService", "Annual Service")}</label>
+                    <label htmlFor="tco-svc" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.annualService", "Annual Service")}</label>
                     <Input id="tco-svc" type="number" value={tcoService} onChange={(e) => setTcoService(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-tyres" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualTyres", "Annual Tyres")}</label>
+                    <label htmlFor="tco-tyres" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.annualTyres", "Annual Tyres")}</label>
                     <Input id="tco-tyres" type="number" value={tcoTyres} onChange={(e) => setTcoTyres(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                   <div className="space-y-1.5">
-                    <label htmlFor="tco-dep" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">{t("calc.annualResaleLoss", "Annual Resale Loss")}</label>
+                    <label htmlFor="tco-dep" className="text-[12px] font-medium text-muted-foreground/80">{t("calc.annualResaleLoss", "Annual Resale Loss")}</label>
                     <Input id="tco-dep" type="number" value={tcoDepreciation} onChange={(e) => setTcoDepreciation(Number(e.target.value))} className="num bg-surface border-border focus-visible:ring-primary/40" />
                   </div>
                 </div>
@@ -863,11 +898,11 @@ export default function Calculator() {
                     </div>
 
                     <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-6 text-center shadow-soft">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary-bright">{t("calc.tcoTotal", "Total ownership cost / month")}</span>
+                      <span className="text-[12px] font-semibold text-primary-bright">{t("calc.tcoTotal", "Total ownership cost / month")}</span>
                       <p className="display-1 text-foreground mt-2 num">{formatPrice(tcoResult.total_tco_monthly)}</p>
                     </div>
 
-                    <div className="rounded-lg bg-surface border border-border p-3 flex gap-2">
+                    <div className="rounded-2xl bg-surface border border-border p-3 flex gap-2">
                       <Compass className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <p className="text-[10px] leading-relaxed text-muted-foreground font-semibold">{tcoResult.notes}</p>
                     </div>
@@ -916,7 +951,7 @@ export default function Calculator() {
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
-                        <tr className="border-b border-border text-muted-foreground uppercase tracking-wider text-[9px] font-bold">
+                        <tr className="border-b border-border text-muted-foreground text-[11px] font-semibold">
                           <th className="py-3 px-4">{t("calc.permitName", "Permit Name")}</th>
                           <th className="py-3 px-4">{t("calc.permitType", "Type")}</th>
                           <th className="py-3 px-4 text-right">{t("calc.permitPremium", "Premium Value (LKR)")}</th>
@@ -962,7 +997,7 @@ export default function Calculator() {
                   ].map((curve) => (
                     <div key={curve.model} className={`data-card border ${curve.border} bg-surface p-4 flex flex-col justify-between`}>
                       <div>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{curve.type}</span>
+                        <span className="text-[11px] font-medium text-muted-foreground">{curve.type}</span>
                         <h4 className="text-sm font-bold text-foreground mt-1">{curve.model}</h4>
 
                         <div className="mt-4 space-y-2 border-b border-border pb-4">

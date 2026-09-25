@@ -81,7 +81,7 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
     return (
       <div className="h-[420px] rounded-xl border border-border bg-card overflow-hidden flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin mb-4" />
-        <p className="text-sm font-bold uppercase tracking-widest text-primary/80">Loading velocity data</p>
+        <p className="text-sm font-semibold tracking-tight text-primary/80">Loading velocity data</p>
         <p className="text-xs text-muted-foreground font-medium">Calculating demand momentum across districts…</p>
       </div>
     );
@@ -97,7 +97,7 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
           <button
             type="button"
             onClick={onRetry}
-            className="rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
+            className="rounded-2xl border border-border bg-card px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary-bright"
           >
             Retry
           </button>
@@ -116,14 +116,14 @@ export const DistrictVelocityMap = memo(function DistrictVelocityMap({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.1em]">
-        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">
+      <div className="flex flex-wrap items-center gap-3 text-[12px] font-semibold">
+        <div className="rounded-2xl border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">
           Color = new listings / total (7-day velocity)
         </div>
-        <div className="rounded-lg border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">
+        <div className="rounded-2xl border border-border bg-surface px-3 py-1.5 text-foreground transition-colors">
           Size = total volume
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-muted-foreground transition-colors">
+        <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-1.5 text-muted-foreground transition-colors">
           <span>Low</span>
           <div className="h-1.5 w-20 rounded-full bg-gradient-to-r from-[#374151] via-[#14b8a6] to-[#10b981]" />
           <span className="text-emerald-600 dark:text-emerald-400">High</span>

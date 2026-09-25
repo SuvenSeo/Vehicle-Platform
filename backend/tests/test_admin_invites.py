@@ -170,8 +170,26 @@ def test_non_admin_cannot_invite(client: TestClient):
 
 
 def test_app_access_gate_requires_auth(client: TestClient):
-    blocked = client.get("/api/v1/stats/summary")
-    assert blocked.status_code == 401
+    # Public-browse allowlist stays open without a session even when enforced.
+    # B2-A extends it to listing detail/sub-reads, stats trends, ev + market reads.
+    for public_path in (
+        "/api/v1/listings",
+        "/api/v1/listings/price-drops",
+        "/api/v1/stats/summary",
+        "/api/v1/stats/district-prices",
+        "/api/v1/stats/district-velocity",
+        "/api/v1/stats/trends",
+        "/api/v1/ev/charging-stations?lat=6.9&lng=79.86&radius_km=5",
+        "/api/v1/market/summary",
+    ):
+        assert client.get(public_path).status_code != 401
+
+    # Non-allowlisted product routes still require a session.
+    assert client.get("/api/v1/vehicles/safety-research").status_code == 401
+    # Writes and privileged surfaces stay gated (B2-A boundary).
+    assert client.post("/api/v1/alerts", json={}).status_code == 401
+    assert client.post("/api/v1/dealer/verify", json={}).status_code == 401
+    assert client.get("/api/v1/pro/market-snapshot").status_code in (401, 403)
 
     headers = _admin_headers(client)
     allowed = client.get("/api/v1/stats/summary", headers=headers)

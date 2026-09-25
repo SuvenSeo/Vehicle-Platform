@@ -23,7 +23,8 @@ from app.scrapers.net import (
     stealth_init_script,
 )
 from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
-from app.utils.listing_upsert import upsert_listings_batch
+from app.utils.listing_upsert import upsert_listing, upsert_listings_batch
+from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from app.utils.time import utc_now
 
 log = structlog.get_logger()
@@ -159,7 +160,10 @@ class IkmanCarScraper:
         if not image_id:
             return ""
         base_uri = str(images.get("base_uri") or "https://i.ikman-st.com").rstrip("/")
-        return f"{base_uri}/{slug}/{image_id}/142/107/cropped.jpg"
+        # The grid markup only exposes a 142x107 crop; ikman's CDN serves any
+        # size from this path, so store a card-sized crop instead.
+        grid_crop = f"{base_uri}/{slug}/{image_id}/142/107/cropped.jpg"
+        return upgrade_thumbnail_url(grid_crop) or grid_crop
 
     @classmethod
     def _extract_thumbnail_from_detail_html(cls, html: str) -> str:
@@ -400,6 +404,7 @@ class IkmanCarScraper:
         category_id: int,
         page_num: int,
         next_page_token: str | None,
+        max_retries: int = 3,
     ) -> tuple[list[dict], str | None, dict]:
         params: dict[str, str | int] = {
             "category": int(category_id),
@@ -410,20 +415,42 @@ class IkmanCarScraper:
         if next_page_token:
             params["next_page_token"] = next_page_token
 
-        response = await client.get(f"{self.API_BASE_URL}/v1/serp", params=params, timeout=45)
-        response.raise_for_status()
-        payload = response.json() if response.content else {}
-        if not isinstance(payload, dict):
-            raise IkmanApiUnavailable("ikman serp payload is not an object")
+        last_exc: Exception | None = None
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = await client.get(f"{self.API_BASE_URL}/v1/serp", params=params, timeout=45)
+                response.raise_for_status()
+                payload = response.json() if response.content else {}
+                if not isinstance(payload, dict):
+                    raise IkmanApiUnavailable("ikman serp payload is not an object")
 
-        serp = payload.get("serp") if isinstance(payload.get("serp"), dict) else {}
-        results = serp.get("results") if isinstance(serp, dict) else None
-        if not isinstance(results, list):
-            results = []
+                serp = payload.get("serp") if isinstance(payload.get("serp"), dict) else {}
+                results = serp.get("results") if isinstance(serp, dict) else None
+                if not isinstance(results, list):
+                    results = []
 
-        pagination = payload.get("pagination") if isinstance(payload.get("pagination"), dict) else {}
-        token = str(pagination.get("next_page_token") or "").strip() or None
-        return [row for row in results if isinstance(row, dict)], token, pagination
+                pagination = payload.get("pagination") if isinstance(payload.get("pagination"), dict) else {}
+                token = str(pagination.get("next_page_token") or "").strip() or None
+                return [row for row in results if isinstance(row, dict)], token, pagination
+            except (httpx.HTTPError, httpx.TimeoutException, json.JSONDecodeError) as exc:
+                last_exc = exc
+                if attempt < max_retries:
+                    backoff = 1.0 * (2 ** (attempt - 1))
+                    log.warning(
+                        "ikman_serp_fetch_retry",
+                        category_id=category_id,
+                        page=page_num,
+                        attempt=attempt,
+                        backoff=backoff,
+                        error=str(exc),
+                    )
+                    await asyncio.sleep(backoff)
+                else:
+                    break
+
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("Failed to fetch ikman serp page after retries")
 
     async def _scrape_category_via_api(
         self,
@@ -612,6 +639,7 @@ class IkmanCarScraper:
         return upserted
 
     async def _scrape_via_playwright(self, max_pages: int = 5):
+        upserted = 0
         async with async_playwright() as p:
             launch_kwargs = {"headless": True}
             launch_proxy = playwright_launch_proxy()
@@ -779,6 +807,7 @@ class IkmanCarScraper:
                                         continue
                                     self._upsert_listing(normalized_payload)
                                     self.db.commit()
+                                    upserted += 1
                                 except Exception as e:
                                     log.error("listing_save_error", error=str(e))
                                     self.db.rollback()
@@ -799,6 +828,7 @@ class IkmanCarScraper:
                 except PlaywrightError:
                     log.debug("ikman_unroute_cleanup_skipped")
                 await browser.close()
+        return upserted
 
     async def scrape(self, max_pages: int = 5):
         mode = str(os.getenv("IKMAN_SCRAPE_MODE", "auto") or "auto").strip().lower()
@@ -807,8 +837,7 @@ class IkmanCarScraper:
             mode = "auto"
 
         if mode == "playwright":
-            await self._scrape_via_playwright(max_pages)
-            return
+            return await self._scrape_via_playwright(max_pages)
 
         try:
             try:
@@ -822,7 +851,7 @@ class IkmanCarScraper:
                 max_pages=max_pages,
                 start_page=start_page,
             )
-            return
+            return upserted
         except IkmanApiUnavailable as exc:
             if mode == "api":
                 raise
@@ -831,4 +860,4 @@ class IkmanCarScraper:
                 error=str(exc),
                 max_pages=max_pages,
             )
-            await self._scrape_via_playwright(max_pages)
+            return await self._scrape_via_playwright(max_pages)

@@ -10,12 +10,14 @@ from app.api.v1.endpoints.auth import (
     verify_token,
 )
 from app.models.schemas import (
+    AlertChannelsUpdate,
     AlertMatchListing,
     AlertMatchResponse,
     AlertMatchResult,
     MarketAlertCreate,
     MarketAlertRead,
 )
+from app.utils.channel_center import SUPPORTED_CHANNELS, normalize_channels
 from app.services.rate_limit import RateLimiter
 from app.utils.plan_limits import FREE_ALERTS_LIMIT, PRO_ALERTS_LIMIT, is_free_browse_plan
 from db.models import CarListing, MarketAlert, live_listing_filter
@@ -100,6 +102,10 @@ def create_alert(
     notify_email = (payload.notify_email or "").strip() or None
     notify_telegram_chat_id = (payload.notify_telegram_chat_id or "").strip() or None
     notify_channels = (payload.notify_channels or "").strip() or None
+    delivery_mode = (payload.delivery_mode or "").strip().lower() or None
+    if delivery_mode not in (None, "instant", "digest"):
+        raise HTTPException(status_code=400, detail="delivery_mode must be 'instant' or 'digest'")
+    quiet_hours_enabled = payload.quiet_hours_enabled
 
     # WhatsApp, email, and Telegram notifications are Pro surfaces — reject
     # free-plan attempts even if the client bypasses the UI.
@@ -136,6 +142,16 @@ def create_alert(
         notify_telegram_chat_id=notify_telegram_chat_id,
         notify_channels=notify_channels,
     )
+    # Additive channel-center fields — setattr so legacy DBs without the
+    # columns (pre-patch) never break alert creation.
+    try:
+        alert.delivery_mode = delivery_mode
+    except Exception:
+        pass
+    try:
+        alert.quiet_hours_enabled = quiet_hours_enabled
+    except Exception:
+        pass
     db.add(alert)
     db.commit()
     db.refresh(alert)
@@ -179,6 +195,49 @@ def delete_alert(
         raise HTTPException(status_code=404, detail="Alert not found")
     alert.active = False
     db.commit()
+
+
+@router.patch("/{alert_id}/channels", response_model=MarketAlertRead)
+def update_alert_channels(
+    alert_id: int,
+    payload: AlertChannelsUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(default=None),
+    x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
+):
+    """Channel center: per-alert toggles in-app/email/WhatsApp/push + digest vs instant."""
+    owner, _live = _resolve_alert_identity(request, authorization, x_alert_token, db)
+    alert = (
+        db.query(MarketAlert)
+        .filter(MarketAlert.id == alert_id, MarketAlert.user_token == owner)
+        .first()
+    )
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    if payload.channels is not None:
+        channels = normalize_channels(payload.channels)
+        unknown = {str(c).strip().lower() for c in payload.channels if str(c).strip()} - channels - {""}
+        if unknown:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown channels: {', '.join(sorted(unknown))}. "
+                f"Supported: {', '.join(SUPPORTED_CHANNELS)}.",
+            )
+        alert.notify_channels = ",".join(sorted(channels)) if channels else None
+    if payload.delivery_mode is not None:
+        try:
+            alert.delivery_mode = payload.delivery_mode
+        except Exception:
+            pass
+    if payload.quiet_hours_enabled is not None:
+        try:
+            alert.quiet_hours_enabled = bool(payload.quiet_hours_enabled)
+        except Exception:
+            pass
+    db.commit()
+    db.refresh(alert)
+    return alert
 
 
 @router.post("/match", response_model=AlertMatchResponse)

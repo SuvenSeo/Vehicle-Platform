@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="shortcut_scan">තහඩුව ස්කෑන්</string>
+  <string name="shortcut_scan_long">වාහන අංක තහඩුවක් ස්කෑන් කරන්න</string>
+  <string name="shortcut_voice">හඬ සෙවුම</string>
+  <string name="shortcut_voice_long">ඔබේ හඬින් සොයන්න</string>
+  <string name="shortcut_deal">දිනයේ ගනුදෙනුව</string>
+  <string name="shortcut_deal_long">අද හොඳම ගනුදෙනුව</string>
+  <string name="shortcut_watchlist">නිරීක්ෂණ ලැයිස්තුව</string>
+  <string name="tile_scan">තහඩුව ස්කෑන් කරන්න</string>
+</resources>

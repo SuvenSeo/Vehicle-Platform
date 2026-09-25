@@ -1,0 +1,21 @@
+# Keeps the SHA-pinned `uses:` references in .github/workflows current.
+# Workflow actions are pinned to immutable commit SHAs, which is the safe
+# half of the trade: Dependabot supplies the other half by opening a PR when a
+# pinned action publishes a new release. Without this, pins silently go stale.
+#
+# Scope is deliberately limited to github-actions. Adding npm/pip ecosystems is
+# a separate decision (it would open PRs for the dependency backlog Dependabot
+# already reports) and should be enabled deliberately.
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
