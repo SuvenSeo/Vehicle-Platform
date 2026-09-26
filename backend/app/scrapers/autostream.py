@@ -71,8 +71,23 @@ class AutoStreamScraper:
                 return
             log.info("autostream_active_rows", active=len(active_rows), total=len(rows))
 
+            # The listings endpoint returns the whole active set in one call, so
+            # there is no pagination to walk. The old cap of
+            # ``max_pages * PAGE_SIZE`` silently discarded everything past
+            # 12,000 rows at the default 120-page budget — with no log line and
+            # no error. Process what the API actually returned; the page budget
+            # only becomes a limit once it is genuinely exceeded.
             max_items = page_limit * self.PAGE_SIZE
-            rows_to_process = active_rows[:max_items]
+            rows_to_process = active_rows
+            if len(rows_to_process) > max_items:
+                log.warning(
+                    "autostream_truncating_active_rows",
+                    active=len(rows_to_process),
+                    max_items=max_items,
+                    page_size=self.PAGE_SIZE,
+                    max_pages=page_limit,
+                )
+                rows_to_process = rows_to_process[:max_items]
 
             for page_num, start in enumerate(range(0, len(rows_to_process), self.PAGE_SIZE), start=1):
                 batch = rows_to_process[start : start + self.PAGE_SIZE]

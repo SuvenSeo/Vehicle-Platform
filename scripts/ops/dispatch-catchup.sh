@@ -19,7 +19,12 @@
 # Usage:
 #   bash scripts/ops/dispatch-catchup.sh              # ikman 1-200 + riyasewana 800
 #   IKMAN_SEGMENTS=2 bash scripts/ops/dispatch-catchup.sh
+#   RIYASEWANA_SEGMENTS=3 bash scripts/ops/dispatch-catchup.sh
 #   SKIP_IKMAN=1 bash scripts/ops/dispatch-catchup.sh
+#
+# Segments walk a source *deeper* into its catalogue: segment 2 starts where
+# segment 1 stopped instead of re-reading pages 1..N. Raise SEGMENTS to keep
+# descending.
 #
 # Riyasewana is behind the same Cloudflare block as patpat/saleme and succeeds
 # only on some runner IPs. A blocked attempt fails in ~0.1s (it no longer burns
@@ -31,6 +36,10 @@ REF="${REF:-main}"
 IKMAN_PAGES="${IKMAN_PAGES:-200}"
 IKMAN_SEGMENTS="${IKMAN_SEGMENTS:-1}"
 RIYASEWANA_PAGES="${RIYASEWANA_PAGES:-800}"
+RIYASEWANA_SEGMENTS="${RIYASEWANA_SEGMENTS:-1}"
+# Riyasewana used to have no start-page input, so a segment beyond page 1
+# re-crawled the head of the catalogue. It now segments like ikman.
+RIYASEWANA_START_PAGE="${RIYASEWANA_START_PAGE:-1}"
 # Deep crawls take hours; this is a safety ceiling, not an expected wait.
 WAIT_TIMEOUT_MINUTES="${WAIT_TIMEOUT_MINUTES:-300}"
 
@@ -93,6 +102,10 @@ wait_for() { # workflow run_id label
           warn "That is usually the Cloudflare block on this runner IP. Re-run this"
           warn "script to draw a fresh IP — a blocked attempt costs ~0.1s now."
         fi
+        if printf '%s' "$label" | grep -q '^riyasewana segment'; then
+          warn "That is usually the Cloudflare block on this runner IP. Re-run this"
+          warn "script to draw a fresh IP — a blocked attempt costs ~0.1s now."
+        fi
         return 1
         ;;
     esac
@@ -107,7 +120,7 @@ wait_for() { # workflow run_id label
 manual_instructions() {
   warn "Or trigger these manually from the Actions tab:"
   warn "  1. Ikman Deep Backfill      max_pages=${IKMAN_PAGES} start_page=1 refresh_catalog=false"
-  warn "  2. Riyasewana Deep Backfill max_pages=${RIYASEWANA_PAGES} refresh_catalog=false"
+  warn "  2. Riyasewana Deep Backfill max_pages=${RIYASEWANA_PAGES} start_page=1 refresh_catalog=false"
   warn "  3. Neon Export             limit=0 force=true  (Manus to Live then runs itself)"
 }
 
@@ -142,16 +155,30 @@ else
   log "Skipping Ikman backfill (SKIP_IKMAN=1)"
 fi
 
-log "Dispatching Riyasewana Deep Backfill (max_pages=${RIYASEWANA_PAGES})"
-dispatch riyasewana-bulk-backfill.yml \
-  "max_pages=${RIYASEWANA_PAGES}" \
-  "refresh_catalog=false"
-sleep 5
-ry_id=$(latest_run_id riyasewana-bulk-backfill.yml)
-echo "  -> run ${ry_id}"
-if ! wait_for riyasewana-bulk-backfill.yml "$ry_id" "riyasewana-backfill"; then
-  warn "Riyasewana did not land. Re-run this script to retry with a fresh IP."
-  warn "Neon Export below would still be valid, but skips riyasewana's deep catch-up."
+log "Dispatching Riyasewana Deep Backfill (${RIYASEWANA_SEGMENTS} segment(s) of ${RIYASEWANA_PAGES} pages)"
+ry_start="${RIYASEWANA_START_PAGE}"
+ry_seg=1
+ry_ok=0
+while [ "$ry_seg" -le "$RIYASEWANA_SEGMENTS" ]; do
+  dispatch riyasewana-bulk-backfill.yml \
+    "max_pages=${RIYASEWANA_PAGES}" \
+    "start_page=${ry_start}" \
+    "refresh_catalog=false"
+  sleep 5
+  ry_id=$(latest_run_id riyasewana-bulk-backfill.yml)
+  echo "  segment ${ry_seg}: pages ${ry_start}-$(( ry_start + RIYASEWANA_PAGES - 1 )) -> run ${ry_id}"
+  if wait_for riyasewana-bulk-backfill.yml "$ry_id" "riyasewana segment ${ry_seg}"; then
+    ry_ok=1
+  else
+    warn "Riyasewana did not land. Re-run this script to retry with a fresh IP."
+    warn "Neon Export below would still be valid, but skips riyasewana's deep catch-up."
+    break
+  fi
+  ry_start=$(( ry_start + RIYASEWANA_PAGES ))
+  ry_seg=$(( ry_seg + 1 ))
+done
+if [ "$ry_ok" != "1" ]; then
+  warn "Continuing to Neon Export without a complete riyasewana catch-up."
 fi
 
 log "Dispatching Neon Export (force=true) — publishes neon-export-* for the merge"

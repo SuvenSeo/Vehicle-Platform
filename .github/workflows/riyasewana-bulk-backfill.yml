@@ -8,15 +8,18 @@
 # recover listings missed while scrapers were paused.
 #
 # RIYASEWANA_FLAT_BUDGET=true gives every category the full page budget instead
-# of the capped secondary share, so a large max_pages crawls the whole catalog
+# of any rationed secondary share, so a large max_pages crawls the whole catalog
 # deeply.  The scraper honors the SERP's own pagination hint and stops at each
-# category's true last page.
+# category's true last page.  start_page segments a crawl that is deeper than one
+# run can reach, instead of re-reading the same head of the catalogue.
 #
 # DB WRITES ONLY (ingress is free on Neon). Optional snapshot refresh afterwards
 # keeps the public Vercel/R2 catalog in sync — run it with refresh_catalog=true.
 #
 # Run: Actions → "Riyasewana Deep Backfill" → Run workflow
 #   max_pages: 800 covers every category to its last page in one pass
+#   start_page: 1 for the newest pages; 801 to continue deeper past a first
+#               800-page pass instead of re-crawling it
 
 name: Riyasewana Deep Backfill
 
@@ -27,6 +30,10 @@ on:
         description: "Page budget per category (800 = full catalog depth)"
         type: string
         default: "800"
+      start_page:
+        description: "First listing page to crawl. Use to walk a segment deeper: a run that starts at 1 re-reads pages 1..max_pages and never gets past them."
+        type: string
+        default: "1"
       refresh_catalog:
         description: "Deploy snapshots straight from Neon. Leave OFF: manus-to-live.yml owns the public catalog and will overwrite these within 6h. For a durable backfill run 'Neon Export' afterwards — it publishes a neon-export-* release that manus-to-live merges into the merged SQLite."
         type: boolean
@@ -108,6 +115,7 @@ jobs:
           RIYASEWANA_SCRAPE_MODE: "http"
           # Full budget for every category so the whole catalog is covered.
           RIYASEWANA_FLAT_BUDGET: "true"
+          RIYASEWANA_START_PAGE: ${{ github.event.inputs.start_page || '1' }}
           # Optional residential proxy. Without it this run depends on drawing a
           # GitHub runner IP that riyasewana's Cloudflare does not block.
           SCRAPE_PROXY_URL: ${{ secrets.SCRAPE_PROXY_URL }}

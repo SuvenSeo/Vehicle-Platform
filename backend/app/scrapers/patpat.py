@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
 from app.scrapers.net import httpx_client_kwargs, response_blocked_reason
-from app.scrapers.page_budget import page_budget_for_category
+from app.scrapers.page_budget import page_budget_for_category, start_page_from_env
 from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 
 log = structlog.get_logger()
@@ -138,6 +138,7 @@ class PatpatScraper:
         }
 
         seen_urls: set[str] = set()
+        start_page = start_page_from_env(self.SOURCE)
 
         async with httpx.AsyncClient(
             follow_redirects=True, **httpx_client_kwargs(headers)
@@ -145,11 +146,12 @@ class PatpatScraper:
             for category_path in self.CATEGORY_PATHS:
                 page_limit = self._page_budget_for_category(category_path, max_pages)
                 base_url = self._category_base_url(category_path)
-                page_num = 1
+                page_num = start_page
+                stop_at_page = start_page + page_limit
                 consecutive_empty_pages = 0
                 consecutive_page_errors = 0
 
-                while page_num <= page_limit:
+                while page_num < stop_at_page:
                     url = base_url if page_num == 1 else f"{base_url}?page={page_num}"
                     log.info(
                         "scraping_page",
