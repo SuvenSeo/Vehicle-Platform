@@ -11,6 +11,7 @@ walled source reported itself as healthy on the public pipeline-status bar.
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 
 import pytest
@@ -306,6 +307,56 @@ def test_main_scrape_job_honours_an_optional_proxy():
     wf = _workflow("manus-scrape-every-2h.yml")
     walled_env = str(wf["jobs"]["walled-sources"]["steps"])
     assert "SCRAPE_PROXY_URL" in walled_env
+
+
+# ---------------------------------------------------------------------------
+# riyasewana segmentable deep crawl
+# ---------------------------------------------------------------------------
+
+
+def test_riyasewana_supports_a_start_page():
+    """Deep crawls must be able to advance past the head of the catalogue.
+
+    Without this every run restarts at page 1, so a crawl budgeted to reach
+    page 200 spends its whole window re-reading pages it already has and never
+    gets deeper. Mirrors IKMAN_START_PAGE, which ikman already had.
+    """
+    from app.scrapers.riyasewana import _start_page
+
+    assert _start_page() == 1  # unset -> page 1
+
+    monkey = os.environ
+    try:
+        monkey["RIYASEWANA_START_PAGE"] = "41"
+        assert _start_page() == 41
+        monkey["RIYASEWANA_START_PAGE"] = "0"
+        assert _start_page() == 1, "must clamp to at least page 1"
+        monkey["RIYASEWANA_START_PAGE"] = "not-a-number"
+        assert _start_page() == 1, "must fall back rather than crash"
+    finally:
+        monkey.pop("RIYASEWANA_START_PAGE", None)
+
+
+def test_riyasewana_crawl_loops_read_the_start_page():
+    """Both crawl paths (Playwright and plain-HTTP) must honour it."""
+    import inspect
+
+    from app.scrapers.riyasewana import RiyasewanaScraper
+
+    for method in (RiyasewanaScraper._scrape_live, RiyasewanaScraper._scrape_via_http):
+        source = inspect.getsource(method)
+        assert "page_num = self._start_page" in source, (
+            f"{method.__name__} still restarts at page 1"
+        )
+
+
+def test_riyasewana_start_page_defaults_to_one_without_scrape():
+    """The private crawl methods must be safe when called directly."""
+    from app.scrapers.riyasewana import RiyasewanaScraper
+
+    scraper = RiyasewanaScraper.__new__(RiyasewanaScraper)
+    RiyasewanaScraper.__init__(scraper, None)
+    assert scraper._start_page == 1
 
 
 # ---------------------------------------------------------------------------

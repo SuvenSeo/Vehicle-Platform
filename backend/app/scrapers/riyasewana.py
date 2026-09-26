@@ -75,6 +75,23 @@ _FLAT_BUDGET_ENABLED = str(os.getenv("RIYASEWANA_FLAT_BUDGET", "") or "").strip(
 }
 
 
+def _start_page() -> int:
+    """First page to crawl, so a deep backfill can be run in segments.
+
+    Without this every run re-crawls pages 1..N from scratch, so a crawl
+    budgeted to reach page 200 spends its whole window re-reading the head of
+    the catalogue and never gets deeper. Mirrors ``IKMAN_START_PAGE``.
+    """
+    raw = str(os.getenv("RIYASEWANA_START_PAGE", "") or "").strip()
+    if not raw:
+        return 1
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        log.warning("riyasewana_start_page_invalid", value=raw, fallback=1)
+        return 1
+
+
 class RiyasewanaScraper:
     SOURCE = "riyasewana"
     # For-sale vehicle leaves only (skip rentals/parts via category choice).
@@ -107,6 +124,9 @@ class RiyasewanaScraper:
     def __init__(self, db: Session):
         self.db = db
         self.cleaner = CarCleaner()
+        # First page to crawl; scrape() refreshes it from RIYASEWANA_START_PAGE.
+        # Defaulted here so the private crawl methods are safe to call directly.
+        self._start_page = 1
 
     def _upsert_listing(self, payload: dict):
         return upsert_listing(self.db, self.SOURCE, payload)
@@ -448,7 +468,7 @@ class RiyasewanaScraper:
                 for category_path in self.CATEGORY_PATHS:
                     page_limit = self._page_budget_for_category(category_path, max_pages)
                     base_url = self._category_base_url(category_path)
-                    page_num = 1
+                    page_num = self._start_page
                     consecutive_empty_pages = 0
                     consecutive_page_errors = 0
 
@@ -622,7 +642,7 @@ class RiyasewanaScraper:
             for category_path in self.CATEGORY_PATHS:
                 page_limit = self._page_budget_for_category(category_path, max_pages)
                 base_url = self._category_base_url(category_path)
-                page_num = 1
+                page_num = self._start_page
                 consecutive_empty_pages = 0
                 consecutive_page_errors = 0
                 stop_at_page: int | None = None
@@ -744,6 +764,14 @@ class RiyasewanaScraper:
                 fallback="auto",
             )
             mode = "auto"
+
+        start_page = _start_page()
+        # Stored on the instance rather than threaded through the private
+        # scrape methods, so their signatures (and any test doubles for them)
+        # stay exactly as they were.
+        self._start_page = start_page
+        if start_page > 1:
+            log.info("riyasewana_segment_start", start_page=start_page, max_pages=max_pages)
 
         if mode == "playwright":
             try:
