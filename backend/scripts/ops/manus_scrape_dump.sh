@@ -22,6 +22,11 @@
 #   GH_TOKEN            optional GitHub token with "releases" write
 #   MANUS_RELEASE_REPO  default SuvenSeo/Vehicle-Platform
 #   MANUS_MAX_PAGES     per-source page budget, default 120
+#   MANUS_START_PAGE    first listing page to visit, default 1. Raise it to
+#                       crawl a segment deeper into a source's catalogue: a run
+#                       that only ever starts at page 1 re-reads the same head
+#                       of the catalogue forever and never gets past it.
+#   MANUS_SOURCE_LIST   space/comma separated subset of sources to scrape
 #
 # NOTE: use this for API / plain-HTTP friendly sources (riyasewana, ikman,
 # autolanka, hitad, autostream, saleme, riyahub, carshop, dimo, autodirect,
@@ -32,6 +37,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "${ROOT}/backend"
 
 MAX="${MANUS_MAX_PAGES:-120}"
+START_PAGE="${MANUS_START_PAGE:-1}"
 REPO="${MANUS_RELEASE_REPO:-SuvenSeo/Vehicle-Platform}"
 # Bound a stalled source so later sources and the dump upload can still run.
 SOURCE_TIMEOUT="${MANUS_SOURCE_TIMEOUT_SECONDS:-900}"
@@ -53,12 +59,17 @@ rm -f autolens.db autolens.db.gz
 
 SOURCES=("$@")
 if [ ${#SOURCES[@]} -eq 0 ]; then
-  SOURCES=(riyasewana ikman autolanka auto-lanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
+  if [ -n "${MANUS_SOURCE_LIST:-}" ]; then
+    # shellcheck disable=SC2206
+    SOURCES=($(printf '%s' "${MANUS_SOURCE_LIST}" | tr ',' ' '))
+  else
+    SOURCES=(riyasewana ikman autolanka auto-lanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
+  fi
 fi
 
 for src in "${SOURCES[@]}"; do
   upper="$(printf '%s' "$src" | tr '[:lower:]' '[:upper:]')"
-  echo "== scraping ${src} (max ${MAX} pages) =="
+  echo "== scraping ${src} (max ${MAX} pages, from page ${START_PAGE}) =="
   env \
     ALLOW_SQLITE_FALLBACK=true \
     RUN_SCRAPERS=true \
@@ -68,6 +79,7 @@ for src in "${SOURCES[@]}"; do
     RUN_OUTLIER_DETECTION=false \
     SCRAPE_ENABLED_SOURCES="${src}" \
     "SCRAPE_MAX_PAGES_${upper}=${MAX}" \
+    "SCRAPE_START_PAGE=${START_PAGE}" \
     SCRAPE_SOURCE_TIMEOUT_SECONDS="${SOURCE_TIMEOUT}" \
     RIYASEWANA_SCRAPE_MODE=http \
     RIYASEWANA_ARCHIVE_FALLBACK=0 \
@@ -105,7 +117,7 @@ fi
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "== gh CLI available — creating release ${TAG} (${REPO}) =="
   if gh release create "${TAG}" autolens.db.gz --repo "${REPO}" \
-      --title "${TAG}" --notes "Sources: $* — listings: ${TOTAL}" \
+      --title "${TAG}" --notes "Sources: ${SOURCES[*]} — from page ${START_PAGE} — listings: ${TOTAL}" \
       --prerelease --latest=false; then
     echo "== uploaded via gh. DONE =="
     exit 0
@@ -122,7 +134,7 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
     -H "Authorization: Bearer ${GH_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}/releases" \
-    -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"body\":\"Sources: $* — listings: ${TOTAL}\",\"draft\":false,\"prerelease\":true,\"latest\":false}")"
+    -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"body\":\"Sources: ${SOURCES[*]} — from page ${START_PAGE} — listings: ${TOTAL}\",\"draft\":false,\"prerelease\":true,\"latest\":false}")"
 
   RELEASE_ID="$(printf '%s' "${RELEASE_JSON}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")"
 

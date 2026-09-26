@@ -145,8 +145,8 @@ def test_ikman_vehicle_categories_cover_all_for_sale_leaves():
 
 def test_ikman_page_budget_keeps_full_depth_for_cars():
     assert IkmanCarScraper._page_budget_for_category(392, 40) == 40
-    assert IkmanCarScraper._page_budget_for_category(402, 40) == 10
-    assert IkmanCarScraper._page_budget_for_category(911, 8) == 5
+    assert IkmanCarScraper._page_budget_for_category(402, 40) == 40
+    assert IkmanCarScraper._page_budget_for_category(911, 8) == 8
     assert IkmanCarScraper._page_budget_for_category(402, 1) == 1
 
 

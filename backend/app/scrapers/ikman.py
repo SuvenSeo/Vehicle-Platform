@@ -22,7 +22,11 @@ from app.scrapers.net import (
     playwright_launch_proxy,
     stealth_init_script,
 )
-from app.scrapers.page_budget import page_budget_for_category, secondary_page_budget
+from app.scrapers.page_budget import (
+    page_budget_for_category,
+    secondary_page_budget,
+    start_page_from_env,
+)
 from app.utils.listing_upsert import upsert_listing, upsert_listings_batch
 from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from app.utils.time import utc_now
@@ -840,10 +844,7 @@ class IkmanCarScraper:
             return await self._scrape_via_playwright(max_pages)
 
         try:
-            try:
-                start_page = max(1, int(os.getenv("IKMAN_START_PAGE", "1") or "1"))
-            except (TypeError, ValueError):
-                start_page = 1
+            start_page = start_page_from_env("ikman")
             upserted = await self._scrape_via_api(max_pages, start_page=start_page)
             log.info(
                 "ikman_api_scrape_complete",

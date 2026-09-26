@@ -28,7 +28,7 @@ from app.scrapers.net import (
     stealth_init_script,
 )
 from app.utils.time import utc_now
-from app.scrapers.page_budget import page_budget_for_category
+from app.scrapers.page_budget import page_budget_for_category, start_page_from_env
 from app.services.historical_archive import (
     fetch_cdx_hits,
     fetch_wayback_html,
@@ -65,8 +65,8 @@ _VALID_SCRAPE_MODES = {"auto", "http", "playwright"}
 _BLOCKED_HTTP_STATUSES = frozenset({403, 429})
 
 # When true, every category gets the full requested page budget instead of the
-# capped secondary share (see page_budget.py).  Used by deep backfills so a
-# large max_pages crawls all categories deeply, not just the primary one.
+# rationed secondary share (see page_budget.py).  Kept for callers that still
+# want to force the behaviour regardless of the SCRAPE_SECONDARY_* env knobs.
 _FLAT_BUDGET_ENABLED = str(os.getenv("RIYASEWANA_FLAT_BUDGET", "") or "").strip().lower() in {
     "1",
     "true",
@@ -80,16 +80,18 @@ def _start_page() -> int:
 
     Without this every run re-crawls pages 1..N from scratch, so a crawl
     budgeted to reach page 200 spends its whole window re-reading the head of
-    the catalogue and never gets deeper. Mirrors ``IKMAN_START_PAGE``.
+    the catalogue and never gets deeper. Delegates to the shared reader so
+    every scraper segments the same way, and also honours the fleet-wide
+    ``SCRAPE_START_PAGE``.
     """
     raw = str(os.getenv("RIYASEWANA_START_PAGE", "") or "").strip()
-    if not raw:
-        return 1
-    try:
-        return max(1, int(raw))
-    except (TypeError, ValueError):
-        log.warning("riyasewana_start_page_invalid", value=raw, fallback=1)
-        return 1
+    if raw:
+        try:
+            int(raw)
+        except (TypeError, ValueError):
+            log.warning("riyasewana_start_page_invalid", value=raw, fallback=1)
+            return 1
+    return start_page_from_env("riyasewana")
 
 
 class RiyasewanaScraper:

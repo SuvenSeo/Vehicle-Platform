@@ -180,11 +180,12 @@ def test_auto_lanka_is_in_the_live_scrape_list():
     assert "auto-lanka" in workflow
 
     script = DUMP_SCRIPT.read_text(encoding="utf-8")
-    # Skip the `SOURCES=("$@")` argv passthrough; assert on the default list.
+    # Assert on the hard-coded default list, not the argv passthrough or the
+    # MANUS_SOURCE_LIST override.
     default_line = next(
         line
         for line in script.splitlines()
-        if line.strip().startswith("SOURCES=(") and '"$@"' not in line
+        if "riyasewana ikman" in line and line.strip().startswith("SOURCES=(")
     )
     assert "auto-lanka" in default_line
 

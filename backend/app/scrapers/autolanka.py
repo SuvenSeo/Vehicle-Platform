@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.page_budget import start_page_from_env
 from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 
 log = structlog.get_logger()
@@ -208,7 +209,7 @@ class AutoLankaScraper:
         }
 
         page_limit = max_pages if max_pages > 0 else None
-        page_num = 1
+        page_num = start_page_from_env(self.SOURCE)
         seen_urls: set[str] = set()
         consecutive_empty_pages = 0
         consecutive_page_errors = 0

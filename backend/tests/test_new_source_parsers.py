@@ -90,7 +90,9 @@ def test_multi_category_scrapers_respect_total_page_budget():
     assert len(riyahub_urls) > 5
     assert any(url.rstrip("/").endswith("/vehicle/cars") for url in riyahub_urls)
     assert any("/vehicle/motorcycles" in url for url in riyahub_urls)
-    assert len(DimoScraper(db=None)._build_page_urls(5)) == 5
+    # dimo has two independent entry points (paginated archive + site root);
+    # each gets its own budget rather than sharing one global pool.
+    assert len(DimoScraper(db=None)._build_page_urls(5)) == 10
 
 
 def test_carshop_builds_payload_from_current_detail_shape():
