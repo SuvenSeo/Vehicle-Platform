@@ -35,6 +35,15 @@ MAX="${MANUS_MAX_PAGES:-120}"
 REPO="${MANUS_RELEASE_REPO:-SuvenSeo/Vehicle-Platform}"
 # Bound a stalled source so later sources and the dump upload can still run.
 SOURCE_TIMEOUT="${MANUS_SOURCE_TIMEOUT_SECONDS:-900}"
+# run_sync.py enforces SCRAPE_SOURCE_TIMEOUT_SECONDS in-process and, on
+# timeout, still has to finalize the ScrapeRun row (status + finished_at) and
+# flush its upsert buffer. If the outer `timeout` fires at the same instant the
+# process is SIGKILLed before that cleanup runs, the source stays RUNNING
+# forever — which is what pinned saleme/riyahub to a permanent "running" with
+# last_success=null on the public pipeline-status snapshot. Give the in-process
+# budget clear headroom inside the hard kill.
+SOURCE_KILL_GRACE="${MANUS_SOURCE_KILL_GRACE_SECONDS:-60}"
+HARD_TIMEOUT="$((SOURCE_TIMEOUT + SOURCE_KILL_GRACE))"
 
 echo "== installing deps =="
 python3 -m pip install -q -r requirements.txt
@@ -44,7 +53,7 @@ rm -f autolens.db autolens.db.gz
 
 SOURCES=("$@")
 if [ ${#SOURCES[@]} -eq 0 ]; then
-  SOURCES=(riyasewana ikman autolanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
+  SOURCES=(riyasewana ikman autolanka auto-lanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
 fi
 
 for src in "${SOURCES[@]}"; do
@@ -62,7 +71,7 @@ for src in "${SOURCES[@]}"; do
     SCRAPE_SOURCE_TIMEOUT_SECONDS="${SOURCE_TIMEOUT}" \
     RIYASEWANA_SCRAPE_MODE=http \
     RIYASEWANA_ARCHIVE_FALLBACK=0 \
-    timeout --foreground --kill-after=30s "${SOURCE_TIMEOUT}s" python3 run_sync.py || echo "!! ${src} scrape failed or timed out — continuing with the rest"
+    timeout --foreground --kill-after=30s "${HARD_TIMEOUT}s" python3 run_sync.py || echo "!! ${src} scrape failed or timed out — continuing with the rest"
 done
 
 TOTAL="$(python3 -c "
@@ -80,7 +89,15 @@ if [[ "${TOTAL}" == "0" ]]; then
 fi
 
 gzip -f autolens.db
-TAG="manus-scrape-$(date -u +%Y%m%dT%H%MZ)"
+# A retry job can publish several dumps inside the same minute, so a suffixed
+# tag switches to second precision to keep releases distinct. The merge side
+# (scripts/ops/discover_dump_releases.py) matches the manus-scrape- prefix and
+# then searches for the timestamp, so both forms are accepted there.
+if [ -n "${MANUS_RELEASE_TAG_SUFFIX:-}" ]; then
+  TAG="manus-scrape-$(date -u +%Y%m%dT%H%M%SZ)-${MANUS_RELEASE_TAG_SUFFIX}"
+else
+  TAG="manus-scrape-$(date -u +%Y%m%dT%H%MZ)"
+fi
 
 # ---------------------------------------------------------------------------
 # Delivery path 1: `gh` CLI (Manus integration may already authenticate it)
