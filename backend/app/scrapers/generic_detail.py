@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
-from app.scrapers.net import httpx_client_kwargs
+from app.scrapers.net import httpx_client_kwargs, response_blocked_reason
 from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 
 log = structlog.get_logger()
@@ -54,6 +54,15 @@ SRI_LANKA_DISTRICTS = (
 )
 
 
+class SourceBlockedError(RuntimeError):
+    """Raised when a source answers with a bot wall instead of listings.
+
+    Aborting the whole source on the first challenge page is deliberate: these
+    walls never clear mid-run, so continuing only burns the source's entire
+    wall-clock budget (and the fleet's IP reputation) for zero listings.
+    """
+
+
 class GenericDetailScraper:
     SOURCE = ""
     BASE_URL = ""
@@ -64,6 +73,11 @@ class GenericDetailScraper:
     def __init__(self, db: Session):
         self.db = db
         self.cleaner = CarCleaner()
+        # Set to a short reason when the source answered with a bot wall so the
+        # caller can record a truthful FAILED run instead of a zero-listing
+        # SUCCESS. Checked with getattr() so subclasses that skip __init__ or
+        # older scrapers stay safe.
+        self.blocked_reason: str | None = None
 
     def _upsert_listing(self, payload: dict):
         return buffered_upsert_listing(self, payload)
@@ -358,6 +372,8 @@ class GenericDetailScraper:
 
         seen_urls: set[str] = set()
         consecutive_empty_pages = 0
+        blocked = False
+        block_reason: str | None = None
 
         async with httpx.AsyncClient(
             follow_redirects=True, **httpx_client_kwargs(DEFAULT_HEADERS)
@@ -366,9 +382,22 @@ class GenericDetailScraper:
                 log.info("scraping_page", source=self.SOURCE, url=page_url)
                 try:
                     response = await client.get(page_url, timeout=30)
+                    page_blocked = response_blocked_reason(response)
+                    if page_blocked:
+                        raise SourceBlockedError(page_blocked)
                     response.raise_for_status()
                     soup = BeautifulSoup(response.text, "lxml")
                     listing_urls = self._extract_listing_links(soup)
+                except SourceBlockedError as exc:
+                    log.warning(
+                        "generic_detail_source_blocked",
+                        source=self.SOURCE,
+                        url=page_url,
+                        reason=str(exc),
+                    )
+                    blocked = True
+                    block_reason = str(exc)
+                    break
                 except Exception as exc:
                     log.error("generic_detail_page_error", source=self.SOURCE, url=page_url, error=str(exc))
                     continue
@@ -388,6 +417,9 @@ class GenericDetailScraper:
                     seen_urls.add(detail_url)
                     try:
                         detail = await client.get(detail_url, timeout=30)
+                        detail_blocked = response_blocked_reason(detail)
+                        if detail_blocked:
+                            raise SourceBlockedError(detail_blocked)
                         detail.raise_for_status()
                         payload = self._build_payload(
                             str(detail.url),
@@ -399,6 +431,17 @@ class GenericDetailScraper:
                         self._upsert_listing(payload)
                         self.db.commit()
                         new_on_page += 1
+                    except SourceBlockedError as exc:
+                        self.db.rollback()
+                        log.warning(
+                            "generic_detail_source_blocked",
+                            source=self.SOURCE,
+                            url=detail_url,
+                            reason=str(exc),
+                        )
+                        blocked = True
+                        block_reason = str(exc)
+                        break
                     except Exception as exc:
                         self.db.rollback()
                         log.error("generic_detail_item_error", source=self.SOURCE, url=detail_url, error=str(exc))
@@ -408,4 +451,14 @@ class GenericDetailScraper:
                     if consecutive_empty_pages >= self.EMPTY_PAGE_LIMIT:
                         break
 
+                if blocked:
+                    break
+
         flush_upsert_buffer(self)
+        if blocked:
+            self.blocked_reason = block_reason or "bot_wall:unknown"
+            log.warning(
+                "generic_detail_source_gave_up_blocked",
+                source=self.SOURCE,
+                reason=self.blocked_reason,
+            )
