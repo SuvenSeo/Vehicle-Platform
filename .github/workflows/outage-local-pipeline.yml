@@ -267,6 +267,21 @@ jobs:
           ).fetchone()[0]
           print("laptop db rows:", rows)
 
+          # Never publish account/PII tables. The merge path only needs listings.
+          con = sqlite3.connect(dst)
+          for table in (
+              "platform_users", "user_invites", "market_alerts",
+              "market_alert_matches", "user_notifications", "user_feedback",
+              "analytics_events", "dealer_profiles",
+              "push_subscriptions", "notification_delivery_log",
+          ):
+              try:
+                  con.execute(f'DELETE FROM "{table}"')
+              except sqlite3.OperationalError:
+                  pass
+          con.commit()
+          con.close()
+
           with open(dst, "rb") as fin, gzip.open("autolens.db.gz", "wb") as fout:
               shutil.copyfileobj(fin, fout)
 
