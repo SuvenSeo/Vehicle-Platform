@@ -31,14 +31,17 @@ function toTitleCase(str: string): string {
 
 export default function MakeModelHub() {
   const { t } = useAppPreferences();
-  const { make: makeParam = "", model: modelParam = "" } = useParams<{
+  const { make: makeParam = "", model: modelParam = "", year: yearParam } = useParams<{
     make: string;
     model: string;
+    year?: string;
   }>();
+  const yearFilter = yearParam ? Number.parseInt(yearParam, 10) : undefined;
+  const yearOk = typeof yearFilter === "number" && Number.isFinite(yearFilter) && yearFilter > 1970;
 
   const makeDisplay = toTitleCase(decodeURIComponent(makeParam));
   const modelDisplay = toTitleCase(decodeURIComponent(modelParam));
-  const vehicleLabel = `${makeDisplay} ${modelDisplay}`.trim();
+  const vehicleLabel = `${makeDisplay} ${modelDisplay}${yearOk ? ` ${yearFilter}` : ""}`.trim();
 
   const insightQuery = useQuery({
     queryKey: ["make-model-insight", makeParam, modelParam],
@@ -48,17 +51,32 @@ export default function MakeModelHub() {
   });
 
   const listingsQuery = useQuery({
-    queryKey: ["listings", { make: makeParam, model: modelParam, sort: "newest", page: 1 }],
+    queryKey: ["listings", { make: makeParam, model: modelParam, year: yearOk ? yearFilter : undefined, sort: "newest", page: 1 }],
     queryFn: () =>
-      getListings({ make: makeParam, model: modelParam, sort: "newest", page: 1 }),
+      getListings({
+        make: makeParam,
+        model: modelParam,
+        sort: "newest",
+        page: 1,
+        ...(yearOk ? { year_min: yearFilter, year_max: yearFilter } : {}),
+      }),
     enabled: Boolean(makeParam && modelParam),
     staleTime: QUERY_STALE.listings,
   });
 
   const scatterQuery = useQuery({
-    queryKey: ["scatter-listings", makeParam, modelParam],
+    queryKey: ["scatter-listings", makeParam, modelParam, yearOk ? yearFilter : undefined],
     queryFn: () =>
-      getListingsForExport({ make: makeParam, model: modelParam, sort: "price_asc", page: 1 }, 80),
+      getListingsForExport(
+        {
+          make: makeParam,
+          model: modelParam,
+          sort: "price_asc",
+          page: 1,
+          ...(yearOk ? { year_min: yearFilter, year_max: yearFilter } : {}),
+        },
+        80,
+      ),
     enabled: Boolean(makeParam && modelParam),
     staleTime: QUERY_STALE.listings,
   });
@@ -127,14 +145,16 @@ export default function MakeModelHub() {
 
     // Canonical + JSON-LD owned by global RouteMeta (id autolens-jsonld) —
     // page-level writes removed to avoid last-write-wins collision.
-    const pathname = `/cars/${encodeURIComponent(makeParam)}/${encodeURIComponent(modelParam)}`;
+    const pathname = yearOk
+      ? `/cars/${encodeURIComponent(makeParam)}/${encodeURIComponent(modelParam)}/${yearFilter}`
+      : `/cars/${encodeURIComponent(makeParam)}/${encodeURIComponent(modelParam)}`;
     setMeta("description", description);
     setProperty("og:title", title);
     setProperty("og:description", description);
     setProperty("og:url", `${ORIGIN}${pathname}`);
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
-  }, [title, description, makeParam, modelParam, insight, vehicle, t]);
+  }, [title, description, makeParam, modelParam, yearOk, yearFilter, insight, vehicle, t]);
 
   const isPending = insightQuery.isPending;
   const isError = insightQuery.isError && !insightQuery.data;
