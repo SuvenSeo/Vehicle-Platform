@@ -205,8 +205,15 @@ jobs:
               "platform_users", "user_invites", "market_alerts",
               "market_alert_matches", "user_notifications", "user_feedback",
               "analytics_events", "dealer_profiles",
+              # Device push endpoints/keys and delivery receipts are PII —
+              # they must never ride a public artifact.
+              "push_subscriptions", "notification_delivery_log",
           ):
-              con.execute(f'DELETE FROM "{table}"')
+              try:
+                  con.execute(f'DELETE FROM "{table}"')
+              except sqlite3.OperationalError:
+                  # Legacy dumps may pre-date the table.
+                  pass
           con.commit()
           con.close()
           PY
