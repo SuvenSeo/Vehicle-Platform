@@ -62,7 +62,7 @@ def _archive_fallback_enabled() -> bool:
 # page and can crawl the full catalog depth (hundreds of pages per category).
 _DEFAULT_SCRAPE_MODE = str(os.getenv("RIYASEWANA_SCRAPE_MODE", "auto") or "auto").strip().lower()
 _VALID_SCRAPE_MODES = {"auto", "http", "playwright"}
-_BLOCKED_HTTP_STATUSES = frozenset({403, 429})
+_BLOCKED_HTTP_STATUSES = frozenset({401, 403, 405, 406, 429})
 
 # When true, every category gets the full requested page budget instead of the
 # rationed secondary share (see page_budget.py).  Kept for callers that still
@@ -595,6 +595,12 @@ class RiyasewanaScraper:
                     if attempt < 3:
                         await asyncio.sleep(5 * attempt)
                         continue
+                    # Persistent challenge: abort the source instead of
+                    # returning the wall page as content (which then walks
+                    # every remaining page as "empty").
+                    raise RiyasewanaBlockedError(
+                        f"riyasewana.com served a challenge page over HTTP on page {page_num}"
+                    )
                 # Fetch succeeded and isn't a challenge/block page; the caller
                 # decides whether the page is legitimately empty.
                 return soup
