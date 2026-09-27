@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/authContext";
 import { hasFullPlatformAccess } from "@/lib/planLimits";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { useAppPreferences } from "@/lib/appPreferences";
+import { canonicalizeMake, canonicalizeModel } from "@/lib/makeNormalization";
 
 interface ListingCardProps {
   listing: CarListing;
@@ -92,7 +93,9 @@ export const ListingCard = memo(function ListingCard({
     ? summarizeFmv(priceValue, Number(listing.market_median_lkr || 0))
     : null;
   const marketPosition = marketDeltaPct === null ? 50 : clamp(50 - marketDeltaPct, 8, 92);
-  const listingTitle = `${listing.make} ${listing.model} ${listing.variant || ""}`.trim();
+  const displayMake = canonicalizeMake(listing.make) || listing.make;
+  const displayModel = canonicalizeModel(listing.model) || listing.model;
+  const listingTitle = `${displayMake} ${displayModel} ${listing.variant || ""}`.trim();
 
   return (
     <article
@@ -115,7 +118,7 @@ export const ListingCard = memo(function ListingCard({
           <VehicleThumbnail
             src={imageUrl}
             listingId={listing.id}
-            alt={`${listing.make} ${listing.model}`}
+            alt={`${displayMake} ${displayModel}`}
             priority={priority}
             className="h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
           />
