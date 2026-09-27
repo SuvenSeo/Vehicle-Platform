@@ -166,7 +166,7 @@ export default function ListingDetail() {
   // once the listing loads — same script element, so there is only ever one.
   useEffect(() => {
     if (!listing) return;
-    const script = document.getElementById('autolens-jsonld');
+    const script = document.getElementById('motormila-jsonld');
     if (!script) return;
 
     const price = Number(listing.price_lkr || 0);
