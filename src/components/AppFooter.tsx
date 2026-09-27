@@ -46,7 +46,6 @@ export function AppFooter() {
   const toolLinks = useMemo(
     () => [
       { label: t("nav.evHub", "EV Hub"), to: "/ev-hub" },
-      { label: t("nav.evChargers", "EV Chargers"), to: "/ev-chargers" },
       { label: t("nav.valuation", "Valuation"), to: "/estimate" },
       { label: t("nav.pricing", "Pricing"), to: "/pricing" },
       { label: t("nav.docs", "Docs"), to: "/docs" },
@@ -60,7 +59,6 @@ export function AppFooter() {
       { label: t("nav.officialPulse", "Official Pulse"), to: "/official-pulse" },
       { label: t("nav.dealer", "Dealer"), to: "/dealer" },
       { label: t("nav.bestPicks", "Best Picks"), to: "/best-picks" },
-      { label: t("nav.priceIndex", "Price Index"), to: "/price-index" },
       { label: t("nav.compare", "Compare"), to: "/compare" },
       { label: t("nav.proPreview", "Pro Preview"), to: "/pro-preview" },
       { label: t("nav.alerts", "Alerts"), to: "/alerts" },

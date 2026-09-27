@@ -19,7 +19,6 @@ import {
   Store,
   UserCircle2,
   X,
-  Zap,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -99,12 +98,6 @@ export function Navbar() {
             icon: Star,
           },
           {
-            label: t("nav.priceIndex", "Price Index"),
-            detail: t("nav.priceIndexDetail", "Mix-adjusted market index"),
-            href: "/price-index",
-            icon: BarChart3,
-          },
-          {
             label: t("nav.officialPulse", "Official Pulse"),
             detail: t("nav.officialPulseDetail", "DMT, Customs & news signals"),
             href: "/official-pulse",
@@ -127,12 +120,6 @@ export function Navbar() {
             detail: t("nav.compareDetail", "Put up to three cars side by side"),
             href: "/compare",
             icon: Scale,
-          },
-          {
-            label: t("nav.evChargers", "EV Chargers"),
-            detail: t("nav.evChargersDetail", "Charging points across the island"),
-            href: "/ev-chargers",
-            icon: Zap,
           },
           {
             label: t("nav.alerts", "Alerts"),

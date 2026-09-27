@@ -233,6 +233,7 @@ function parseFilters(params: URLSearchParams): FilterState {
         ? (vehicleCategory as FilterState["vehicle_category"])
         : "cars",
     price_availability: priceAvailability === "unavailable" ? "unavailable" : undefined,
+    fresh_24h: params.get("fresh_24h") === "1" ? true : undefined,
     sort: isSortValue(sort) ? sort : "newest",
     page: Math.max(1, parseOptionalNumber(params.get("page")) || 1),
   };
@@ -429,6 +430,7 @@ export default function Dashboard() {
       params.set("vehicle_category", filters.vehicle_category);
     }
     if (filters.price_availability === "unavailable") params.set("price_availability", filters.price_availability);
+    if (filters.fresh_24h) params.set("fresh_24h", "1");
     if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
     if (filters.page > 1) params.set("page", String(filters.page));
     const next = params.toString();
@@ -571,7 +573,7 @@ export default function Dashboard() {
   }, [scrollToMarket]);
 
   const browseNewestListings = useCallback(() => {
-    startTransition(() => { setFilters((prev) => ({ ...prev, sort: "newest", page: 1, vehicle_category: prev.vehicle_category || "cars" })); });
+    startTransition(() => { setFilters((prev) => ({ ...prev, fresh_24h: true, sort: "newest", page: 1, vehicle_category: prev.vehicle_category || "cars" })); });
     scrollToMarket();
   }, [scrollToMarket]);
 
@@ -619,6 +621,7 @@ export default function Dashboard() {
 
   const activeFilterLabels = useMemo(
     () => [
+      filters.fresh_24h ? t("home.newIn24h", "New in 24h") : undefined,
       filters.price_availability === "unavailable" ? t("home.missingPrices", "Missing prices") : undefined,
       filters.vehicle_category && filters.vehicle_category !== "cars" ? filters.vehicle_category : undefined,
       filters.q ? `"${filters.q}"` : undefined,

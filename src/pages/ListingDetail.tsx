@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, ExternalLink, MapPin, Calendar,
   Share2, Fuel, Gauge, Settings2, MessageCircle,
-  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap, Scale
+  Car as CarIcon, ArrowRight, Zap, Sparkles, ShieldCheck, Clock, Database, AlertTriangle, PlugZap, Scale,
+  Heart, Phone
 } from 'lucide-react';
 import { getListing, getListingFmv, getListingGeo, getListingPriceHistory, getListingSafetyResearch, getSellerTrustProfile, getSimilarListings, formatPrice } from '@/services/api';
 import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
@@ -19,6 +20,7 @@ import { ListingGeoCard } from '@/components/ListingGeoCard';
 import { FairPriceIndicator } from '@/components/FairPriceIndicator';
 import { FmvExplainer } from '@/components/FmvExplainer';
 import { useCompareTray } from '@/lib/compareTray';
+import { loadWatchlistIds, saveWatchlistIds, toggleWatchlistId } from '@/lib/watchlist';
 import { DealLadder } from '@/components/DealLadder';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
@@ -54,7 +56,7 @@ export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useAppPreferences();
-  const { hasProAccess, isAdmin } = useAuth();
+  const { hasProAccess, isAdmin, isAuthenticated } = useAuth();
   const fullAccess = hasFullPlatformAccess({ hasProAccess, isAdmin });
   const [listing, setListing] = useState<CarListing | null>(null);
   const [similar, setSimilar] = useState<CarListing[]>([]);
@@ -65,6 +67,24 @@ export default function ListingDetail() {
   const [listingGeo, setListingGeo] = useState<EnrichmentEnvelope | null>(null);
   const [loading, setLoading] = useState(true);
   const { toggle: toggleCompare, isPinned: isPinnedForCompare } = useCompareTray();
+  const [watchlisted, setWatchlisted] = useState(false);
+
+  const handleWatchlistToggle = () => {
+    if (!listing) return;
+    const listingId = Number(listing.id);
+    if (!Number.isFinite(listingId) || listingId <= 0) return;
+    const { ids, blocked } = toggleWatchlistId(loadWatchlistIds(), listingId);
+    if (blocked) {
+      toast.error(t("listing.watchlistFull", "Watchlist is full — remove one first"));
+      return;
+    }
+    saveWatchlistIds(ids);
+    const nowSaved = ids.includes(listingId);
+    setWatchlisted(nowSaved);
+    toast.success(nowSaved
+      ? t("listing.watchlistAdded", "Saved to your watchlist")
+      : t("listing.watchlistRemoved", "Removed from your watchlist"));
+  };
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -132,6 +152,7 @@ export default function ListingDetail() {
     ])
       .then(([detail, sim, profile, history, fmv]) => {
         setListing(detail); setSimilar(sim); setSellerProfile(profile); setPriceHistory(history); setFmvDetail(fmv); setLoading(false);
+        setWatchlisted(detail ? loadWatchlistIds().includes(Number(detail.id)) : false);
         if (detail) {
           document.title = `${detail.title} — Motormila`;
           trackEvent("listing_viewed", { listing_id: detail.id, make: detail.make, model: detail.model, source: detail.source });
@@ -348,9 +369,17 @@ export default function ListingDetail() {
             <button type="button" onClick={handleShare} className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[12px] font-semibold text-muted-foreground transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]">
               <Share2 aria-hidden className="h-3 w-3" /> {t("listing.share", "Share")}
             </button>
+            <button
+              type="button"
+              onClick={handleWatchlistToggle}
+              aria-pressed={watchlisted}
+              className={`flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[12px] font-semibold transition-all active:scale-[0.97] ${watchlisted ? "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/15" : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-surface"}`}
+            >
+              <Heart aria-hidden className={`h-3 w-3 ${watchlisted ? "fill-current" : ""}`} /> {watchlisted ? t("listing.saved", "Saved ✓") : t("listing.save", "Save")}
+            </button>
             {importFuelType === 'electric' && (
               <Link
-                to={listing.district ? `/ev-chargers?district=${encodeURIComponent(listing.district)}` : '/ev-chargers'}
+                to="/ev-hub"
                 className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-[12px] font-semibold text-muted-foreground no-underline transition-all hover:text-foreground hover:bg-surface active:scale-[0.97]"
               >
                 <PlugZap aria-hidden className="h-3 w-3" /> {t("listing.chargersNearby", "Charging stations")}
@@ -611,6 +640,40 @@ export default function ListingDetail() {
               </div>
 
               <p className="mt-3 text-[11px] text-muted-foreground font-medium">{trustMeta}</p>
+
+              {/* Seller contact — the money action on this page. Numbers are
+                  sign-in gated server-side; anonymous visitors get a sign-in CTA. */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {phonePreview.length > 0 ? (
+                  <>
+                    <a
+                      href={`tel:${phonePreview[0].replace(/[^\d+]/g, "")}`}
+                      className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-primary px-4 text-[13px] font-bold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.97] sm:flex-none sm:px-6"
+                    >
+                      <Phone aria-hidden className="h-3.5 w-3.5" /> {t("listing.callSeller", "Call seller")}
+                    </a>
+                    {whatsappPreview.length > 0 && (
+                      <a
+                        href={`https://wa.me/${whatsappPreview[0].replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 text-[13px] font-bold text-emerald-700 dark:text-emerald-400 no-underline transition-all hover:bg-emerald-500/15 active:scale-[0.97] sm:flex-none sm:px-6"
+                      >
+                        <MessageCircle aria-hidden className="h-3.5 w-3.5" /> {t("listing.whatsappSeller", "WhatsApp")}
+                      </a>
+                    )}
+                  </>
+                ) : !isAuthenticated ? (
+                  <Link
+                    to="/sign-in"
+                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-2xl border border-primary/25 bg-primary/10 px-4 text-[13px] font-bold text-primary-bright no-underline transition-all hover:bg-primary/15 active:scale-[0.97]"
+                  >
+                    <Phone aria-hidden className="h-3.5 w-3.5" /> {t("listing.signInForContact", "Sign in to view seller contact")}
+                  </Link>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground italic">{t("listing.noContactShared", "The seller hasn't shared a contact number for this listing.")}</p>
+                )}
+              </div>
 
               {ratingValue ? (
                 <div className="mt-4 flex items-center justify-between border-t border-border pt-3.5">

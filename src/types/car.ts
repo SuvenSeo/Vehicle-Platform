@@ -540,6 +540,8 @@ export interface FilterState {
   /** Browse category — defaults to cars on the homepage. */
   vehicle_category?: VehicleCategory;
   price_availability?: PriceAvailability;
+  /** Only listings first seen in the last 24h (the "New in 24h" hero chip). */
+  fresh_24h?: boolean;
   sort: SortOption;
   page: number;
 }
