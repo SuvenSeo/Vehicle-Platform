@@ -27,7 +27,12 @@ name: Manus to Live (hosted merge and deploy)
 on:
   workflow_run:
     # Run right after a Manus scrape completes and after a Neon export.
-    workflows: ["Manus Scrape Dump (3x Daily)", "Neon Export"]
+    # Match by exact workflow name. "Neon Export" is kept for older runs;
+    # the live workflow is titled "Neon Export (DR capture — dispatch only)".
+    workflows:
+      - "Manus Scrape Dump (3x Daily)"
+      - "Neon Export"
+      - "Neon Export (DR capture — dispatch only)"
     types: [completed]
   schedule:
     # Fallback schedule every 6 hours (catches any missed dumps and retries cleanly).

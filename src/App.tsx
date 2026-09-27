@@ -193,6 +193,7 @@ const App = () => {
                   <Route path="/ev-chargers" element={<EVChargers />} />
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
+                  <Route path="/cars/:make/:model/:year" element={<MakeModelHub />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />
                   <Route path="/cars/:make" element={<MakeHub />} />
                   <Route path="/locations/:district" element={<DistrictHub />} />
