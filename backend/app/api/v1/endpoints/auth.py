@@ -835,11 +835,13 @@ def app_access_enforced() -> bool:
     return os.getenv("APP_ACCESS_ENFORCED", "true").strip().lower() not in {"0", "false", "no", "off"}
 
 
-def _cors_allowed_origins() -> set[str]:
-    raw = os.getenv("CORS_ORIGINS", "").strip()
-    if raw:
-        return {origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()}
-    return {
+# First-party origins (this app's own deployments) are always trusted for writes.
+# This list is deliberately separate from the CORS response-header allowlist in
+# app/main.py: that one may be set to "*" (an operator escape hatch, which also
+# forces allow_credentials off), whereas a wildcard here would turn the CSRF
+# check into a no-op. Keep the two concepts apart.
+FIRST_PARTY_ORIGINS = frozenset(
+    {
         "http://localhost:8080",
         "http://127.0.0.1:8080",
         "http://localhost:5173",
@@ -850,22 +852,54 @@ def _cors_allowed_origins() -> set[str]:
         "https://vehicle-platform-one.vercel.app",
         "https://vehicle-platform-one-suvenseoras-projects.vercel.app",
     }
+)
+
+
+def _normalize_origin(value: Optional[str]) -> Optional[str]:
+    """Canonicalize an origin for comparison: scheme://host[:port], no path/slash.
+
+    Compares the request's Origin/Referer against the allowlist on both sides,
+    so a stray trailing slash or uppercase host cannot fail an otherwise
+    trusted same-origin write.
+    """
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    try:
+        parsed = urlparse(candidate)
+    except Exception:
+        return None
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def _cors_allowed_origins() -> set[str]:
+    """Origins permitted to perform unsafe (write) requests.
+
+    CORS_ORIGINS may *extend* this set, never shrink it. Previously an explicit
+    CORS_ORIGINS value replaced the built-in list wholesale, so a Space secret
+    that merely listed the API host silently revoked the frontend's own origin
+    and every write 403'd with "Writes require a trusted Origin." — the site
+    blocking itself.
+    """
+    allowed = set(FIRST_PARTY_ORIGINS)
+    raw = os.getenv("CORS_ORIGINS", "").strip()
+    if raw:
+        for entry in raw.split(","):
+            normalized = _normalize_origin(entry)
+            if normalized and normalized != "*":
+                allowed.add(normalized)
+    return allowed
 
 
 def _request_origin(request: Request) -> Optional[str]:
-    origin = (request.headers.get("origin") or "").strip().rstrip("/")
+    origin = _normalize_origin(request.headers.get("origin"))
     if origin:
         return origin
-    referer = (request.headers.get("referer") or "").strip()
-    if not referer:
-        return None
-    try:
-        parsed = urlparse(referer)
-        if not parsed.scheme or not parsed.netloc:
-            return None
-        return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-    except Exception:
-        return None
+    return _normalize_origin(request.headers.get("referer"))
 
 
 def _is_unsafe_method(request: Request) -> bool:

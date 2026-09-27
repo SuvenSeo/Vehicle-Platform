@@ -554,22 +554,42 @@ export default function ProDashboard() {
 
   const loadWorkspace = useCallback(async () => {
     setError(null);
-    try {
-      const [nextSnapshot, nextLanes, nextDistricts] = await Promise.all([
-        getProMarketSnapshot(),
-        getProVehicleLanes({ limit: 80 }),
-        getProDistricts(),
-      ]);
-      setSnapshot(nextSnapshot);
-      setLanes(nextLanes);
-      setDistricts(nextDistricts);
-      setTrendLaneKey((current) => current || (nextLanes[0] ? `${nextLanes[0].make}|||${nextLanes[0].model}` : ""));
-    } catch {
-      setError(t("pro.loadError", "Unable to load the Pro workspace. Refresh or check the API connection."));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    // Each panel settles independently. A single failed request (the market
+    // snapshot is by far the heaviest of the three) must not discard the lanes
+    // and districts that did load — otherwise one 5xx blanks the whole workspace
+    // and every metric reads zero with "Generated pending".
+    const [snapshotResult, lanesResult, districtsResult] = await Promise.allSettled([
+      getProMarketSnapshot(),
+      getProVehicleLanes({ limit: 80 }),
+      getProDistricts(),
+    ]);
+
+    let loaded = 0;
+    if (snapshotResult.status === "fulfilled") {
+      setSnapshot(snapshotResult.value);
+      loaded += 1;
     }
+    if (lanesResult.status === "fulfilled") {
+      const nextLanes = lanesResult.value;
+      setLanes(nextLanes);
+      setTrendLaneKey((current) => current || (nextLanes[0] ? `${nextLanes[0].make}|||${nextLanes[0].model}` : ""));
+      loaded += 1;
+    }
+    if (districtsResult.status === "fulfilled") {
+      setDistricts(districtsResult.value);
+      loaded += 1;
+    }
+
+    // Only a total failure is a workspace-level error. When at least one panel
+    // loaded, keep it on screen; the panels that failed render their own empty
+    // state and the user can retry, instead of the whole command center reading
+    // as zeroed-out and "Generated pending".
+    if (loaded === 0) {
+      setError(t("pro.loadError", "Unable to load the Pro workspace. Refresh or check the API connection."));
+    }
+
+    setLoading(false);
+    setRefreshing(false);
   }, [t]);
 
   useEffect(() => {
