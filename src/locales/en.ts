@@ -802,7 +802,7 @@ export const en = {
   "pricing.compare.seats": "Team seats",
   "pricing.compare.sla": "SLA / feeds",
   "pricing.compare.terminal": "Pro terminal",
-  "pricing.ctaBanner": "Sign in, open Dealer, or read the docs.",
+  "pricing.ctaBanner": "Join the waitlist, open Dealer, or read the docs.",
   "pricing.dealerWorkspace": "Dealer workspace",
   "pricing.eyebrow": "Plans",
   "pricing.faq": "FAQ",
