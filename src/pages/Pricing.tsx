@@ -137,6 +137,7 @@ export function TrialCta({ className, label }: { className?: string; label?: str
 
 export function TrialCountdownBanner() {
   const { user } = useAuth();
+  const { t } = useAppPreferences();
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(
     ((user as unknown as { trialEndsAt?: string })?.trialEndsAt ?? null),
   );
