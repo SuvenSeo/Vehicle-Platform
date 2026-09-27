@@ -26,7 +26,12 @@ from app.utils.price_history import summarize_price_history
 from app.utils.make_canonical import canonicalize_make, canonicalize_model
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
 from app.utils.thumbnail_urls import upgrade_thumbnail_url
-from app.api.v1.endpoints.auth import PRO_PLANS, resolve_live_session, verify_token
+from app.api.v1.endpoints.auth import (
+    PRO_PLANS,
+    get_current_auth_payload,
+    resolve_live_session,
+    verify_token,
+)
 from app.utils.plan_limits import (
     FREE_LISTINGS_MAX_PAGE,
     FREE_LISTINGS_MAX_SIZE,
@@ -2080,7 +2085,17 @@ def estimate_custom_vehicle(payload: CustomVehicleEstimateRequest, db: Session =
 
 
 @router.get("/{listing_id}/seller-profile", response_model=SellerProfileResponse)
-def get_seller_profile(listing_id: int, db: Session = Depends(get_db)):
+def get_seller_profile(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    _auth: dict = Depends(get_current_auth_payload),
+):
+    """Seller contact details require a signed-in session.
+
+    Scraped phone/WhatsApp numbers are personal data; unauthenticated
+    access made them enumerable at scale. The source listing URL remains
+    the public path for anonymous visitors.
+    """
     listing = db.query(CarListing).filter(CarListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found.")

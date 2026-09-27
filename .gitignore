@@ -94,6 +94,14 @@ android/*.status
 *.ap_
 *.dex
 
+# Signing keys — never commit new ones. The only tracked exception is the
+# documented public dev identity android/ci-signing.keystore
+# (docs/ANDROID_SIGNING.md); rotate via ANDROID_KEYSTORE_* secrets, then
+# git rm --cached it after the secret-keyed release reaches all devices.
+*.keystore
+*.jks
+!android/ci-signing.keystore
+
 # Database snapshots & checkpoints (contain live data — never commit)
 backend/db_snapshots/
 backend/scrape_checkpoints/
