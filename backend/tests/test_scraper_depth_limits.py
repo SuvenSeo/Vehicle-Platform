@@ -79,7 +79,7 @@ PAGINATING_SOURCES = tuple(OWN_LOOP_SOURCES) + tuple(BASE_LOOP_SOURCES)
 def _module_text(filename: str) -> str:
     return (
         Path(__file__).resolve().parents[1] / "app" / "scrapers" / filename
-    ).read_text()
+    ).read_text(encoding="utf-8")
 
 
 # --- 1. no artificial ceiling ------------------------------------------------
@@ -460,14 +460,14 @@ def test_remaining_paginators_read_the_start_page():
 
 
 def test_dump_script_can_scrape_a_segment_deeper_into_a_catalogue():
-    text = DUMP_SCRIPT.read_text()
+    text = DUMP_SCRIPT.read_text(encoding="utf-8")
     assert "MANUS_START_PAGE" in text
     assert "SCRAPE_START_PAGE" in text, "the segment start must reach the scrapers"
     assert "MANUS_SOURCE_LIST" in text, "a deep catch-up must be able to pick one source"
 
 
 def test_dump_script_has_no_page_ceiling_of_its_own():
-    text = DUMP_SCRIPT.read_text()
+    text = DUMP_SCRIPT.read_text(encoding="utf-8")
     assert "MANUS_MAX_PAGES:-120" in text
     assert "SCRAPE_SECONDARY_PAGE_CAP" not in text, (
         "the dump script must not cap depth below what a source can serve"
@@ -483,7 +483,7 @@ def test_backfill_workflows_expose_a_start_page_input():
         ("ikman-bulk-backfill.yml", "IKMAN_START_PAGE"),
         ("riyasewana-bulk-backfill.yml", "RIYASEWANA_START_PAGE"),
     ):
-        text = (workflow_dir / name).read_text()
+        text = (workflow_dir / name).read_text(encoding="utf-8")
         assert "start_page:" in text, f"{name} has no start_page input"
         assert env_name in text, f"{name} does not pass {env_name} to the scraper"
         yaml.safe_load(text)  # must still be valid YAML
@@ -492,7 +492,7 @@ def test_backfill_workflows_expose_a_start_page_input():
 def test_catchup_dispatcher_can_walk_segments_deeper():
     text = (
         Path(__file__).resolve().parents[2] / "scripts" / "ops" / "dispatch-catchup.sh"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     assert "RIYASEWANA_SEGMENTS" in text
     assert "start_page=${ry_start}" in text, (
         "riyasewana segments must advance the start page, not re-crawl page 1"
