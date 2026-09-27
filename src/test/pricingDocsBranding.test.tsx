@@ -40,9 +40,9 @@ describe("Docs and Pricing pages", () => {
     }
     expect(screen.getByText("Dealers")).toBeInTheDocument();
     if (PRICING_COMING_SOON) {
-      // Coming Soon mode: the trial CTA is a waitlist form (TrialCta), not a
-      // signup link — assert the waitlist affordance instead.
-      expect(screen.getAllByRole("textbox", { name: /email for launch invite/i }).length).toBeGreaterThan(0);
+      // Trial CTA is an honest waitlist form while paid plans are coming soon
+      // (not a link to invite-gated signup that would error).
+      expect(screen.getAllByPlaceholderText(/email for launch invite/i).length).toBeGreaterThan(0);
       expect(screen.getAllByRole("button", { name: /notify me/i }).length).toBeGreaterThan(0);
     } else {
       expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
