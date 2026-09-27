@@ -185,7 +185,76 @@ export function canonicalizeMake(value: unknown): string | null {
     .join(" ");
 }
 
-/** Canonicalize a model name: trim, collapse whitespace, and drop pure junk. */
+/**
+ * Common model misspellings seen in live listings (normalized key -> display).
+ * Case variants ("chr", "CHR", "C-HR") collapse to one canonical label so a
+ * model's listings aren't split across several filter rows.
+ */
+const MODEL_ALIASES: Record<string, string> = {
+  priuas: "Prius",
+  prius: "Prius",
+  hillux: "Hilux",
+  hilux: "Hilux",
+  vits: "Vitz",
+  vitz: "Vitz",
+  chr: "C-HR",
+  axio: "Axio",
+  aqua: "Aqua",
+  vezel: "Vezel",
+  vezelzplay: "Vezel",
+  fit: "Fit",
+  swift: "Swift",
+  alto: "Alto",
+  wagonr: "Wagon R",
+  mira: "Mira",
+  move: "Move",
+  tanto: "Tanto",
+  nv200: "NV200",
+  leaf: "Leaf",
+  notee: "Note",
+  note: "Note",
+  serena: "Serena",
+  elgrand: "Elgrand",
+  landcruiser: "Land Cruiser",
+  landcruiserprado: "Land Cruiser Prado",
+  prado: "Land Cruiser Prado",
+  corolla: "Corolla",
+  corollaaxio: "Corolla Axio",
+  corollafielder: "Corolla Fielder",
+  fielder: "Corolla Fielder",
+  allion: "Allion",
+  premio: "Premio",
+  camry: "Camry",
+  crown: "Crown",
+  harrier: "Harrier",
+  rav4: "RAV4",
+  crv: "CR-V",
+  x1: "X1",
+  x3: "X3",
+  x5: "X5",
+  "3series": "3 Series",
+  "5series": "5 Series",
+  cclass: "C-Class",
+  eclass: "E-Class",
+  sclass: "S-Class",
+};
+
+/**
+ * True when a model value is actually a phone number (scrape artifact where
+ * the seller's contact leaked into the model column). Sri Lankan mobiles are
+ * 07XXXXXXXX / +947XXXXXXXX; landlines 0XXXXXXXXX. A model that is mostly
+ * digits with phone-like length is junk.
+ */
+function isPhoneNumberModel(raw: string): boolean {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 12) return false;
+  // Must be essentially all digits (allow +, spaces, dashes).
+  if (raw.replace(/[+\s\-()]/g, "").replace(/[0-9]/g, "") !== "") return false;
+  // SL mobile / landline prefixes, or a bare 9-10 digit run.
+  return /^(?:\+?94|0)?[17]\d{8}$/.test(digits) || /^\d{9,10}$/.test(digits);
+}
+
+/** Canonicalize a model name: trim, drop junk, fold misspellings. */
 export function canonicalizeModel(value: unknown): string {
   const raw = String(value ?? "").trim().replace(/\s+/g, " ");
   if (!raw) return "";
@@ -193,6 +262,11 @@ export function canonicalizeModel(value: unknown): string {
   if (!key) return "";
   if (JUNK_MAKES.has(key)) return "";
   if (/^(19|20)\d{2}$/.test(key)) return "";
+  // Phone numbers and "other"/"null"-style placeholders carry no model signal.
+  if (isPhoneNumberModel(raw)) return "";
+  if (/^(other|othermodel|unknownmodel)$/.test(key)) return "";
+  const alias = MODEL_ALIASES[key];
+  if (alias) return alias;
   return raw;
 }
 

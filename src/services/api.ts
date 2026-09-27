@@ -983,6 +983,7 @@ function matchesSnapshotFilters(listing: CarListing, filters: FilterState): bool
     if (wantedModel && canonicalizeModel(listing.model) !== wantedModel) return false;
   }
   if (filters.district && String(listing.district || "").toLowerCase() !== String(filters.district).toLowerCase()) return false;
+  if (filters.fresh_24h && listingTimestamp(listing) < Date.now() - 24 * 60 * 60 * 1000) return false;
   if (filters.year_min && Number(listing.year || 0) < filters.year_min) return false;
   if (filters.year_max && Number(listing.year || 0) > filters.year_max) return false;
   if (filters.mileage_max && Number(listing.mileage_km || 0) > filters.mileage_max) return false;
