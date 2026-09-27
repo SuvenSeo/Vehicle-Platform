@@ -89,7 +89,10 @@ export const MarketIntelligencePanel = memo(function MarketIntelligencePanel({
   );
   // Priced listings match the default inventory browse count; fall back to total when priced is unknown.
   const liveListings = pricedListings > 0 ? pricedListings : totalIndexed;
-  const sourceCount = Number(snapshot?.active_scrape_sources?.length || stats?.source_count || 0);
+  // "N sources" must mean the same thing everywhere on the page: the number of
+  // sources actually indexed, not just the ones that happened to run in the
+  // latest scrape cycle (which is why this used to read 10 next to a hero 13).
+  const sourceCount = Number(stats?.source_count || snapshot?.source_status?.length || 0);
   const districtCount = Number(stats?.district_count || 0);
   const avgPrice = Number(snapshot?.avg_price_lkr ?? stats?.avg_price_lkr ?? 0);
   const momChange = stats?.price_change_mom ?? null;

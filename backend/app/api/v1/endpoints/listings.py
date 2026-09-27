@@ -23,6 +23,7 @@ from app.services.geo_service import enrich_listing
 from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
+from app.utils.make_canonical import canonicalize_make, canonicalize_model
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
 from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from app.api.v1.endpoints.auth import PRO_PLANS, resolve_live_session, verify_token
@@ -1615,18 +1616,61 @@ def get_makes(db: Session = Depends(get_db)):
         .order_by(desc("count"))
         .all()
     )
-    return [{"make": r.make, "count": r.count} for r in results]
+    # Fold duplicate/typo spellings ("Bmw"/"BMW", "Mitshubishi") into one
+    # brand and drop junk rows ("Test", "2018", "Other brand") so the public
+    # make combobox never offers a scraped typo as a car brand.
+    merged: Dict[str, int] = {}
+    for r in results:
+        canonical = canonicalize_make(r.make)
+        if not canonical:
+            continue
+        merged[canonical] = merged.get(canonical, 0) + int(r.count or 0)
+    return [
+        {"make": make, "count": count}
+        for make, count in sorted(merged.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
+
 
 @router.get("/models")
 def get_models(make: str, db: Session = Depends(get_db)):
+    canonical_make = canonicalize_make(make)
+    if not canonical_make:
+        return []
+
+    # Always resolve every stored spelling of the brand, not just the exact one
+    # the caller typed — otherwise "Toyota" and "toyota" return different model
+    # lists and the valuation dropdown silently loses models.
+    variants = [
+        r.make
+        for r in (
+            db.query(CarListing.make)
+            .filter(live_listing_filter(), CarListing.make.isnot(None))
+            .distinct()
+            .all()
+        )
+        if canonicalize_make(r.make) == canonical_make
+    ]
+    if not variants:
+        return []
+
     results = (
         db.query(CarListing.model, func.count(CarListing.id).label("count"))
-        .filter(CarListing.make == make, live_listing_filter())
+        .filter(CarListing.make.in_(variants), live_listing_filter())
         .group_by(CarListing.model)
         .order_by(desc("count"))
         .all()
     )
-    return [{"model": r.model, "count": r.count} for r in results]
+
+    merged: Dict[str, int] = {}
+    for r in results:
+        model = canonicalize_model(r.model)
+        if not model:
+            continue
+        merged[model] = merged.get(model, 0) + int(r.count or 0)
+    return [
+        {"model": model, "count": count}
+        for model, count in sorted(merged.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
 
 
 @router.get("/nhtsa-models")

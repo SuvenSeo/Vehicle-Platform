@@ -367,3 +367,41 @@ def test_match_alerts_district_filter_is_case_insensitive():
     response = alerts_module.match_alerts(request=_DummyRequest(), token=token, db=db)
     assert response.results[0].matching_count == 1
     assert response.results[0].listings[0].district == "Colombo"
+
+
+# ---------------------------------------------------------------------------
+# Transport contract: /alerts/match must answer GET as well as POST.
+# The web client issues a GET; serving POST only returned 405, which left the
+# alerts page stuck on "Loading alerts" with 405/500 in the console.
+# ---------------------------------------------------------------------------
+
+def test_match_route_is_registered_for_both_get_and_post():
+    paths = {
+        (route.path, method)
+        for route in alerts_module.router.routes
+        for method in (getattr(route, "methods", None) or set())
+    }
+    assert ("/match", "GET") in paths
+    assert ("/match", "POST") in paths
+
+
+def test_match_alerts_get_delegates_to_the_post_handler():
+    db = _session()
+    token = "tok-get-alias"
+
+    _seed_listing(db, make="Toyota", model="Axio", price_lkr=3_000_000)
+    alerts_module.create_alert(
+        request=_DummyRequest(),
+        payload=MarketAlertCreate(make="Toyota"),
+        x_alert_token=token,
+        db=db,
+    )
+
+    response = alerts_module.match_alerts_get(
+        request=_DummyRequest(),
+        token=token,
+        db=db,
+    )
+
+    assert len(response.results) == 1
+    assert response.results[0].matching_count == 1

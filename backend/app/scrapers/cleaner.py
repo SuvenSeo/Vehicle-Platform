@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from app.utils.districts import resolve_canonical_district
+from app.utils.make_canonical import canonicalize_make, canonicalize_model
 from app.utils.pricing import MIN_REASONABLE_PRICE_LKR
 from app.utils.time import utc_now
 from app.utils.vehicle_category import normalize_vehicle_category
@@ -554,8 +555,16 @@ class CarCleaner:
         make = self._truncate_text(normalized.get("make"), 50)
         if not make:
             return None
-        normalized["make"] = make
-        normalized["model"] = self._truncate_text(normalized.get("model") or "Other", 100) or "Other"
+        # Fold duplicate/typo brand spellings at scrape time so the database
+        # stores one row per brand. A junk make ("Test", "2018", "Other
+        # brand") carries no brand signal, so fall back to the title.
+        canonical_make = canonicalize_make(make)
+        if canonical_make is None:
+            canonical_make = canonicalize_make(normalized.get("title"))
+        if canonical_make is None:
+            return None
+        normalized["make"] = canonical_make
+        normalized["model"] = canonicalize_model(normalized.get("model")) or "Other"
 
         for key, max_len in (
             ("fuel_type", 20),

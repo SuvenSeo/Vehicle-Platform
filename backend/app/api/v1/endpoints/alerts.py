@@ -240,6 +240,29 @@ def update_alert_channels(
     return alert
 
 
+@router.get("/match", response_model=AlertMatchResponse, operation_id="matchAlertsGet")
+def match_alerts_get(
+    request: Request,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Query(default=None),
+    authorization: Optional[str] = Header(default=None),
+    x_alert_token: Optional[str] = Header(default=None, alias="X-Alert-Token"),
+):
+    """GET alias for the alert match read.
+
+    The web client calls /alerts/match with GET while the native app uses POST.
+    Serving only POST answered the browser with 405, so the alerts page hung on
+    "Loading alerts" and every active alert errored.
+    """
+    return match_alerts(
+        request=request,
+        db=db,
+        token=token,
+        authorization=authorization,
+        x_alert_token=x_alert_token,
+    )
+
+
 @router.post("/match", response_model=AlertMatchResponse)
 def match_alerts(
     request: Request,
