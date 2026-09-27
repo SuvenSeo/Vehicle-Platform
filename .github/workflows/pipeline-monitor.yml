@@ -160,3 +160,23 @@ jobs:
             echo "::notice::Neon is quota-blocked, so this run verified the live site + snapshots path only."
           fi
           echo "Live site healthy."
+
+  # The safety net going red is useless if nobody is paged. Fire Slack whenever
+  # either health job fails (or is cancelled unexpectedly).
+  alert-on-failure:
+    name: Notify Slack on monitor failure
+    runs-on: ubuntu-latest
+    needs: [pipeline-health, live-site-health]
+    if: ${{ failure() || cancelled() }}
+    steps:
+      - name: Notify Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL unset — monitor failure not alerted"
+            exit 0
+          fi
+          curl -fsS -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚨 Motormila pipeline monitor failed (run ${GITHUB_RUN_ID}). Neon or live site is unhealthy.\"}" \
+            "$SLACK_WEBHOOK_URL"
