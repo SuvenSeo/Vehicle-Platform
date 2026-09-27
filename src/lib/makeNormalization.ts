@@ -245,7 +245,7 @@ const MODEL_ALIASES: Record<string, string> = {
  * 07XXXXXXXX / +947XXXXXXXX; landlines 0XXXXXXXXX. A model that is mostly
  * digits with phone-like length is junk.
  */
-function isPhoneNumberModel(raw: string, key: string): boolean {
+function isPhoneNumberModel(raw: string): boolean {
   const digits = raw.replace(/\D/g, "");
   if (digits.length < 9 || digits.length > 12) return false;
   // Must be essentially all digits (allow +, spaces, dashes).
@@ -263,7 +263,7 @@ export function canonicalizeModel(value: unknown): string {
   if (JUNK_MAKES.has(key)) return "";
   if (/^(19|20)\d{2}$/.test(key)) return "";
   // Phone numbers and "other"/"null"-style placeholders carry no model signal.
-  if (isPhoneNumberModel(raw, key)) return "";
+  if (isPhoneNumberModel(raw)) return "";
   if (/^(other|othermodel|unknownmodel)$/.test(key)) return "";
   const alias = MODEL_ALIASES[key];
   if (alias) return alias;

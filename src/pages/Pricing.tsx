@@ -106,7 +106,7 @@ export function TrialCta({ className, label }: { className?: string; label?: str
         }
         setSending(true);
         try {
-          await sendFeedback({ category: "waitlist", route: "/pricing", message: "Pro trial waitlist signup", email: address });
+          await sendFeedback({ category: "general", route: "/pricing", message: "Pro trial waitlist signup", email: address });
           setDone(true);
         } catch {
           toast.error(t("pricing.waitlistFailed", "Couldn't join the waitlist — try again."));

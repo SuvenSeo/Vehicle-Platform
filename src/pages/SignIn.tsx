@@ -6,7 +6,7 @@ import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, ArrowRight, Lock, MailQuestion } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Lock, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AtmosphericImage } from "@/components/AtmosphericImage";
@@ -274,7 +274,7 @@ export default function SignIn() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-3 flex items-center gap-2">
-                <MailQuestion aria-hidden className="h-4 w-4 text-primary-bright" />
+                <KeyRound aria-hidden className="h-4 w-4 text-primary-bright" />
                 <h2 className="text-[15px] font-bold text-white">
                   {t("signin.resetTitle", "Reset your password")}
                 </h2>
@@ -306,7 +306,7 @@ export default function SignIn() {
                       setResetSending(true);
                       try {
                         await sendFeedback({
-                          category: "password_reset",
+                          category: "general",
                           route: "/sign-in",
                           message: `Password reset requested for ${address}`,
                           email: address,
