@@ -39,10 +39,17 @@ describe("Docs and Pricing pages", () => {
       expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     }
     expect(screen.getByText("Dealers")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
-      "href",
-      "/sign-up",
-    );
+    if (PRICING_COMING_SOON) {
+      // Trial CTA is an honest waitlist form while paid plans are coming soon
+      // (not a link to invite-gated signup that would error).
+      expect(screen.getAllByPlaceholderText(/email for launch invite/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("button", { name: /notify me/i }).length).toBeGreaterThan(0);
+    } else {
+      expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
+        "href",
+        "/sign-up",
+      );
+    }
     expect(screen.getAllByRole("link", { name: /Message us/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Message us/i })[0]).toHaveAttribute(
       "href",
