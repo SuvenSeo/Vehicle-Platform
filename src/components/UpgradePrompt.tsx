@@ -21,7 +21,7 @@ export function UpgradePrompt({
   ctaLabel,
 }: UpgradePromptProps) {
   const { t } = useAppPreferences();
-  const resolvedCta = ctaLabel ?? t("upgrade.cta", "Start 7-day free trial");
+  const resolvedCta = ctaLabel ?? t("upgrade.cta", "Join the waitlist");
 
   if (variant === "strip") {
     return (
