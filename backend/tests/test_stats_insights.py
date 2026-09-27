@@ -451,7 +451,10 @@ def test_district_insight_uses_true_median():
     assert payload["avg_price_lkr"] == round((5_000_000 + 6_000_000 + 9_000_000) / 3, 2)
 
 
-def test_price_trends_fall_back_to_national_lane_when_district_samples_are_thin():
+def test_price_trends_fall_back_to_national_lane_when_district_samples_are_thin(monkeypatch):
+    # District-fallback test: bypass the anonymous free-tease clamp, which
+    # would otherwise strip the district filter before the fallback runs.
+    monkeypatch.setattr(stats, "is_free_browse_plan", lambda *a, **k: False)
     db = _session()
     db.add_all(
         [
