@@ -45,9 +45,9 @@ describe("Docs and Pricing pages", () => {
       expect(screen.getAllByPlaceholderText(/email for launch invite/i).length).toBeGreaterThan(0);
       expect(screen.getAllByRole("button", { name: /notify me/i }).length).toBeGreaterThan(0);
     } else {
-      expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
+      expect(screen.getAllByRole("link", { name: /join the waitlist/i })[0]).toHaveAttribute(
         "href",
-        "/sign-up",
+        "/pricing",
       );
     }
     expect(screen.getAllByRole("link", { name: /Message us/i }).length).toBeGreaterThan(0);
