@@ -662,6 +662,9 @@ export function dedupeListings(rows: CarListing[]): CarListing[] {
 
 const snapshotJsonCache = new Map<string, Promise<unknown>>();
 let snapshotCatalogPromise: Promise<CarListing[] | null> | null = null;
+let snapshotCatalogFetchedAt = 0;
+/** Refresh the offline catalog at most this often (ms). */
+const SNAPSHOT_CATALOG_TTL_MS = 15 * 60 * 1000;
 
 async function fetchSnapshotJSON<T>(fileName: string): Promise<T> {
   if (!SNAPSHOT_BASE) {
@@ -719,7 +722,17 @@ async function getIncomingSnapshotListings(): Promise<CarListing[]> {
 
 function getSnapshotListingCatalog(): Promise<CarListing[] | null> {
   if (!SNAPSHOT_BASE) return Promise.resolve(null);
+  // TTL: the catalog was previously cached forever, so a long session never
+  // saw refreshed snapshot data.
+  const now = Date.now();
+  if (
+    snapshotCatalogPromise &&
+    (!snapshotCatalogFetchedAt || now - snapshotCatalogFetchedAt >= SNAPSHOT_CATALOG_TTL_MS)
+  ) {
+    snapshotCatalogPromise = null;
+  }
   if (!snapshotCatalogPromise) {
+    snapshotCatalogFetchedAt = now;
     snapshotCatalogPromise = readSnapshot<{
       items?: unknown[];
       parts?: string[];
@@ -1311,6 +1324,25 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
     ...filters,
     vehicle_category: filters.vehicle_category || "cars",
   };
+  // Live API is the first choice (see offlineValuation.ts). Snapshot is the
+  // fallback for offline / SNAPSHOT_ONLY — not the primary catalog.
+  if (!SNAPSHOT_ONLY) {
+    try {
+      const data = await fetchJSON<JsonRecord>("/listings", {
+        ...effectiveFilters,
+        size: LISTINGS_PAGE_SIZE,
+      });
+      const items = Array.isArray(data.items) ? data.items : [];
+      return {
+        listings: dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item)))),
+        total: Number(data.total) || 0,
+      };
+    } catch (error) {
+      // Fall through to snapshot when live is unreachable.
+      if (import.meta.env.DEV) console.warn("live listings failed, using snapshot", error);
+    }
+  }
+
   const catalog = await getSnapshotListingCatalog();
   if (catalog?.length) return filterSnapshotListings(catalog, effectiveFilters);
   if (SNAPSHOT_ONLY) {
@@ -1319,15 +1351,8 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
     return { listings: [], total: 0 };
   }
 
-  const data = await fetchJSON<JsonRecord>("/listings", {
-    ...effectiveFilters,
-    size: LISTINGS_PAGE_SIZE,
-  });
-  const items = Array.isArray(data.items) ? data.items : [];
-  return {
-    listings: dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item)))),
-    total: Number(data.total) || 0,
-  };
+  // Live failed and no snapshot — surface the error rather than a silent empty list.
+  throw new APIError(503, "Listings are temporarily unavailable.");
 };
 
 export const sendFeedback = async (payload: FeedbackInput): Promise<FeedbackReceipt> => {
