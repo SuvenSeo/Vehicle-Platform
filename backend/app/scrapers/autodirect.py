@@ -8,6 +8,7 @@ import structlog
 from sqlalchemy.orm import Session
 
 from app.scrapers.cleaner import CarCleaner
+from app.scrapers.page_budget import start_page_from_env
 from app.utils.listing_upsert import buffered_upsert_listing, flush_upsert_buffer
 
 log = structlog.get_logger()
@@ -187,17 +188,19 @@ class AutoDirectScraper:
         }
 
         seen_source_ids: set[str] = set()
+        start_page = start_page_from_env(self.SOURCE)
 
         async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
             conditions = await self._fetch_conditions(client)
 
             for condition_id, condition_label in conditions:
-                page_num = 1
+                page_num = start_page
+                stop_at_page = start_page + page_limit if page_limit is not None else None
                 consecutive_empty_pages = 0
                 consecutive_page_errors = 0
 
                 while True:
-                    if page_limit is not None and page_num > page_limit:
+                    if stop_at_page is not None and page_num >= stop_at_page:
                         break
 
                     offset = (page_num - 1) * self.PAGE_SIZE

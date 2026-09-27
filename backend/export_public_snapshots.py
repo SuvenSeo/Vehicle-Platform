@@ -27,6 +27,7 @@ from app.api.v1.endpoints import listings as listings_endpoint  # noqa: E402
 from app.api.v1.endpoints import pipeline as pipeline_endpoint  # noqa: E402
 from app.api.v1.endpoints import stats as stats_endpoint  # noqa: E402
 from app.utils.districts import count_canonical_districts  # noqa: E402
+from app.utils.make_canonical import canonicalize_make, canonicalize_model  # noqa: E402
 from app.utils.listing_snapshot import (  # noqa: E402
     LISTING_SNAPSHOT_LOAD_ONLY,
     listing_to_dict,
@@ -187,8 +188,8 @@ def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
 def build_models_by_make(catalog: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     by_make: dict[str, dict[str, int]] = {}
     for item in catalog:
-        make = str(item.get("make") or "").strip()
-        model = str(item.get("model") or "").strip()
+        make = canonicalize_make(item.get("make"))
+        model = canonicalize_model(item.get("model"))
         if not make or not model:
             continue
         bucket = by_make.setdefault(make, {})

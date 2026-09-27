@@ -27,7 +27,12 @@ name: Manus to Live (hosted merge and deploy)
 on:
   workflow_run:
     # Run right after a Manus scrape completes and after a Neon export.
-    workflows: ["Manus Scrape Dump (3x Daily)", "Neon Export"]
+    # Match by exact workflow name. "Neon Export" is kept for older runs;
+    # the live workflow is titled "Neon Export (DR capture — dispatch only)".
+    workflows:
+      - "Manus Scrape Dump (3x Daily)"
+      - "Neon Export"
+      - "Neon Export (DR capture — dispatch only)"
     types: [completed]
   schedule:
     # Fallback schedule every 6 hours (catches any missed dumps and retries cleanly).
@@ -205,8 +210,15 @@ jobs:
               "platform_users", "user_invites", "market_alerts",
               "market_alert_matches", "user_notifications", "user_feedback",
               "analytics_events", "dealer_profiles",
+              # Device push endpoints/keys and delivery receipts are PII —
+              # they must never ride a public artifact.
+              "push_subscriptions", "notification_delivery_log",
           ):
-              con.execute(f'DELETE FROM "{table}"')
+              try:
+                  con.execute(f'DELETE FROM "{table}"')
+              except sqlite3.OperationalError:
+                  # Legacy dumps may pre-date the table.
+                  pass
           con.commit()
           con.close()
           PY

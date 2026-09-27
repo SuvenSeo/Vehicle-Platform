@@ -540,12 +540,32 @@ async def _run_source(scraper_cls, max_pages: int, source_timeout_seconds: int |
         listings_after = _count_source_listings_safe(source_name)
         listings_new = max(0, listings_after - listings_before)
         listings_found = _listings_found_from_scrape(scrape_result, listings_after)
-        _finalize_scrape_run_safe(
-            run_id,
-            status="SUCCESS",
-            listings_found=listings_found,
-            listings_new=listings_new,
-        )
+        # A source behind a bot wall returns cleanly with zero listings. Recording
+        # that as SUCCESS made walled sources (saleme) look permanently "ok" on
+        # the public pipeline-status snapshot while contributing nothing, so the
+        # scraper's own blocked signal drives the status instead.
+        blocked_reason = str(getattr(scraper, "blocked_reason", "") or "").strip()
+        if blocked_reason:
+            _finalize_scrape_run_safe(
+                run_id,
+                status="FAILED",
+                listings_found=listings_found,
+                listings_new=listings_new,
+                error_message=f"Source blocked by bot wall ({blocked_reason}); no listings scraped",
+            )
+            log.warning(
+                "scraping_source_blocked",
+                source=source_name,
+                reason=blocked_reason,
+                listings_found=listings_found,
+            )
+        else:
+            _finalize_scrape_run_safe(
+                run_id,
+                status="SUCCESS",
+                listings_found=listings_found,
+                listings_new=listings_new,
+            )
         log.info("scraping_source_completed", source=source_name)
         if checkpoint is not None:
             _validate_checkpoint_safe(source_name, checkpoint)

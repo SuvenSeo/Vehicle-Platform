@@ -123,7 +123,12 @@ export default function Calculator() {
   const [lcFuelType, setLcFuelType] = useState<FuelType>(() => fuelParam(searchParams, "fuel", "hybrid"));
   const [lcEngineCc, setLcEngineCc] = useState(() => numParam(searchParams, "cc", 1500));
   const [lcMotorKw, setLcMotorKw] = useState(() => numParam(searchParams, "kw", 110));
-  const [applySurcharge, setApplySurcharge] = useState(() => boolParam(searchParams, "surcharge", true));
+  // Default OFF once the gazetted CID surcharge window has lapsed — the page
+  // already tells the user the period ended, so pre-checking the box
+  // contradicted that banner and inflated every landed-cost total.
+  const [applySurcharge, setApplySurcharge] = useState(() =>
+    boolParam(searchParams, "surcharge", !getSurchargeCountdown().expired),
+  );
   const [applySscl, setApplySscl] = useState(() => boolParam(searchParams, "sscl", true));
   const [lcResult, setLcResult] = useState<(LandedCostResult & OfflineFlag) | null>(null);
   // What this exact import saves if the 50% surcharge lapses on schedule.

@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from app.utils.districts import resolve_canonical_district
+from app.utils.make_canonical import canonicalize_make, canonicalize_model
 from app.utils.pricing import MIN_REASONABLE_PRICE_LKR
 from app.utils.time import utc_now
 from app.utils.vehicle_category import normalize_vehicle_category
@@ -184,6 +185,21 @@ class CarCleaner:
     def _is_reasonable_price(self, value: int) -> bool:
         return MIN_REASONABLE_PRICE_LKR <= value <= self.MAX_REASONABLE_PRICE_LKR
 
+    # Foreign-currency markers that must never be converted to LKR. A bare
+    # "$" is included: SL listings rarely quote USD without also saying so.
+    _FOREIGN_CURRENCY_RE = re.compile(
+        r"(?:\b(?:usd|us\$|aud|cad|eur|gbp|aed|inr|jpy|cny|chf|sgd)\b"
+        r"|\bdollars?\b"
+        r"|\beuros?\b"
+        r"|\bpounds?\b"
+        r"|(?<![\w])\$(?!\s*(?:rs\.?|lkr)\b))",
+        flags=re.IGNORECASE,
+    )
+
+    def _is_foreign_currency(self, text: str) -> bool:
+        """True when the price string quotes a non-LKR currency."""
+        return bool(self._FOREIGN_CURRENCY_RE.search(text))
+
     def normalize_price_lkr(self, raw_price: Any) -> Optional[int]:
         if raw_price is None or isinstance(raw_price, bool):
             return None
@@ -245,6 +261,11 @@ class CarCleaner:
 
             text = str(raw_price).replace("\xa0", " ").strip()
             if not text:
+                return None
+
+            # Hard-reject foreign-currency amounts. "USD 4.5 million" must never
+            # become 4,500,000 LKR — it is off by orders of magnitude.
+            if self._is_foreign_currency(text):
                 return None
 
             # First parse explicit "million" notation (e.g. Rs 8.7 Million, LKR 4.35 mn).
@@ -554,8 +575,16 @@ class CarCleaner:
         make = self._truncate_text(normalized.get("make"), 50)
         if not make:
             return None
-        normalized["make"] = make
-        normalized["model"] = self._truncate_text(normalized.get("model") or "Other", 100) or "Other"
+        # Fold duplicate/typo brand spellings at scrape time so the database
+        # stores one row per brand. A junk make ("Test", "2018", "Other
+        # brand") carries no brand signal, so fall back to the title.
+        canonical_make = canonicalize_make(make)
+        if canonical_make is None:
+            canonical_make = canonicalize_make(normalized.get("title"))
+        if canonical_make is None:
+            return None
+        normalized["make"] = canonical_make
+        normalized["model"] = canonicalize_model(normalized.get("model")) or "Other"
 
         for key, max_len in (
             ("fuel_type", 20),

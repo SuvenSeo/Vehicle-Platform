@@ -3,7 +3,8 @@
 Matching criteria for a duplicate pair:
 - Normalised make and model are equal (strip punctuation, case-insensitive)
 - Year matches exactly (both None counts as equal)
-- price_lkr within 3% of each other (both None counts as a match)
+- price_lkr within 3% of each other — both sides MUST have a price
+  (both-null prices are not a match; distinct unpriced cars must not collapse)
 - mileage within 5% of each other, OR either side has mileage IS NULL
 - Listings must belong to different sources
 """
@@ -15,7 +16,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import structlog
-from sqlalchemy import and_, or_, text, update
+from sqlalchemy import and_, false, or_, text, update
 from sqlalchemy.orm import Session
 
 from db.models import CarListing
@@ -98,12 +99,14 @@ def find_duplicate_candidates(
     else:
         filters.append(CarListing.year.is_(None))
 
-    # Price — within band, or both NULL
+    # Price — within band; both-null prices must NOT match (would collapse
+    # distinct unpriced cars).
     if price_band is not None:
         low_p, high_p = price_band
         filters.append(CarListing.price_lkr.between(low_p, high_p))
     else:
-        filters.append(CarListing.price_lkr.is_(None))
+        # No price on the listing: never treat as a duplicate on price alone.
+        filters.append(false())
 
     # Mileage — within band OR candidate mileage is NULL; skip filter when
     # listing mileage itself is NULL (any mileage is acceptable)
@@ -132,11 +135,12 @@ def find_duplicate_candidates(
 
 def _price_match(listing, candidate) -> bool:
     """Replicate the DB-side price filter of :func:`find_duplicate_candidates`
-    for the *listing* being scanned: a candidate matches when it is within the
-    listing's 3% band, or when both sides are null-priced."""
+    for the *listing* being scanned: a candidate matches when both sides have
+    a non-null price within the 3% band. Both-null prices are NOT a match —
+    distinct unpriced cars would otherwise collapse into one row."""
     band = _price_band(listing.price_lkr)
     if band is None:
-        return candidate.price_lkr is None
+        return False
     low, high = band
     return candidate.price_lkr is not None and low <= float(candidate.price_lkr) <= high
 
@@ -299,6 +303,13 @@ def mark_duplicates_batch(
             db.commit()
 
     log.info("dedup_batch_complete", total_marked=total_marked)
+    # Duplicates change the live listing set every aggregate reads — drop cache.
+    try:
+        from app.utils.stats_cache import invalidate_stats_cache
+
+        invalidate_stats_cache(db)
+    except Exception:
+        log.warning("stats_cache_invalidate_failed", exc_info=True)
     return total_marked
 
 

@@ -22,6 +22,11 @@
 #   GH_TOKEN            optional GitHub token with "releases" write
 #   MANUS_RELEASE_REPO  default SuvenSeo/Vehicle-Platform
 #   MANUS_MAX_PAGES     per-source page budget, default 120
+#   MANUS_START_PAGE    first listing page to visit, default 1. Raise it to
+#                       crawl a segment deeper into a source's catalogue: a run
+#                       that only ever starts at page 1 re-reads the same head
+#                       of the catalogue forever and never gets past it.
+#   MANUS_SOURCE_LIST   space/comma separated subset of sources to scrape
 #
 # NOTE: use this for API / plain-HTTP friendly sources (riyasewana, ikman,
 # autolanka, hitad, autostream, saleme, riyahub, carshop, dimo, autodirect,
@@ -32,9 +37,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "${ROOT}/backend"
 
 MAX="${MANUS_MAX_PAGES:-120}"
+START_PAGE="${MANUS_START_PAGE:-1}"
 REPO="${MANUS_RELEASE_REPO:-SuvenSeo/Vehicle-Platform}"
 # Bound a stalled source so later sources and the dump upload can still run.
 SOURCE_TIMEOUT="${MANUS_SOURCE_TIMEOUT_SECONDS:-900}"
+# run_sync.py enforces SCRAPE_SOURCE_TIMEOUT_SECONDS in-process and, on
+# timeout, still has to finalize the ScrapeRun row (status + finished_at) and
+# flush its upsert buffer. If the outer `timeout` fires at the same instant the
+# process is SIGKILLed before that cleanup runs, the source stays RUNNING
+# forever — which is what pinned saleme/riyahub to a permanent "running" with
+# last_success=null on the public pipeline-status snapshot. Give the in-process
+# budget clear headroom inside the hard kill.
+SOURCE_KILL_GRACE="${MANUS_SOURCE_KILL_GRACE_SECONDS:-60}"
+HARD_TIMEOUT="$((SOURCE_TIMEOUT + SOURCE_KILL_GRACE))"
 
 echo "== installing deps =="
 python3 -m pip install -q -r requirements.txt
@@ -44,12 +59,17 @@ rm -f autolens.db autolens.db.gz
 
 SOURCES=("$@")
 if [ ${#SOURCES[@]} -eq 0 ]; then
-  SOURCES=(riyasewana ikman autolanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
+  if [ -n "${MANUS_SOURCE_LIST:-}" ]; then
+    # shellcheck disable=SC2206
+    SOURCES=($(printf '%s' "${MANUS_SOURCE_LIST}" | tr ',' ' '))
+  else
+    SOURCES=(riyasewana ikman autolanka auto-lanka hitad autostream saleme riyahub carshop dimo autodirect cartivate)
+  fi
 fi
 
 for src in "${SOURCES[@]}"; do
   upper="$(printf '%s' "$src" | tr '[:lower:]' '[:upper:]')"
-  echo "== scraping ${src} (max ${MAX} pages) =="
+  echo "== scraping ${src} (max ${MAX} pages, from page ${START_PAGE}) =="
   env \
     ALLOW_SQLITE_FALLBACK=true \
     RUN_SCRAPERS=true \
@@ -59,10 +79,11 @@ for src in "${SOURCES[@]}"; do
     RUN_OUTLIER_DETECTION=false \
     SCRAPE_ENABLED_SOURCES="${src}" \
     "SCRAPE_MAX_PAGES_${upper}=${MAX}" \
+    "SCRAPE_START_PAGE=${START_PAGE}" \
     SCRAPE_SOURCE_TIMEOUT_SECONDS="${SOURCE_TIMEOUT}" \
     RIYASEWANA_SCRAPE_MODE=http \
     RIYASEWANA_ARCHIVE_FALLBACK=0 \
-    timeout --foreground --kill-after=30s "${SOURCE_TIMEOUT}s" python3 run_sync.py || echo "!! ${src} scrape failed or timed out — continuing with the rest"
+    timeout --foreground --kill-after=30s "${HARD_TIMEOUT}s" python3 run_sync.py || echo "!! ${src} scrape failed or timed out — continuing with the rest"
 done
 
 TOTAL="$(python3 -c "
@@ -80,7 +101,15 @@ if [[ "${TOTAL}" == "0" ]]; then
 fi
 
 gzip -f autolens.db
-TAG="manus-scrape-$(date -u +%Y%m%dT%H%MZ)"
+# A retry job can publish several dumps inside the same minute, so a suffixed
+# tag switches to second precision to keep releases distinct. The merge side
+# (scripts/ops/discover_dump_releases.py) matches the manus-scrape- prefix and
+# then searches for the timestamp, so both forms are accepted there.
+if [ -n "${MANUS_RELEASE_TAG_SUFFIX:-}" ]; then
+  TAG="manus-scrape-$(date -u +%Y%m%dT%H%M%SZ)-${MANUS_RELEASE_TAG_SUFFIX}"
+else
+  TAG="manus-scrape-$(date -u +%Y%m%dT%H%MZ)"
+fi
 
 # ---------------------------------------------------------------------------
 # Delivery path 1: `gh` CLI (Manus integration may already authenticate it)
@@ -88,7 +117,7 @@ TAG="manus-scrape-$(date -u +%Y%m%dT%H%MZ)"
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "== gh CLI available — creating release ${TAG} (${REPO}) =="
   if gh release create "${TAG}" autolens.db.gz --repo "${REPO}" \
-      --title "${TAG}" --notes "Sources: $* — listings: ${TOTAL}" \
+      --title "${TAG}" --notes "Sources: ${SOURCES[*]} — from page ${START_PAGE} — listings: ${TOTAL}" \
       --prerelease --latest=false; then
     echo "== uploaded via gh. DONE =="
     exit 0
@@ -105,7 +134,7 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
     -H "Authorization: Bearer ${GH_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/${REPO}/releases" \
-    -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"body\":\"Sources: $* — listings: ${TOTAL}\",\"draft\":false,\"prerelease\":true,\"latest\":false}")"
+    -d "{\"tag_name\":\"${TAG}\",\"name\":\"${TAG}\",\"body\":\"Sources: ${SOURCES[*]} — from page ${START_PAGE} — listings: ${TOTAL}\",\"draft\":false,\"prerelease\":true,\"latest\":false}")"
 
   RELEASE_ID="$(printf '%s' "${RELEASE_JSON}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")"
 

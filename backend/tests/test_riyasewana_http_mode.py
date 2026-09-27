@@ -85,10 +85,20 @@ def test_flat_budget_gives_full_budget_to_all_categories(scraper, monkeypatch):
     assert scraper._page_budget_for_category("vans", 800) == 800
 
 
-def test_default_budget_caps_secondary_categories(scraper, monkeypatch):
+def test_default_budget_lets_secondary_categories_use_the_full_budget(scraper, monkeypatch):
     monkeypatch.setattr(riyasewana_module, "_FLAT_BUDGET_ENABLED", False)
     assert scraper._page_budget_for_category("cars", 800) == 800
-    # Secondary categories get max(5, 800//4) capped at 25.
+    # No artificial ceiling: a secondary category may use the whole budget
+    # unless the operator asks for rationing via SCRAPE_SECONDARY_PAGE_*.
+    assert scraper._page_budget_for_category("motorcycles", 800) == 800
+    assert scraper._page_budget_for_category("vans", 800) == 800
+
+
+def test_secondary_rationing_is_still_available_for_secondary_categories(scraper, monkeypatch):
+    monkeypatch.setattr(riyasewana_module, "_FLAT_BUDGET_ENABLED", False)
+    monkeypatch.setenv("SCRAPE_SECONDARY_PAGE_DIVISOR", "4")
+    monkeypatch.setenv("SCRAPE_SECONDARY_PAGE_CAP", "25")
+    assert scraper._page_budget_for_category("cars", 800) == 800
     assert scraper._page_budget_for_category("motorcycles", 800) == 25
     assert scraper._page_budget_for_category("vans", 800) == 25
 

@@ -66,8 +66,10 @@ def _get_redis():
 # ---------------------------------------------------------------------------
 
 def _client_key(request: Request) -> str:
-    """Derive a per-client key from IP + User-Agent.
+    """Derive a per-client key from IP only.
 
+    User-Agent is deliberately NOT part of the key: rotating UA strings used
+    to multiply every limit (e.g. unlimited login brute-force buckets).
     Uses the RIGHTMOST X-Forwarded-For hop (appended by the nearest trusted
     proxy) — leftmost entries are client-supplied and could be forged.
     """
@@ -75,8 +77,7 @@ def _client_key(request: Request) -> str:
     last_hop = forwarded_for.rsplit(",", 1)[-1].strip()
     client_host = getattr(getattr(request, "client", None), "host", None)
     ip = last_hop or str(client_host or "unknown")
-    user_agent = str(request.headers.get("user-agent") or "unknown")[:120]
-    return f"{ip}|{user_agent}"
+    return ip
 
 
 # ---------------------------------------------------------------------------

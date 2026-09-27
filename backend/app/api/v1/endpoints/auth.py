@@ -894,9 +894,25 @@ def require_authenticated(
     authorization: Optional[str] = Header(default=None),
     db: Optional[Session] = Depends(get_db),
 ) -> Optional[dict]:
-    """Gate for product APIs when APP_ACCESS_ENFORCED is on."""
+    """Gate for product APIs when APP_ACCESS_ENFORCED is on.
+
+    Unsafe methods additionally require a Bearer token and a trusted Origin
+    so a cookie-only CSRF cannot write through ``mm_session`` (SameSite=None).
+    """
     if not app_access_enforced():
         return None
+    if _is_unsafe_method(request):
+        auth_value = authorization if isinstance(authorization, str) else None
+        bearer = (auth_value or "").removeprefix("Bearer ").strip()
+        if not bearer:
+            raise HTTPException(
+                status_code=403,
+                detail="Writes require an Authorization Bearer token (cookie alone is not accepted).",
+            )
+        origin = _request_origin(request)
+        allowed = _cors_allowed_origins()
+        if origin is None or origin not in allowed:
+            raise HTTPException(status_code=403, detail="Writes require a trusted Origin.")
     return get_current_auth_payload(request, authorization, db)
 
 
