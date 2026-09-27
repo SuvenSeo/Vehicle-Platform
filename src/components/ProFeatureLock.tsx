@@ -62,7 +62,7 @@ export function ProFeatureLock({
             {label}
           </span>
           <p className="mx-auto mt-3 max-w-xs text-[13px] font-medium leading-relaxed text-muted-foreground">
-            Start your 7-day free trial for full lane intelligence, exports, and deeper market tools.
+            Join the waitlist for full lane intelligence, exports, and deeper market tools at launch.
           </p>
           <Link
             to="/pricing"
