@@ -40,7 +40,7 @@ def test_maybe_activate_downloads_when_neon_is_down(tmp_path, monkeypatch):
     sqlite_failover._activated = False
     restore_url = db_session.HOT_URL
     dest = tmp_path / "merged.db"
-    gz_source = tmp_path / "merged-autolens.db.gz"
+    gz_source = tmp_path / "merged-motormila.db.gz"
     db_path = _tiny_sqlite(tmp_path / "source.db")
     with db_path.open("rb") as src, gzip.open(gz_source, "wb") as out:
         out.write(src.read())
@@ -259,7 +259,7 @@ def test_candidate_sources_default_is_public_site_copy(monkeypatch):
     monkeypatch.delenv("MERGED_SQLITE_URL", raising=False)
     # No source-repo URL may ship in the default list — this file is synced
     # to a public HF Space and the repo is private.
-    assert sqlite_failover._candidate_sources() == [sqlite_failover.VERCEL_MERGED_DB_URL]
+    assert sqlite_failover._candidate_sources() == list(sqlite_failover.VERCEL_MERGED_DB_URLS)
     for source in sqlite_failover._candidate_sources():
         assert "github" not in source.lower()
 

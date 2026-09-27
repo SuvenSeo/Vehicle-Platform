@@ -56,7 +56,7 @@ jobs:
             --exclude="*.pyc" \
             --exclude="*.pyo" \
             --exclude="*.db" \
-            --exclude="autolens.db" \
+            --exclude="motormila.db" \
             --exclude=".env" \
             --exclude=".env.local" \
             --exclude="rescue_exports/" \

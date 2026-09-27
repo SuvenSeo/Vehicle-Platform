@@ -6,10 +6,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { FilterState, CarListing, DashboardInsights, DistrictVelocityPoint } from "@/types/car";
 import { getPriceDrops,
-  getStats, getListings, getMakes,
+  getStats, getListings, getMakes, getListingsBatch,
   formatPrice, getDashboardInsights, LISTINGS_PAGE_SIZE, getDistrictVelocity,
 } from "@/services/api";
 import { useLiveMarketSnapshot } from "@/hooks/useLiveMarketSnapshot";
+import { useCompareTray, loadPinned, PinnedListing } from "@/lib/compareTray";
 import { ListingCard } from "@/components/ListingCard";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { MarketSignalsStrip } from "@/components/MarketSignalsStrip";
@@ -269,6 +270,9 @@ export default function Dashboard() {
   const { t, resolvedTheme } = useAppPreferences();
   const queryClient = useQueryClient();
   const liveMarketSnapshot = useLiveMarketSnapshot();
+  // Use the persisted compare tray (localStorage) so selections survive navigation.
+  // Full CarListing objects are fetched for the pinned IDs for the modal/thumbnails.
+  const { pinned: comparePinned, toggle: toggleCompareTray, isPinned } = useCompareTray();
   const [compareListings, setCompareListings] = useState<CarListing[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
@@ -512,15 +516,54 @@ export default function Dashboard() {
 
   // ── Actions ────────────────────────────────────────────────────
 
-  const toggleCompare = useCallback((listing: CarListing) => {
-    setCompareListings((prev) => {
-      if (prev.some((i) => i.id === listing.id)) return prev.filter((i) => i.id !== listing.id);
-      if (prev.length >= 3) return prev;
-      return [...prev, listing];
+  // Sync full CarListing objects for the persisted tray (for modal and thumbnails).
+  useEffect(() => {
+    const pinnedIds = comparePinned.map((p) => p.id);
+    if (pinnedIds.length === 0) {
+      setCompareListings([]);
+      return;
+    }
+    let cancelled = false;
+    getListingsBatch(pinnedIds).then((listings) => {
+      if (!cancelled) setCompareListings(listings);
+    }).catch(() => {
+      if (!cancelled) {
+        // Fallback: construct minimal listings from pinned data
+        setCompareListings(comparePinned.map((p) => ({
+          id: p.id,
+          make: p.make,
+          model: p.model,
+          year: p.year,
+          price_lkr: p.price_lkr,
+          mileage_km: p.mileage_km,
+          district: p.district,
+          thumbnail_url: p.thumbnail_url,
+          detail_url: p.detail_url,
+        } as CarListing)));
+      }
     });
-  }, []);
+    return () => { cancelled = true; };
+  }, [comparePinned]);
 
-  const compareIds = useMemo(() => compareListings.map((l) => l.id), [compareListings]);
+  const toggleCompare = useCallback((listing: CarListing) => {
+    const median = Number(listing.market_median_lkr);
+    const images = Array.isArray(listing.images) ? listing.images : [];
+    toggleCompareTray({
+      id: Number(listing.id),
+      make: listing.make,
+      model: listing.model,
+      year: listing.year,
+      price_lkr: Number(listing.price_lkr) || null,
+      fmv_lkr: Number.isFinite(median) && median > 0 ? median : null,
+      mileage_km: Number(listing.mileage_km) || null,
+      district: listing.district,
+      deal_score: typeof listing.deal_score === "number" ? listing.deal_score : null,
+      thumbnail_url: listing.thumbnail_url || (images[0] as string) || null,
+      detail_url: listing.detail_url || null,
+    });
+  }, [toggleCompareTray]);
+
+  const compareIds = useMemo(() => comparePinned.map((p) => p.id), [comparePinned]);
   const compareIdSet = useMemo(() => new Set(compareIds), [compareIds]);
   const watchlistIdSet = useMemo(() => new Set(watchlistIds), [watchlistIds]);
 

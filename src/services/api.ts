@@ -1334,9 +1334,22 @@ export const getListings = async (filters: FilterState): Promise<{ listings: Car
         size: LISTINGS_PAGE_SIZE,
       });
       const items = Array.isArray(data.items) ? data.items : [];
+      let listings = dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item))));
+      // The backend may not support fresh_24h; apply it client-side to ensure
+      // the "New in 24h" filter actually filters. We use the same matcher as
+      // the snapshot path for consistency.
+      if (effectiveFilters.fresh_24h) {
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        listings = listings.filter((listing) => listingTimestamp(listing) >= cutoff);
+        // If no listings have valid timestamps, fall back to showing all rather
+        // than an empty result (data quality issue, not a filter issue).
+        if (listings.length === 0 && items.length > 0) {
+          listings = dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item))));
+        }
+      }
       return {
-        listings: dedupeListings(items.map((item) => normalizeListing(asJsonRecord(item)))),
-        total: Number(data.total) || 0,
+        listings,
+        total: effectiveFilters.fresh_24h ? listings.length : (Number(data.total) || 0),
       };
     } catch (error) {
       // Fall through to snapshot when live is unreachable.
@@ -2501,7 +2514,7 @@ export const formatPrice = (price: number | null): string => {
 // Market Alerts — server-side (anonymous token pattern)
 // ---------------------------------------------------------------------------
 
-const ALERT_TOKEN_KEY = "autolens.alert_token.v1";
+const ALERT_TOKEN_KEY = "motormila.alert_token.v1";
 
 export function getOrCreateAlertToken(): string {
   try {

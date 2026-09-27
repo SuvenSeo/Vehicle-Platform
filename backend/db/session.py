@@ -45,7 +45,7 @@ if not HOT_URL and not COLD_URL:
         raise ValueError(
             "No database URL configured. Set HOT_DATABASE_URL and/or COLD_DATABASE_URL."
         )
-    HOT_URL = COLD_URL = "sqlite:///./autolens.db"
+    HOT_URL = COLD_URL = "sqlite:///./motormila.db"
 elif not HOT_URL:
     HOT_URL = COLD_URL   # single-DB: reads also go to Neon
 elif not COLD_URL:

@@ -11,6 +11,9 @@ export interface PinnedListing {
   mileage_km?: number | null;
   district?: string | null;
   deal_score?: number | null;
+  // Image fields for tray thumbnails (optional, for richer UI)
+  thumbnail_url?: string | null;
+  detail_url?: string | null;
 }
 
 export const COMPARE_TRAY_KEY = "motormila:compare-tray:v1";

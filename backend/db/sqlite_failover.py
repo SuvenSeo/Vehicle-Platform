@@ -42,13 +42,17 @@ from db import session as db_session
 
 logger = structlog.get_logger()
 
-# Public copy deployed next to the snapshot JSON by the live-publish pipeline.
-# This URL must stay reachable WITHOUT credentials: the failover download is
-# anonymous and the old release-asset mirror went away when the source
-# repository was made private.
-VERCEL_MERGED_DB_URL = (
-    "https://motormila.vercel.app/snapshots/latest/merged-autolens.db.gz"
+# Public copies deployed next to the snapshot JSON by the live-publish pipeline.
+# New canonical name first; the legacy name stays as a fallback until the old
+# asset is retired. These URLs must stay reachable WITHOUT credentials: the
+# failover download is anonymous and the old release-asset mirror went away
+# when the source repository was made private.
+VERCEL_MERGED_DB_URLS = (
+    "https://motormila.vercel.app/snapshots/latest/merged-motormila.db.gz",
+    "https://motormila.vercel.app/snapshots/latest/merged-autolens.db.gz",
 )
+# Backwards-compatible alias: the canonical (first) URL.
+VERCEL_MERGED_DB_URL = VERCEL_MERGED_DB_URLS[0]
 DEFAULT_FAILOVER_PATH = "/tmp/motormila-failover.db"
 
 _lock = threading.Lock()
@@ -193,8 +197,9 @@ def _candidate_sources() -> list[str]:
     single = os.getenv("MERGED_SQLITE_URL", "").strip()
     if single and single not in urls:
         urls.append(single)
-    if VERCEL_MERGED_DB_URL not in urls:
-        urls.append(VERCEL_MERGED_DB_URL)
+    for url in VERCEL_MERGED_DB_URLS:
+        if url not in urls:
+            urls.append(url)
     return urls
 
 

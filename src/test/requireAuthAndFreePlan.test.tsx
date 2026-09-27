@@ -9,8 +9,8 @@ import { ProFeatureLock } from "@/components/ProFeatureLock";
 
 function installLocalStorage(seed?: Record<string, unknown>, token?: string) {
   const store = new Map<string, string>();
-  if (seed) store.set("autolens.auth_user", JSON.stringify(seed));
-  if (token) store.set("autolens.auth_token", token);
+  if (seed) store.set("motormila.auth_user", JSON.stringify(seed));
+  if (token) store.set("motormila.auth_token", token);
 
   const storage = {
     getItem: (key: string) => store.get(key) ?? null,

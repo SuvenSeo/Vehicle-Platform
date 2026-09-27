@@ -75,7 +75,7 @@ function LockedOverlay({ label }: { label?: string }) {
   );
 }
 
-export default function ProPreview({ sampleLane, gaps, trialCtaTo = "/sign-up" }: ProPreviewProps) {
+export default function ProPreview({ sampleLane, gaps, trialCtaTo = "/pricing" }: ProPreviewProps) {
   const { t } = useAppPreferences();
   // Data-only feed (B2-D): one REAL lane when the API has data, otherwise the
   // mock fallback below stays labelled as a live sample. B1-E structure intact.

@@ -88,12 +88,14 @@ fi
 #     Without this, a restore-catalog deploy redeploys the tree without it and
 #     the HF Space loses its Neon-outage fallback (404 -> failover:false).
 # ---------------------------------------------------------------------------
-if [[ ! -s "${SNAP_DIR}/merged-autolens.db.gz" ]]; then
-  echo "==> Failover DB missing locally; fetching from live site…"
-  curl -fsSL --max-time 600 -o "${SNAP_DIR}/merged-autolens.db.gz" \
-    "${LIVE_BASE}/merged-autolens.db.gz" || \
-    echo "WARN: could not preserve merged-autolens.db.gz from live site" >&2
-fi
+for dbname in merged-motormila.db.gz merged-autolens.db.gz; do  # second is the legacy name
+  if [[ ! -s "${SNAP_DIR}/${dbname}" ]]; then
+    echo "==> Failover DB ${dbname} missing locally; fetching from live site…"
+    curl -fsSL --max-time 600 -o "${SNAP_DIR}/${dbname}" \
+      "${LIVE_BASE}/${dbname}" || \
+      echo "WARN: could not preserve ${dbname} from live site" >&2
+  fi
+done
 
 # ---------------------------------------------------------------------------
 # 2b) Preserve the sideload APK + release manifest (/app/*) across deploys.

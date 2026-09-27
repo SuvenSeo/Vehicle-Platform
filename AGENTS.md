@@ -19,7 +19,7 @@ the UI.
   `backend/.venv/bin/uvicorn`, `backend/.venv/bin/python -m pytest`).
 - No external Postgres/Neon is needed for local dev: set
   `ALLOW_SQLITE_FALLBACK=true` and the backend uses a local SQLite file
-  (`backend/autolens.db`). Without it the backend aborts startup with
+  (`backend/motormila.db`). Without it the backend aborts startup with
   "No database URL configured" (this flag defaults to `false`).
 - For local work also set `PRO_ACCESS_ENFORCED=false` and
   `APP_ACCESS_ENFORCED=false`, otherwise `/api/v1/pro/*` and product data
