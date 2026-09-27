@@ -13,7 +13,8 @@ import { revealItem } from "@/lib/motion";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { visuals } from "@/lib/visualAssets";
-import { API_BASE } from "@/services/api";
+import { API_BASE, sendFeedback } from "@/services/api";
+import { toast } from "sonner";
 import { authHeaders } from "@/lib/authToken";
 
 type ManualPayInstructions = {
@@ -61,8 +62,82 @@ function trialDaysLeftFromIso(iso: string | null | undefined): number | null {
  * trialing (reads /auth/me for trialEndsAt); otherwise shows the trial offer.
  * Exported so App shell can mount it globally later without touching routes.
  */
+/**
+ * Trial CTA that stays honest while paid plans are coming soon: instead of
+ * linking to an invite-gated signup that errors ("Start 7-day free trial" ->
+ * "missing invite token"), it collects an email for the launch waitlist.
+ */
+export function TrialCta({ className, label }: { className?: string; label?: string }) {
+  const { t } = useAppPreferences();
+  const [email, setEmail] = useState("");
+  const [done, setDone] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  if (!PRICING_COMING_SOON) {
+    return (
+      <Link
+        to={TRIAL_OFFER.ctaTo}
+        className={className ?? "inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98]"}
+      >
+        {label ?? t("pricing.startTrial", TRIAL_OFFER.cta)}
+        <ArrowRight aria-hidden className="h-4 w-4" />
+      </Link>
+    );
+  }
+
+  if (done) {
+    return (
+      <p className="inline-flex h-11 items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-6 text-[13px] font-semibold text-emerald-700 dark:text-emerald-400">
+        <Check aria-hidden className="h-4 w-4" />
+        {t("pricing.waitlistDone", "You're on the list — we'll email you at launch.")}
+      </p>
+    );
+  }
+
+  return (
+    <form
+      className="flex w-full max-w-sm items-center gap-2"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const address = email.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+          toast.error(t("pricing.waitlistInvalid", "Enter a valid email address."));
+          return;
+        }
+        setSending(true);
+        try {
+          await sendFeedback({ category: "general", route: "/pricing", message: "Pro trial waitlist signup", email: address });
+          setDone(true);
+        } catch {
+          toast.error(t("pricing.waitlistFailed", "Couldn't join the waitlist — try again."));
+        } finally {
+          setSending(false);
+        }
+      }}
+    >
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder={t("pricing.waitlistPlaceholder", "Email for launch invite")}
+        aria-label={t("pricing.waitlistPlaceholder", "Email for launch invite")}
+        className="h-11 min-w-0 flex-1 rounded-full border border-border bg-card px-4 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
+      />
+      <button
+        type="submit"
+        disabled={sending}
+        className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
+      >
+        {sending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+        {t("pricing.waitlistCta", "Notify me")}
+      </button>
+    </form>
+  );
+}
+
 export function TrialCountdownBanner() {
   const { user } = useAuth();
+  const { t } = useAppPreferences();
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(
     ((user as unknown as { trialEndsAt?: string })?.trialEndsAt ?? null),
   );
@@ -129,15 +204,11 @@ export function TrialCountdownBanner() {
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-5 py-4">
       <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
         <Sparkles aria-hidden className="h-4 w-4 text-primary" />
-        {TRIAL_OFFER.cta} — no invite needed. Annual saves 2 months.
+        {PRICING_COMING_SOON
+          ? t("pricing.waitlistBanner", "Pro is coming soon — join the waitlist for a launch invite.")
+          : `${TRIAL_OFFER.cta} — no invite needed. Annual saves 2 months.`}
       </p>
-      <Link
-        to={TRIAL_OFFER.ctaTo}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline"
-      >
-        {TRIAL_OFFER.cta}
-        <ArrowRight aria-hidden className="h-3.5 w-3.5" />
-      </Link>
+      <TrialCta className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-[12px] font-semibold text-primary-foreground no-underline transition-all hover:bg-primary/90" />
     </div>
   );
 }
@@ -261,19 +332,13 @@ export default function Pricing() {
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[
-          { label: "Trial", value: "7 days", hint: "Free Pro, no invite needed" },
+          { label: "Trial", value: "7 days", hint: "Free Pro at launch" },
           { label: "Dealer lane", value: "Pro", hint: "Command center + exports" },
           { label: "Annual", value: "-2 mo", hint: "Annual saves 2 months" },
         ]}
         actions={
           <>
-            <Link
-              to={TRIAL_OFFER.ctaTo}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[13px] font-semibold text-primary-foreground no-underline shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {t("pricing.startTrial", TRIAL_OFFER.cta)}
-              <ArrowRight aria-hidden className="h-4 w-4" />
-            </Link>
+            <TrialCta />
             <Link
               to="/pro-preview"
               className="inline-flex h-11 items-center rounded-full border border-border bg-card px-6 text-[13px] font-semibold text-foreground no-underline transition-all hover:border-primary/40 hover:bg-surface active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -471,15 +536,10 @@ export default function Pricing() {
         >
           <div>
             <p className="section-eyebrow mb-2">{t("pricing.getStarted", "Get started")}</p>
-            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Start your 7-day free trial, open Dealer, or read the docs.")}</h3>
+            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Join the waitlist, open Dealer, or read the docs.")}</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              to={TRIAL_OFFER.ctaTo}
-              className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline"
-            >
-              {t("pricing.startTrial", TRIAL_OFFER.cta)}
-            </Link>
+            <TrialCta className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline transition-all hover:bg-primary/90" />
             <Link
               to="/dealer"
               className="inline-flex h-10 items-center rounded-full border border-border bg-card px-5 text-[12px] font-semibold text-foreground no-underline"

@@ -44,7 +44,7 @@ function setCanonical(href: string) {
 }
 
 function setJsonLd(data: unknown) {
-  const id = "autolens-jsonld";
+  const id = "motormila-jsonld";
   let script = document.getElementById(id) as HTMLScriptElement | null;
   if (!script) {
     script = document.createElement("script");

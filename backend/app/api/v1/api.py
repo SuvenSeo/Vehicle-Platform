@@ -93,7 +93,8 @@ api_router.include_router(calculators.router, prefix="/calculators", tags=["calc
 # Pro endpoints become a real server-side boundary when PRO_ACCESS_ENFORCED=true.
 api_router.include_router(pro.router, prefix="/pro", tags=["pro"], dependencies=[Depends(require_pro_access)])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"], dependencies=_app_gate)
-api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"], dependencies=_app_gate)
+# Feedback is public (waitlist, password-reset, contact forms) — rate-limited at the endpoint.
+api_router.include_router(feedback.router, prefix="/feedback", tags=["feedback"])
 api_router.include_router(pipeline.router, prefix="/pipeline", tags=["pipeline"])
 api_router.include_router(market.router, prefix="/market", tags=["market"], dependencies=_public_browse_gate)
 api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"], dependencies=_app_gate)

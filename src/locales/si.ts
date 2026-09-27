@@ -811,7 +811,7 @@ export const si = {
   "pricing.compare.seats": "කණ්ඩායම් ආසන",
   "pricing.compare.sla": "SLA / feeds",
   "pricing.compare.terminal": "Pro ටර්මිනල්",
-  "pricing.ctaBanner": "පුරනය වන්න, Dealer විවෘත කරන්න, හෝ ලේඛන කියවන්න.",
+  "pricing.ctaBanner": "රැඳී සිටින්නන්ගේ ලැයිස්තුවට එක්වන්න, Dealer විවෘත කරන්න, හෝ ලේඛන කියවන්න.",
   "pricing.dealerWorkspace": "වෙළෙන්දා වැඩබිම",
   "pricing.eyebrow": "සැලසුම්",
   "pricing.faq": "FAQ",

@@ -82,10 +82,10 @@ export const PRICING_TIERS: PricingTier[] = [
       "Deeper alerts and match refresh",
       "Lane drill-downs and source coverage",
       "CSV / PDF export packs",
-      "7-day free trial — no invite needed",
+      "Free trial at launch",
     ],
-    ctaLabel: "Start 7-day free trial",
-    ctaTo: "/sign-up",
+    ctaLabel: "Join the waitlist",
+    ctaTo: "/pricing",
   },
   {
     id: "dealer",
@@ -166,7 +166,7 @@ export const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can I try Pro before paying?",
-    a: "Yes. Start a 7-day free Pro trial from Sign up — no invite needed. After the trial, pay by bank transfer or KOKO and WhatsApp us your receipt for activation within 2 hours. /pro-preview shows a live sample lane first.",
+    a: "Pro is coming soon — join the waitlist on this page for a launch invite. We'll notify you when paid plans go live with a free trial.",
   },
   {
     q: "How does Dealer onboarding work?",

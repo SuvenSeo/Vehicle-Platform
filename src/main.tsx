@@ -1,3 +1,4 @@
+import { migrateLegacyStorageKeys } from "./lib/storageMigration";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "@fontsource/geist-sans/latin-400.css";
@@ -27,6 +28,8 @@ if (sentryDsn) {
 		});
 	});
 }
+
+migrateLegacyStorageKeys();
 
 createRoot(document.getElementById("root")!).render(
 	<AppPreferencesProvider>
