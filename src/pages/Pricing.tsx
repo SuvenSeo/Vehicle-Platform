@@ -332,7 +332,7 @@ export default function Pricing() {
         mediaPosition="center 40%"
         mediaTone="brand"
         highlights={[
-          { label: "Trial", value: "7 days", hint: "Free Pro, no invite needed" },
+          { label: "Trial", value: "7 days", hint: "Free Pro at launch" },
           { label: "Dealer lane", value: "Pro", hint: "Command center + exports" },
           { label: "Annual", value: "-2 mo", hint: "Annual saves 2 months" },
         ]}
