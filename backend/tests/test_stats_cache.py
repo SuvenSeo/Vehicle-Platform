@@ -680,10 +680,11 @@ def test_district_prices_endpoint_serves_stale_cache_on_compute_failure(monkeypa
 
 
 def test_trends_endpoint_returns_cached_on_hit(monkeypatch):
-    # Cache-mechanics test: bypass the anonymous free-tease clamp so the
-    # seeded months=12 key is the key the endpoint looks up.
-    monkeypatch.setattr(stats_module, "is_free_browse_plan", lambda *a, **k: False)
     db = _session()
+    # Anonymous MagicMock() requests are free-teased (plan=None -> free
+    # tier) since the CSRF/free-tease fix; force a non-free plan so this
+    # test exercises cache read-through, not the free-tier month cap.
+    monkeypatch.setattr(stats_module, "resolve_request_access", lambda *a, **k: ("pro", "user"))
     cache_key = build_trends_cache_key(
         make="toyota",
         model="vitz",
@@ -711,9 +712,8 @@ def test_trends_endpoint_returns_cached_on_hit(monkeypatch):
 
 
 def test_trends_endpoint_stores_on_miss(monkeypatch):
-    # See above: bypass the free-tease clamp for the months=12 key.
-    monkeypatch.setattr(stats_module, "is_free_browse_plan", lambda *a, **k: False)
     db = _session()
+    monkeypatch.setattr(stats_module, "resolve_request_access", lambda *a, **k: ("pro", "user"))
     cache_key = build_trends_cache_key(
         make="toyota",
         model="vitz",
@@ -731,9 +731,8 @@ def test_trends_endpoint_stores_on_miss(monkeypatch):
 
 
 def test_trends_endpoint_serves_stale_on_compute_failure(monkeypatch):
-    # See above: bypass the free-tease clamp for the months=12 key.
-    monkeypatch.setattr(stats_module, "is_free_browse_plan", lambda *a, **k: False)
     db = _session()
+    monkeypatch.setattr(stats_module, "resolve_request_access", lambda *a, **k: ("pro", "user"))
     cache_key = build_trends_cache_key(
         make=None,
         model=None,
