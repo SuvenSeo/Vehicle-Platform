@@ -34,7 +34,7 @@ class AuthRepositoryImpl @Inject constructor(
     override fun session(): Flow<UserSession?> = sessionStore.observe()
 
     override suspend fun me(): UserSession? = withContext(io) {
-        val dto = api.me().user
+        val dto = api.me().toUserDto()
         val token = sessionStore.cachedToken ?: return@withContext null
         val session = UserSession(
             email = dto.email,

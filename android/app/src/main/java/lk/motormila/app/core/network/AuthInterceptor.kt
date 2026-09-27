@@ -52,6 +52,11 @@ class AuthInterceptor @Inject constructor(
         }
         val response = chain.proceed(request)
         if (shouldForceReLogin(hadBearerToken = !token.isNullOrBlank(), statusCode = response.code)) {
+            // Drop the dead token from the in-memory cache so the next request
+            // cannot resurrect a revoked session. The DataStore clear happens
+            // in AuthViewModel / session observer when AuthEvent.Unauthorized
+            // lands (clear() is suspend and this interceptor is blocking).
+            updateToken(null)
             authEventBus.post(AuthEvent.Unauthorized(request.url.encodedPath))
         }
         return response
