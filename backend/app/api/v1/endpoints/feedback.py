@@ -80,3 +80,5 @@ def create_feedback(payload: FeedbackCreate, request: Request, db: Session = Dep
         try_send_waitlist_confirmation(to_email=feedback.email)
 
     return feedback
+
+    return feedback

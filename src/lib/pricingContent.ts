@@ -82,10 +82,10 @@ export const PRICING_TIERS: PricingTier[] = [
       "Deeper alerts and match refresh",
       "Lane drill-downs and source coverage",
       "CSV / PDF export packs",
-      "7-day free trial — no invite needed",
+      "Free trial at launch",
     ],
-    ctaLabel: "Start 7-day free trial",
-    ctaTo: "/sign-up",
+    ctaLabel: "Join the waitlist",
+    ctaTo: "/pricing",
   },
   {
     id: "dealer",
