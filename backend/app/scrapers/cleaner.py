@@ -185,6 +185,21 @@ class CarCleaner:
     def _is_reasonable_price(self, value: int) -> bool:
         return MIN_REASONABLE_PRICE_LKR <= value <= self.MAX_REASONABLE_PRICE_LKR
 
+    # Foreign-currency markers that must never be converted to LKR. A bare
+    # "$" is included: SL listings rarely quote USD without also saying so.
+    _FOREIGN_CURRENCY_RE = re.compile(
+        r"(?:\b(?:usd|us\$|aud|cad|eur|gbp|aed|inr|jpy|cny|chf|sgd)\b"
+        r"|\bdollars?\b"
+        r"|\beuros?\b"
+        r"|\bpounds?\b"
+        r"|(?<![\w])\$(?!\s*(?:rs\.?|lkr)\b))",
+        flags=re.IGNORECASE,
+    )
+
+    def _is_foreign_currency(self, text: str) -> bool:
+        """True when the price string quotes a non-LKR currency."""
+        return bool(self._FOREIGN_CURRENCY_RE.search(text))
+
     def normalize_price_lkr(self, raw_price: Any) -> Optional[int]:
         if raw_price is None or isinstance(raw_price, bool):
             return None
@@ -246,6 +261,11 @@ class CarCleaner:
 
             text = str(raw_price).replace("\xa0", " ").strip()
             if not text:
+                return None
+
+            # Hard-reject foreign-currency amounts. "USD 4.5 million" must never
+            # become 4,500,000 LKR — it is off by orders of magnitude.
+            if self._is_foreign_currency(text):
                 return None
 
             # First parse explicit "million" notation (e.g. Rs 8.7 Million, LKR 4.35 mn).

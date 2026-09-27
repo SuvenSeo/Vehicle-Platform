@@ -157,7 +157,8 @@ def test_find_duplicate_candidates_null_mileage_on_candidate_is_accepted():
     assert any(r.source_id == "rs-4" for r in results)
 
 
-def test_find_duplicate_candidates_both_null_price_matches():
+def test_find_duplicate_candidates_both_null_price_does_not_match():
+    """Distinct unpriced cars must not collapse into one row."""
     db = _session()
     base = _listing("ikman", "ik-5", price_lkr=None)
     twin = _listing("riyasewana", "rs-5", price_lkr=None)
@@ -166,7 +167,7 @@ def test_find_duplicate_candidates_both_null_price_matches():
 
     results = find_duplicate_candidates(db, base)
 
-    assert any(r.source_id == "rs-5" for r in results)
+    assert not any(r.source_id == "rs-5" for r in results)
 
 
 def test_find_duplicate_candidates_normalises_make_model_punctuation():

@@ -346,6 +346,14 @@ def bulk_refresh_deal_scores(db: Session, *, batch_size: int = 5000) -> dict:
         suppressed=suppressed,
         batches=batches,
     )
+    # Deal scores feed summary/good-deals/trends — drop the materialized
+    # cache so the next read reflects the refresh instead of a 15min–24h TTL.
+    try:
+        from app.utils.stats_cache import invalidate_stats_cache
+
+        invalidate_stats_cache(db)
+    except Exception:
+        logger.warning("stats_cache_invalidate_failed", exc_info=True)
     return {
         "updated": updated,
         "skipped_no_median": skipped_no_median,
