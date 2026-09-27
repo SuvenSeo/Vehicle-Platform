@@ -65,8 +65,6 @@ def create_feedback(payload: FeedbackCreate, request: Request, db: Session = Dep
             id=0,
             category=feedback_data["category"],
             route=feedback_data["route"],
-            message=feedback_data["message"],
-            email=feedback_data["email"],
             status="queued",
             created_at=_dt.datetime.utcnow(),
         )
