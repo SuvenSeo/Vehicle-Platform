@@ -66,13 +66,17 @@ jobs:
           set -euo pipefail
           if gh release view merged-db >/dev/null 2>&1; then
             gh release download merged-db \
-              --pattern "merged-autolens.db.gz" \
+              --pattern "merged-motormila.db.gz" --pattern "merged-autolens.db.gz" \
               --dir . --clobber
           else
             echo "ERROR: merged-db release is missing" >&2
             exit 1
           fi
-          gunzip -f -c merged-autolens.db.gz > backend/motormila.db
+          if [[ -s merged-motormila.db.gz ]]; then
+            gunzip -f -c merged-motormila.db.gz > backend/motormila.db
+          else
+            gunzip -f -c merged-autolens.db.gz > backend/motormila.db  # legacy asset name
+          fi
           python - <<'PY'
           import sqlite3
           con = sqlite3.connect("backend/motormila.db")

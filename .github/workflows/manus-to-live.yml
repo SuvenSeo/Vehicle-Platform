@@ -11,7 +11,7 @@
 #   - Post-reset Neon exports  -> neon-export-* releases
 #
 # It maintains a durable merged SQLite DB published as the `merged-db` release
-# (merged-autolens.db.gz + last-merged.txt marker). Each run:
+# (merged-motormila.db.gz + last-merged.txt marker). Each run:
 #   1. restores the merged DB (or starts fresh),
 #   2. paginates every dump release newer than last-merged.txt (compares the
 #      YYYYMMDDTHHMMZ timestamp so a full tag in the marker still works; the
@@ -97,13 +97,16 @@ jobs:
           mkdir -p ../merged-store
           if gh release view merged-db >/dev/null 2>&1; then
             gh release download merged-db \
-              --pattern "merged-autolens.db.gz" --pattern "last-merged.txt" \
+              --pattern "merged-motormila.db.gz" --pattern "merged-autolens.db.gz" --pattern "last-merged.txt" \
               --dir ../merged-store --clobber
             echo "downloaded merged-db release"
           fi
-          if [[ -s ../merged-store/merged-autolens.db.gz ]]; then
-            gunzip -f -c ../merged-store/merged-autolens.db.gz > motormila.db
+          if [[ -s ../merged-store/merged-motormila.db.gz ]]; then
+            gunzip -f -c ../merged-store/merged-motormila.db.gz > motormila.db
             echo "restored merged DB ($(du -h motormila.db | cut -f1))"
+          elif [[ -s ../merged-store/merged-autolens.db.gz ]]; then
+            gunzip -f -c ../merged-store/merged-autolens.db.gz > motormila.db
+            echo "restored merged DB from legacy asset ($(du -h motormila.db | cut -f1))"
           else
             python -c "from db.session import init_db; init_db(); print('fresh DB created')"
           fi
@@ -129,9 +132,14 @@ jobs:
           while IFS= read -r TAG || [[ -n "${TAG}" ]]; do
             [[ -z "$TAG" ]] && continue
             echo "== merging ${TAG} =="
-            gh release download "$TAG" --pattern "autolens.db.gz" --dir dump-store --clobber
-            python scripts/ops/merge_sqlite_dump.py dump-store/autolens.db.gz --target motormila.db
-            rm -f dump-store/autolens.db.gz
+            if gh release download "$TAG" --pattern "motormila.db.gz" --dir dump-store --clobber; then
+              ASSET="dump-store/motormila.db.gz"
+            else
+              gh release download "$TAG" --pattern "autolens.db.gz" --dir dump-store --clobber
+              ASSET="dump-store/autolens.db.gz"  # legacy asset name
+            fi
+            python scripts/ops/merge_sqlite_dump.py "$ASSET" --target motormila.db
+            rm -f dump-store/motormila.db.gz dump-store/autolens.db.gz
           done < new-dumps.txt
           python - <<'PY'
           import sqlite3
@@ -222,8 +230,9 @@ jobs:
           con.commit()
           con.close()
           PY
-          gzip -f -c backend/motormila.db > public/snapshots/latest/merged-autolens.db.gz
-          ls -lh public/snapshots/latest/merged-autolens.db.gz
+          gzip -f -c backend/motormila.db > public/snapshots/latest/merged-motormila.db.gz
+          cp public/snapshots/latest/merged-motormila.db.gz public/snapshots/latest/merged-autolens.db.gz  # legacy name
+          ls -lh public/snapshots/latest/merged-motormila.db.gz
           # Sideload APK + release manifest for /app/* (private repo: the
           # release asset can only be fetched with a token, and the binary is
           # gitignored, so it must ride the CLI deploy).
@@ -240,12 +249,13 @@ jobs:
         run: |
           set -euo pipefail
           NEW_LAST="$(cat backend/last-merged-new.txt)"
-          gzip -f -c backend/motormila.db > merged-autolens.db.gz
+          gzip -f -c backend/motormila.db > merged-motormila.db.gz
+          cp merged-motormila.db.gz merged-autolens.db.gz  # legacy asset name
           printf '%s' "$NEW_LAST" > last-merged.txt
           if gh release view merged-db >/dev/null 2>&1; then
-            gh release upload merged-db merged-autolens.db.gz last-merged.txt --clobber
+            gh release upload merged-db merged-motormila.db.gz merged-autolens.db.gz last-merged.txt --clobber
           else
-            gh release create merged-db merged-autolens.db.gz last-merged.txt \
+            gh release create merged-db merged-motormila.db.gz merged-autolens.db.gz last-merged.txt \
               --title "Merged outage DB" \
               --notes "Durable merged SQLite DB maintained by manus-to-live.yml. Last merged dump: ${NEW_LAST}" \
               --latest=false --prerelease

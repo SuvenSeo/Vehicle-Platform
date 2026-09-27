@@ -36,13 +36,13 @@ def _rel(tag: str, *assets: str, draft: bool = False) -> dict:
 
 DUMPS = [
     _rel("manus-scrape-20260815T1133Z", "autolens.db.gz"),
-    _rel("manus-scrape-20260818T1404Z", "autolens.db.gz"),
+    _rel("manus-scrape-20260818T1404Z", "motormila.db.gz"),
     _rel("manus-scrape-20260818T1547Z", "autolens.db.gz"),
     _rel("manus-scrape-20260818T1551Z", "autolens.db.gz"),
     _rel("merged-db", "merged-autolens.db.gz", "last-merged.txt"),
     _rel("manus-scrape-parallel-20260814T0000Z", "autolens-recovered.db.gz"),
-    _rel("neon-export-20260901T0400Z", "autolens.db.gz"),
-    _rel("laptop-db-20260816T0900Z", "autolens.db.gz"),
+    _rel("neon-export-20260901T0400Z", "motormila.db.gz", "autolens.db.gz"),
+    _rel("laptop-db-20260816T0900Z", "motormila.db.gz"),
     _rel("manus-scrape-20260818T1600Z", "autolens.db.gz", draft=True),
 ]
 
@@ -204,3 +204,26 @@ def test_monthly_neon_export_tag_detection() -> None:
     assert ddr.has_neon_export_for_month(tags, "202609") is True
     assert ddr.has_neon_export_for_month(tags, "202610") is False
     assert ddr.has_neon_export_for_month(tags, "202608") is True
+
+
+def test_accepts_new_and_legacy_dump_asset_names() -> None:
+    """Post-rename producers ship motormila.db.gz; old releases only have
+    autolens.db.gz. Both must merge; anything else must not."""
+    releases = [
+        _rel("manus-scrape-20260910T0100Z", "motormila.db.gz"),
+        _rel("manus-scrape-20260909T0100Z", "autolens.db.gz"),
+        _rel("manus-scrape-20260908T0100Z", "something-else.db.gz"),
+    ]
+    tags, _ = ddr.select_dumps_to_merge(releases=releases, last_merged="")
+    assert "manus-scrape-20260910T0100Z" in tags
+    assert "manus-scrape-20260909T0100Z" in tags
+    assert "manus-scrape-20260908T0100Z" not in tags
+
+
+def test_preferred_dump_asset_prefers_new_name() -> None:
+    assert ddr.preferred_dump_asset(_rel("t", "autolens.db.gz")) == "autolens.db.gz"
+    assert (
+        ddr.preferred_dump_asset(_rel("t", "motormila.db.gz", "autolens.db.gz"))
+        == "motormila.db.gz"
+    )
+    assert ddr.preferred_dump_asset(_rel("t", "other.db.gz")) is None
