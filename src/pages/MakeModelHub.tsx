@@ -143,7 +143,7 @@ export default function MakeModelHub() {
       tag.setAttribute("content", content);
     };
 
-    // Canonical + JSON-LD owned by global RouteMeta (id autolens-jsonld) —
+    // Canonical + JSON-LD owned by global RouteMeta (id motormila-jsonld) —
     // page-level writes removed to avoid last-write-wins collision.
     const pathname = yearOk
       ? `/cars/${encodeURIComponent(makeParam)}/${encodeURIComponent(modelParam)}/${yearFilter}`
