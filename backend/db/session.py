@@ -110,9 +110,13 @@ def reattach_engines(url: str) -> None:
     `SessionLocal` / `HotSessionLocal` are imported by name in API modules.
     Reconfiguring the existing sessionmaker objects updates those aliases;
     replacing the names here would not.
+
+    The previous engines are disposed: without this every failover refresh
+    leaked a pool of open SQLite file handles against superseded inodes.
     """
     global hot_engine, cold_engine, engine, HOT_URL, COLD_URL
     url = _validate(_normalise(url), "SQLITE_FAILOVER")
+    old_engines = {hot_engine, cold_engine}
     new_engine = _make_engine(url)
     HotSessionLocal.configure(bind=new_engine)
     ColdSessionLocal.configure(bind=new_engine)
@@ -121,6 +125,12 @@ def reattach_engines(url: str) -> None:
     engine = new_engine
     HOT_URL = url
     COLD_URL = url
+    for old in old_engines:
+        if old is not new_engine:
+            try:
+                old.dispose()
+            except Exception:  # noqa: BLE001 - best effort
+                pass
 
 
 def _apply_statement_timeout(db) -> None:
