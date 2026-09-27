@@ -126,3 +126,15 @@ def test_seller_profile_cache_evicts_expired_entries_before_oldest():
         assert len(listings.SELLER_PROFILE_CACHE) <= cap
     finally:
         listings.SELLER_PROFILE_CACHE.clear()
+
+
+def test_seller_profile_requires_authentication():
+    """Seller phone/WhatsApp data must not be enumerable without a signed-in session."""
+    import inspect
+
+    from app.api.v1.endpoints import listings as listings_module
+
+    sig = inspect.signature(listings_module.get_seller_profile)
+    params = list(sig.parameters.values())
+    # get_current_auth_payload raises 401 when no valid token is present.
+    assert any("auth" in p.name for p in params), "seller-profile must declare an auth dependency"
