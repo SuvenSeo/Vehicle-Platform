@@ -811,7 +811,7 @@ export const ta = {
   "pricing.compare.seats": "குழு இருக்கைகள்",
   "pricing.compare.sla": "SLA / ஊட்டங்கள்",
   "pricing.compare.terminal": "Pro முனையம்",
-  "pricing.ctaBanner": "உள்நுழைந்து, டீலரை திறக்கவும் அல்லது ஆவணங்களை படிக்கவும்.",
+  "pricing.ctaBanner": "காத்திருப்பு பட்டியலில் சேரவும், டீலரை திறக்கவும் அல்லது ஆவணங்களை படிக்கவும்.",
   "pricing.dealerWorkspace": "டீலர் பணியிடம்",
   "pricing.eyebrow": "திட்டங்கள்",
   "pricing.faq": "FAQ",
