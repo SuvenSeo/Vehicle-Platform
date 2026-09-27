@@ -1,7 +1,6 @@
 /backend/
 /mobile/
 /.freebuff/
-/.opencode/
 /.swarm/
 /dist/
 /data/
@@ -9,10 +8,11 @@
 __pycache__/
 *.pyc
 *.db
-*.db.gz
-# …except the public failover DB the HF Space downloads during Neon outages
-# (deployed alongside the snapshot JSON by manus-to-live.yml).
-!public/snapshots/latest/merged-autolens.db.gz
+# No *.db.gz rule on purpose: the public failover DB
+# (public/snapshots/latest/merged-autolens.db.gz, built by manus-to-live.yml)
+# MUST be deployed — the HF Space downloads it for SQLite failover while
+# Neon is down. A *.db.gz ignore with a !-negation did not take effect
+# (2026-09-27: the file 404'd, failover never engaged, API stayed db:down).
 *.log
 .pytest_cache/
 /android/
