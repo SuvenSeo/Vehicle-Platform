@@ -84,8 +84,8 @@ describe("RequireAuth + free plan locks", () => {
     expect(screen.getByText(/you're on the free plan/i)).toBeInTheDocument();
     expect(screen.getAllByText(/lane intelligence/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /^upgrade$/i })).toHaveAttribute("href", "/pricing");
-    expect(screen.getByText(/start your 7-day free trial/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /start 7-day free trial/i })).toHaveAttribute(
+    expect(screen.getByText(/join the waitlist/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /join the waitlist/i })).toHaveAttribute(
       "href",
       "/pricing",
     );
