@@ -56,7 +56,16 @@ _activated = False
 _primary_url: str | None = None
 _consecutive_failures = 0
 _active_source_url: str | None = None
-_active_source_version: tuple[str | None, str | None, int | None] | None = None
+_active_source_version: tuple[str | None, int | None] | None = None
+
+# Refresh throttle. Vercel's edge serves identical bytes with a flapping
+# Last-Modified on consecutive HEADs, which used to make every monitor tick
+# see a "new version" and re-download the dump in a loop. The version is now
+# (etag, content_length) only; on top of that a successful refresh is never
+# repeated within the hour, and a failed one backs off for 30 minutes.
+_REFRESH_MIN_INTERVAL_SECONDS = 3600
+_REFRESH_BACKOFF_SECONDS = 1800
+_next_refresh_allowed_at: float = 0.0
 
 
 def failover_enabled() -> bool:
@@ -128,23 +137,43 @@ def _probe_url(url: str, timeout_seconds: float = 3.0) -> bool:
 
 def download_merged_sqlite(dest: Path, source_url: str) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    gz_path = dest.with_suffix(dest.suffix + ".gz")
-    tmp_gz = gz_path.with_name(gz_path.name + ".partial")
     tmp_db = dest.with_name(dest.name + ".partial")
     logger.info("sqlite_failover_download_start", url=source_url, dest=str(dest))
     try:
-        with urllib.request.urlopen(source_url, timeout=120) as resp, tmp_gz.open("wb") as out:
-            shutil.copyfileobj(resp, out, length=1024 * 1024)
-        with gzip.open(tmp_gz, "rb") as src, tmp_db.open("wb") as out:
-            shutil.copyfileobj(src, out, length=1024 * 1024)
+        with urllib.request.urlopen(source_url, timeout=120) as resp:
+            # Stream straight through gunzip instead of staging the ~80MB .gz:
+            # next to the live ~337MB database the Space's /tmp cannot hold
+            # live + gz + new copy at once.
+            with gzip.open(resp, "rb") as src, tmp_db.open("wb") as out:
+                shutil.copyfileobj(src, out, length=1024 * 1024)
         tmp_db.replace(dest)
     finally:
-        tmp_gz.unlink(missing_ok=True)
         tmp_db.unlink(missing_ok=True)
     if dest.stat().st_size < 1_000:
         raise RuntimeError(f"Merged SQLite download was empty: {dest}")
     logger.info("sqlite_failover_download_done", bytes=dest.stat().st_size, dest=str(dest))
     return dest
+
+
+def _drop_wal_sidecars(dest: Path) -> None:
+    """Remove SQLite sidecar files for *dest* before a fresh file takes over.
+
+    The refresh swaps the database file atomically, which leaves the previous
+    generation's -wal/-shm behind. New connections then read stale WAL frames
+    (silently wrong data) or fail outright ("database disk image is
+    malformed"), so the sidecars must go before the new file owns the path.
+    Only call this when the file at *dest* was just replaced.
+    """
+    for ext in ("-wal", "-shm", "-journal"):
+        try:
+            dest.with_name(dest.name + ext).unlink(missing_ok=True)
+        except OSError as exc:  # noqa: BLE001 - best effort
+            logger.warning(
+                "sqlite_failover_sidecar_cleanup_failed",
+                path=str(dest),
+                ext=ext,
+                error=str(exc),
+            )
 
 
 def activate_sqlite_file(db_path: Path) -> None:
@@ -169,7 +198,7 @@ def _candidate_sources() -> list[str]:
     return urls
 
 
-def _source_version(url: str) -> tuple[str | None, str | None, int | None] | None:
+def _source_version(url: str) -> tuple[str | None, int | None] | None:
     """Read cheap deployment metadata for a public merged-DB source."""
     if not url or url.startswith("file:"):
         return None
@@ -186,17 +215,19 @@ def _source_version(url: str) -> tuple[str | None, str | None, int | None] | Non
     return None
 
 
-def _version_from_headers(headers) -> tuple[str | None, str | None, int | None] | None:
+def _version_from_headers(headers) -> tuple[str | None, int | None] | None:
+    # Last-Modified is deliberately NOT part of the version: Vercel's edge
+    # serves identical bytes with a different Last-Modified on consecutive
+    # HEAD requests, which made every monitor tick re-download the dump.
     etag = (headers.get("ETag") or headers.get("Etag") or "").strip() or None
-    last_modified = (headers.get("Last-Modified") or "").strip() or None
     raw_length = (headers.get("Content-Length") or "").strip()
     try:
         content_length = int(raw_length) if raw_length else None
     except ValueError:
         content_length = None
-    if etag is None and last_modified is None and content_length is None:
+    if etag is None and content_length is None:
         return None
-    return etag, last_modified, content_length
+    return etag, content_length
 
 
 def _download_with_fallback(dest: Path) -> Path:
@@ -240,6 +271,9 @@ def _activate_locked() -> bool:
     # /tmp file from a previous Space process.
     if not _active_source_url or not dest.is_file() or dest.stat().st_size < 1_000:
         _download_with_fallback(dest)
+        # The download just replaced the file: drop the previous generation's
+        # WAL sidecars before any connection opens the new file.
+        _drop_wal_sidecars(dest)
     activate_sqlite_file(dest)
     _ensure_failover_schema()
     if not _active_source_url:
@@ -253,9 +287,11 @@ def _activate_locked() -> bool:
 
 def _refresh_active_failover_locked() -> bool:
     """Refresh an active failover DB when the public source changes."""
-    global _active_source_url, _active_source_version
+    global _active_source_url, _active_source_version, _next_refresh_allowed_at
     dest = Path(os.getenv("SQLITE_FAILOVER_PATH", DEFAULT_FAILOVER_PATH))
     if not _activated or not dest.is_file():
+        return False
+    if time.time() < _next_refresh_allowed_at:
         return False
 
     for url in _candidate_sources():
@@ -265,9 +301,20 @@ def _refresh_active_failover_locked() -> bool:
         if url == _active_source_url and version == _active_source_version:
             return False
 
+        # The source really changed. Throttle so one bad mirror cannot keep
+        # the Space in a permanent download loop.
+        _next_refresh_allowed_at = time.time() + _REFRESH_MIN_INTERVAL_SECONDS
         next_dest = dest.with_name(f"{dest.name}.refresh")
         try:
             download_merged_sqlite(next_dest, url)
+            # Close idle pooled connections and drop the previous generation's
+            # WAL sidecars BEFORE the new file takes over the path; otherwise
+            # new connections read stale frames (or fail) from the old -wal.
+            try:
+                db_session.hot_engine.dispose()
+            except Exception:  # noqa: BLE001 - best effort
+                pass
+            _drop_wal_sidecars(dest)
             next_dest.replace(dest)
             activate_sqlite_file(dest)
             _ensure_failover_schema()
@@ -276,6 +323,7 @@ def _refresh_active_failover_locked() -> bool:
             logger.info("sqlite_failover_refreshed", url=url, bytes=dest.stat().st_size)
             return True
         except Exception as exc:  # noqa: BLE001 - try the next mirror
+            _next_refresh_allowed_at = time.time() + _REFRESH_BACKOFF_SECONDS
             logger.warning("sqlite_failover_refresh_failed", url=url, error=str(exc))
     return False
 
