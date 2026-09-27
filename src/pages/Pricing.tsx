@@ -536,7 +536,7 @@ export default function Pricing() {
         >
           <div>
             <p className="section-eyebrow mb-2">{t("pricing.getStarted", "Get started")}</p>
-            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Start your 7-day free trial, open Dealer, or read the docs.")}</h3>
+            <h3 className="text-lg font-bold text-foreground">{t("pricing.ctaBanner", "Join the waitlist, open Dealer, or read the docs.")}</h3>
           </div>
           <div className="flex flex-wrap gap-2">
             <TrialCta className="inline-flex h-10 items-center rounded-full bg-primary px-5 text-[12px] font-semibold text-primary-foreground no-underline transition-all hover:bg-primary/90" />
