@@ -10,8 +10,8 @@ Rows are upserted by (source, source_id) through the app's upsert_listing, so
 nothing is duplicated and vehicle_price_history rows are recorded correctly.
 
 Usage:
-  python scripts/ops/merge_sqlite_dump.py path/to/autolens.db[.gz]
-  python scripts/ops/merge_sqlite_dump.py path/to/autolens.db.gz --target C:/motormila/motormila.db --dry-run
+  python scripts/ops/merge_sqlite_dump.py path/to/motormila.db[.gz]
+  python scripts/ops/merge_sqlite_dump.py path/to/motormila.db.gz --target C:/motormila/motormila.db --dry-run
 """
 from __future__ import annotations
 

@@ -7,7 +7,8 @@
 #
 # Delivery tries, in order:
 #   1) `gh` CLI if already authenticated (GitHub Actions and some Manus
-#      sessions)  -> creates a GitHub Release + uploads autolens.db.gz
+#      sessions)  -> creates a GitHub Release + uploads motormila.db.gz
+#                         (+ a legacy autolens.db.gz copy for pre-rename merger runs)
 #   2) GH_TOKEN env var     -> same via the REST API (curl)
 #
 # There is no git-commit fallback. Committing dumps onto main does not update
@@ -55,7 +56,7 @@ echo "== installing deps =="
 python3 -m pip install -q -r requirements.txt
 
 # Fresh local DB for this run so the dump contains exactly what was scraped.
-rm -f autolens.db autolens.db.gz
+rm -f motormila.db motormila.db.gz autolens.db.gz
 
 SOURCES=("$@")
 if [ ${#SOURCES[@]} -eq 0 ]; then
@@ -89,7 +90,7 @@ done
 TOTAL="$(python3 -c "
 import sqlite3
 try:
-    con = sqlite3.connect('autolens.db')
+    con = sqlite3.connect('motormila.db')
     print(con.execute('SELECT COUNT(*) FROM car_listings').fetchone()[0])
 except Exception:
     print(0)
@@ -100,7 +101,8 @@ if [[ "${TOTAL}" == "0" ]]; then
   exit 1
 fi
 
-gzip -f autolens.db
+gzip -f motormila.db
+cp motormila.db.gz autolens.db.gz  # legacy asset name for pre-rename merger runs
 # A retry job can publish several dumps inside the same minute, so a suffixed
 # tag switches to second precision to keep releases distinct. The merge side
 # (scripts/ops/discover_dump_releases.py) matches the manus-scrape- prefix and
@@ -116,7 +118,7 @@ fi
 # ---------------------------------------------------------------------------
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "== gh CLI available — creating release ${TAG} (${REPO}) =="
-  if gh release create "${TAG}" autolens.db.gz --repo "${REPO}" \
+  if gh release create "${TAG}" motormila.db.gz autolens.db.gz --repo "${REPO}" \
       --title "${TAG}" --notes "Sources: ${SOURCES[*]} — from page ${START_PAGE} — listings: ${TOTAL}" \
       --prerelease --latest=false; then
     echo "== uploaded via gh. DONE =="
@@ -138,21 +140,23 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
 
   RELEASE_ID="$(printf '%s' "${RELEASE_JSON}" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")"
 
-  curl -fsSL -X POST \
-    -H "Authorization: Bearer ${GH_TOKEN}" \
-    -H "Content-Type: application/gzip" \
-    --data-binary "@autolens.db.gz" \
-    "https://uploads.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets?name=autolens.db.gz" >/dev/null
+  for asset in motormila.db.gz autolens.db.gz; do  # autolens.db.gz is the legacy name
+    curl -fsSL -X POST \
+      -H "Authorization: Bearer ${GH_TOKEN}" \
+      -H "Content-Type: application/gzip" \
+      --data-binary "@${asset}" \
+      "https://uploads.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets?name=${asset}" >/dev/null
+  done
 
   echo "== uploaded via API. DONE =="
   exit 0
 fi
 
 # ---------------------------------------------------------------------------
-# No git-commit fallback: committing autolens.db.gz onto main does not update
+# No git-commit fallback: committing motormila.db.gz onto main does not update
 # the live site (manus-to-live only reads GitHub Releases) and pollutes history.
 # ---------------------------------------------------------------------------
 echo "ERROR: cannot publish ${TAG}. Set GH_TOKEN (contents:read + releases:write)" >&2
-echo "       or authenticate \`gh\`. The dump is at backend/autolens.db.gz" >&2
-echo "       manus-to-live.yml only merges GitHub Release assets named autolens.db.gz." >&2
+echo "       or authenticate \`gh\`. The dump is at backend/motormila.db.gz" >&2
+echo "       manus-to-live.yml merges GitHub Release assets named motormila.db.gz (legacy: autolens.db.gz)." >&2
 exit 1

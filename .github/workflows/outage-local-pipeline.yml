@@ -282,7 +282,7 @@ jobs:
           con.commit()
           con.close()
 
-          with open(dst, "rb") as fin, gzip.open("autolens.db.gz", "wb") as fout:
+          with open(dst, "rb") as fin, gzip.open("motormila.db.gz", "wb") as fout:
               shutil.copyfileobj(fin, fout)
 
           token = os.environ["GH_TOKEN"]
@@ -301,18 +301,20 @@ jobs:
           )
           with urllib.request.urlopen(req) as resp:
               release = json.load(resp)
-          with open("autolens.db.gz", "rb") as fh:
+          with open("motormila.db.gz", "rb") as fh:
               payload = fh.read()
-          upload = urllib.request.Request(
-              f"https://uploads.github.com/repos/{repo}/releases/"
-              f"{release['id']}/assets?name=autolens.db.gz",
-              data=payload,
-              headers={"Authorization": f"Bearer {token}",
-                       "Content-Type": "application/gzip"},
-              method="POST",
-          )
-          with urllib.request.urlopen(upload) as resp:
-              print("published", tag, "(asset autolens.db.gz)")
+          for asset_name in ("motormila.db.gz", "autolens.db.gz"):  # legacy name second
+              upload = urllib.request.Request(
+                  f"https://uploads.github.com/repos/{repo}/releases/"
+                  f"{release['id']}/assets?name={asset_name}",
+                  data=payload,
+                  headers={"Authorization": f"Bearer {token}",
+                           "Content-Type": "application/gzip"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(upload):
+                  pass
+          print("published", tag, "(assets motormila.db.gz + autolens.db.gz)")
           PY
 
       # Hand the snapshots to the hosted deploy job (it needs no DB access —
