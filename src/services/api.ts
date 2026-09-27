@@ -2501,7 +2501,7 @@ export const formatPrice = (price: number | null): string => {
 // Market Alerts — server-side (anonymous token pattern)
 // ---------------------------------------------------------------------------
 
-const ALERT_TOKEN_KEY = "autolens.alert_token.v1";
+const ALERT_TOKEN_KEY = "motormila.alert_token.v1";
 
 export function getOrCreateAlertToken(): string {
   try {

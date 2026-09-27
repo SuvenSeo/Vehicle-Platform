@@ -16,7 +16,7 @@
          first paint so there is no flash of the wrong palette. Dark is default. */
       (function () {
         try {
-          var mode = localStorage.getItem("autolens_theme_mode") || "dark";
+          var mode = localStorage.getItem("motormila_theme_mode") || localStorage.getItem("autolens_theme_mode") || "dark";
           var dark =
             mode === "dark" ||
             (mode === "system" &&

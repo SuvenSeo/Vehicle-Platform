@@ -42,6 +42,6 @@ describe("ProPreview", () => {
     expect(screen.getAllByText(/unlock with pro/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/report formats/i).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute("href", "/sign-up");
-    expect(localStorage.getItem("autolens.auth_user")).toBeNull();
+    expect(localStorage.getItem("motormila.auth_user")).toBeNull();
   });
 });
