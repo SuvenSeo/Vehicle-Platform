@@ -39,10 +39,17 @@ describe("Docs and Pricing pages", () => {
       expect(screen.getByText("LKR 1,999")).toBeInTheDocument();
     }
     expect(screen.getByText("Dealers")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
-      "href",
-      "/sign-up",
-    );
+    if (PRICING_COMING_SOON) {
+      // Coming Soon mode: the trial CTA is a waitlist form (TrialCta), not a
+      // signup link — assert the waitlist affordance instead.
+      expect(screen.getAllByRole("textbox", { name: /email for launch invite/i }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("button", { name: /notify me/i }).length).toBeGreaterThan(0);
+    } else {
+      expect(screen.getAllByRole("link", { name: /start 7-day free trial/i })[0]).toHaveAttribute(
+        "href",
+        "/sign-up",
+      );
+    }
     expect(screen.getAllByRole("link", { name: /Message us/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Message us/i })[0]).toHaveAttribute(
       "href",
