@@ -40,7 +40,7 @@ def test_maybe_activate_downloads_when_neon_is_down(tmp_path, monkeypatch):
     sqlite_failover._activated = False
     restore_url = db_session.HOT_URL
     dest = tmp_path / "merged.db"
-    gz_source = tmp_path / "merged-autolens.db.gz"
+    gz_source = tmp_path / "merged-motormila.db.gz"
     db_path = _tiny_sqlite(tmp_path / "source.db")
     with db_path.open("rb") as src, gzip.open(gz_source, "wb") as out:
         out.write(src.read())
