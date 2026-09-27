@@ -451,7 +451,9 @@ def test_district_insight_uses_true_median():
     assert payload["avg_price_lkr"] == round((5_000_000 + 6_000_000 + 9_000_000) / 3, 2)
 
 
-def test_price_trends_fall_back_to_national_lane_when_district_samples_are_thin():
+def test_price_trends_fall_back_to_national_lane_when_district_samples_are_thin(monkeypatch):
+    # Signed-in Pro caller so the district filter survives free-tease clamping.
+    monkeypatch.setattr(stats, 'resolve_request_access', lambda *a, **k: ('pro', 'user'))
     db = _session()
     db.add_all(
         [
