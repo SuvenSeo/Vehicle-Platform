@@ -49,6 +49,7 @@ import { useAppPreferences } from "@/lib/appPreferences";
 import { loadWatchlistIds, saveWatchlistIds, toggleWatchlistId } from "@/lib/watchlist";
 import { pickVehicleImageUrl } from "@/lib/listingImage";
 import { isReasonableListingPrice } from "@/lib/formatting";
+import { isJunkMake } from "@/lib/makeNormalization";
 import { cn } from "@/lib/utils";
 import { VehicleThumbnail } from "@/components/VehicleThumbnail";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
@@ -474,9 +475,14 @@ export default function Dashboard() {
   }, [dashboardInsights?.trending_models, fallbackTrendingModels]);
 
   const hotDeals = useMemo(() => {
+    // A listing with no resolvable make/model ("Other brand Other model") must
+    // never be the hero's #1 deal — it is a scrape artifact, not a bargain.
+    const isBrandable = (r: { make?: string; model?: string }) => !isJunkMake(r.make);
     const rows = dashboardInsights?.hot_deals?.length
-      ? dashboardInsights.hot_deals.filter((r) => isReasonableListingPrice(Number(r.price_lkr || 0)))
-      : fallbackHotDeals.map((r) => ({
+      ? dashboardInsights.hot_deals.filter(
+          (r) => isReasonableListingPrice(Number(r.price_lkr || 0)) && isBrandable(r),
+        )
+      : fallbackHotDeals.filter(isBrandable).map((r) => ({
           id: r.id, make: r.make, model: r.model, year: r.year, district: r.district || null,
           source: r.source, price_lkr: r.price_lkr, deal_score: Number(r.deal_score || 0),
           thumbnail_url: r.thumbnail_url || r.images?.[0] || null,
