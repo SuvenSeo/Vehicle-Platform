@@ -83,8 +83,15 @@ class AppUpdateChecker @Inject constructor(
      */
     suspend fun downloadApk(apkUrl: String, context: Context): File? {
         return try {
+            // Bare client — never send the session JWT to an APK download host.
+            // The shared okHttpClient carries AuthInterceptor which would
+            // exfiltrate the bearer token to whatever host apk_url points at.
+            val bareClient = OkHttpClient.Builder()
+                .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .build()
             val request = Request.Builder().url(apkUrl).build()
-            okHttpClient.newCall(request).execute().use { response ->
+            bareClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
                 val body = response.body ?: return null
                 val dir = File(context.getExternalFilesDir(null), "updates").apply { mkdirs() }
@@ -102,6 +109,8 @@ class AppUpdateChecker @Inject constructor(
             null
         } catch (_: SecurityException) {
             null
+        } catch (ce: CancellationException) {
+            throw ce
         } catch (_: Exception) {
             // Last-resort guard: download failure must never crash the app.
             null

@@ -1,5 +1,7 @@
 package lk.motormila.app.data.repository
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,6 +18,8 @@ import lk.motormila.app.di.IoDispatcher
 import lk.motormila.app.domain.model.SelfSignupStatus
 import lk.motormila.app.domain.model.UserSession
 import lk.motormila.app.domain.repository.AuthRepository
+import lk.motormila.app.work.PriceAlertSyncWorker
+import lk.motormila.app.work.SnapshotRefreshWorker
 
 /**
  * Auth: login/signup/me/logout against the POST and GET auth endpoints, session persisted in
@@ -25,6 +29,7 @@ import lk.motormila.app.domain.repository.AuthRepository
  */
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val api: MotormilaApiService,
     private val sessionStore: SessionStore,
     private val authInterceptor: AuthInterceptor,
@@ -34,7 +39,7 @@ class AuthRepositoryImpl @Inject constructor(
     override fun session(): Flow<UserSession?> = sessionStore.observe()
 
     override suspend fun me(): UserSession? = withContext(io) {
-        val dto = api.me().user
+        val dto = api.me().toUserDto()
         val token = sessionStore.cachedToken ?: return@withContext null
         val session = UserSession(
             email = dto.email,
@@ -103,10 +108,15 @@ class AuthRepositoryImpl @Inject constructor(
             )
         }
 
-    override suspend fun logout() = withContext(io) {
+    override suspend fun logout(): Unit = withContext(io) {
         runCatching { api.logout() }
         sessionStore.clear()
         authInterceptor.updateToken(null)
+        // Stop background workers — otherwise they keep hitting /alerts/match
+        // with a cleared token after logout.
+        runCatching { PriceAlertSyncWorker.cancel(context) }
+        runCatching { SnapshotRefreshWorker.cancel(context) }
+        Unit
     }
 
     override suspend fun restore(): UserSession? = withContext(io) {
