@@ -31,6 +31,7 @@ import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { SlidingNumber } from "@/components/ui/SlidingNumber";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { toast } from "sonner";
 import { getSurchargeCountdown } from "@/lib/importTaxModel";
@@ -687,7 +688,17 @@ export default function Calculator() {
                     {/* Featured readout — landed cost towers, total taxes demoted below it */}
                     <div aria-live="polite" className="rounded-2xl border border-primary/25 bg-primary/5 p-5 sm:p-6 shadow-soft">
                       <span className="text-[12px] font-semibold text-primary-bright">{t("calc.estLanded", "Est. Landed Cost")}</span>
-                      <p className="display-1 text-foreground num mt-2">{formatPrice(lcResult.landed_cost)}</p>
+                      <div className="display-1 text-foreground num mt-2">
+                        {lcResult.landed_cost == null || !Number.isFinite(lcResult.landed_cost) ? (
+                          "N/A"
+                        ) : (
+                          <span className="inline-flex items-baseline">
+                            <span>Rs.&nbsp;</span>
+                            <SlidingNumber value={Math.round((lcResult.landed_cost / 1_000_000) * 100) / 100} />
+                            <span>M</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-4 flex items-center gap-3 border-t border-primary/15 pt-3">
                         <span className="text-[12px] font-medium text-muted-foreground">Total Taxes &amp; Duties</span>
                         <span className="ml-auto text-sm font-bold text-primary num">+{formatPrice(lcResult.total_tax)}</span>
