@@ -66,7 +66,7 @@ export function Navbar() {
   const reducedMotion = useReducedMotion() ?? false;
   const navSpring = reducedMotion
     ? { duration: 0.2 }
-    : { type: "spring" as const, stiffness: 220, damping: 30, mass: 0.78, restDelta: 0.001 };
+    : { type: "spring" as const, stiffness: 260, damping: 32, mass: 0.7, restDelta: 0.0008 };
 
   const sections = useMemo<NavSection[]>(
     () => [

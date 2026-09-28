@@ -101,7 +101,7 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
-      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-border/80 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft dark:border-white/12"
+      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-border/60 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft"
       onPointerEnter={() => {
         prefetchRoute(`/listing/${listing.id}`);
         void getListing(listing.id);
@@ -125,7 +125,7 @@ export const ListingCard = memo(function ListingCard({
           <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-transparent" />
 
           <div className="absolute left-3 top-3 flex items-center gap-1.5">
-            <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
+            <span className="rounded-full border border-white/8 bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold tracking-tight text-white backdrop-blur-md">
               {formatToken(listing.condition)}
             </span>
           </div>
@@ -138,7 +138,7 @@ export const ListingCard = memo(function ListingCard({
                 className={`pointer-events-auto relative z-30 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isWatchlisted
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
+                    : "bg-black/60 text-white/90 border-white/8 hover:text-white hover:bg-black/75"
                 }`}
                 aria-label={isWatchlisted ? t("listingCard.removeWatchlist", "Remove from watchlist") : t("listingCard.addWatchlist", "Add to watchlist")}
               >

@@ -287,7 +287,7 @@
     --destructive: 4 76% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 32 18% 88% / 0.10;
+    --border: 32 18% 88% / 0.055;
     --input: 32 18% 88% / 0.14;
     --ring: 213 100% 62%;
 
@@ -318,11 +318,13 @@
     --accent-blue: #3D94FF;
     --accent-blue-bright: #6CB8FF;
 
-    /* Glass — warm showroom pane, not cold chrome. */
+    /* Glass — warm showroom pane, not cold chrome.
+       Borders are deliberately near-invisible: separation comes from
+       shadow + surface contrast, not a light outline. */
     --glass-bg: rgba(22, 17, 14, 0.58);
-    --glass-border: rgba(255, 236, 214, 0.12);
-    --glass-edge: rgba(255, 236, 214, 0.10);
-    --glass-top: rgba(255, 244, 230, 0.16);
+    --glass-border: rgba(255, 236, 214, 0.055);
+    --glass-edge: rgba(255, 236, 214, 0.045);
+    --glass-top: rgba(255, 244, 230, 0.07);
     --glass-blur: 44px;
 
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.45);
@@ -1450,10 +1452,14 @@
     border-radius: 0;
     transform: translate3d(0, 0, 0);
     transform-origin: top center;
+    /* Background/border/shadow fade in via CSS; geometry (max-width,
+       border-radius, height) is driven solely by framer-motion so the
+       two systems don't fight and the transform stays buttery. */
     transition:
-      background-color 420ms cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 420ms cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      background-color 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      backdrop-filter 380ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .site-nav__inner {
@@ -1464,12 +1470,16 @@
 
   .site-nav__brand-link {
     padding-block: 0.375rem;
-    transition: padding-block 420ms cubic-bezier(0.16, 1, 0.3, 1);
+    /* Keep the mark optically centered as the wordmark collapses. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .site-nav__brand-logo {
     height: 44px;
-    transition: height 420ms cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
   }
 
   .site-nav__brand-logo .brand-wordmark {
@@ -1479,9 +1489,9 @@
     opacity: 1;
     transform: translate3d(0, 0, 0);
     transition:
-      max-width 420ms cubic-bezier(0.16, 1, 0.3, 1),
-      opacity 240ms ease,
-      transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+      max-width 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 220ms ease,
+      transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .site-nav__status {
@@ -1514,10 +1524,6 @@
 
   .site-nav-header[data-scrolled="true"] .site-nav__brand-link {
     padding-block: 0.125rem;
-  }
-
-  .site-nav-header[data-scrolled="true"] .site-nav__brand-logo {
-    height: 40px;
   }
 
   .site-nav-header[data-scrolled="true"] .site-nav__brand-logo .brand-wordmark {
