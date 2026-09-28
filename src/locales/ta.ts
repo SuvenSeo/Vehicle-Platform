@@ -729,6 +729,7 @@ export const ta = {
   "nav.map": "வரைபடம்",
   "nav.market": "சந்தை",
   "nav.more": "மேலும்",
+  "nav.moreSections": "மேலும் பிரிவுகள்",
   "nav.moreWorkspaces": "மேலும் பணியிடங்கள்",
   "nav.navigationMenu": "வழிசெலுத்தல் மெனு",
   "nav.officialPulse": "Official Pulse",

@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/components/BrandLogo";
 import { scrollBehavior } from "@/lib/motion";
 import { prefetchRoute } from "@/lib/routePrefetch";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
@@ -35,6 +35,7 @@ import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { formatRelativeTimeI18n } from "@/lib/formatting";
 import { NotificationBell } from "@/components/NotificationBell";
+import { computeVisibleTabCount } from "@/lib/navOverflow";
 
 type NavSection = {
   label: string;
@@ -82,6 +83,62 @@ export function Navbar() {
     ],
     [t],
   );
+
+  // ── Measured tab overflow ──────────────────────────────────────────────
+  // The desktop tab strip has no room to scroll (its scrollbar is hidden), so
+  // instead of letting a trailing tab clip mid-label (e.g. "Valuation" showing
+  // as "Val"), we measure the strip and collapse the tabs that don't fit into
+  // the "More" dropdown.
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  const tabWidthsRef = useRef<number[]>([]);
+  const [visibleTabCount, setVisibleTabCount] = useState(sections.length);
+
+  // Reset the natural-width cache whenever the tab label set changes
+  // (e.g. a locale switch changes every label's width).
+  useEffect(() => {
+    tabWidthsRef.current = [];
+    setVisibleTabCount(sections.length);
+  }, [sections]);
+
+  useEffect(() => {
+    const container = tabsRef.current;
+    if (!container) return;
+
+    const measure = () => {
+      const children = Array.from(container.children) as HTMLElement[];
+      if (children.length !== sections.length) return;
+      // Record natural widths only while every tab is laid out — hidden tabs
+      // report offsetWidth 0 and would poison the cache.
+      if (visibleTabCount === sections.length) {
+        tabWidthsRef.current = children.map((child) => child.offsetWidth);
+      }
+      const widths = tabWidthsRef.current;
+      if (widths.length !== sections.length || widths.some((width) => width <= 0)) return;
+      const horizontalPadding = 8; // p-1 on both sides of the strip
+      const available = container.clientWidth - horizontalPadding;
+      const next = computeVisibleTabCount(widths, available, 2); // gap-0.5
+      setVisibleTabCount((prev) => (prev === next ? prev : next));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    // Webfonts arriving late change label widths — re-measure once they're in.
+    let fontsRefreshed = false;
+    if (typeof document !== "undefined" && document.fonts) {
+      document.fonts.ready
+        .then(() => {
+          if (fontsRefreshed) return;
+          fontsRefreshed = true;
+          tabWidthsRef.current = [];
+          setVisibleTabCount(sections.length);
+        })
+        .catch(() => {});
+    }
+    return () => observer.disconnect();
+  }, [sections, visibleTabCount]);
+
+  const overflowSections = sections.slice(visibleTabCount);
 
   /**
    * Grouped overflow menu. Descriptions are the whole point — a flat list of
@@ -334,6 +391,11 @@ export function Navbar() {
     navigate(href);
   };
 
+  const handleOverflowSectionClick = (event: MouseEvent<HTMLAnchorElement>, section: NavSection) => {
+    setMoreOpen(false);
+    handleScroll(event, section.href, section.isRoute);
+  };
+
   const mobileAppActive = pathname.startsWith("/mobile-app");
 
   return (
@@ -392,10 +454,10 @@ export function Navbar() {
             {/* ── Desktop nav tabs ──────────────────────── */}
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
               <div
-                className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-border bg-foreground/[0.03] p-1 shadow-inner [&::-webkit-scrollbar]:hidden"
-                style={{ scrollbarWidth: "none" }}
+                ref={tabsRef}
+                className="inline-flex max-w-full items-center gap-0.5 overflow-hidden rounded-full border border-border bg-foreground/[0.03] p-1 shadow-inner"
               >
-                {sections.map((section) => {
+                {sections.map((section, index) => {
                   const active = isSectionActive(section);
                   return (
                     <a
@@ -408,7 +470,7 @@ export function Navbar() {
                       data-active={active}
                       className={`relative whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium tracking-tight no-underline outline-none transition-all duration-200 ease-apple active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 2xl:px-3.5 ${
                         active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                      }`}
+                      }${index < visibleTabCount ? "" : " hidden"}`}
                     >
                       {active && (
                         <motion.span
@@ -449,6 +511,35 @@ export function Navbar() {
                   className="w-[min(94vw,480px)] overflow-hidden rounded-[1.75rem] border-border bg-popover/96 p-0 text-foreground shadow-soft-xl backdrop-blur-2xl"
                 >
                   <div className="max-h-[min(74vh,620px)] overflow-y-auto overscroll-contain p-2.5">
+                    {/* Tabs collapsed out of the bar by the overflow measurement */}
+                    {overflowSections.length > 0 && (
+                      <div className="mb-1">
+                        <p className="px-2 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                          {t("nav.moreSections", "More sections")}
+                        </p>
+                        <div className="grid gap-1">
+                          {overflowSections.map((section) => {
+                            const active = isSectionActive(section);
+                            return (
+                              <a
+                                key={section.id}
+                                href={section.href}
+                                onPointerEnter={() => prefetchRoute(section.href)}
+                                onClick={(event) => handleOverflowSectionClick(event, section)}
+                                aria-current={active ? "page" : undefined}
+                                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-[12.5px] font-semibold tracking-tight no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                                  active ? "bg-primary/10 text-primary-bright" : "text-foreground hover:bg-accent"
+                                }`}
+                              >
+                                <span className="truncate">{section.label}</span>
+                                <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Mobile app spotlight */}
                     <button
                       type="button"

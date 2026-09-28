@@ -729,6 +729,7 @@ export const si = {
   "nav.map": "නක්ෂාය",
   "nav.market": "වෙළඳපොළ",
   "nav.more": "තවත්",
+  "nav.moreSections": "තවත් කොටස්",
   "nav.moreWorkspaces": "තවත් වැඩබිම්",
   "nav.navigationMenu": "නාවික මෙනුව",
   "nav.officialPulse": "නිල ස්පන්දනය",

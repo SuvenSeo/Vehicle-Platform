@@ -720,6 +720,7 @@ export const en = {
   "nav.map": "Map",
   "nav.market": "Market",
   "nav.more": "More",
+  "nav.moreSections": "More sections",
   "nav.moreWorkspaces": "More workspaces",
   "nav.navigationMenu": "Navigation menu",
   "nav.officialPulse": "Official Pulse",
