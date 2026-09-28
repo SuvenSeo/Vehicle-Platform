@@ -93,6 +93,51 @@ def coerce_datetimes(row: dict) -> dict:
     return out
 
 
+def ensure_merge_schema(engine) -> None:
+    """ADD any model columns missing from an older dump/merged DB file.
+
+    The durable merged DB and older dump DBs were created before newer
+    columns existed (e.g. ``car_listings.owner_user_id`` from the
+    sell-your-car feature). SQLite has no migrations, so without this the
+    ORM upserts (``upsert_listing``) and the ``CONTENT_COLS`` SELECT above
+    fail with ``no such column`` and the whole merge aborts — leaving the
+    live snapshots stale. ``ALTER TABLE ... ADD COLUMN`` heals the file in
+    place; rows written by older code simply read back NULL.
+
+    Only nullable (or defaulted) columns are added — SQLite refuses a
+    NOT NULL column without a default on a non-empty table.
+    """
+    from sqlalchemy import inspect as sa_inspect
+
+    for model in (CarListing, ScrapeRun):
+        table = model.__table__
+        try:
+            existing = {c["name"] for c in sa_inspect(engine).get_columns(table.name)}
+        except Exception:
+            # Table absent entirely (e.g. scrape_runs in old dumps) —
+            # the merge steps that need it already cope with that.
+            continue
+        missing = [c for c in table.columns if c.name not in existing]
+        if not missing:
+            continue
+        with engine.begin() as conn:
+            for col in missing:
+                if not col.nullable and col.server_default is None:
+                    print(
+                        f"WARNING: cannot ADD COLUMN {table.name}.{col.name} "
+                        f"(NOT NULL without default) — skipping"
+                    )
+                    continue
+                ddl_type = col.type.compile(dialect=engine.dialect)
+                conn.execute(
+                    text(
+                        f'ALTER TABLE "{table.name}" '
+                        f'ADD COLUMN "{col.name}" {ddl_type}'
+                    )
+                )
+                print(f"schema heal: added {table.name}.{col.name} ({ddl_type})")
+
+
 def engine_url_for_target(target: str) -> str:
     """Build a SQLAlchemy URL for a dump merge target.
 
@@ -263,6 +308,12 @@ def main() -> int:
     dump_engine = create_engine(f"sqlite:///{dump_path}")
     target_engine = create_engine(target_url)
     TargetSession = sessionmaker(bind=target_engine)
+
+    # Schema drift heal: the durable merged DB and older dumps may predate
+    # newer model columns (e.g. owner_user_id). Heal both files before any
+    # ORM or raw SELECT touches them, or the merge aborts on "no such column".
+    ensure_merge_schema(dump_engine)
+    ensure_merge_schema(target_engine)
 
     sel = f"SELECT {', '.join(CONTENT_COLS)} FROM car_listings"
     with dump_engine.connect() as dconn:
