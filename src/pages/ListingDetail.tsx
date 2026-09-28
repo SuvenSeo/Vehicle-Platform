@@ -46,6 +46,7 @@ import { revealContainer, revealItem, springSnappy } from '@/lib/motion';
 import { AtmosphericImage } from '@/components/AtmosphericImage';
 import { visuals } from '@/lib/visualAssets';
 import { trackEvent } from '@/lib/analytics';
+import { canonicalizeMake, canonicalizeModel } from '@/lib/makeNormalization';
 
 function formatToken(value: string | null | undefined): string {
   if (!value) return 'Unknown';
@@ -337,7 +338,7 @@ export default function ListingDetail() {
           )}
 
           <h1 className="display-1 max-w-4xl text-foreground">
-            {listing.make} {listing.model}{listing.year ? ` · ${listing.year}` : ''}
+            {canonicalizeMake(listing.make) || listing.make} {canonicalizeModel(listing.model) || listing.model}{listing.year ? ` · ${listing.year}` : ''}
           </h1>
 
           {/* Mobile: the sticky price sidebar stacks ~4 screens down — surface ask + verdict here */}
@@ -353,7 +354,7 @@ export default function ListingDetail() {
             )}
           </div>
 
-          {listing.title && listing.title !== `${listing.make} ${listing.model}` && (
+          {listing.title && listing.title !== `${canonicalizeMake(listing.make) || listing.make} ${canonicalizeModel(listing.model) || listing.model}` && (
             <p className="mt-3 max-w-2xl text-[14px] text-muted-foreground leading-relaxed font-medium">{listing.title}</p>
           )}
 
@@ -400,7 +401,7 @@ export default function ListingDetail() {
             <motion.div variants={revealItem} className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-soft">
               <div className="relative aspect-[16/10] min-h-[220px] overflow-hidden bg-black/40 group">
                 {heroImage ? (
-                  <VehicleThumbnail src={heroImage} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" placeholderClassName="flex h-full w-full items-center justify-center bg-black/40" />
+                  <VehicleThumbnail src={heroImage} listingId={listing.id} alt={`${canonicalizeMake(listing.make) || listing.make} ${canonicalizeModel(listing.model) || listing.model}`} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" placeholderClassName="flex h-full w-full items-center justify-center bg-black/40" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center"><CarIcon aria-hidden className="h-12 w-12 text-white/50" /></div>
                 )}
@@ -445,7 +446,7 @@ export default function ListingDetail() {
                 <ListingPriceTimeline
                   history={priceHistory}
                   marketMedianLkr={listing.market_median_lkr}
-                  listingTitle={`${listing.make} ${listing.model}`}
+                  listingTitle={`${canonicalizeMake(listing.make) || listing.make} ${canonicalizeModel(listing.model) || listing.model}`}
                 />
               </motion.div>
             )}
