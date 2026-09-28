@@ -389,13 +389,16 @@ export function Navbar() {
               </span>
             </Link>
 
-            {/* ── Desktop nav tabs ──────────────────────── */}
+            {/* ── Desktop nav tabs ────────────────────────
+                Compact (scrolled) mode shows only the first 5 sections so the
+                pill never overflows and truncates labels (e.g. "Valuation"
+                rendering as "Vali"). Full mode keeps every section. */}
             <div className="hidden min-w-0 flex-1 justify-center lg:flex">
               <div
                 className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-border bg-foreground/[0.03] p-1 shadow-inner [&::-webkit-scrollbar]:hidden"
                 style={{ scrollbarWidth: "none" }}
               >
-                {sections.map((section) => {
+                {(isScrolled ? sections.slice(0, 5) : sections).map((section) => {
                   const active = isSectionActive(section);
                   return (
                     <a
