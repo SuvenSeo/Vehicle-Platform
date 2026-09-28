@@ -50,6 +50,9 @@ EXCLUDE_COLS = {
     # refuses to overwrite it; keep it out of the payload so inserts use the
     # DB default and existing rows keep their original discovery time.
     "first_seen_at",
+    # Lifecycle flag is owned by listing_lifecycle, not by dump merges —
+    # merging an old dump must not resurrect deactivated listings.
+    "is_active",
 }
 
 CONTENT_COLS = [
@@ -291,7 +294,9 @@ def main() -> int:
         try:
             for i, row in enumerate(rows, 1):
                 payload = coerce_datetimes({k: row[k] for k in CONTENT_COLS})
-                created = upsert_listing(db, payload["source"], payload)
+                created = upsert_listing(
+                    db, payload["source"], payload, preserve_lifecycle=True
+                )
                 if created:
                     inserted += 1
                 else:

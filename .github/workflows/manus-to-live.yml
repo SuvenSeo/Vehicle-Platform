@@ -101,13 +101,29 @@ jobs:
               --dir ../merged-store --clobber
             echo "downloaded merged-db release"
           fi
+          DB_OK=false
           if [[ -s ../merged-store/merged-motormila.db.gz ]]; then
             gunzip -f -c ../merged-store/merged-motormila.db.gz > motormila.db
+            DB_OK=true
             echo "restored merged DB ($(du -h motormila.db | cut -f1))"
           elif [[ -s ../merged-store/merged-autolens.db.gz ]]; then
             gunzip -f -c ../merged-store/merged-autolens.db.gz > motormila.db
+            DB_OK=true
             echo "restored merged DB from legacy asset ($(du -h motormila.db | cut -f1))"
-          else
+          fi
+          # Guard against a partial release download: if the .gz is missing or
+          # the restored file is not a real SQLite DB, the marker is untrustworthy
+          # — drop it so discover_dump_releases re-scans from scratch instead of
+          # skipping every prior dump and publishing an empty catalog.
+          if [[ "$DB_OK" == "true" ]]; then
+            if ! python -c "import sys; h=open('motormila.db','rb').read(16); sys.exit(0 if h.startswith(b'SQLite format 3\x00') else 1)"; then
+              echo "restored file is not a SQLite DB — discarding marker"
+              rm -f ../merged-store/last-merged.txt motormila.db
+              DB_OK=false
+            fi
+          fi
+          if [[ "$DB_OK" != "true" ]]; then
+            rm -f ../merged-store/last-merged.txt
             python -c "from db.session import init_db; init_db(); print('fresh DB created')"
           fi
 
@@ -203,14 +219,9 @@ jobs:
         run: |
           set -euo pipefail
           echo "Full catalog export from merged SQLite (zero Neon egress)"
-          COLD_DATABASE_URL="sqlite:///${GITHUB_WORKSPACE}/backend/motormila.db" python backend/export_public_snapshots.py --output backend/snapshots/latest
-          mkdir -p public/snapshots/latest
-          cp -r backend/snapshots/latest/. public/snapshots/latest/
-          # Public failover DB for the HF Space. The GitHub `merged-db` release
-          # is unreachable anonymously (private repo -> 404), so the Space's
-          # sqlite_failover downloads this Vercel copy instead. User/alert/event
-          # tables are empty by design (auth lives only in Neon) but wipe them
-          # anyway so account data can never ship in a public artifact.
+          # Wipe user/PII tables BEFORE the export so the exporter never
+          # reads them (JSON snapshots are CarListing-only today, but this
+          # order is the safe default).
           python - <<'PY'
           import sqlite3
           con = sqlite3.connect("backend/motormila.db")
@@ -230,6 +241,11 @@ jobs:
           con.commit()
           con.close()
           PY
+          COLD_DATABASE_URL="sqlite:///${GITHUB_WORKSPACE}/backend/motormila.db" python backend/export_public_snapshots.py --output backend/snapshots/latest
+          mkdir -p public/snapshots/latest
+          cp -r backend/snapshots/latest/. public/snapshots/latest/
+          # Checkpoint WAL before gzip — otherwise unflushed -wal frames are lost.
+          python -c "import sqlite3; c=sqlite3.connect('backend/motormila.db'); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()"
           gzip -f -c backend/motormila.db > public/snapshots/latest/merged-motormila.db.gz
           cp public/snapshots/latest/merged-motormila.db.gz public/snapshots/latest/merged-autolens.db.gz  # legacy name
           ls -lh public/snapshots/latest/merged-motormila.db.gz
@@ -249,6 +265,8 @@ jobs:
         run: |
           set -euo pipefail
           NEW_LAST="$(cat backend/last-merged-new.txt)"
+          # Checkpoint WAL before gzip — otherwise unflushed -wal frames are lost.
+          python -c "import sqlite3; c=sqlite3.connect('backend/motormila.db'); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()"
           gzip -f -c backend/motormila.db > merged-motormila.db.gz
           cp merged-motormila.db.gz merged-autolens.db.gz  # legacy asset name
           printf '%s' "$NEW_LAST" > last-merged.txt

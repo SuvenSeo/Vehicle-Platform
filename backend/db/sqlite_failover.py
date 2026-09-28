@@ -139,6 +139,20 @@ def _probe_url(url: str, timeout_seconds: float = 3.0) -> bool:
         engine.dispose()
 
 
+def _is_sqlite_file(path: Path) -> bool:
+    """True when *path* starts with the SQLite 3 magic header.
+
+    A size-only check lets a >1KB HTML error page (Vercel 404/500) pass and
+    poison the failover DB until the next source-version change.
+    """
+    try:
+        with path.open("rb") as fh:
+            header = fh.read(16)
+        return header.startswith(b"SQLite format 3\x00")
+    except OSError:
+        return False
+
+
 def download_merged_sqlite(dest: Path, source_url: str) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp_db = dest.with_name(dest.name + ".partial")
@@ -150,11 +164,15 @@ def download_merged_sqlite(dest: Path, source_url: str) -> Path:
             # live + gz + new copy at once.
             with gzip.open(resp, "rb") as src, tmp_db.open("wb") as out:
                 shutil.copyfileobj(src, out, length=1024 * 1024)
+        if tmp_db.stat().st_size < 1_000:
+            raise RuntimeError(f"Merged SQLite download was empty: {tmp_db}")
+        if not _is_sqlite_file(tmp_db):
+            raise RuntimeError(
+                f"Merged SQLite download is not a SQLite database (HTML error page?): {source_url}"
+            )
         tmp_db.replace(dest)
     finally:
         tmp_db.unlink(missing_ok=True)
-    if dest.stat().st_size < 1_000:
-        raise RuntimeError(f"Merged SQLite download was empty: {dest}")
     logger.info("sqlite_failover_download_done", bytes=dest.stat().st_size, dest=str(dest))
     return dest
 
