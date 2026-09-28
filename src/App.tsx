@@ -45,6 +45,7 @@ const Calculator = lazyWithRetry(() => import("./pages/Calculator"));
 const EVHub = lazyWithRetry(() => import("./pages/EVHub"));
 
 const BestPicks = lazyWithRetry(() => import("./pages/BestPicks"));
+const SellYourCar = lazyWithRetry(() => import("./pages/SellYourCar"));
 const SignIn = lazyWithRetry(() => import("./pages/SignIn"));
 const SignUp = lazyWithRetry(() => import("./pages/SignUp"));
 const ProDashboard = lazyWithRetry(() => import("./pages/ProDashboard"));
@@ -193,6 +194,7 @@ const App = () => {
                   {/* EV chargers: Open Charge Map cache is empty — redirect to EV Hub until real data exists. */}
                   <Route path="/ev-chargers" element={<Navigate to="/ev-hub" replace />} />
                   <Route path="/best-picks" element={<BestPicks />} />
+                  <Route path="/sell" element={<SellYourCar />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />
                   <Route path="/cars/:make/:model/:year" element={<MakeModelHub />} />
                   <Route path="/cars/:make/:model" element={<MakeModelHub />} />

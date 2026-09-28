@@ -3568,3 +3568,159 @@ export const revokeAdminInvite = async (inviteId: number): Promise<{ ok: boolean
   if (!response.ok) throw await parseApiError(response);
   return response.json();
 };
+
+// ── User-submitted listings (sell-your-car) ────────────────────────────────
+
+export type MyListingInput = {
+  make: string;
+  model: string;
+  year?: number;
+  priceLkr?: number;
+  mileage?: number;
+  fuelType?: string;
+  transmission?: string;
+  condition?: string;
+  bodyType?: string;
+  vehicleCategory?: string;
+  district?: string;
+  city?: string;
+  title?: string;
+  description?: string;
+  contactName?: string;
+  contactPhone: string;
+  imageUrls?: string[];
+};
+
+export type MyListing = {
+  id: number;
+  make: string;
+  model: string;
+  year?: number | null;
+  priceLkr?: number | null;
+  mileage?: number | null;
+  fuelType?: string | null;
+  transmission?: string | null;
+  condition?: string | null;
+  bodyType?: string | null;
+  vehicleCategory?: string | null;
+  district?: string | null;
+  city?: string | null;
+  title?: string | null;
+  description?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  imageUrls: string[];
+  status: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+function toMyListing(data: JsonRecord): MyListing {
+  return {
+    id: Number(data.id || 0),
+    make: String(data.make || ""),
+    model: String(data.model || ""),
+    year: toNumberOrNull(data.year),
+    priceLkr: toNumberOrNull(data.price_lkr ?? data.priceLkr),
+    mileage: toNumberOrNull(data.mileage),
+    fuelType: data.fuel_type ? String(data.fuel_type) : data.fuelType ? String(data.fuelType) : null,
+    transmission: data.transmission ? String(data.transmission) : null,
+    condition: data.condition ? String(data.condition) : null,
+    bodyType: data.body_type ? String(data.body_type) : data.bodyType ? String(data.bodyType) : null,
+    vehicleCategory: data.vehicle_category ? String(data.vehicle_category) : data.vehicleCategory ? String(data.vehicleCategory) : null,
+    district: data.district ? String(data.district) : null,
+    city: data.city ? String(data.city) : null,
+    title: data.title ? String(data.title) : null,
+    description: data.description ? String(data.description) : null,
+    contactName: data.contact_name ? String(data.contact_name) : data.contactName ? String(data.contactName) : null,
+    contactPhone: data.contact_phone ? String(data.contact_phone) : data.contactPhone ? String(data.contactPhone) : null,
+    imageUrls: Array.isArray(data.image_urls)
+      ? data.image_urls.map((u: unknown) => String(u)).filter(Boolean)
+      : Array.isArray(data.imageUrls)
+        ? data.imageUrls.map((u: unknown) => String(u)).filter(Boolean)
+        : [],
+    status: String(data.status || data.user_listing_status || "pending"),
+    createdAt: data.created_at ? String(data.created_at) : data.createdAt ? String(data.createdAt) : null,
+    updatedAt: data.updated_at ? String(data.updated_at) : data.updatedAt ? String(data.updatedAt) : null,
+  };
+}
+
+export const createMyListing = async (input: MyListingInput): Promise<MyListing> => {
+  const body: Record<string, unknown> = {
+    make: input.make,
+    model: input.model,
+    year: input.year,
+    price_lkr: input.priceLkr,
+    mileage: input.mileage,
+    fuel_type: input.fuelType,
+    transmission: input.transmission,
+    condition: input.condition,
+    body_type: input.bodyType,
+    vehicle_category: input.vehicleCategory,
+    district: input.district,
+    city: input.city,
+    title: input.title,
+    description: input.description,
+    contact_name: input.contactName,
+    contact_phone: input.contactPhone,
+    image_urls: input.imageUrls || [],
+  };
+  const data = await postJSON<JsonRecord>("/listings/mine", body, authHeaders());
+  return toMyListing(data);
+};
+
+export const getMyListings = async (): Promise<MyListing[]> => {
+  const items = await fetchJSON<JsonRecord[]>("/listings/mine", undefined, authHeaders());
+  return Array.isArray(items) ? items.map(toMyListing) : [];
+};
+
+export const updateMyListing = async (
+  id: number,
+  patch: Partial<MyListingInput> & { status?: string },
+): Promise<MyListing> => {
+  const body: Record<string, unknown> = {};
+  if (patch.make !== undefined) body.make = patch.make;
+  if (patch.model !== undefined) body.model = patch.model;
+  if (patch.year !== undefined) body.year = patch.year;
+  if (patch.priceLkr !== undefined) body.price_lkr = patch.priceLkr;
+  if (patch.mileage !== undefined) body.mileage = patch.mileage;
+  if (patch.fuelType !== undefined) body.fuel_type = patch.fuelType;
+  if (patch.transmission !== undefined) body.transmission = patch.transmission;
+  if (patch.condition !== undefined) body.condition = patch.condition;
+  if (patch.bodyType !== undefined) body.body_type = patch.bodyType;
+  if (patch.vehicleCategory !== undefined) body.vehicle_category = patch.vehicleCategory;
+  if (patch.district !== undefined) body.district = patch.district;
+  if (patch.city !== undefined) body.city = patch.city;
+  if (patch.title !== undefined) body.title = patch.title;
+  if (patch.description !== undefined) body.description = patch.description;
+  if (patch.contactName !== undefined) body.contact_name = patch.contactName;
+  if (patch.contactPhone !== undefined) body.contact_phone = patch.contactPhone;
+  if (patch.imageUrls !== undefined) body.image_urls = patch.imageUrls;
+  if (patch.status !== undefined) body.status = patch.status;
+  const url = new URL(`${API_BASE}/listings/mine/${id}`, window.location.origin).toString();
+  const response = await fetch(url, {
+    method: "PATCH",
+    credentials: resolveFetchCredentials(),
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await parseApiError(response);
+  return toMyListing((await response.json()) as JsonRecord);
+};
+
+export const deleteMyListing = async (id: number): Promise<void> => {
+  const url = new URL(`${API_BASE}/listings/mine/${id}`, window.location.origin).toString();
+  const response = await fetch(url, {
+    method: "DELETE",
+    credentials: resolveFetchCredentials(),
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (!response.ok) throw await parseApiError(response);
+};
