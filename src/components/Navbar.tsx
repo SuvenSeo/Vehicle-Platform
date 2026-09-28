@@ -17,6 +17,7 @@ import {
   Sparkles,
   Star,
   Store,
+  Tag,
   UserCircle2,
   X,
 } from "lucide-react";
@@ -76,6 +77,7 @@ export function Navbar() {
       { label: t("nav.calculator", "Calculator"), href: "/calculator", id: "calculator", isRoute: true },
       { label: t("nav.evHub", "EV Hub"), href: "/ev-hub", id: "ev-hub", isRoute: true },
       { label: t("nav.valuation", "Valuation"), href: "/estimate", id: "estimate", isRoute: true },
+      { label: t("nav.sell", "Sell"), href: "/sell", id: "sell", isRoute: true },
       { label: t("nav.pricing", "Pricing"), href: "/pricing", id: "pricing", isRoute: true },
     ],
     [t],
@@ -539,6 +541,16 @@ export function Navbar() {
               <div className="hidden md:flex">
                 <LocaleSwitcher compact />
               </div>
+
+              {/* Sell CTA */}
+              <button
+                type="button"
+                onClick={() => navigate("/sell")}
+                className="hidden h-8 items-center gap-1.5 rounded-full bg-primary px-3.5 text-[12px] font-semibold text-primary-foreground outline-none shadow-soft transition-all hover:bg-primary/95 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-primary/50 sm:inline-flex"
+              >
+                <Tag className="h-3.5 w-3.5" aria-hidden />
+                {t("nav.sellYourCar", "Sell your car")}
+              </button>
 
               {/* Notification bell */}
               <NotificationBell />
