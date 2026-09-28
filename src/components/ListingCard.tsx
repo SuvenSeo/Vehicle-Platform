@@ -253,7 +253,7 @@ export const ListingCard = memo(function ListingCard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-3.5 border-t border-white/5">
+          <div className="flex items-center justify-between pt-3.5 border-t border-border/70">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />

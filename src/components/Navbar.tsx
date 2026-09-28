@@ -508,13 +508,13 @@ export function Navbar() {
                 <DropdownMenuContent
                   align="end"
                   sideOffset={10}
-                  className="w-[min(94vw,480px)] overflow-hidden rounded-[1.75rem] border-border bg-popover/96 p-0 text-foreground shadow-soft-xl backdrop-blur-2xl"
+                  className="w-[min(94vw,480px)] overflow-hidden rounded-[1.75rem] border-border bg-popover/[0.98] p-0 text-foreground shadow-soft-xl backdrop-blur-2xl dark:border-white/[0.14] dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.75)]"
                 >
                   <div className="max-h-[min(74vh,620px)] overflow-y-auto overscroll-contain p-2.5">
                     {/* Tabs collapsed out of the bar by the overflow measurement */}
                     {overflowSections.length > 0 && (
                       <div className="mb-1">
-                        <p className="px-2 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                        <p className="px-2 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                           {t("nav.moreSections", "More sections")}
                         </p>
                         <div className="grid gap-1">
@@ -573,7 +573,7 @@ export function Navbar() {
 
                     {moreGroups.map((group) => (
                       <div key={group.id} className="mt-2.5">
-                        <p className="px-2 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                        <p className="px-2 pb-1.5 pt-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                           {group.label}
                         </p>
                         <div className="grid gap-1 sm:grid-cols-2">
@@ -704,7 +704,7 @@ export function Navbar() {
                 type="button"
                 onClick={() => setMobileOpen((open) => !open)}
                 onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-foreground/80 outline-none transition-colors hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
                 aria-label={mobileOpen ? t("nav.closeMenu", "Close menu") : t("nav.openMenu", "Open menu")}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-menu"
@@ -724,7 +724,7 @@ export function Navbar() {
           aria-label={t("nav.navigationMenu", "Navigation menu")}
           onKeyDown={(e) => { if (e.key === "Escape") setMobileOpen(false); }}
         >
-          <div className="max-h-[min(78vh,720px)] overflow-y-auto overscroll-contain rounded-3xl border border-border bg-popover/96 p-3.5 shadow-soft-lg backdrop-blur-2xl">
+          <div className="max-h-[min(78vh,720px)] overflow-y-auto overscroll-contain rounded-3xl border border-border bg-popover/[0.98] p-3.5 shadow-soft-lg backdrop-blur-2xl dark:border-white/[0.14]">
             <div className="flex items-center justify-between gap-4 px-1 pb-3">
               <div>
                 <p className="text-[13px] font-semibold tracking-tight text-foreground">Motormila</p>
@@ -791,7 +791,7 @@ export function Navbar() {
             {/* Grouped overflow items — same grouping as desktop */}
             {moreGroups.map((group) => (
               <div key={group.id} className="mt-3">
-                <p className="px-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground/70">
+                <p className="px-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                   {group.label}
                 </p>
                 <div className="grid gap-1.5">
