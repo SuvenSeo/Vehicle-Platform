@@ -64,6 +64,19 @@ class CarListing(Base):
     # listing stops appearing at its source; flipped back True on re-sight.
     is_active = Column(Boolean, nullable=False, default=True, server_default='true')
 
+    # ── User-submitted listings (sell-your-car) ──────────────────────────
+    # owner_user_id is NULL for scraper-fed rows; set when a signed-in user
+    # creates a listing. user_listing_status tracks the seller workflow
+    # (draft → pending → published / removed). Scraped rows keep 'scraped'.
+    owner_user_id = Column(String(64), nullable=True)
+    user_listing_status = Column(
+        String(20), nullable=False, default='scraped', server_default='scraped'
+    )
+    contact_name = Column(String(120), nullable=True)
+    contact_phone = Column(String(32), nullable=True)
+    description = Column(Text, nullable=True)
+    user_images = Column(Text, nullable=True)  # JSON array of image URLs
+
     __table_args__ = (
         Index('idx_car_listings_source_source_id', 'source', 'source_id', unique=True),
         Index('idx_car_listings_make_model', 'make', 'model'),

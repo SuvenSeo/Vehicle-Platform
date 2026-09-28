@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.orm import Session
 
 from db.session import get_db
-from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, events, ev, feedback, listings, market, notifications, pipeline, pro, releases, seo, stats, vehicles
+from .endpoints import admin, alerts, auth, b2b, billing, calculators, chat, dealer, events, ev, feedback, listings, market, my_listings, notifications, pipeline, pro, releases, seo, stats, vehicles
 from .endpoints.auth import require_authenticated, require_pro_access
 
 api_router = APIRouter()
@@ -85,6 +85,7 @@ def require_app_access_or_public_browse(
 
 
 _public_browse_gate = [Depends(require_app_access_or_public_browse)]
+api_router.include_router(my_listings.router, prefix="/listings", tags=["my-listings"], dependencies=_app_gate)
 api_router.include_router(listings.router, prefix="/listings", tags=["listings"], dependencies=_public_browse_gate)
 api_router.include_router(vehicles.router, prefix="/vehicles", tags=["vehicles"], dependencies=_app_gate)
 api_router.include_router(ev.router, prefix="/ev", tags=["ev"], dependencies=_public_browse_gate)
