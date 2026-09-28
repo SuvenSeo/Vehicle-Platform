@@ -112,12 +112,22 @@ def flush_upsert_buffer(scraper) -> None:
     scraper._upsert_buffer = []
 
 
-def upsert_listing(db: Session, source: str, payload: dict) -> bool:
+def upsert_listing(
+    db: Session,
+    source: str,
+    payload: dict,
+    *,
+    preserve_lifecycle: bool = False,
+) -> bool:
     """Insert or update a listing keyed on (source, source_id).
 
     Returns True when a new listing was created, False on update.
     Records a ``vehicle_price_history`` row on first sighting and whenever
     the price changes on re-scrape.
+
+    When *preserve_lifecycle* is True (dump-merge path), do NOT force
+    ``is_active=True`` or stamp ``last_seen_at=now()`` — merging an old dump
+    must not resurrect lifecycle-deactivated listings or falsify freshness.
     """
     existing = (
         db.query(CarListing)
@@ -135,12 +145,13 @@ def upsert_listing(db: Session, source: str, payload: dict) -> bool:
             if key in _UPDATE_IMMUTABLE_KEYS:
                 continue
             setattr(existing, key, value)
-        existing.last_seen_at = utc_now()
-        existing.is_active = True  # re-sighted at source: live again
+        if not preserve_lifecycle:
+            existing.last_seen_at = utc_now()
+            existing.is_active = True  # re-sighted at source: live again
 
         new_price = _as_decimal(payload.get("price_lkr"))
         price_changed = new_price is not None and new_price != old_price
-        status_changed = not was_active  # flipped inactive → active
+        status_changed = not preserve_lifecycle and not was_active  # flipped inactive → active
         if price_changed:
             _record_price_point(db, existing.id, new_price)
             log.info(
