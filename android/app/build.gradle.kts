@@ -61,12 +61,15 @@ android {
             storeFile = stagedKey
                 ?: committedKey
                 ?: file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
-                .orElse("android").get()
-            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
-                .orElse("androiddebugkey").get()
-            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
-                .orElse("android").get()
+            // Missing secrets arrive as EMPTY strings (not unset), and .orElse()
+            // does not fire on empty — blank-guard so the stock debug
+            // credentials are used until the real secrets are added.
+            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+                ?.takeIf { it.isNotBlank() } ?: "android"
+            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+                ?.takeIf { it.isNotBlank() } ?: "androiddebugkey"
+            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+                ?.takeIf { it.isNotBlank() } ?: "android"
         }
     }
 
