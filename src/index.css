@@ -287,8 +287,10 @@
     --destructive: 4 76% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 32 18% 88% / 0.055;
-    --input: 32 18% 88% / 0.14;
+    /* Dark hairline — blends with the dark surface instead of drawing a
+       light outline. Tailwind's border-border/NN modifiers read this. */
+    --border: 32 18% 88% / 0.05;
+    --input: 32 18% 88% / 0.10;
     --ring: 213 100% 62%;
 
     --signal-green: 145 60% 50%;
@@ -303,7 +305,7 @@
     --sidebar-foreground: 36 20% 92%;
     --sidebar-accent: 24 12% 8%;
     --sidebar-accent-foreground: 36 20% 94%;
-    --sidebar-border: 32 18% 88% / 0.10;
+    --sidebar-border: 32 18% 88% / 0.06;
 
     /* Brighter primary for SMALL text on dark surfaces — plain --primary
        lands just under WCAG 4.5:1 on charcoal at 10-12px. */
@@ -318,13 +320,12 @@
     --accent-blue: #3D94FF;
     --accent-blue-bright: #6CB8FF;
 
-    /* Glass — warm showroom pane, not cold chrome.
-       Borders are deliberately near-invisible: separation comes from
-       shadow + surface contrast, not a light outline. */
+    /* Glass — separation comes from shadow + surface contrast, NOT a
+       light outline. Borders are fully transparent on dark. */
     --glass-bg: rgba(22, 17, 14, 0.58);
-    --glass-border: rgba(255, 236, 214, 0.055);
-    --glass-edge: rgba(255, 236, 214, 0.045);
-    --glass-top: rgba(255, 244, 230, 0.07);
+    --glass-border: transparent;
+    --glass-edge: transparent;
+    --glass-top: rgba(255, 244, 230, 0.05);
     --glass-blur: 44px;
 
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.45);

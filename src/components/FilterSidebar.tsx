@@ -114,7 +114,7 @@ function PillButton({
       className={`rounded-full border px-3 py-1 text-caption font-medium transition-all duration-150 active:scale-[0.97] ${
         active
           ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
-          : "border-border/50 bg-surface/70 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-surface"
+          : "border-transparent bg-surface/70 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-surface"
       }`}
     >
       {children}
@@ -123,11 +123,11 @@ function PillButton({
 }
 
 function selectTriggerClass() {
-  return "h-9 rounded-full border-border/50 bg-surface/70 px-3.5 text-sm text-foreground transition-all duration-150 hover:border-primary/40 focus:ring-2 focus:ring-primary/20";
+  return "h-9 rounded-full border-transparent bg-surface/70 px-3.5 text-sm text-foreground transition-all duration-150 hover:border-primary/40 focus:ring-2 focus:ring-primary/20";
 }
 
 function selectContentClass() {
-  return "max-h-64 rounded-2xl border-border/50 bg-popover/95 text-foreground backdrop-blur-2xl shadow-soft-xl";
+  return "max-h-64 rounded-2xl border-transparent bg-popover/95 text-foreground backdrop-blur-2xl shadow-soft-xl";
 }
 
 function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
@@ -406,7 +406,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
   return (
     <div className="space-y-3 px-3 py-3 text-sm">
-      <div className="sticky top-0 z-10 space-y-3 rounded-[1.75rem] border border-border/45 bg-card/85 px-3.5 py-3 shadow-soft backdrop-blur-xl">
+      <div className="sticky top-0 z-10 space-y-3 rounded-[1.75rem] border border-transparent bg-card/85 px-3.5 py-3 shadow-soft backdrop-blur-xl">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold tracking-tight text-foreground">{t("filter.title", "Filters")}</p>
           {activeChips.length > 0 ? (
@@ -436,7 +436,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           </div>
         ) : null}
 
-        <div className="flex gap-1 rounded-full border border-border/50 bg-surface/80 p-1">
+        <div className="flex gap-1 rounded-full border border-transparent bg-surface/80 p-1">
           <button
             type="button"
             onClick={() => setInventoryMode("priced")}
@@ -467,7 +467,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               saveSavedSearch(String(label), filters);
               setSavedTick((n) => n + 1);
             }}
-            className="w-full rounded-full border border-border/50 bg-surface/70 px-3 py-1.5 text-caption font-medium text-foreground transition-all hover:border-primary/40 hover:bg-surface"
+            className="w-full rounded-full border border-transparent bg-surface/70 px-3 py-1.5 text-caption font-medium text-foreground transition-all hover:border-primary/40 hover:bg-surface"
           >
             {t("filter.saveCurrentSearch", "Save current search")}
           </button>
@@ -530,7 +530,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
           }}
           placeholder={t("filter.searchPlaceholder", "Make, model, year…")}
           aria-label={t("filter.searchAria", "Search listings")}
-          className="h-9 rounded-full border-border/50 bg-surface/70 text-sm text-foreground"
+          className="h-9 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
         />
       </FilterGroup>
 
@@ -569,7 +569,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 onChange={(event) => setModelSearchQuery(event.target.value)}
                 placeholder={t("filter.findModel", "Find model…")}
                 aria-label={t("common.model", "Model")}
-                className="h-9 rounded-full border-border/50 bg-surface/70 text-sm text-foreground"
+                className="h-9 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
@@ -633,7 +633,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder={t("filter.minLkr", "Min LKR")}
                 aria-label={t("filter.minPriceAria", "Minimum price")}
-                className="h-9 rounded-full border-border/50 bg-surface/70 text-sm text-foreground"
+                className="h-9 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
               />
               <Input
                 value={priceMaxInput}
@@ -648,7 +648,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
                 inputMode="numeric"
                 placeholder={t("filter.maxLkr", "Max LKR")}
                 aria-label={t("filter.maxPriceAria", "Maximum price")}
-                className="h-9 rounded-full border-border/50 bg-surface/70 text-sm text-foreground"
+                className="h-9 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
               />
             </div>
             <Slider
@@ -770,7 +770,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
               inputMode="numeric"
               placeholder={t("filter.maxKm", "Max km")}
               aria-label={t("filter.maxMileageAria", "Maximum mileage")}
-              className="h-9 flex-1 rounded-full border-border/50 bg-surface/70 text-sm text-foreground"
+              className="h-9 flex-1 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
             />
             <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue === MAX_MILEAGE ? undefined : mileageValue, t("filter.anyMileage", "Any"))}</span>
           </div>
@@ -843,7 +843,7 @@ function FilterContent({ filters, onFiltersChange }: FilterSidebarProps) {
 
 export const FilterSidebar = memo(function FilterSidebar({ filters, onFiltersChange }: FilterSidebarProps) {
   return (
-    <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] border border-border/50 shadow-soft lg:block">
+    <aside className="surface surface--glass filter-command-rail hidden w-full max-h-[calc(100vh-7.5rem)] overflow-y-auto rounded-[2rem] border border-transparent shadow-soft lg:block">
       <FilterContent filters={filters} onFiltersChange={onFiltersChange} />
     </aside>
   );

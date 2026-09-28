@@ -34,7 +34,7 @@ function getDealBadgeClasses(label: ReturnType<typeof getListingDealLabel>): str
   // tints cannot guarantee the 4.5:1 the 10px text needs (WCAG 1.4.3).
   if (label === "Good Deal") return "bg-zinc-950/85 border-emerald-500/40 text-emerald-300";
   if (label === "Overpriced") return "bg-zinc-950/85 border-rose-500/40 text-rose-300";
-  return "bg-zinc-950/85 border-white/20 text-zinc-200";
+  return "bg-zinc-950/85 border-white/8 text-zinc-200";
 }
 
 function formatToken(value: string | undefined): string {
@@ -101,7 +101,7 @@ export const ListingCard = memo(function ListingCard({
     <article
       role="article"
       aria-label={t("listingCard.aria", "{title} listing card", { title: listingTitle || "Vehicle" })}
-      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border-border/60 shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft"
+      className="liquid-panel vehicle-card group relative isolate h-full overflow-hidden rounded-3xl border border-transparent shadow-soft transition-all duration-500 ease-apple hover:-translate-y-2 hover:border-primary/35 hover:shadow-soft-xl active:scale-[0.985] active:shadow-soft"
       onPointerEnter={() => {
         prefetchRoute(`/listing/${listing.id}`);
         void getListing(listing.id);
@@ -152,7 +152,7 @@ export const ListingCard = memo(function ListingCard({
                 className={`pointer-events-auto relative z-30 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-md transition-all ${
                   isComparing
                     ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-black/60 text-white/90 border-white/20 hover:text-white hover:bg-black/75"
+                    : "bg-black/60 text-white/90 border-white/8 hover:text-white hover:bg-black/75"
                 }`}
                 aria-label={isComparing ? t("listingCard.removeCompare", "Remove from comparison") : t("listingCard.addCompare", "Add to comparison")}
               >
@@ -253,7 +253,7 @@ export const ListingCard = memo(function ListingCard({
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-3.5 border-t border-border">
+          <div className="flex items-center justify-between pt-3.5 border-t border-white/5">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground/80 truncate">
                 <MapPin className="h-3 w-3 shrink-0 text-muted-foreground/70" />
