@@ -40,13 +40,18 @@ class ListingPagingSource(
                 priceAvailability = null,
                 sort = query.sort,
                 page = page,
-                size = params.loadSize.coerceIn(1, 100).takeIf { page == 1 } ?: pageSize,
+                // Always send the same page size — using params.loadSize on
+                // page 1 (often 40-60) while pages 2+ send 20 makes the
+                // backend page math overlap/skip items.
+                size = pageSize,
             )
             LoadResult.Page(
                 data = res.items.map { it.toDomain() },
                 prevKey = if (page > 1) page - 1 else null,
                 nextKey = if (page < res.pages && res.items.isNotEmpty()) page + 1 else null,
             )
+        } catch (ce: kotlin.coroutines.cancellation.CancellationException) {
+            throw ce
         } catch (t: Throwable) {
             LoadResult.Error(t)
         }
