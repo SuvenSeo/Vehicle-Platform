@@ -105,6 +105,7 @@ jobs:
           # live site to still serve it: once the live copy is gone, the
           # preserve-from-live fallback 404s and every restore redeploys
           # without the DB, leaving the HF backend with no failover.
+          python -c "import sqlite3; c=sqlite3.connect('backend/motormila.db'); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()"
           gzip -f -c backend/motormila.db > public/snapshots/latest/merged-motormila.db.gz
           cp public/snapshots/latest/merged-motormila.db.gz \
             public/snapshots/latest/merged-autolens.db.gz  # legacy name

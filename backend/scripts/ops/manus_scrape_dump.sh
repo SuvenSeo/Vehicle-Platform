@@ -101,6 +101,10 @@ if [[ "${TOTAL}" == "0" ]]; then
   exit 1
 fi
 
+# Checkpoint WAL before gzip — SIGKILL of scrapers above makes lost -wal
+# frames likely, and gzip of the .db alone drops them.
+python -c "import sqlite3; c=sqlite3.connect('motormila.db'); c.execute('PRAGMA wal_checkpoint(TRUNCATE)'); c.close()"
+
 gzip -f motormila.db
 cp motormila.db.gz autolens.db.gz  # legacy asset name for pre-rename merger runs
 # A retry job can publish several dumps inside the same minute, so a suffixed
