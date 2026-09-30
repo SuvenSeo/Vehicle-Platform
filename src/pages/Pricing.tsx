@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, Check, HelpCircle, Loader2, MessageCircle, Sparkles, Timer, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ParticleButton, type ParticleButtonHandle } from "@/components/ui/ParticleButton";
 import { BRAND } from "@/lib/brand";
 import { ANNUAL_SAVE_NUDGE, COMING_SOON_COPY, ICP_PERSONAS, PRICING_COMING_SOON, PRICING_FAQ, PRICING_TIERS, TRIAL_OFFER } from "@/lib/pricingContent";
 import type { PricingTierId } from "@/lib/pricingContent";
@@ -72,6 +73,7 @@ export function TrialCta({ className, label }: { className?: string; label?: str
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
   const [sending, setSending] = useState(false);
+  const burstRef = useRef<ParticleButtonHandle>(null);
 
   if (!PRICING_COMING_SOON) {
     return (
@@ -107,6 +109,9 @@ export function TrialCta({ className, label }: { className?: string; label?: str
         setSending(true);
         try {
           await sendFeedback({ category: "general", route: "/pricing", message: "Pro trial waitlist signup", email: address });
+          // Celebrate the join — KokonutUI-style particle burst (#5 UI review).
+          // Fire before setDone unmounts the button; the canvas is body-fixed.
+          burstRef.current?.burst();
           setDone(true);
         } catch {
           toast.error(t("pricing.waitlistFailed", "Couldn't join the waitlist — try again."));
@@ -123,14 +128,15 @@ export function TrialCta({ className, label }: { className?: string; label?: str
         aria-label={t("pricing.waitlistPlaceholder", "Email for launch invite")}
         className="h-11 min-w-0 flex-1 rounded-full border border-border bg-card px-4 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none"
       />
-      <button
+      <ParticleButton
+        ref={burstRef}
         type="submit"
         disabled={sending}
         className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-5 text-[13px] font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
       >
         {sending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
         {t("pricing.waitlistCta", "Notify me")}
-      </button>
+      </ParticleButton>
     </form>
   );
 }
