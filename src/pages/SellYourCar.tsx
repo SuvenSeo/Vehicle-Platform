@@ -8,6 +8,8 @@ import { trackEvent } from "@/lib/analytics";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
 import { Button } from "@/components/ui/button";
+import { MovingBorder } from "@/components/ui/MovingBorder";
+import { StatefulButton, type StatefulButtonState } from "@/components/ui/StatefulButton";
 import { Input } from "@/components/ui/input";
 
 const MAKES = [
@@ -70,6 +72,7 @@ export default function SellYourCar() {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [imageUrl, setImageUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [successFlash, setSuccessFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
@@ -148,12 +151,16 @@ export default function SellYourCar() {
           hasPrice: Boolean(payload.priceLkr),
           imageCount: payload.imageUrls?.length ?? 0,
         });
+        // Let the button celebrate the publish before the form swaps out (#10 UI review).
+        setSuccessFlash(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 800));
         setDone(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
         setError(err instanceof Error ? err.message : t("sell.submitFailed", "Could not publish your listing. Try again."));
       } finally {
         setSubmitting(false);
+        setSuccessFlash(false);
       }
     },
     [canSubmit, form, isAuthenticated, t],
@@ -491,19 +498,33 @@ export default function SellYourCar() {
             </fieldset>
 
             <div className="flex flex-wrap items-center gap-3 border-t border-border/40 pt-6">
-              <Button type="submit" disabled={!canSubmit} size="lg">
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-                    {t("sell.submitting", "Publishing…")}
-                  </>
-                ) : (
-                  <>
-                    {t("sell.submitCta", "Publish listing")}
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
-                  </>
-                )}
-              </Button>
+              {/* Moving Border + Stateful Button (#10 UI review) */}
+              <MovingBorder radius="0.625rem">
+                <StatefulButton
+                  type="submit"
+                  disabled={!canSubmit}
+                  size="lg"
+                  state={(successFlash ? "success" : submitting ? "loading" : "idle") satisfies StatefulButtonState}
+                  idle={
+                    <>
+                      {t("sell.submitCta", "Publish listing")}
+                      <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
+                    </>
+                  }
+                  loading={
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                      {t("sell.submitting", "Publishing…")}
+                    </>
+                  }
+                  success={
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />
+                      {t("sell.published", "Published!")}
+                    </>
+                  }
+                />
+              </MovingBorder>
               <p className="text-caption text-muted-foreground">
                 {t("sell.reviewNote", "Listings go live after a quick review — usually within a few hours.")}
               </p>
