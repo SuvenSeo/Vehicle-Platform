@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import NumberFlow from "@number-flow/react";
+import { BarChart } from "@/components/charts/bar-chart";
+import { Bar } from "@/components/charts/bar";
+import { BarXAxis } from "@/components/charts/bar-x-axis";
+import { Grid } from "@/components/charts/grid";
+import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ArrowDownRight, ArrowUpRight, LineChart, Info } from "lucide-react";
 import { getPriceIndex } from "@/services/api";
@@ -71,6 +77,10 @@ export default function PriceIndexPage() {
   }, [data, activeSegment, fullAccess]);
 
   const chartData = activePoints.map((p) => ({ ...p, label: formatPeriod(p.period) }));
+  const momChartData = useMemo(
+    () => activePoints.map((p) => ({ label: formatPeriod(p.period), mom: Number(p.mom_change_pct ?? 0) })),
+    [activePoints],
+  );
   const latest = activePoints[activePoints.length - 1];
   const first = activePoints[0];
   const totalChange = latest && first && first.index_value > 0
@@ -121,7 +131,9 @@ export default function PriceIndexPage() {
             <motion.div variants={itemVariants} className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
                 <p className="text-[12px] font-semibold text-muted-foreground">{t("index.current", "Current index")}</p>
-                <p className="num mt-2 text-3xl font-bold text-white">{latest?.index_value.toFixed(1)}</p>
+                <p className="num mt-2 text-3xl font-bold text-white">
+                  <NumberFlow value={Number(latest?.index_value ?? 0)} format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
+                </p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">
                   {t("index.baseEquals100", "base {period} = 100", { period: data.base_period ? formatPeriod(data.base_period) : "—" })}
                 </p>
@@ -130,13 +142,27 @@ export default function PriceIndexPage() {
                 <p className="text-[12px] font-semibold text-muted-foreground">{t("index.sinceBase", "Since base")}</p>
                 <p className={`num mt-2 flex items-center gap-1.5 text-3xl font-bold ${up ? "text-emerald-400" : "text-rose-400"}`}>
                   {up ? <ArrowUpRight className="h-6 w-6" /> : <ArrowDownRight className="h-6 w-6" />}
-                  {formatPct(totalChange)}
+                  {totalChange == null || !Number.isFinite(totalChange) ? "—" : (
+                    <NumberFlow
+                      value={totalChange}
+                      format={{ minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" }}
+                      suffix="%"
+                    />
+                  )}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">{t("index.wholeWindow", "whole tracked window")}</p>
               </div>
               <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
                 <p className="text-[12px] font-semibold text-muted-foreground">{t("index.mom", "Month-on-month")}</p>
-                <p className="num mt-2 text-3xl font-bold text-white">{formatPct(latest?.mom_change_pct ?? null)}</p>
+                <p className="num mt-2 text-3xl font-bold text-white">
+                  {latest?.mom_change_pct == null ? "—" : (
+                    <NumberFlow
+                      value={latest.mom_change_pct}
+                      format={{ minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" }}
+                      suffix="%"
+                    />
+                  )}
+                </p>
                 <p className="mt-1 text-[11px] text-muted-foreground font-medium">
                   latest: {latest ? formatPeriod(latest.period) : "—"}
                 </p>
@@ -203,6 +229,22 @@ export default function PriceIndexPage() {
                     <Area type="monotone" dataKey="index_value" stroke="hsl(250 89% 78%)" strokeWidth={2} fill="url(#idxFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
+              </div>
+            </motion.div>
+
+            {/* Month-on-month momentum — Bklit bar chart (#14 UI review) */}
+            <motion.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+              <div className="mb-1 flex items-baseline justify-between">
+                <h2 className="text-[13px] font-bold text-white">{t("index.momTitle", "Monthly momentum")}</h2>
+                <p className="text-[11px] text-muted-foreground font-medium">{t("index.momHint", "month-on-month index change")}</p>
+              </div>
+              <div className="h-[220px] w-full" role="img" aria-label={t("index.momAria", "Bar chart of month-on-month index changes")}>
+                <BarChart data={momChartData} xDataKey="label" margin={{ top: 12, right: 8, bottom: 8, left: 8 }}>
+                  <Grid horizontal />
+                  <Bar dataKey="mom" fill="hsl(250 89% 65%)" lineCap="round" />
+                  <BarXAxis maxLabels={8} />
+                  <ChartTooltip />
+                </BarChart>
               </div>
             </motion.div>
 

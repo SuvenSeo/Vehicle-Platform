@@ -2238,3 +2238,71 @@ body.cursor-custom-active * { cursor: auto; }
 }
 
 .animate-live-dot { animation: live-pulse 3s ease-in-out infinite; }
+
+/* ==========================================================================
+   UI review batch 3 (#11–16)
+   ========================================================================== */
+
+/* #11 Marquee — generic horizontal scroller. Two .marquee__track copies each
+   translate -100% over --marquee-duration for a seamless loop. */
+.marquee__track {
+  animation: marquee-scroll var(--marquee-duration, 40s) linear infinite;
+  animation-direction: var(--marquee-direction, normal);
+  will-change: transform;
+}
+.marquee:hover .marquee__track,
+.marquee:focus-within .marquee__track {
+  animation-play-state: paused;
+}
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+/* #12 Market ticker — finance strip under the homepage hero. Same loop
+   principle as .marquee but its own timing + edge fade masks. */
+.market-ticker__viewport {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}
+.market-ticker__track {
+  animation: market-ticker-scroll 36s linear infinite;
+  will-change: transform;
+}
+.market-ticker:hover .market-ticker__track {
+  animation-play-state: paused;
+}
+@keyframes market-ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+/* #15 Card spotlight — cursor-following glow inside Best Picks cards.
+   --spot-x/--spot-y are set by setSpotlightVars on mousemove. */
+.card-spot-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    340px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    hsl(250 89% 68% / 0.14),
+    transparent 70%
+  );
+}
+.group:hover .card-spot-glow {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee__track,
+  .market-ticker__track {
+    animation: none;
+  }
+  .card-spot-glow {
+    display: none;
+  }
+}

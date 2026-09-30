@@ -19,6 +19,9 @@ import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { HeroSideSignals } from "@/components/HeroSideSignals";
 import { FlipWords } from "@/components/ui/FlipWords";
+import { MarketTicker } from "@/components/MarketTicker";
+import { SourceMarquee } from "@/components/SourceMarquee";
+import { TopMoversTable } from "@/components/TopMoversTable";
 import { HeroVariantPicker } from "@/components/HeroVariantPicker";
 import { useHeroVariantLab } from "@/hooks/useHeroVariantLab";
 import type { HeroAlign } from "@/lib/heroVariants";
@@ -991,6 +994,12 @@ export default function Dashboard() {
         </motion.div>
       </section>
 
+      {/* ── Market ticker — Kibo UI ticker (#12 UI review) ─────────────── */}
+      <MarketTicker
+        rows={trendingModels.filter((r) => isReasonableListingPrice(Number(r.avg_price_lkr || 0))).slice(0, 8)}
+        onSelect={(row) => focusModel(row.make, row.model)}
+      />
+
       {/* ── Live intelligence (post-hero) ─────────────────────────── */}
       <section className="border-b border-border bg-background">
         <div className="mx-auto max-w-[1560px] px-5 py-10 sm:px-6 lg:py-14">
@@ -1137,6 +1146,19 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        {/* ── Top movers — Watermelon data-table block (#16 UI review) ── */}
+        <TopMoversTable
+          rows={trendingModels
+            .filter((r) => isReasonableListingPrice(Number(r.avg_price_lkr || 0)))
+            .slice(0, 8)
+            .map((r) => ({
+              id: `${r.make}-${r.model}`,
+              model: `${r.make} ${r.model}`,
+              listing_count: Number(r.listing_count || 0),
+              avg_price_lkr: Number(r.avg_price_lkr || 0),
+              movement_pct: Number(r.movement_pct || 0),
+            }))}
+        />
       </RevealSection>
 
       <section id="market" className="scroll-mt-20">
@@ -1448,6 +1470,13 @@ export default function Dashboard() {
         </div>
       </RevealSection>
 
+
+      {/* ── Source marquee — Marquee (#11 UI review) ───────────────────── */}
+      <SourceMarquee
+        items={(liveMarketSnapshot?.source_status || [])
+          .filter((st) => Number(st.listings_found || 0) > 0)
+          .map((st) => ({ source: st.source, listings: Number(st.listings_found || 0) }))}
+      />
 
       {/* ── COMPARE BAR ─────────────────────────────────────────── */}
       {compareIds.length > 0 && (
