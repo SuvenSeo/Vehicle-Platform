@@ -24,7 +24,7 @@ def _normalize_browse_path(value: str) -> str:
 # even when APP_ACCESS_ENFORCED=true / PRO_ACCESS_ENFORCED=true.
 # Matches the web dashboard (snapshot + these live reads) so native guest
 # Home / Search / hubs are not a 401 wall. /pro/*, POST /alerts, /dealer/*,
-# /listings/estimate stay gated.
+# /listings/custom-estimate stay gated.
 _PUBLIC_BROWSE_PATHS = frozenset(
     _normalize_browse_path(path)
     for path in {
@@ -50,6 +50,11 @@ _PUBLIC_BROWSE_PATHS = frozenset(
         "/api/v1/stats/make-model-insight",
         "/api/v1/stats/district-insight",
         "/api/v1/stats/model-price-history",
+        # Live FX context for the signed-out calculator (read-only, no PII).
+        "/api/v1/calculators/macro",
+        # Starter valuation is free-plan product copy — the advanced/custom
+        # valuation path stays gated.
+        "/api/v1/listings/estimate",
     }
 )
 
@@ -90,7 +95,7 @@ api_router.include_router(listings.router, prefix="/listings", tags=["listings"]
 api_router.include_router(vehicles.router, prefix="/vehicles", tags=["vehicles"], dependencies=_app_gate)
 api_router.include_router(ev.router, prefix="/ev", tags=["ev"], dependencies=_public_browse_gate)
 api_router.include_router(stats.router, prefix="/stats", tags=["stats"], dependencies=_public_browse_gate)
-api_router.include_router(calculators.router, prefix="/calculators", tags=["calculators"], dependencies=_app_gate)
+api_router.include_router(calculators.router, prefix="/calculators", tags=["calculators"], dependencies=_public_browse_gate)
 # Pro endpoints become a real server-side boundary when PRO_ACCESS_ENFORCED=true.
 api_router.include_router(pro.router, prefix="/pro", tags=["pro"], dependencies=[Depends(require_pro_access)])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"], dependencies=_app_gate)

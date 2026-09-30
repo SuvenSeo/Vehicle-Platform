@@ -25,6 +25,7 @@ from app.utils.make_canonical import (
     canonicalize_make,
     canonicalize_model,
     is_junk_make,
+    model_contains_foreign_make,
 )
 from db.models import Base, CarListing
 from db.session import get_db
@@ -179,3 +180,50 @@ def test_models_endpoint_is_spelling_independent(client_and_session):
         assert client.get("/api/v1/listings/models", params={"make": spelling}).json() == canonical
 
     assert {row["model"] for row in canonical} == {"Axio", "Vitz"}
+
+
+def test_junk_location_and_equipment_models_dropped():
+    for junk in (
+        "Japan",
+        "Malabe",
+        "Katugastota",
+        "Panadura",
+        "Badulla",
+        "Kadawatha",
+        "Elephant",
+        "Shell",
+        "Forklift",
+        "Road Roller",
+        "Test Allion 2005",
+    ):
+        assert canonicalize_model(junk) == "", junk
+
+
+def test_junk_make_year_and_test_rows():
+    for junk in (
+        "Test Allion 2005",
+        "Test Test 2010",
+        "Auchev Pisces 2026",
+        "ABL Zibo Lorry Budy 2011",
+        "Vitz Car Car 2022",
+        "Electric 2026",
+    ):
+        assert is_junk_make(junk), junk
+    for real in ("Toyota", "Mercedes Benz", "Land Rover", "BYD"):
+        assert not is_junk_make(real), real
+
+
+def test_model_contains_foreign_make():
+    assert model_contains_foreign_make("Toyota Aqua", "Land Rover")
+    assert model_contains_foreign_make("Bmw 2", "Land Rover")
+    assert not model_contains_foreign_make("Mercedes Benz C180", "Mercedes")
+    assert not model_contains_foreign_make("Toyota Allion", "Toyota")
+    assert not model_contains_foreign_make("Range Rover", "Land Rover")
+    assert not model_contains_foreign_make("Aqua", "Toyota")
+
+
+def test_known_cross_make_models():
+    assert model_contains_foreign_make("Navara", "Toyota")
+    assert model_contains_foreign_make("Sonet", "Toyota")
+    assert not model_contains_foreign_make("Navara", "Nissan")
+    assert not model_contains_foreign_make("Seltos", "Kia")

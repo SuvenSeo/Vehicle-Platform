@@ -23,7 +23,7 @@ from app.services.geo_service import enrich_listing
 from app.utils.history_report import build_history_report
 from app.utils.fmv import predict_listing_fmv
 from app.utils.price_history import summarize_price_history
-from app.utils.make_canonical import canonicalize_make, canonicalize_model
+from app.utils.make_canonical import canonicalize_make, canonicalize_model, compact_key
 from app.utils.vehicle_category import category_sql_filter, resolve_browse_category
 from app.utils.thumbnail_urls import upgrade_thumbnail_url
 from app.api.v1.endpoints.auth import (
@@ -1666,15 +1666,23 @@ def get_models(make: str, db: Session = Depends(get_db)):
         .all()
     )
 
-    merged: Dict[str, int] = {}
+    merged: Dict[str, Dict[str, int]] = {}
     for r in results:
         model = canonicalize_model(r.model)
         if not model:
             continue
-        merged[model] = merged.get(model, 0) + int(r.count or 0)
+        # Merge case variants ("Wira"/"wira") under one canonical key.
+        key = compact_key(model)
+        bucket = merged.get(key)
+        if bucket is None:
+            merged[key] = {"model": model, "count": int(r.count or 0)}
+        else:
+            if int(r.count or 0) > bucket["count"]:
+                bucket["model"] = model
+            bucket["count"] += int(r.count or 0)
     return [
-        {"model": model, "count": count}
-        for model, count in sorted(merged.items(), key=lambda kv: (-kv[1], kv[0]))
+        {"model": bucket["model"], "count": bucket["count"]}
+        for bucket in sorted(merged.values(), key=lambda b: (-b["count"], b["model"]))
     ]
 
 

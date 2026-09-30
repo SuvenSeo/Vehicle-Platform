@@ -12,6 +12,7 @@ import {
   getListingImageUrl,
 } from "@/lib/listing-card-meta";
 import { HybridCliffBadge } from "@/components/HybridCliffBadge";
+import { plausibleEngineCc } from "@/lib/engineCapacity";
 import { MileageTrustChip } from "@/components/MileageTrustChip";
 import { summarizeFmv } from "@/lib/fmv";
 import { useAuth } from "@/lib/authContext";
@@ -57,8 +58,9 @@ function formatMileage(value: number | null | undefined): string {
 }
 
 function formatEngineCc(value: number | null | undefined): string {
-  if (!Number.isFinite(value) || Number(value) <= 0) return "CC N/A";
-  return `${Math.round(Number(value)).toLocaleString()} cc`;
+  const cc = plausibleEngineCc(value, undefined);
+  if (cc === undefined) return "CC N/A";
+  return `${Math.round(cc).toLocaleString()} cc`;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -205,7 +207,7 @@ export const ListingCard = memo(function ListingCard({
           </div>
           <HybridCliffBadge
             fuelType={listing.fuel_type}
-            engineCc={listing.engine_cc}
+            engineCc={plausibleEngineCc(listing.engine_cc, listing.year)}
             compact
             className="self-start"
           />

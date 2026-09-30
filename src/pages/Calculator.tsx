@@ -151,11 +151,17 @@ export default function Calculator() {
         setFxUserOverridden(false);
       }
       if (!silent) {
-        toast.success(`Live FX · Rs ${quote.usd_lkr.toLocaleString()} / USD`, {
-          description: quote.reference_date
-            ? `CBSL-linked print · ref ${quote.reference_date}`
-            : quote.source,
-        });
+        if (quote.fallback) {
+          toast.message("Using reference FX rate", {
+            description: "Live FX feed is unreachable right now — Rs 300 / USD reference rate applied. Confirm with your bank before committing.",
+          });
+        } else {
+          toast.success(`Live FX · Rs ${quote.usd_lkr.toLocaleString()} / USD`, {
+            description: quote.reference_date
+              ? `CBSL-linked print · ref ${quote.reference_date}`
+              : quote.source,
+          });
+        }
       }
     } catch (e: unknown) {
       if (!silent) {
@@ -578,8 +584,12 @@ export default function Calculator() {
                       </div>
                       {macro ? (
                         <p className="text-[10px] font-semibold text-muted-foreground">
-                          Feed {macro.source.replace(/_/g, " ")}
-                          {macro.reference_date ? ` · ref ${macro.reference_date}` : ""}
+                          {macro.fallback ? (
+                            <span className="text-deal-amber">Reference rate — live FX unavailable · </span>
+                          ) : (
+                            <>Feed {macro.source.replace(/_/g, " ")} </>
+                          )}
+                          {macro.reference_date ? `· ref ${macro.reference_date}` : ""}
                           {macro.inflation_yoy_percent != null
                             ? ` · CCPI YoY ${macro.inflation_yoy_percent}%`
                             : ""}

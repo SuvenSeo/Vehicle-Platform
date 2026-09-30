@@ -303,7 +303,10 @@ class GenericDetailScraper:
 
     @staticmethod
     def _extract_engine_capacity(text: str) -> int | None:
-        match = re.search(r"\b([1-9][0-9]{2,4})\s*(?:cc|c\.c\.|engine)\b", text, flags=re.IGNORECASE)
+        # The unit is REQUIRED: with an optional unit, a bare manufacture year
+        # ("Toyota Vitz 2007") matched as 2,007 cc and polluted listings with
+        # year-as-displacement values (plus bogus "near 1,500cc cliff" badges).
+        match = re.search(r"\b([1-9][0-9]{2,4})\s*(?:cc|c\.c\.)\b", text, flags=re.IGNORECASE)
         if not match:
             return None
         try:

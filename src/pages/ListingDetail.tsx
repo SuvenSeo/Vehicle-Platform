@@ -10,6 +10,7 @@ import { getListing, getListingFmv, getListingGeo, getListingPriceHistory, getLi
 import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } from '@/services/api';
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { summarizeFmv } from '@/lib/fmv';
+import { plausibleEngineCc } from '@/lib/engineCapacity';
 import { VehicleThumbnail } from '@/components/VehicleThumbnail';
 import { pickVehicleImageUrl } from '@/lib/listingImage';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
@@ -504,7 +505,7 @@ export default function ListingDetail() {
                   {isUnregistered ? (
                     <TaxBreakdown
                       price={listingPrice}
-                      engineCapacity={typeof listing.engine_cc === 'number' ? listing.engine_cc : undefined}
+                      engineCapacity={plausibleEngineCc(listing.engine_cc, listing.year)}
                       initialFuelType={importFuelType}
                     />
                   ) : (
@@ -545,7 +546,7 @@ export default function ListingDetail() {
               <p className="num mt-2 text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-foreground">{hasPrice ? formatPrice(listingPrice) : t("listing.unlisted", "Unlisted")}</p>
 
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
-                <HybridCliffBadge fuelType={listing.fuel_type} engineCc={listing.engine_cc} />
+                <HybridCliffBadge fuelType={listing.fuel_type} engineCc={plausibleEngineCc(listing.engine_cc, listing.year)} />
                 <MileageTrustChip mileageKm={listing.mileage_km} year={listing.year} />
                 <SellSpeedChip listing={listing} />
                 <AdvertHealthChip listing={listing} />
