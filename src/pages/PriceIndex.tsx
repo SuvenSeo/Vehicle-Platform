@@ -107,7 +107,20 @@ export default function PriceIndexPage() {
 
       <div className="mx-auto max-w-[1320px] px-5 py-8 sm:px-6 lg:py-10 space-y-6 relative z-10">
         {loading ? (
-          <div className="h-[420px] rounded-xl border border-white/5 bg-white/[0.01] animate-pulse" />
+          <div role="status" aria-label={t("index.loading", "Loading price index")} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
+                  <div className="skeleton-shimmer h-3 w-24 rounded-full" />
+                  <div className="skeleton-shimmer mt-3 h-9 w-32 rounded-xl" />
+                  <div className="skeleton-shimmer mt-2 h-3 w-20 rounded-full" />
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5" aria-hidden="true">
+              <div className="skeleton-shimmer h-[320px] w-full rounded-xl" />
+            </div>
+          </div>
         ) : error || !data || activePoints.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-white/10 py-16 text-center">
             <LineChart className="h-5 w-5 text-muted-foreground" />

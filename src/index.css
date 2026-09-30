@@ -1778,6 +1778,13 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Skeletons stay as static placeholders — no shimmer, no pulse. */
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}
+
 /* ============================================================================
    Floating controls
    ========================================================================== */
