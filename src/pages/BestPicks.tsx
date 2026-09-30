@@ -24,6 +24,7 @@ import {
   freePlanCopy,
   hasFullPlatformAccess,
 } from "@/lib/planLimits";
+import { MorphingDialog } from "@/components/ui/MorphingDialog";
 import { visuals } from "@/lib/visualAssets";
 import { InfiniteMovingCards } from "@/components/ui/InfiniteMovingCards";
 
@@ -52,6 +53,80 @@ function dealBandChip(score: number): string {
 
 function dealMeter(score: number): string {
   return dealBand(score) === "watch" ? "bg-primary/60" : "bg-emerald-500/60";
+}
+
+/**
+ * Deal-band chip that morphs into a score explainer dialog (#6 UI review —
+ * Motion Primitives morphing dialog). Real per-listing score, shared layout
+ * animation from chip to panel.
+ */
+function DealScoreExplainer({
+  listing,
+  score,
+  t,
+}: {
+  listing: CarListing;
+  score: number;
+  t: (key: string, fallback?: string) => string;
+}) {
+  const band = dealBand(score);
+  const bands: { key: "elite" | "strong" | "watch"; range: string; blurb: string }[] = [
+    { key: "elite", range: "15+", blurb: t("picks.bandEliteBlurb", "Priced far below the lane median — the sharpest deals.") },
+    { key: "strong", range: "10–14", blurb: t("picks.bandStrongBlurb", "Clearly under median — strong value.") },
+    { key: "watch", range: "< 10", blurb: t("picks.bandWatchBlurb", "Near or above median — worth watching, not chasing.") },
+  ];
+  return (
+    <MorphingDialog
+      ariaLabel={t("picks.scoreDialogLabel", "Deal score explained")}
+      triggerClassName={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}
+      trigger={
+        <>
+          <Star className="mr-1 inline h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          {dealBandLabel(score, t)}
+        </>
+      }
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {t("picks.scoreEyebrow", "Deal score")}
+      </p>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="num text-4xl font-bold tracking-tight text-foreground">+{score.toFixed(0)}</span>
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
+          {dealBandLabel(score, t)}
+        </span>
+      </div>
+      <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+        {listing.make} {listing.model}{listing.year ? ` · ${listing.year}` : ""}
+      </p>
+      <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
+        {t(
+          "picks.scoreBody",
+          "The score compares this listing against the live market median for its lane. Higher means further below median — more deal for the money.",
+        )}
+      </p>
+      <ul className="mt-4 space-y-2">
+        {bands.map((b) => {
+          const active = b.key === band;
+          return (
+            <li
+              key={b.key}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${active ? "border-emerald-500/30 bg-emerald-500/[0.07]" : "border-border bg-surface"}`}
+            >
+              <span className={`num w-12 shrink-0 text-[12px] font-bold ${active ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"}`}>
+                {b.range}
+              </span>
+              <div>
+                <p className="text-[12px] font-semibold text-foreground">
+                  {b.key === "elite" ? t("picks.bandElite", "Elite") : b.key === "strong" ? t("picks.bandStrong", "Strong") : t("picks.bandWatch", "Watch")}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{b.blurb}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </MorphingDialog>
+  );
 }
 
 function sortPicks(listings: CarListing[], mode: BestPicksSortMode): CarListing[] {
@@ -288,9 +363,7 @@ export default function BestPicks() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <span className="text-[12px] font-semibold text-muted-foreground">{featured.source}</span>
-                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>
-                          <Star className="mr-1 inline h-3 w-3 text-emerald-600 dark:text-emerald-400" aria-hidden />{dealBandLabel(score, t)}
-                        </span>
+                        <DealScoreExplainer listing={featured} score={score} t={t} />
                       </div>
                       <Link to={`/listing/${featured.id}`} className="block no-underline">
                         <h2 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl group-hover:text-primary transition-colors">{featured.make} {featured.model}</h2>
@@ -345,7 +418,7 @@ export default function BestPicks() {
                         <div className="flex flex-1 flex-col gap-3 p-4">
                           <div className="flex items-center justify-between">
                             <span className="text-[12px] font-semibold text-muted-foreground">{listing.source}</span>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${dealBandChip(score)}`}>{dealBandLabel(score, t)}</span>
+                            <DealScoreExplainer listing={listing} score={score} t={t} />
                           </div>
                           <Link to={`/listing/${listing.id}`} className="block no-underline">
                             <h3 className="font-display text-[15px] font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors truncate">{listing.make} {listing.model}</h3>
