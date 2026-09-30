@@ -902,6 +902,44 @@ def _request_origin(request: Request) -> Optional[str]:
     return _normalize_origin(request.headers.get("referer"))
 
 
+def _trusted_origin_suffixes() -> tuple[str, ...]:
+    """Team-controlled domain suffixes trusted for writes, beyond exact matches.
+
+    Vercel preview deployments get a unique hashed hostname per deployment
+    (vehicle-platform-<hash>-suvenseoras-projects.vercel.app), so exact-match
+    allowlisting cannot cover them — every write from a preview 403'd with
+    "Writes require a trusted Origin." Scoping to the team's own Vercel account
+    keeps this tight: only this team can mint hostnames under it (the team slug
+    in the hostname is the deploying team's own slug), and writes still require
+    a valid Bearer token that a third-party page cannot obtain.
+    Extend (never shrink) via TRUSTED_ORIGIN_SUFFIXES, comma-separated host
+    suffixes — e.g. "-myteam.vercel.app" for a Vercel team scope,
+    ".example.com" for a domain and its subdomains.
+    """
+    raw = os.getenv("TRUSTED_ORIGIN_SUFFIXES", "-suvenseoras-projects.vercel.app")
+    suffixes: list[str] = []
+    for entry in raw.split(","):
+        cleaned = entry.strip().lower()
+        if cleaned:
+            suffixes.append(cleaned)
+    return tuple(suffixes)
+
+
+def _is_trusted_origin(origin: Optional[str]) -> bool:
+    """True when the request origin may perform writes.
+
+    Exact matches come from `_cors_allowed_origins()` (first-party list plus
+    CORS_ORIGINS extensions, wildcards excluded); anything else must fall under
+    one of the trusted team-controlled domain suffixes.
+    """
+    if not origin:
+        return False
+    if origin in _cors_allowed_origins():
+        return True
+    host = urlparse(origin).netloc.lower()
+    return any(host.endswith(suffix) for suffix in _trusted_origin_suffixes())
+
+
 def _is_unsafe_method(request: Request) -> bool:
     return str(getattr(request, "method", "GET") or "GET").upper() in {
         "POST",
@@ -944,8 +982,7 @@ def require_authenticated(
                 detail="Writes require an Authorization Bearer token (cookie alone is not accepted).",
             )
         origin = _request_origin(request)
-        allowed = _cors_allowed_origins()
-        if origin is None or origin not in allowed:
+        if not _is_trusted_origin(origin):
             raise HTTPException(status_code=403, detail="Writes require a trusted Origin.")
     return get_current_auth_payload(request, authorization, db)
 
@@ -996,8 +1033,7 @@ def require_pro_access(
 
     if unsafe:
         origin = _request_origin(request)
-        allowed = _cors_allowed_origins()
-        if origin is None or origin not in allowed:
+        if not _is_trusted_origin(origin):
             raise HTTPException(status_code=403, detail="Pro writes require a trusted Origin.")
 
     token = _extract_token(authorization, request)

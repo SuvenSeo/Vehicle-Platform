@@ -19,8 +19,10 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from app.api.v1.endpoints.auth import (
     FIRST_PARTY_ORIGINS,
     _cors_allowed_origins,
+    _is_trusted_origin,
     _normalize_origin,
     _request_origin,
+    _trusted_origin_suffixes,
 )
 
 APP_ORIGIN = "https://motormila.vercel.app"
@@ -90,3 +92,56 @@ def test_normalize_origin_rejects_junk():
     assert _normalize_origin("not a url") is None
     assert _normalize_origin("") is None
     assert _normalize_origin(None) is None
+
+
+# --- Vercel preview deployments -------------------------------------------------
+# Previews get a unique hashed hostname per deployment, so exact-match
+# allowlisting can never cover them. Regression: POST /listings/mine from a
+# preview URL 403'd with "Writes require a trusted Origin." while production
+# worked fine.
+
+PREVIEW_ORIGIN = "https://vehicle-platform-rgkfpssr0-suvenseoras-projects.vercel.app"
+
+
+def test_preview_origin_trusted_via_team_suffix(monkeypatch):
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
+    monkeypatch.delenv("TRUSTED_ORIGIN_SUFFIXES", raising=False)
+    assert _is_trusted_origin(PREVIEW_ORIGIN) is True
+    # Referer fallback works too (same-origin rewrite carries no Origin header).
+    assert _is_trusted_origin(_request_origin(_Req({"referer": PREVIEW_ORIGIN + "/sell"}))) is True
+
+
+def test_preview_origin_case_insensitive(monkeypatch):
+    monkeypatch.delenv("TRUSTED_ORIGIN_SUFFIXES", raising=False)
+    assert _is_trusted_origin(PREVIEW_ORIGIN.upper()) is True
+
+
+def test_production_origin_still_trusted(monkeypatch):
+    monkeypatch.delenv("TRUSTED_ORIGIN_SUFFIXES", raising=False)
+    assert _is_trusted_origin(APP_ORIGIN) is True
+
+
+def test_suffix_spoof_rejected(monkeypatch):
+    """A hostile host that merely *contains* the team scope must not pass."""
+    monkeypatch.delenv("TRUSTED_ORIGIN_SUFFIXES", raising=False)
+    assert _is_trusted_origin("https://suvenseoras-projects.vercel.app.evil.com") is False
+    assert _is_trusted_origin("https://evilsuvenseoras-projects.vercel.app") is False
+    assert _is_trusted_origin("https://evil.example.com") is False
+
+
+def test_missing_origin_rejected(monkeypatch):
+    monkeypatch.delenv("TRUSTED_ORIGIN_SUFFIXES", raising=False)
+    assert _is_trusted_origin(None) is False
+    assert _is_trusted_origin("") is False
+
+
+def test_suffix_env_extends(monkeypatch):
+    monkeypatch.setenv("TRUSTED_ORIGIN_SUFFIXES", "-suvenseoras-projects.vercel.app, .example.lk")
+    assert ".example.lk" in _trusted_origin_suffixes()
+    assert _is_trusted_origin("https://shop.example.lk") is True
+    assert _is_trusted_origin(PREVIEW_ORIGIN) is True  # default survives extension
+
+
+def test_suffix_default_when_env_unset(monkeypatch):
+    monkeypatch.delenv("TRUSTED_ORIGIN_SUFFIXES", raising=False)
+    assert _trusted_origin_suffixes() == ("-suvenseoras-projects.vercel.app",)
