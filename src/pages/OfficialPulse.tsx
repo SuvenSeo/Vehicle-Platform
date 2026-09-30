@@ -118,18 +118,7 @@ export default function OfficialPulse() {
   const visibleSignals = fullAccess
     ? filteredSignals
     : filteredSignals.slice(0, FREE_PULSE_LIMIT);
-  // PREVIEW-ONLY (ui-review/03): real Helakuru Esana headlines fetched 2026-09-30,
-  // shown while the backend vehicle-news endpoint is being fixed (it 401s on the
-  // stale HF build and its Esana URL went stale). REMOVE THIS BLOCK BEFORE MERGE.
-  const PREVIEW_SAMPLE_NEWS: { id: string | null; title: string; thumb: string | null; source: string }[] = [
-    { id: "123451", title: "Case Against Former President Ranil Wickremesinghe Recalled Today", thumb: null, source: "helakuru_esana" },
-    { id: "123448", title: "President chairs discussion on Local Government Institutions and Divisional Secretariat Divisions", thumb: null, source: "helakuru_esana" },
-    { id: "123449", title: "September Senior Citizens' Allowance Available from October 01 - Welfare Benefits Board", thumb: null, source: "helakuru_esana" },
-    { id: "123443", title: "Government Has Passed the Litmus Test of Its Two-Year Journey - Bimal Rathnayake", thumb: null, source: "helakuru_esana" },
-    { id: "123435", title: "Notification Regarding the Provision of Fuel Subsidy", thumb: null, source: "helakuru_esana" },
-    { id: "123407", title: "Cabinet approves allocation of Rs. 41 billion for fuel subsidy", thumb: null, source: "helakuru_esana" },
-  ];
-  const newsItems = newsQuery.data?.length ? newsQuery.data : PREVIEW_SAMPLE_NEWS;
+  const newsItems = newsQuery.data ?? [];
 
   return (
     <PageCanvas>
