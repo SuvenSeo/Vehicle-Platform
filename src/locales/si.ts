@@ -584,6 +584,8 @@ export const si = {
   "listing.sourceSeller": "මූලාශ්‍ර විකුණුම්කරු",
   "listing.specifications": "පිරිවිතර",
   "listing.tracked": "{days} ක් නිරීක්ෂණය කෙරිණි",
+  "listing.listed": "ලැයිස්තුගත කළේ {date}",
+  "listing.listedTitle": "Motormila මෙම දැන්වීම ප්‍රථම වරට දුටු වේලාව — සාමාන්‍යයෙන් මූලාශ්‍ර අඩවියේ පළ වී පැය කිහිපයක් ඇතුළත.",
   "listing.unavailable": "නොමැත",
   "listing.unlisted": "ලැයිස්තුගත නොවූ",
   "listing.viewOnSource": "{source} හි බලන්න",
