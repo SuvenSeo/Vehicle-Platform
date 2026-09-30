@@ -60,7 +60,10 @@ export default function Profile() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setListings(await getMyListings());
+      // The API soft-deletes (marks status "removed" and keeps history);
+      // the profile only shows listings the user can still manage.
+      const all = await getMyListings();
+      setListings(all.filter((l) => l.status.toLowerCase() !== "removed"));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setListings([]);
