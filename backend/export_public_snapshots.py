@@ -186,21 +186,133 @@ def build_listing_catalog(db, limit: int | None = None) -> list[dict[str, Any]]:
 
 
 def build_models_by_make(catalog: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    by_make: dict[str, dict[str, int]] = {}
+    from app.utils.make_canonical import compact_key, model_contains_foreign_make
+
+    by_make: dict[str, dict[str, dict[str, Any]]] = {}
     for item in catalog:
         make = canonicalize_make(item.get("make"))
         model = canonicalize_model(item.get("model"))
         if not make or not model:
             continue
+        # "Toyota Aqua" under Land Rover is a misattributed feed row, not a
+        # Land Rover model.
+        if model_contains_foreign_make(item.get("model"), make):
+            continue
         bucket = by_make.setdefault(make, {})
-        bucket[model] = bucket.get(model, 0) + 1
+        # Merge case/spelling variants ("Wira"/"wira", "CHR"/"C-HR") under one
+        # canonical key so a model is one filter row with one count.
+        key = compact_key(model)
+        entry = bucket.get(key)
+        if entry is None:
+            bucket[key] = {"model": model, "count": 1}
+        else:
+            entry["count"] += 1
     return {
         make: [
-            {"model": model, "count": count}
-            for model, count in sorted(models.items(), key=lambda row: row[1], reverse=True)
+            {"model": entry["model"], "count": entry["count"]}
+            for entry in sorted(models.values(), key=lambda row: row["count"], reverse=True)
         ]
         for make, models in sorted(by_make.items())
     }
+
+
+def build_make_insights(catalog: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Per-make hub payloads (same shape as GET /stats/make-insight).
+
+    Written as make-insights.json so the snapshot-only frontend can render
+    MakeHub stats, popular models and the all-models browser without calling
+    the live backend.
+    """
+    from app.utils.make_canonical import (
+        compact_key,
+        model_contains_foreign_make,
+    )
+    from app.utils.pricing import median_from_values
+
+    per_make: dict[str, dict[str, Any]] = {}
+    for item in catalog:
+        make = canonicalize_make(item.get("make"))
+        if not make:
+            continue
+        model = canonicalize_model(item.get("model"))
+        if model and model_contains_foreign_make(item.get("model"), make):
+            model = ""
+        price = item.get("price_lkr")
+        priced = isinstance(price, (int, float)) and float(price) >= MIN_REASONABLE_PRICE_LKR
+        bucket = per_make.setdefault(
+            make, {"total": 0, "prices": [], "models": {}, "districts": {}}
+        )
+        bucket["total"] += 1
+        if priced:
+            bucket["prices"].append(float(price))
+        if model:
+            key = compact_key(model)
+            entry = bucket["models"].get(key)
+            if entry is None:
+                bucket["models"][key] = {
+                    "model": model,
+                    "count": 1,
+                    "price_total": float(price) if priced else 0.0,
+                    "priced_count": 1 if priced else 0,
+                }
+            else:
+                # First-seen display form wins for the merged model row.
+                entry["count"] += 1
+                if priced:
+                    entry["price_total"] += float(price)
+                    entry["priced_count"] += 1
+        district = str(item.get("district") or "").strip()
+        if district and compact_key(district) != "srilanka":
+            dentry = bucket["districts"].get(district)
+            if dentry is None:
+                bucket["districts"][district] = {
+                    "district": district,
+                    "count": 1,
+                    "price_total": float(price) if priced else 0.0,
+                    "priced_count": 1 if priced else 0,
+                }
+            else:
+                dentry["count"] += 1
+                if priced:
+                    dentry["price_total"] += float(price)
+                    dentry["priced_count"] += 1
+
+    result: dict[str, dict[str, Any]] = {}
+    for make, bucket in sorted(per_make.items()):
+        models = sorted(bucket["models"].values(), key=lambda m: m["count"], reverse=True)
+        all_models = [
+            {
+                "model": m["model"],
+                "count": m["count"],
+                "avg_price_lkr": round(m["price_total"] / m["priced_count"], 2)
+                if m["priced_count"]
+                else None,
+            }
+            for m in models
+        ]
+        districts = sorted(
+            bucket["districts"].values(), key=lambda d: d["count"], reverse=True
+        )[:6]
+        prices: list[float] = bucket["prices"]
+        result[make] = {
+            "make": make,
+            "total": bucket["total"],
+            "avg_price_lkr": round(sum(prices) / len(prices), 2) if prices else None,
+            "median_price_lkr": round(median_from_values(prices), 2) if prices else None,
+            "top_models": all_models[:12],
+            "all_models": all_models,
+            "top_districts": [
+                {
+                    "district": d["district"],
+                    "count": d["count"],
+                    "avg_price_lkr": round(d["price_total"] / d["priced_count"], 2)
+                    if d["priced_count"]
+                    else None,
+                }
+                for d in districts
+            ],
+        }
+    return result
 
 
 def write_catalog_parts(output_dir: Path, catalog: list[dict[str, Any]], generated_at: datetime) -> None:
@@ -470,7 +582,7 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
                     "listing-sources.json",
                     "listing-makes.json",
                 ]
-                + ([] if skip_derived else ["listing-models.json", "listing-catalog.json"]),
+                + ([] if skip_derived else ["listing-models.json", "listing-catalog.json", "make-insights.json"]),
             },
             "stats-summary.json": build_stats_summary(db),
             "live-market.json": stats_endpoint.build_live_market_snapshot(db),
@@ -480,11 +592,13 @@ def build_snapshot(output_dir: Path, catalog_limit: int | None = None, *, skip_c
             "listing-sources.json": listings_endpoint.get_sources(db=db),
             "listing-makes.json": listings_endpoint.get_makes(db=db),
             "listing-models.json": build_models_by_make(catalog),
+            "make-insights.json": build_make_insights(catalog),
         }
         files.update(build_small_snapshots(db))
 
         if skip_derived:
             files.pop("listing-models.json")
+            files.pop("make-insights.json")
         else:
             # Full catalog is paginated into <100 MB parts behind a small
             # manifest — the shape the frontend already reads.

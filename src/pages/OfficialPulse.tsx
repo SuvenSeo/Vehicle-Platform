@@ -13,7 +13,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { SectionHeader } from "@/components/SectionHeader";
-import { AnimatedList } from "@/components/ui/AnimatedList";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
@@ -23,6 +22,7 @@ import {
   PULSE_SOURCE_GUIDES,
   formatPulsePeriod,
   formatPulseValue,
+  labelPulseMetric,
   labelPulseSource,
   matchPulseGuide,
 } from "@/lib/officialPulseContent";
@@ -40,7 +40,7 @@ type SourceFilter = "all" | string;
 
 function signalTitle(signal: MarketSignal, marketSignalLabel: string): string {
   const guide = matchPulseGuide(signal.source, signal.signal_type);
-  return guide?.title || signal.category || signal.metric.replace(/_/g, " ") || marketSignalLabel;
+  return guide?.title || labelPulseMetric(signal.category || signal.metric) || marketSignalLabel;
 }
 
 function SignalCard({ signal }: { signal: MarketSignal }) {
@@ -334,28 +334,19 @@ export default function OfficialPulse() {
               )}
               className="mb-6"
             />
-            <div className="relative flex max-h-[380px] min-h-[180px] w-full flex-col overflow-hidden rounded-3xl border border-border/80 bg-card/60 p-3 backdrop-blur-xl [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_88%,transparent)]">
-              <AnimatedList delay={2500} className="w-full">
-                {newsItems.map((item, index) => (
-                  <div
-                    key={item.id || `${item.title}-${index}`}
-                    className="flex w-full items-start gap-3 rounded-2xl border border-border/70 bg-card/90 p-4 text-left shadow-soft backdrop-blur-xl"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Radio aria-hidden className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/70">
-                        Helakuru Esana
-                      </p>
-                      <p className="mt-1 text-sm font-semibold leading-snug text-foreground">
-                        {item.title}
-                      </p>
-                    </span>
-                  </div>
-                ))}
-              </AnimatedList>
-            </div>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {newsItems.map((item, index) => (
+                <li
+                  key={item.id || `${item.title}-${index}`}
+                  className="rounded-3xl border border-border/80 bg-card/85 p-5 shadow-soft backdrop-blur-xl"
+                >
+                  <p className="text-[12px] font-medium text-primary/70">
+                    Helakuru Esana
+                  </p>
+                  <p className="mt-2 text-sm font-semibold leading-snug text-foreground">{item.title}</p>
+                </li>
+              ))}
+            </ul>
           </motion.section>
         ) : null}
       </PageBody>

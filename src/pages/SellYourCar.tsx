@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 const MAKES = [
   "Toyota", "Suzuki", "Honda", "Nissan", "Mitsubishi", "Mazda",
   "Hyundai", "Kia", "BMW", "Mercedes-Benz", "Audi", "Perodua",
-  "Micro", "DFSK", "Chery", "Other",
+  "Micro", "DFSK", "Chery", "BYD", "MG", "Other",
 ];
 const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric", "CNG"];
 const TRANSMISSIONS = ["Automatic", "Manual", "CVT"];

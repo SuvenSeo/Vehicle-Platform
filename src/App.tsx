@@ -43,6 +43,7 @@ const Trends = lazyWithRetry(() => import("./pages/Trends"));
 const Estimate = lazyWithRetry(() => import("./pages/Estimate"));
 const Calculator = lazyWithRetry(() => import("./pages/Calculator"));
 const EVHub = lazyWithRetry(() => import("./pages/EVHub"));
+const EVChargers = lazyWithRetry(() => import("./pages/EVChargers"));
 
 const BestPicks = lazyWithRetry(() => import("./pages/BestPicks"));
 const SellYourCar = lazyWithRetry(() => import("./pages/SellYourCar"));
@@ -93,8 +94,7 @@ function HeroLabGate() {
   return enabled ? <HeroLab /> : <Navigate to="/" replace />;
 }
 
-function TrialBannerSlot() {
-  const { user } = useAuth();
+function TrialBannerSlot() {  const { user } = useAuth();
   // Defer the Pricing chunk until the banner can actually render: anonymous
   // and paid users always render null, so skip the dynamic import entirely.
   if (!user) return null;
@@ -108,10 +108,26 @@ function TrialBannerSlot() {
   );
 }
 
+/** Scrolls to the URL hash after navigation (e.g. Market -> /#market from another page). */
+function HashScroller() {
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const id = hash.replace("#", "");
+    // Wait for the lazy route to mount before looking for the anchor.
+    const timer = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [hash]);
+  return null;
+}
+
 function AppShell({ chatMounted }: { chatMounted: boolean }) {
   return (
     <div className="min-h-screen app-shell selection:bg-primary/20 bg-background">
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
+      <HashScroller />
       <Navbar />
       <SettingsFloatingIcon />
       <Suspense fallback={null}>
@@ -192,7 +208,7 @@ const App = () => {
                   <Route path="/calculator" element={<Calculator />} />
                   <Route path="/ev-hub" element={<EVHub />} />
                   {/* EV chargers: Open Charge Map cache is empty — redirect to EV Hub until real data exists. */}
-                  <Route path="/ev-chargers" element={<Navigate to="/ev-hub" replace />} />
+                  <Route path="/ev-chargers" element={<EVChargers />} />
                   <Route path="/best-picks" element={<BestPicks />} />
                   <Route path="/sell" element={<SellYourCar />} />
                   <Route path="/listing/:id" element={<ListingDetail />} />

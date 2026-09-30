@@ -268,6 +268,11 @@ class IkmanCarScraper:
         text = str(value or "").strip().lower().replace(",", "")
         if not text:
             return None
+        # A bare 4-digit value with no unit that looks like a manufacture
+        # year ("2007") is a mislabeled year, not a displacement — drop it
+        # instead of recording 2,007 cc.
+        if re.fullmatch(r"(19|20)\d{2}", text):
+            return None
         match = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*(?:cc|c\.c\.)?\b", text)
         if not match:
             return None
