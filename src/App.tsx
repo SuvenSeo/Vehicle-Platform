@@ -57,6 +57,7 @@ const MakeModelHub = lazyWithRetry(() => import("./pages/MakeModelHub"));
 const MakeHub = lazyWithRetry(() => import("./pages/MakeHub"));
 const DistrictHub = lazyWithRetry(() => import("./pages/DistrictHub"));
 const Alerts = lazyWithRetry(() => import("./pages/Alerts"));
+const Profile = lazyWithRetry(() => import("./pages/Profile"));
 
 const Docs = lazyWithRetry(() => import("./pages/Docs"));
 const Pricing = lazyWithRetry(() => import("./pages/Pricing"));
@@ -236,6 +237,7 @@ const App = () => {
                   <Route path="/dealer" element={<DealerDashboard />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/alerts" element={<Alerts />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Route>
                 <Route path="/sign-in" element={
                   <Suspense fallback={<MinimalLoader />}>

@@ -141,6 +141,12 @@ export function Navbar() {
         id: "account",
         label: t("nav.groupAccount", "Your account"),
         items: [
+          {
+            label: t("nav.myListings", "My listings"),
+            detail: t("nav.myListingsDetail", "Manage your vehicle ads"),
+            href: "/profile",
+            icon: UserCircle2,
+          },
           isAuthenticated
             ? {
                 label: t("nav.proDashboard", "Pro Dashboard"),

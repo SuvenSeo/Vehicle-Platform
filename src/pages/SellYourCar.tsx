@@ -187,8 +187,15 @@ export default function SellYourCar() {
             <p className="mx-auto mt-3 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
               {t(
                 "sell.doneBody",
-                "Your vehicle is queued for review. We'll publish it to the market shortly — you can manage it from your profile.",
-              )}
+                "Your vehicle is queued for review. We'll publish it to the market shortly.",
+              )}{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/profile")}
+                className="font-semibold text-primary-bright underline-offset-2 hover:underline"
+              >
+                {t("sell.manageListings", "Manage your listings")}
+              </button>
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button onClick={() => navigate("/")} variant="default">
