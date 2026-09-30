@@ -584,6 +584,8 @@ export const ta = {
   "listing.sourceSeller": "மூல விற்பனையாளர்",
   "listing.specifications": "விவரக்குறிப்புகள்",
   "listing.tracked": "கண்காணிக்கப்பட்டது {days}",
+  "listing.listed": "பட்டியலிடப்பட்டது {date}",
+  "listing.listedTitle": "Motormila இந்த விளம்பரத்தை முதன்முதலில் கண்ட நேரம் — வழக்கமாக மூல தளத்தில் வெளியான சில மணி நேரங்களுக்குள்.",
   "listing.unavailable": "கிடைக்கவில்லை",
   "listing.unlisted": "பட்டியலிடப்படவில்லை",
   "listing.viewOnSource": "{source}இல் பார்",

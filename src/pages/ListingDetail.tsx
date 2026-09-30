@@ -22,6 +22,7 @@ import { FmvExplainer } from '@/components/FmvExplainer';
 import { useCompareTray } from '@/lib/compareTray';
 import { loadWatchlistIds, saveWatchlistIds, toggleWatchlistId } from '@/lib/watchlist';
 import { DealLadder } from '@/components/DealLadder';
+import { formatListedDateTime } from '@/lib/listing-card-meta';
 import { LeaseCalculator } from '@/components/LeaseCalculator';
 import { TaxBreakdown } from '@/components/TaxBreakdown';
 import { CashToOwnStrip } from '@/components/CashToOwnStrip';
@@ -286,6 +287,7 @@ export default function ListingDetail() {
   const whatsappPreview = (sellerProfile?.whatsapp_numbers || []).slice(0, 1);
   const trackedDays = (() => { const ts = new Date(listing.first_seen_at || '').getTime(); return Number.isFinite(ts) ? Math.max(1, Math.round((Date.now() - ts) / 86_400_000)) : null; })();
   const trackedLabel = trackedDays ? `${trackedDays}d` : 'N/A';
+  const listedDateTime = formatListedDateTime(listing.first_seen_at);
   const peerAges = visibleSimilar.map((s) => { const ts = new Date(s.first_seen_at || '').getTime(); return Number.isFinite(ts) ? Math.max(1, Math.round((Date.now() - ts) / 86_400_000)) : null; }).filter((v): v is number => v !== null);
   const avgPeerDays = peerAges.length ? Math.round(peerAges.reduce((a, b) => a + b, 0) / peerAges.length) : null;
 
@@ -418,6 +420,17 @@ export default function ListingDetail() {
                 <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground"><MapPin aria-hidden className="h-3.5 w-3.5 text-primary-bright" /> {listing.district || t("common.unknown", "Unknown")}, Sri Lanka</span>
                 <span aria-hidden className="text-muted-foreground/30 text-xs">•</span>
                 <span className="num flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"><Clock aria-hidden className="h-3.5 w-3.5 text-primary-bright" /> {t("listing.tracked", "Tracked {days}", { days: trackedLabel })}</span>
+                {listedDateTime && (
+                  <>
+                    <span aria-hidden className="text-muted-foreground/30 text-xs">•</span>
+                    <span
+                      className="num flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground"
+                      title={t("listing.listedTitle", "When Motormila first spotted this ad — usually within hours of it going live on the source site.")}
+                    >
+                      <Calendar aria-hidden className="h-3.5 w-3.5 text-primary-bright" /> {t("listing.listed", "Listed {date}", { date: listedDateTime })}
+                    </span>
+                  </>
+                )}
               </div>
             </motion.div>
 

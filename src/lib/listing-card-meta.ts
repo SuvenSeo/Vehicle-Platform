@@ -56,3 +56,29 @@ export function getListingRecencyLabel(iso: string | null): string {
     day: "numeric",
   });
 }
+
+/**
+ * Absolute "listed" date + time for a listing detail page, rendered in
+ * Sri Lanka time (e.g. "19 May 2026, 3:42 PM"). Backed by `first_seen_at` —
+ * the moment Motormila first spotted the ad, which is the closest the
+ * pipeline gets to the true publication time (scrapes run 3x daily).
+ */
+export function formatListedDateTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const ts = Date.parse(iso);
+  if (!Number.isFinite(ts)) return null;
+  const d = new Date(ts);
+  const date = d.toLocaleDateString("en-GB", {
+    timeZone: "Asia/Colombo",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString("en-US", {
+    timeZone: "Asia/Colombo",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${date}, ${time}`;
+}

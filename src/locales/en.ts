@@ -575,6 +575,8 @@ export const en = {
   "listing.sourceSeller": "Source Seller",
   "listing.specifications": "Specifications",
   "listing.tracked": "Tracked {days}",
+  "listing.listed": "Listed {date}",
+  "listing.listedTitle": "When Motormila first spotted this ad — usually within hours of it going live on the source site.",
   "listing.unavailable": "Unavailable",
   "listing.unlisted": "Unlisted",
   "listing.viewOnSource": "View on {source}",
