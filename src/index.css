@@ -1933,6 +1933,41 @@
 }
 
 /* ============================================================================
+   Moving Border (#10 UI review) — rotating conic beam around a CTA.
+   ========================================================================== */
+
+@property --mb-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.moving-border {
+  --mb-duration: 4s;
+  position: relative;
+  display: inline-flex;
+  padding: 1.5px;
+  border-radius: var(--mb-radius, 0.625rem);
+  background: conic-gradient(
+    from var(--mb-angle),
+    transparent 0deg,
+    transparent 265deg,
+    hsl(var(--primary)) 305deg,
+    hsl(var(--primary) / 0.12) 330deg,
+    transparent 360deg
+  );
+  animation: mb-rotate var(--mb-duration) linear infinite;
+}
+
+.moving-border > * {
+  border-radius: calc(var(--mb-radius, 0.625rem) - 1.5px);
+}
+
+@keyframes mb-rotate {
+  to { --mb-angle: 360deg; }
+}
+
+/* ============================================================================
    Reduced motion
    ========================================================================== */
 
@@ -1959,6 +1994,11 @@
   .hero-cinematic__media,
   .route-stage {
     animation: none !important;
+  }
+
+  .moving-border {
+    animation: none;
+    background: hsl(var(--primary) / 0.35);
   }
 
   @view-transition {

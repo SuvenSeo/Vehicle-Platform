@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { SectionHeader } from "@/components/SectionHeader";
+import { AnimatedTabs } from "@/components/ui/AnimatedTabs";
 import { PageBody } from "@/components/PageBody";
 import { PageCanvas } from "@/components/PageCanvas";
 import { PageHero } from "@/components/PageHero";
@@ -227,34 +228,17 @@ export default function OfficialPulse() {
           />
 
           {sourceChips.length > 0 ? (
-            <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label={t("pulse.filterAria", "Filter by source")}>
-              <button
-                type="button"
-                onClick={() => setSourceFilter("all")}
-                className={cn(
-                  "rounded-full border px-4 py-2 text-[11px] font-semibold transition-all active:scale-[0.97]",
-                  sourceFilter === "all"
-                    ? "border-primary/40 bg-primary/10 text-primary shadow-soft"
-                    : "border-border/80 bg-surface/70 text-muted-foreground hover:border-primary/30 hover:text-foreground",
-                )}
-              >
-                {t("pulse.allSources", "All sources")}
-              </button>
-              {sourceChips.map((source) => (
-                <button
-                  key={source}
-                  type="button"
-                  onClick={() => setSourceFilter(source)}
-                  className={cn(
-                    "rounded-full border px-4 py-2 text-[11px] font-semibold transition-all active:scale-[0.97]",
-                    sourceFilter === source
-                      ? "border-primary/40 bg-primary/10 text-primary shadow-soft"
-                      : "border-border/80 bg-surface/70 text-muted-foreground hover:border-primary/30 hover:text-foreground",
-                  )}
-                >
-                  {labelPulseSource(source)}
-                </button>
-              ))}
+            <div className="mb-6">
+              {/* Animated Tabs — sliding active pill (#9 UI review) */}
+              <AnimatedTabs
+                ariaLabel={t("pulse.filterAria", "Filter by source")}
+                tabs={[
+                  { id: "all", label: t("pulse.allSources", "All sources") },
+                  ...sourceChips.map((source) => ({ id: source, label: labelPulseSource(source) })),
+                ]}
+                activeId={sourceFilter}
+                onChange={setSourceFilter}
+              />
             </div>
           ) : null}
 

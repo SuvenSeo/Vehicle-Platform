@@ -18,6 +18,7 @@ import { FuelMixStrip } from "@/components/FuelMixStrip";
 import { DataFreshnessIndicator } from "@/components/DataFreshnessIndicator";
 import { AtmosphericImage } from "@/components/AtmosphericImage";
 import { HeroSideSignals } from "@/components/HeroSideSignals";
+import { FlipWords } from "@/components/ui/FlipWords";
 import { HeroVariantPicker } from "@/components/HeroVariantPicker";
 import { useHeroVariantLab } from "@/hooks/useHeroVariantLab";
 import type { HeroAlign } from "@/lib/heroVariants";
@@ -808,7 +809,15 @@ export default function Dashboard() {
               </span>
               <span className={cn("italic text-primary", heroCentered ? "display-hero__accent" : undefined)}>
                 {heroCentered ? null : " "}
-                {t("hero.titleAccent", "decoded.")}
+                {/* Flip Words — rotating accent (#8 UI review) */}
+                <FlipWords
+                  words={[
+                    t("hero.titleAccent", "decoded."),
+                    t("hero.accentWord2", "priced."),
+                    t("hero.accentWord3", "tracked."),
+                    t("hero.accentWord4", "compared."),
+                  ]}
+                />
               </span>
             </motion.h1>
 
