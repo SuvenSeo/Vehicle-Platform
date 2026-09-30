@@ -25,6 +25,7 @@ import {
   hasFullPlatformAccess,
 } from "@/lib/planLimits";
 import { visuals } from "@/lib/visualAssets";
+import { InfiniteMovingCards } from "@/components/ui/InfiniteMovingCards";
 
 const PICKS_PAGES = 4;
 const MIN_DEAL_SCORE = 8;
@@ -210,12 +211,17 @@ export default function BestPicks() {
                 {t("picks.cutsEmpty", "No cuts recorded in the last 7 days yet — price tracking is scan-over-scan, so drops appear here as our daily scans catch sellers moving their asking prices.")}
               </p>
             ) : (
-              <div className="grid grid-flow-col auto-cols-[78%] gap-2.5 pt-4 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid-flow-row sm:auto-cols-auto sm:overflow-visible sm:grid-cols-2 lg:grid-cols-4">
-                {drops.map((drop) => (
+              <InfiniteMovingCards
+                items={drops}
+                keyOf={(drop) => drop.listing.id}
+                direction="left"
+                speed="normal"
+                pauseOnHover
+                className="pt-3"
+                renderItem={(drop) => (
                   <Link
-                    key={drop.listing.id}
                     to={`/listing/${drop.listing.id}`}
-                    className="group snap-start rounded-xl border border-border bg-surface p-3.5 no-underline transition-all hover:border-emerald-500/30 hover:bg-card hover:shadow-soft"
+                    className="group block h-full rounded-xl border border-border bg-surface p-3.5 no-underline transition-all hover:border-emerald-500/30 hover:bg-card hover:shadow-soft"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[12px] font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
@@ -233,8 +239,8 @@ export default function BestPicks() {
                       {drop.listing.district || drop.listing.source}
                     </p>
                   </Link>
-                ))}
-              </div>
+                )}
+              />
             )}
           </motion.section>
 

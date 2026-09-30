@@ -152,6 +152,10 @@ export default {
           from: { opacity: "0", transform: "translate3d(0, 12px, 0)" },
           to: { opacity: "1", transform: "translate3d(0, 0, 0)" },
         },
+        "infinite-scroll": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
         "fade-in": {
           from: { opacity: "0" },
           to: { opacity: "1" },
@@ -168,6 +172,7 @@ export default {
         "motion-rise": "motion-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both",
         "motion-fade": "motion-fade 0.5s ease both",
         "fade-up": "fade-up var(--duration-slow) var(--ease-out) both",
+        "infinite-scroll": "infinite-scroll var(--marquee-duration, 45s) linear infinite",
         "fade-in": "fade-in var(--duration-base) var(--ease-out) both",
         "scroll-hint": "scroll-hint 2.4s ease-in-out infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
