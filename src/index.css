@@ -2238,3 +2238,21 @@ body.cursor-custom-active * { cursor: auto; }
 }
 
 .animate-live-dot { animation: live-pulse 3s ease-in-out infinite; }
+
+/* ============================================================================
+   Command palette (⌘K) — entrance motion, disabled under reduced motion
+   ========================================================================== */
+@keyframes palette-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes palette-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-palette-in { animation: palette-in 0.18s ease-out; }
+.animate-palette-backdrop-in { animation: palette-backdrop-in 0.15s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-palette-in,
+  .animate-palette-backdrop-in { animation: none; }
+}

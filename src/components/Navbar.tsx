@@ -12,6 +12,7 @@ import {
   Menu,
   MoreHorizontal,
   Scale,
+  Search,
   Settings,
   Smartphone,
   Sparkles,
@@ -35,6 +36,7 @@ import { useAppPreferences } from "@/lib/appPreferences";
 import { useAuth } from "@/lib/authContext";
 import { formatRelativeTimeI18n } from "@/lib/formatting";
 import { NotificationBell } from "@/components/NotificationBell";
+import { openCommandPalette } from "@/lib/commandPalette";
 
 type NavSection = {
   label: string;
@@ -436,6 +438,25 @@ export function Navbar() {
 
             {/* ── Right actions ─────────────────────────── */}
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              {/* Search — opens the command palette (touch-friendly; ⌘K/Ctrl+K also works) */}
+              <button
+                type="button"
+                onClick={openCommandPalette}
+                className="inline-flex h-8 w-8 items-center justify-center gap-1.5 rounded-full border border-border bg-foreground/[0.03] text-muted-foreground outline-none transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50 sm:w-auto sm:px-3"
+                aria-label={t("nav.search", "Search")}
+                title={t("nav.searchHint", "Search (Ctrl+K)")}
+              >
+                <Search className="h-3.5 w-3.5" aria-hidden />
+                <span className="hidden text-[13px] font-medium tracking-tight md:inline">
+                  {t("nav.search", "Search")}
+                </span>
+                <kbd
+                  className="hidden rounded border border-border bg-foreground/[0.04] px-1 text-[10px] font-semibold lg:inline"
+                  aria-hidden
+                >
+                  ⌘K
+                </kbd>
+              </button>
               {/* More — grouped mega menu */}
               <DropdownMenu open={moreOpen} onOpenChange={setMoreOpen}>
                 <DropdownMenuTrigger asChild>

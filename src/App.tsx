@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
+import { CommandPalette } from "@/components/CommandPalette";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { AppFooter } from "@/components/AppFooter";
 import { ScrollProgressBar } from "@/components/ScrollProgressBar";
@@ -130,6 +131,7 @@ function AppShell({ chatMounted }: { chatMounted: boolean }) {
       <a href="#main-content" className="skip-to-content">Skip to main content</a>
       <HashScroller />
       <Navbar />
+      <CommandPalette />
       <SettingsFloatingIcon />
       <Suspense fallback={null}>
         <FeedbackWidget />
