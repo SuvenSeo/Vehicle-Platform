@@ -25,6 +25,7 @@ import {
   hasFullPlatformAccess,
 } from "@/lib/planLimits";
 import { MorphingDialog } from "@/components/ui/MorphingDialog";
+import { setSpotlightVars, CardSpotlightGlow } from "@/components/ui/CardSpotlight";
 import { visuals } from "@/lib/visualAssets";
 import { InfiniteMovingCards } from "@/components/ui/InfiniteMovingCards";
 
@@ -354,7 +355,8 @@ export default function BestPicks() {
               const pct = topScore > 0 ? Math.min(100, Math.round((score / topScore) * 100)) : 0;
               const cashDown = minCashDownForPrice(Number(featured.price_lkr || 0));
               return (
-                <motion.article variants={revealItem} className="group relative grid overflow-hidden rounded-2xl border border-border bg-card shadow-soft backdrop-blur-md transition-all duration-300 hover:border-primary/30 hover:shadow-soft-lg lg:grid-cols-[1.1fr_1fr]">
+                <motion.article variants={revealItem} className="group relative grid overflow-hidden rounded-2xl border border-border bg-card shadow-soft backdrop-blur-md transition-all duration-300 hover:border-primary/30 hover:shadow-soft-lg lg:grid-cols-[1.1fr_1fr]" onMouseMove={setSpotlightVars}>
+                  <CardSpotlightGlow />
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" aria-hidden />
                   <Link to={`/listing/${featured.id}`} className="block aspect-[16/10] overflow-hidden bg-muted no-underline lg:aspect-auto lg:min-h-[320px]">
                     <VehicleThumbnail src={pickVehicleImageUrl([featured.thumbnail_url, ...(Array.isArray(featured.images) ? featured.images : [])], [featured.url, featured.detail_url, featured.external_url])} listingId={featured.id} alt={`${featured.make} ${featured.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
@@ -409,7 +411,8 @@ export default function BestPicks() {
                     const pct = topScore > 0 ? Math.min(100, Math.round((score / topScore) * 100)) : 0;
                     const cashDown = minCashDownForPrice(Number(listing.price_lkr || 0));
                     return (
-                      <motion.article key={listing.id} variants={revealItem} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg">
+                      <motion.article key={listing.id} variants={revealItem} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg" onMouseMove={setSpotlightVars}>
+                        <CardSpotlightGlow />
                         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" aria-hidden />
                         <Link to={`/listing/${listing.id}`} className="relative block aspect-[16/10] overflow-hidden bg-muted no-underline">
                           <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
