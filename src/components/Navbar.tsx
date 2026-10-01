@@ -455,7 +455,7 @@ export function Navbar() {
                 <DropdownMenuContent
                   align="end"
                   sideOffset={10}
-                  className="w-[min(94vw,480px)] overflow-hidden rounded-[1.75rem] border-border bg-popover/96 p-0 text-foreground shadow-soft-xl backdrop-blur-2xl"
+                  className="w-[min(94vw,480px)] overflow-hidden rounded-[1.75rem] border border-border bg-popover/95 p-0 text-foreground shadow-[0_28px_80px_-16px_rgba(0,0,0,0.7)] ring-1 ring-foreground/10 backdrop-blur-2xl"
                 >
                   <div className="max-h-[min(74vh,620px)] overflow-y-auto overscroll-contain p-2.5">
                     {/* Mobile app spotlight */}
@@ -466,7 +466,7 @@ export function Navbar() {
                       className="group/mobile relative w-full overflow-hidden rounded-2xl border border-primary/20 bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.16),transparent_62%)] px-3.5 py-3 text-left outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/50"
                     >
                       <span className="flex items-start gap-3">
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12">
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/[0.12]">
                           <Smartphone className="h-4 w-4 text-primary" aria-hidden />
                         </span>
                         <span className="min-w-0 flex-1">
@@ -474,7 +474,7 @@ export function Navbar() {
                             <span className="text-[13px] font-semibold tracking-tight text-foreground">
                               {t("nav.mobileApp", "Mobile App")}
                             </span>
-                            <span className="rounded-full border border-amber-400/35 bg-amber-400/12 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-600 dark:text-amber-300">
+                            <span className="rounded-full border border-amber-400/35 bg-amber-400/[0.12] px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-600 dark:text-amber-300">
                               {t("mobile.releasingSoon", "Releasing soon")}
                             </span>
                           </span>
@@ -512,7 +512,7 @@ export function Navbar() {
                                 <span
                                   className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
                                     active
-                                      ? "border-primary/30 bg-primary/12 text-primary"
+                                      ? "border-primary/30 bg-primary/[0.12] text-primary"
                                       : "border-border bg-foreground/[0.03] text-muted-foreground group-hover/item:text-foreground"
                                   }`}
                                 >
@@ -665,7 +665,7 @@ export function Navbar() {
                   : "border-primary/20 bg-primary/[0.06] hover:border-primary/35"
               }`}
             >
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/12">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/[0.12]">
                 <Smartphone className="h-4 w-4 text-primary" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -673,7 +673,7 @@ export function Navbar() {
                   <span className="text-[13px] font-semibold tracking-tight text-foreground">
                     {t("nav.mobileApp", "Mobile App")}
                   </span>
-                  <span className="rounded-full border border-amber-400/35 bg-amber-400/12 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-600 dark:text-amber-300">
+                  <span className="rounded-full border border-amber-400/35 bg-amber-400/[0.12] px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-amber-600 dark:text-amber-300">
                     {t("mobile.releasingSoon", "Releasing soon")}
                   </span>
                 </span>
@@ -731,7 +731,7 @@ export function Navbar() {
                       >
                         <span
                           className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
-                            active ? "border-primary/30 bg-primary/12 text-primary" : "border-border text-muted-foreground"
+                            active ? "border-primary/30 bg-primary/[0.12] text-primary" : "border-border text-muted-foreground"
                           }`}
                         >
                           <Icon className="h-3.5 w-3.5" aria-hidden />
