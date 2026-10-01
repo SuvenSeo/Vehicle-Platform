@@ -1874,6 +1874,35 @@ export const getMakes = async () => {
   return sanitize(await fetchJSON<{ make: string; count: number }[]>("/listings/makes"));
 };
 
+export type ModelIndexEntry = { make: string; model: string; count: number };
+
+/**
+ * Full make → model index for the command palette, derived from the same
+ * `listing-models.json` snapshot that backs `getModels(make)`. Canonicalized
+ * and count-merged so junk rows never surface in search results.
+ */
+export const getModelIndex = async (): Promise<ModelIndexEntry[]> => {
+  const snapshot = await readSnapshot<Record<string, { model: string; count: number }[]>>(
+    "listing-models.json",
+  );
+  if (!snapshot) return [];
+  const merged = new Map<string, ModelIndexEntry>();
+  for (const [rawMake, rows] of Object.entries(snapshot)) {
+    const make = canonicalizeMake(rawMake);
+    if (!make || !Array.isArray(rows)) continue;
+    for (const row of rows) {
+      const model = canonicalizeModel(row?.model);
+      if (!model) continue;
+      const key = `${make.toLowerCase()}|${model.toLowerCase()}`;
+      const count = Number(row?.count || 0);
+      const bucket = merged.get(key);
+      if (bucket) bucket.count += count;
+      else merged.set(key, { make, model, count });
+    }
+  }
+  return [...merged.values()].sort((a, b) => b.count - a.count);
+};
+
 export const getListingSearchSuggestions = async (
   q: string,
   limit = 8,
