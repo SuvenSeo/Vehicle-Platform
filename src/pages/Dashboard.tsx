@@ -133,6 +133,9 @@ const ComparisonModal = lazyWithRetry(() =>
 const MarketIntelligencePanel = lazyWithRetry(() =>
   import("@/components/MarketIntelligencePanel").then((m) => ({ default: m.MarketIntelligencePanel }))
 );
+const MarketIntelligenceSkeleton = lazyWithRetry(() =>
+  import("@/components/MarketIntelligencePanel").then((m) => ({ default: m.MarketIntelligenceSkeleton }))
+);
 const MobileFilterSheet = lazyWithRetry(() =>
   import("@/components/MobileFilterSheet").then((m) => ({ default: m.MobileFilterSheet }))
 );
@@ -1004,7 +1007,11 @@ export default function Dashboard() {
         <div className="mx-auto max-w-[1560px] px-5 py-10 sm:px-6 lg:py-14">
           <ProFeatureLock label={t("home.liveIntelLock", "Live intelligence console")}>
             <Suspense fallback={null}>
-              <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+              {!liveMarketSnapshot && !stats && !dashboardInsights ? (
+                <MarketIntelligenceSkeleton />
+              ) : (
+                <MarketIntelligencePanel snapshot={liveMarketSnapshot} stats={stats} insights={dashboardInsights} />
+              )}
             </Suspense>
           </ProFeatureLock>
         </div>
@@ -1538,7 +1545,7 @@ export default function Dashboard() {
             <p className="mt-1.5 text-[13px] font-semibold text-foreground">{currentAlertSummary}</p>
             <div className="mt-3 flex gap-2">
               <Input value={alertPriceInput} onChange={(e) => setAlertPriceInput(e.target.value.replace(/[^\d]/g, ""))} inputMode="numeric" placeholder="Target max price (LKR)" className="h-9 flex-1 rounded-2xl border-border bg-transparent text-base md:text-sm" />
-              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-full bg-primary px-4 text-[12px] font-semibold text-white hover:bg-primary/95">Save</button>
+              <button type="button" onClick={saveCurrentMarketAlert} className="h-9 rounded-full bg-primary px-4 text-[12px] font-semibold text-white transition-all hover:bg-primary/95 active:scale-[0.97]">Save</button>
             </div>
           </div>
           {marketAlerts.length ? (
@@ -1551,9 +1558,9 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button type="button" onClick={() => { setFilters({ ...(alert.filters as FilterState), sort: alert.filters.sort || "newest", page: 1 }); setShowMarketAlerts(false); scrollToMarket(); }}
-                      className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">Open</button>
+                      className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright transition-all hover:bg-primary/10 active:scale-[0.95]">Open</button>
                     <button type="button" onClick={() => deleteMarketAlert(alert.id)}
-                      className="h-7 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground hover:text-foreground">Delete</button>
+                      className="h-7 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground transition-all hover:text-foreground active:scale-[0.95]">Delete</button>
                   </div>
                 </div>
               ))}
@@ -1578,15 +1585,29 @@ export default function Dashboard() {
                     <p className="mt-0.5 text-[10px] text-muted-foreground">{listing.district || "LK"} · {isReasonableListingPrice(Number(listing.price_lkr || 0)) ? formatPrice(listing.price_lkr) : "N/A"}</p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright hover:bg-primary/10">{t("home.remove", "Remove")}</button>
-                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline hover:text-foreground">
+                    <button type="button" onClick={() => toggleWatchlist(listing)} className="h-7 rounded-full border border-primary/15 bg-primary/5 px-2.5 text-[10px] font-semibold text-primary-bright transition-all hover:bg-primary/10 active:scale-[0.95]">{t("home.remove", "Remove")}</button>
+                    <Link to={`/listing/${listing.id}`} onClick={() => setShowSavedListings(false)} className="flex h-7 items-center gap-1 rounded-full border border-border px-2.5 text-[10px] font-semibold text-muted-foreground no-underline transition-all hover:text-foreground active:scale-[0.95]">
                       Open <ExternalLink className="h-2.5 w-2.5" />
                     </Link>
                   </div>
                 </div>
               ))}
             </div>
-          ) : <p className="py-6 text-center text-[11px] text-muted-foreground">No saved listings</p>}
+          ) : (
+            <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+              <p className="text-[13px] font-bold text-foreground">{t("home.noSavedTitle", "Nothing saved yet")}</p>
+              <p className="max-w-xs text-[11px] leading-relaxed text-muted-foreground">
+                {t("home.noSavedBody", "Tap the bookmark on any listing and it will wait for you here.")}
+              </p>
+              <Link
+                to="/#market"
+                onClick={() => setShowSavedListings(false)}
+                className="min-h-11 rounded-full bg-primary px-5 py-3 text-[13px] font-bold text-primary-foreground no-underline transition-all hover:bg-primary/95 active:scale-[0.97]"
+              >
+                {t("common.browseInventory", "Browse inventory")}
+              </Link>
+            </div>
+          )}
           {savedListingsError && <p className="text-[11px] text-primary-bright">{savedListingsError}</p>}
         </DialogContent>
       </Dialog>

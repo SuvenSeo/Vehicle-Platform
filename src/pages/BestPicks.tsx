@@ -277,9 +277,9 @@ export default function BestPicks() {
               </div>
             </div>
             {!dropsLoaded ? (
-              <div className="grid gap-2.5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-2.5 pt-4 sm:grid-cols-2 lg:grid-cols-4" role="status" aria-label={t("picks.cutsLoading", "Loading price cuts")}>
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-2xl border border-border bg-surface animate-pulse" />
+                  <div key={i} className="skeleton-shimmer h-24 rounded-2xl border border-border" aria-hidden="true" />
                 ))}
               </div>
             ) : drops.length === 0 ? (
@@ -358,7 +358,7 @@ export default function BestPicks() {
                 <motion.article variants={revealItem} className="group relative grid overflow-hidden rounded-2xl border border-border bg-card shadow-soft backdrop-blur-md transition-all duration-300 hover:border-primary/30 hover:shadow-soft-lg lg:grid-cols-[1.1fr_1fr]" onMouseMove={setSpotlightVars}>
                   <CardSpotlightGlow />
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" aria-hidden />
-                  <Link to={`/listing/${featured.id}`} className="block aspect-[16/10] overflow-hidden bg-muted no-underline lg:aspect-auto lg:min-h-[320px]">
+                  <Link to={`/listing/${featured.id}`} className="block aspect-[16/10] overflow-hidden bg-muted no-underline transition-transform duration-200 active:scale-[0.99] lg:aspect-auto lg:min-h-[320px]">
                     <VehicleThumbnail src={pickVehicleImageUrl([featured.thumbnail_url, ...(Array.isArray(featured.images) ? featured.images : [])], [featured.url, featured.detail_url, featured.external_url])} listingId={featured.id} alt={`${featured.make} ${featured.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
                   </Link>
                   <div className="flex flex-col justify-between gap-6 p-6 sm:p-8">
@@ -414,7 +414,7 @@ export default function BestPicks() {
                       <motion.article key={listing.id} variants={revealItem} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-soft-lg" onMouseMove={setSpotlightVars}>
                         <CardSpotlightGlow />
                         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none" aria-hidden />
-                        <Link to={`/listing/${listing.id}`} className="relative block aspect-[16/10] overflow-hidden bg-muted no-underline">
+                        <Link to={`/listing/${listing.id}`} className="relative block aspect-[16/10] overflow-hidden bg-muted no-underline transition-transform duration-200 active:scale-[0.98]">
                           <VehicleThumbnail src={pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url])} listingId={listing.id} alt={`${listing.make} ${listing.model}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
                           <span className="absolute left-2 top-2 rounded-full border border-white/20 bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white num backdrop-blur-sm">{String(idx + 2).padStart(2, "0")}</span>
                         </Link>
