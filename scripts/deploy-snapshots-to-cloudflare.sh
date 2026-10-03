@@ -36,6 +36,11 @@ else
   npm install --no-audit --no-fund
 fi
 
+# Cloudflare Pages rejects files >25 MiB. The merged DB dumps (86MB) are for
+# backend failover only — the frontend never fetches them — so exclude them
+# from the Pages deploy (they stay on Vercel for the HF backend).
+rm -f "${SNAP_DIR}"/merged-*.db.gz
+
 echo "==> Building site (Vite)…"
 npm run build
 
