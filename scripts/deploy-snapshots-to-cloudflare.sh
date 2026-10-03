@@ -36,11 +36,6 @@ else
   npm install --no-audit --no-fund
 fi
 
-# Cloudflare Pages rejects files >25 MiB. The merged DB dumps (86MB) are for
-# backend failover only — the frontend never fetches them — so exclude them
-# from the Pages deploy (they stay on Vercel for the HF backend).
-rm -f "${SNAP_DIR}"/merged-*.db.gz
-
 echo "==> Building site (Vite)…"
 npm run build
 
@@ -51,15 +46,13 @@ fi
 echo "==> dist/ built: $(du -sh dist | cut -f1)"
 
 echo "==> Deploying to Cloudflare Pages (${PROJECT})…"
-if [[ -n "${CLOUDFLARE_API_TOKEN:-}" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
-  npx --yes wrangler pages deploy dist \
-    --project-name="${PROJECT}" \
-    --commit-dirty=true
-else
-  npx --yes wrangler pages deploy dist \
-    --project-name="${PROJECT}" \
-    --commit-dirty=true
-fi
+# --branch must match the Pages project's production branch, otherwise
+# Wrangler creates a preview deployment instead of updating production.
+PROD_BRANCH="${CLOUDFLARE_PROD_BRANCH:-cf-migration-trial}"
+npx --yes wrangler pages deploy dist \
+  --project-name="${PROJECT}" \
+  --branch="${PROD_BRANCH}" \
+  --commit-dirty=true
 
 echo "==> Verifying production snapshots…"
 sleep 10
