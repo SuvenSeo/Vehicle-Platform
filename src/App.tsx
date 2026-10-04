@@ -66,6 +66,7 @@ const OfficialPulse = lazyWithRetry(() => import("./pages/OfficialPulse"));
 const OfficialPulseDetail = lazyWithRetry(() => import("./pages/OfficialPulseDetail"));
 const OfficialPulseGuide = lazyWithRetry(() => import("./pages/OfficialPulseGuide"));
 const HeroLab = lazyWithRetry(() => import("./pages/HeroLab"));
+const GalleryDemo = lazyWithRetry(() => import("./pages/GalleryDemo"));
 const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
 const Permits = lazyWithRetry(() => import("./pages/Permits"));
@@ -94,6 +95,17 @@ function HeroLabGate() {
   const { search } = useLocation();
   const enabled = import.meta.env.DEV || new URLSearchParams(search).get("heroLab") === "1";
   return enabled ? <HeroLab /> : <Navigate to="/" replace />;
+}
+
+/**
+ * Internal gallery demo for ui-review/19-listing-gallery. Same gating as the
+ * hero lab: dev or `?galleryDemo=1`, redirects home otherwise. Removed before
+ * the main merge.
+ */
+function GalleryDemoGate() {
+  const { search } = useLocation();
+  const enabled = import.meta.env.DEV || new URLSearchParams(search).get("galleryDemo") === "1";
+  return enabled ? <GalleryDemo /> : <Navigate to="/" replace />;
 }
 
 function TrialBannerSlot() {  const { user } = useAuth();
@@ -254,6 +266,11 @@ const App = () => {
                 <Route path="/hero-lab" element={
                   <Suspense fallback={<MinimalLoader />}>
                     <HeroLabGate />
+                  </Suspense>
+                } />
+                <Route path="/__gallery-demo" element={
+                  <Suspense fallback={<MinimalLoader />}>
+                    <GalleryDemoGate />
                   </Suspense>
                 } />
                 {/**

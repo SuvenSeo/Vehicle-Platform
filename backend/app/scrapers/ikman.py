@@ -154,20 +154,37 @@ class IkmanCarScraper:
         return any(marker in token for marker in ("placeholder", "no-image", "noimage", "default"))
 
     @classmethod
-    def _thumbnail_from_api_images(cls, row: dict) -> str:
+    def _api_image_ids(cls, row: dict) -> tuple[str, str, list[str]]:
+        """Return (slug, base_uri, image_ids) from an ikman API ad row."""
         slug = str(row.get("slug") or "").strip()
         images = row.get("images") if isinstance(row.get("images"), dict) else {}
         image_ids = images.get("ids") if isinstance(images, dict) else None
-        if not slug or not isinstance(image_ids, list) or not image_ids:
-            return ""
-        image_id = str(image_ids[0] or "").strip()
-        if not image_id:
-            return ""
         base_uri = str(images.get("base_uri") or "https://i.ikman-st.com").rstrip("/")
+        ids: list[str] = []
+        if isinstance(image_ids, list):
+            for raw_id in image_ids:
+                image_id = str(raw_id or "").strip()
+                if image_id and image_id not in ids:
+                    ids.append(image_id)
+        return slug, base_uri, ids
+
+    @classmethod
+    def _thumbnail_from_api_images(cls, row: dict) -> str:
+        slug, base_uri, image_ids = cls._api_image_ids(row)
+        if not slug or not image_ids:
+            return ""
         # The grid markup only exposes a 142x107 crop; ikman's CDN serves any
         # size from this path, so store a card-sized crop instead.
-        grid_crop = f"{base_uri}/{slug}/{image_id}/142/107/cropped.jpg"
+        grid_crop = f"{base_uri}/{slug}/{image_ids[0]}/142/107/cropped.jpg"
         return upgrade_thumbnail_url(grid_crop) or grid_crop
+
+    @classmethod
+    def _gallery_from_api_images(cls, row: dict) -> list[str]:
+        """Every photo on the ad as a full-size CDN URL (first = primary)."""
+        slug, base_uri, image_ids = cls._api_image_ids(row)
+        if not slug or not image_ids:
+            return []
+        return [f"{base_uri}/{slug}/{image_id}/1080/810/cropped.jpg" for image_id in image_ids]
 
     @classmethod
     def _extract_thumbnail_from_detail_html(cls, html: str) -> str:
@@ -367,6 +384,9 @@ class IkmanCarScraper:
             "price_lkr": price,
             "url": listing_url,
             "thumbnail_url": self._thumbnail_from_api_images(row),
+            # Full gallery (primary photo first) — the cleaner serializes
+            # this list into the CarListing.images JSON column.
+            "images": self._gallery_from_api_images(row),
             "district": district,
             "city": city,
             "mileage": mileage,

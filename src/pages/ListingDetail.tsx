@@ -11,8 +11,8 @@ import type { EnrichmentEnvelope, ListingFmvDetail, SafetyResearchResponse } fro
 import type { CarListing, PriceHistoryInfo, SellerTrustProfile } from '@/types/car';
 import { summarizeFmv } from '@/lib/fmv';
 import { plausibleEngineCc } from '@/lib/engineCapacity';
-import { VehicleThumbnail } from '@/components/VehicleThumbnail';
-import { pickVehicleImageUrl } from '@/lib/listingImage';
+import { ListingImageCarousel } from '@/components/ListingImageCarousel';
+import { getListingImageList, pickVehicleImageUrl } from '@/lib/listingImage';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { toast } from 'sonner';
 import { NhtsaModelsCard } from '@/components/NhtsaModelsCard';
@@ -243,7 +243,8 @@ export default function ListingDetail() {
 
   // ── Derived data ───────────────────────────────────────────
   const listingUrl = safeExternalUrl(listing.url || listing.detail_url || listing.external_url);
-  const heroImage = pickVehicleImageUrl([listing.thumbnail_url, ...(Array.isArray(listing.images) ? listing.images : [])], [listing.url, listing.detail_url, listing.external_url]);
+  // Full gallery for the carousel (primary photo first).
+  const galleryImages = getListingImageList(listing);
   const specs = [
     { label: t("common.year", "Year"), value: listing.year ? String(listing.year) : t("common.unknown", "Unknown"), icon: Calendar },
     { label: t("common.mileage", "Mileage"), value: Number.isFinite(Number(listing.mileage_km)) && Number(listing.mileage_km) >= 0 ? `${Number(listing.mileage_km).toLocaleString()} KM` : t("common.unknown", "Unknown"), icon: Gauge },
@@ -403,8 +404,15 @@ export default function ListingDetail() {
             {/* Image — the car is the hero; overlays stay dark (they sit on the photo) */}
             <motion.div variants={revealItem} className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-soft">
               <div className="relative aspect-[16/10] min-h-[220px] overflow-hidden bg-black/40 group">
-                {heroImage ? (
-                  <VehicleThumbnail src={heroImage} listingId={listing.id} alt={`${canonicalizeMake(listing.make) || listing.make} ${canonicalizeModel(listing.model) || listing.model}`} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]" placeholderClassName="flex h-full w-full items-center justify-center bg-black/40" />
+                {galleryImages.length > 0 ? (
+                  <ListingImageCarousel
+                    images={galleryImages}
+                    listingId={listing.id}
+                    alt={`${canonicalizeMake(listing.make) || listing.make} ${canonicalizeModel(listing.model) || listing.model}`}
+                    variant="detail"
+                    className="h-full w-full"
+                    imageClassName="transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center"><CarIcon aria-hidden className="h-12 w-12 text-white/50" /></div>
                 )}

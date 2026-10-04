@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from app.utils.districts import resolve_canonical_district
 from app.utils.make_canonical import canonicalize_make, canonicalize_model
 from app.utils.pricing import MIN_REASONABLE_PRICE_LKR
+from app.utils.thumbnail_urls import normalize_image_list
 from app.utils.time import utc_now
 from app.utils.vehicle_category import normalize_vehicle_category
 
@@ -641,6 +642,16 @@ class CarCleaner:
             normalized["year"] = None  # Don't default to 2015 - leave as NULL
         else:
             normalized["year"] = year
+
+        # Gallery images: scrapers pass a list of source URLs; the DB column
+        # holds a JSON string. Drop the key entirely when there is nothing
+        # usable so upserts never write an empty value over an existing one.
+        if "images" in normalized:
+            gallery_json = normalize_image_list(normalized.get("images"))
+            if gallery_json:
+                normalized["images"] = gallery_json
+            else:
+                normalized.pop("images", None)
 
         return normalized
 

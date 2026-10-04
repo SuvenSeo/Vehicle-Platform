@@ -3,13 +3,13 @@ import { CarListing } from "@/types/car";
 import { formatPrice, getListing } from "@/services/api";
 import { Gauge, MapPin, ArrowRight, Heart, Check, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { VehicleThumbnail } from "@/components/VehicleThumbnail";
+import { ListingImageCarousel } from "@/components/ListingImageCarousel";
 import { PriceUnavailableBadge } from "@/components/PriceUnavailableBadge";
 import { isReasonableListingPrice } from "@/lib/formatting";
+import { getListingImageList } from "@/lib/listingImage";
 import {
   getListingDaysOnMarketLabel,
   getListingDealLabel,
-  getListingImageUrl,
 } from "@/lib/listing-card-meta";
 import { HybridCliffBadge } from "@/components/HybridCliffBadge";
 import { plausibleEngineCc } from "@/lib/engineCapacity";
@@ -82,7 +82,8 @@ export const ListingCard = memo(function ListingCard({
   // extreme price) — show no badge rather than a fake-neutral one.
   const hasDealScore = fullAccess && listing.deal_score !== null && listing.deal_score !== undefined;
   const dealScore = Number(listing.deal_score ?? 0);
-  const imageUrl = getListingImageUrl(listing);
+  // Full photo set (primary first); single-image listings behave exactly as before.
+  const galleryImages = getListingImageList(listing);
   const dealLabel = getListingDealLabel(dealScore);
   const daysOnMarketLabel = getListingDaysOnMarketLabel(listing.first_seen_at || listing.scraped_at);
   const priceValue = Number(listing.price_lkr || 0);
@@ -117,12 +118,14 @@ export const ListingCard = memo(function ListingCard({
 
       <div className="pointer-events-none relative z-20 flex h-full flex-col">
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-          <VehicleThumbnail
-            src={imageUrl}
+          <ListingImageCarousel
+            images={galleryImages}
             listingId={listing.id}
             alt={`${displayMake} ${displayModel}`}
+            variant="card"
             priority={priority}
-            className="h-full w-full object-cover transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
+            className="h-full w-full"
+            imageClassName="transition-transform duration-[800ms] ease-out group-hover:scale-[1.08]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-transparent" />
 
