@@ -21,6 +21,12 @@ log = structlog.get_logger()
 # public "newest" grid keeps surfacing the same dealer stock.
 _UPDATE_IMMUTABLE_KEYS = frozenset({"id", "first_seen_at", "source", "source_id"})
 
+# Columns that must never be overwritten with an empty value on update.
+# ``images`` is only populated by scrapers that enumerate full galleries; an
+# older dump (or a scraper that only knows the thumbnail) carries NULL, and
+# writing that would wipe a gallery the merged DB already has.
+_UPDATE_SKIP_EMPTY_KEYS = frozenset({"images"})
+
 
 def _as_decimal(value) -> Decimal | None:
     if value is None:
@@ -143,6 +149,10 @@ def upsert_listing(
         was_active = bool(existing.is_active)
         for key, value in payload.items():
             if key in _UPDATE_IMMUTABLE_KEYS:
+                continue
+            if key in _UPDATE_SKIP_EMPTY_KEYS and not value:
+                # Never let an older dump / thumbnail-only scrape wipe a
+                # gallery the row already has.
                 continue
             setattr(existing, key, value)
         if not preserve_lifecycle:
