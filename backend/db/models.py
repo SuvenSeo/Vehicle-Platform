@@ -46,6 +46,12 @@ class CarListing(Base):
     # Image & Thumbnails
     thumbnail_url = Column(Text)
     thumbnail_url_cached = Column(Text, nullable=True)
+    # JSON array (string) of the listing's full gallery image URLs, as served
+    # by the source site. Populated by scrapers that can cheaply enumerate all
+    # photos (e.g. ikman's API hands out every image id); NULL/empty means
+    # "only thumbnail_url is known". Merge/upsert paths must never overwrite
+    # a populated value with NULL (see listing_upsert._UPDATE_SKIP_NULL_KEYS).
+    images = Column(Text, nullable=True)
     # Perceptual hash (64-bit pHash, hex-encoded) of the thumbnail image, used
     # to spot the same physical vehicle re-listed with edited specs (year,
     # district, price) that heuristic make/model matching would miss.
