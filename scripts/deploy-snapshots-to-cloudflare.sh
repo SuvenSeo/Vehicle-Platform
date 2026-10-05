@@ -53,7 +53,7 @@ echo "==> dist/ built: $(du -sh dist | cut -f1)"
 echo "==> Deploying to Cloudflare Pages (${PROJECT})…"
 # --branch must match the Pages project's production branch, otherwise
 # Wrangler creates a preview deployment instead of updating production.
-PROD_BRANCH="${CLOUDFLARE_PROD_BRANCH:-cf-migration-trial}"
+PROD_BRANCH="${CLOUDFLARE_PROD_BRANCH:-main}"
 npx --yes wrangler pages deploy dist \
   --project-name="${PROJECT}" \
   --branch="${PROD_BRANCH}" \
