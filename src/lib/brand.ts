@@ -9,6 +9,7 @@ export const BRAND = {
   },
   logo: {
     mark: "/logo-mark.png",
+    markLight: "/logo-mark-light.png",
     icon: "/logo.png",
     wordmark: "/logo-wordmark.png",
     lockup: "/brand-lockup.png",
