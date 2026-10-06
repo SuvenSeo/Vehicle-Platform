@@ -123,8 +123,10 @@ export function ListingImageCarousel({
     </>
   );
 
+  // Top-center: the bottom-right corner is occupied by card/detail overlay
+  // badges (deal-score "+N deal", source pill), which this used to overlap.
   const counter = multi && (
-    <span className="pointer-events-auto absolute bottom-2.5 right-2.5 z-30 flex items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white backdrop-blur-md">
+    <span className="pointer-events-auto absolute left-1/2 top-2.5 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white backdrop-blur-md">
       <Camera aria-hidden className="h-3 w-3" />
       {index + 1}/{count}
     </span>
