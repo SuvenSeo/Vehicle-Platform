@@ -43,21 +43,33 @@ android {
 
     signingConfigs {
         // Sideload / GitHub Release preview. Resolution order:
-        // 1. ANDROID_KEYSTORE_* env (real secrets on a hardened CI)
+        // 1. MOTORMILA_KEYSTORE_PATH env (CI stages a decoded keystore and
+        //    exports its path — see .github/workflows/android.yml)
         // 2. the committed ci-signing.keystore — one stable signature so every
         //    release installs over the previous one (in-app self-update works)
         // 3. the local SDK debug key (machine-local fallback)
         create("sideload") {
             val committedKey = rootProject.file("ci-signing.keystore").takeIf { it.exists() }
-            storeFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull?.let { file(it) }
+            // NOTE: ANDROID_KEYSTORE_FILE holds a base64 blob per
+            // docs/ANDROID_SIGNING.md — never pass it to Gradle raw:
+            // file() needs a path, not base64. The workflow exports the
+            // decoded keystore's PATH as MOTORMILA_KEYSTORE_PATH instead.
+            val stagedKey = providers.environmentVariable("MOTORMILA_KEYSTORE_PATH").orNull
+                ?.takeIf { it.isNotBlank() }
+                ?.let { file(it) }
+                ?.takeIf { it.exists() }
+            storeFile = stagedKey
                 ?: committedKey
                 ?: file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
-                .orElse("android").get()
-            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
-                .orElse("androiddebugkey").get()
-            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
-                .orElse("android").get()
+            // Missing secrets arrive as EMPTY strings (not unset), and .orElse()
+            // does not fire on empty — blank-guard so the stock debug
+            // credentials are used until the real secrets are added.
+            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+                ?.takeIf { it.isNotBlank() } ?: "android"
+            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+                ?.takeIf { it.isNotBlank() } ?: "androiddebugkey"
+            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+                ?.takeIf { it.isNotBlank() } ?: "android"
         }
     }
 
