@@ -903,7 +903,7 @@ export default function ProDashboard() {
       <div className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1320px] flex min-h-14 items-center justify-between gap-4 px-5 py-2 sm:px-6">
           <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/logo.svg" alt="Motormila" className="h-7 w-7 rounded-full ring-1 ring-border" />
+            <img src="/logo.png" alt="Motormila" className="h-7 w-7 rounded-full ring-1 ring-border" />
             <div>
               <p className="text-[13px] font-bold text-foreground">Motormila</p>
               <p className="text-[11px] font-medium text-muted-foreground/80">{t("pro.workspace", "Pro Workspace")}</p>
