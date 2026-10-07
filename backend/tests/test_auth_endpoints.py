@@ -295,11 +295,11 @@ def test_me_endpoint_rate_limited(monkeypatch):
     assert excinfo.value.status_code == 429
 
 
-def test_successful_login_never_rate_limited_by_failed_attempts(monkeypatch):
-    """Regression (v1.3.1): a burst of WRONG attempts from one client (old app
-    build auto-filling removed demo credentials, shared Wi-Fi, etc.) used to
-    trip the limiter and lock real users out of a CORRECT login. Budget is
-    only consumed by failures now; a valid login always goes through."""
+def test_blocked_client_gets_429_even_with_correct_password(monkeypatch):
+    """Security (S-2): once the login bucket is tripped, EVERY attempt gets
+    429 — including a correct password. Previously bcrypt ran before the
+    limiter and a correct guess returned 200 while blocked, so the limit
+    only throttled wrong guesses and never actually stopped brute force."""
     from fastapi import Response
 
     _configure(monkeypatch)
@@ -320,7 +320,7 @@ def test_successful_login_never_rate_limited_by_failed_attempts(monkeypatch):
         assert 429 in statuses
         assert statuses[:10] == [401] * 10
 
-        # The limiter is now tripped for this client...
+        # The limiter is now tripped for this client: wrong password → 429.
         with pytest.raises(HTTPException) as excinfo:
             auth.login(
                 auth.LoginRequest(email="owner@example.com", password="also-wrong"),
@@ -329,7 +329,18 @@ def test_successful_login_never_rate_limited_by_failed_attempts(monkeypatch):
             )
         assert excinfo.value.status_code == 429
 
-        # ...but the correct password still succeeds.
+        # ...and the correct password is also rejected while blocked: no
+        # free guesses past the limit.
+        with pytest.raises(HTTPException) as excinfo:
+            auth.login(
+                auth.LoginRequest(email="owner@example.com", password="correct-horse"),
+                DummyRequest(),
+                Response(),
+            )
+        assert excinfo.value.status_code == 429
+
+        # After the bucket is reset, the correct password succeeds again.
+        limiter.reset()
         result = auth.login(
             auth.LoginRequest(email="owner@example.com", password="correct-horse"),
             DummyRequest(),

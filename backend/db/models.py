@@ -46,12 +46,6 @@ class CarListing(Base):
     # Image & Thumbnails
     thumbnail_url = Column(Text)
     thumbnail_url_cached = Column(Text, nullable=True)
-    # JSON array (string) of the listing's full gallery image URLs, as served
-    # by the source site. Populated by scrapers that can cheaply enumerate all
-    # photos (e.g. ikman's API hands out every image id); NULL/empty means
-    # "only thumbnail_url is known". Merge/upsert paths must never overwrite
-    # a populated value with NULL (see listing_upsert._UPDATE_SKIP_NULL_KEYS).
-    images = Column(Text, nullable=True)
     # Perceptual hash (64-bit pHash, hex-encoded) of the thumbnail image, used
     # to spot the same physical vehicle re-listed with edited specs (year,
     # district, price) that heuristic make/model matching would miss.
@@ -114,16 +108,25 @@ class CarListing(Base):
 def live_listing_filter():
     """Single boolean expression for "count this listing in market views":
     not a statistical outlier AND still live at its source AND not flagged
-    as a cross-source duplicate (canonical row carries the signal).
+    as a cross-source duplicate (canonical row carries the signal) AND
+    (for seller listings) approved for public display.
+
+    Seller (motormila_user) rows are created 'pending' and only count once
+    an admin publishes them; scraper rows keep 'scraped'. NULL is treated as
+    a legacy scraper row so old data never silently drops out.
 
     Composes safely inside filter()/and_()/or_() because it is one expression.
     """
-    from sqlalchemy import and_
+    from sqlalchemy import and_, or_
 
     return and_(
         CarListing.is_outlier == False,  # noqa: E712
         CarListing.is_active == True,  # noqa: E712
         CarListing.is_duplicate == False,  # noqa: E712
+        or_(
+            CarListing.user_listing_status.in_(("scraped", "published")),
+            CarListing.user_listing_status.is_(None),
+        ),
     )
 
 class PriceAggregate(Base):

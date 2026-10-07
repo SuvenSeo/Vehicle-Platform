@@ -60,7 +60,7 @@ from app.services.rate_limit import RateLimiter
 from app.services.model_price_history import build_model_price_history
 from app.utils.listing_snapshot import query_latest_listings
 
-_stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
+_stats_rate_limiter = RateLimiter(max_requests=300, window_seconds=60, tier="stats")
 
 router = APIRouter(dependencies=[Depends(_stats_rate_limiter)])
 MIN_REASONABLE_PRICE_LKR = 100_000

@@ -23,7 +23,7 @@ import os
 
 # 120/min: the calculator UI recalculates as users adjust inputs (debounced
 # client-side), so an active session legitimately produces bursts.
-_calculators_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+_calculators_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, tier="calculators")
 
 router = APIRouter(dependencies=[Depends(_calculators_rate_limiter)])
 logger = logging.getLogger("motormila.calculators")

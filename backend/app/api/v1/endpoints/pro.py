@@ -26,7 +26,7 @@ from app.services.rate_limit import RateLimiter
 from db.models import CarListing, PriceAggregate, live_listing_filter
 from db.session import get_db
 
-_pro_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+_pro_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, tier="pro")
 
 router = APIRouter(dependencies=[Depends(_pro_rate_limiter)])
 

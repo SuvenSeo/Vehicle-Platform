@@ -38,7 +38,7 @@ def _b2b_rate_limit_key(request: Request) -> str:
     return api_key or _client_key(request)
 
 
-_b2b_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, key_func=_b2b_rate_limit_key)
+_b2b_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, key_func=_b2b_rate_limit_key, tier="b2b")
 
 router = APIRouter(dependencies=[Depends(_b2b_rate_limiter)])
 

@@ -27,7 +27,7 @@ MATCH_LIMIT_PER_ALERT = 5
 # Back-compat alias for older tests/docs.
 MAX_ALERTS_PER_TOKEN = PRO_ALERTS_LIMIT
 
-_alerts_rate_limiter = RateLimiter(max_requests=60, window_seconds=60)
+_alerts_rate_limiter = RateLimiter(max_requests=60, window_seconds=60, tier="alerts")
 
 router = APIRouter(dependencies=[Depends(_alerts_rate_limiter)])
 

@@ -47,7 +47,7 @@ __all__ = [
     "router",
 ]
 
-_notif_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+_notif_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, tier="notifications")
 
 router = APIRouter(dependencies=[Depends(_notif_rate_limiter)])
 

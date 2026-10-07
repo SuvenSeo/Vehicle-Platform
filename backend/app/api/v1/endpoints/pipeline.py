@@ -18,7 +18,7 @@ from db.models import ScrapeRun
 from db.session import get_db
 
 router = APIRouter()
-_pipeline_read_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+_pipeline_read_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, tier="pipeline-read")
 
 JOB_SCRIPT_MAP = {
     "sync": "run_sync.py",

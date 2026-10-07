@@ -53,7 +53,7 @@ from app.models.schemas import (
 )
 from app.services.rate_limit import RateLimiter
 
-_listings_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
+_listings_rate_limiter = RateLimiter(max_requests=300, window_seconds=60, tier="listings")
 
 router = APIRouter(dependencies=[Depends(_listings_rate_limiter)])
 

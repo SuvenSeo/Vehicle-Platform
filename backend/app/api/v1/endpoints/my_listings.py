@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints.auth import get_current_auth_payload
@@ -23,8 +23,8 @@ from db.session import get_db
 
 router = APIRouter()
 
-_write_limiter = RateLimiter(max_requests=30, window_seconds=60)
-_read_limiter = RateLimiter(max_requests=120, window_seconds=60)
+_write_limiter = RateLimiter(max_requests=30, window_seconds=60, tier="my-listings-write")
+_read_limiter = RateLimiter(max_requests=120, window_seconds=60, tier="my-listings-read")
 
 # Status values for user listings.
 STATUS_DRAFT = "draft"
@@ -32,6 +32,19 @@ STATUS_PENDING = "pending"
 STATUS_PUBLISHED = "published"
 STATUS_REMOVED = "removed"
 _USER_STATUSES = {STATUS_DRAFT, STATUS_PENDING, STATUS_PUBLISHED, STATUS_REMOVED}
+
+# A seller price below this is treated as a placeholder / bad input, never a
+# real market price. Without a floor, a single price_lkr=0 user listing drags
+# down medians, estimates and deal scores it feeds.
+MIN_REASONABLE_PRICE_LKR = 100_000
+
+
+def _check_price_floor(price_lkr: Optional[float], where: str) -> None:
+    if price_lkr is not None and price_lkr < MIN_REASONABLE_PRICE_LKR:
+        raise ValueError(
+            f"{where}: price_lkr must be at least LKR {MIN_REASONABLE_PRICE_LKR:,} "
+            f"(got {price_lkr})"
+        )
 
 MAX_IMAGES = 12
 
@@ -58,6 +71,11 @@ class MyListingCreate(BaseModel):
     contact_phone: Optional[str] = Field(default=None, max_length=32)
     image_urls: List[str] = Field(default_factory=list, max_length=MAX_IMAGES)
 
+    @model_validator(mode="after")
+    def _enforce_price_floor(self):
+        _check_price_floor(self.price_lkr, "price_lkr")
+        return self
+
 
 class MyListingUpdate(BaseModel):
     make: Optional[str] = Field(default=None, max_length=50)
@@ -79,6 +97,11 @@ class MyListingUpdate(BaseModel):
     contact_phone: Optional[str] = Field(default=None, max_length=32)
     image_urls: Optional[List[str]] = Field(default=None, max_length=MAX_IMAGES)
     status: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _enforce_price_floor(self):
+        _check_price_floor(self.price_lkr, "price_lkr")
+        return self
 
 
 class MyListingRead(BaseModel):

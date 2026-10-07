@@ -161,6 +161,43 @@ class _RedisRateLimiter:
             "retry_after": retry_after,
         }
 
+    def peek(
+        self,
+        key: str,
+        *,
+        limit: int,
+        window: int,
+        now: float | None = None,
+    ) -> dict[str, Any]:
+        """Check whether `key` is currently blocked WITHOUT recording a hit.
+
+        Used to gate expensive work (e.g. bcrypt password verification)
+        before it runs: a blocked client must not get a free attempt just
+        because the limiter hasn't consumed a slot yet.
+        """
+        now = time.time() if now is None else now
+        bucket = int(now // window)
+        redis_key = f"rl:{key}:{bucket}"
+
+        # Evict stale entries, then count — no ZADD, so nothing is consumed.
+        self._redis.zremrangebyscore(redis_key, 0, now - window)
+        count = self._redis.zcard(redis_key)
+        blocked = count >= limit
+        oldest = self._redis.zrange(redis_key, 0, 0, withscores=True)
+        retry_after = 0
+        if blocked:
+            if oldest and oldest[0][1] is not None:
+                retry_after = max(0, int(oldest[0][1] + window - now) + 1)
+            else:
+                retry_after = window
+        return {
+            "allowed": not blocked,
+            "limit": limit,
+            "remaining": max(0, limit - count),
+            "reset": int(now + retry_after) if blocked else int(now) + window,
+            "retry_after": retry_after,
+        }
+
 
 # ---------------------------------------------------------------------------
 # In-memory sliding-window limiter (fallback)
@@ -216,6 +253,30 @@ class _InMemoryRateLimiter:
             "retry_after": 0,
         }
 
+    def peek(
+        self,
+        key: str,
+        *,
+        limit: int,
+        window: int,
+        now: float | None = None,
+    ) -> dict[str, Any]:
+        """Check whether `key` is currently blocked WITHOUT recording a hit."""
+        now = time.time() if now is None else now
+        cutoff = now - window
+
+        hits = [t for t in self._buckets.get(key, []) if t >= cutoff]
+        blocked = len(hits) >= limit
+        oldest = hits[0] if hits else now
+        retry_after = int(oldest + window - now) + 1 if blocked else 0
+        return {
+            "allowed": not blocked,
+            "limit": limit,
+            "remaining": max(0, limit - len(hits)),
+            "reset": int(oldest + window) if blocked else int(now) + window,
+            "retry_after": retry_after,
+        }
+
 
 # ---------------------------------------------------------------------------
 # Singleton backend instance
@@ -246,6 +307,10 @@ class RateLimiter:
 
     When Redis is configured, state is shared across workers and survives
     restarts. Otherwise falls back to in-memory per-process tracking.
+
+    Each instance gets its own bucket namespace via `tier`: pass an
+    explicit tier per endpoint (e.g. tier="auth-login") so limits are
+    independent per endpoint instead of sharing one bucket per IP.
     """
 
     def __init__(
@@ -263,9 +328,20 @@ class RateLimiter:
         self._key_func = key_func or _client_key
         self._tier = tier
 
+    def _namespaced_key(self, request: Request) -> str:
+        """Bucket key namespaced per limiter instance.
+
+        Without this, every RateLimiter shared one bucket per IP: five
+        ordinary page views could trip the 5/min feedback limit, and no
+        per-endpoint limit meant anything. The tier is part of the key so
+        each endpoint's budget is independent.
+        """
+        base = self._key_func(request)
+        return f"{self._tier}:{base}" if self._tier else base
+
     def __call__(self, request: Request, *, now: float | None = None) -> None:
         backend = _get_backend()
-        key = self._key_func(request)
+        key = self._namespaced_key(request)
 
         result = backend.check(
             key,
@@ -298,6 +374,20 @@ class RateLimiter:
                     "RateLimit-Reset": str(result["reset"]),
                 },
             )
+
+    def is_blocked(self, request: Request, *, now: float | None = None) -> bool:
+        """True when the client is currently rate-limited, without consuming
+        a slot. Use before expensive work (e.g. bcrypt verification) so a
+        blocked client cannot get a free attempt."""
+        backend = _get_backend()
+        key = self._namespaced_key(request)
+        result = backend.peek(
+            key,
+            limit=self.max_requests,
+            window=self.window_seconds,
+            now=now,
+        )
+        return not result["allowed"]
 
     def reset(self) -> None:
         """Clear all rate-limit state (for test teardown only)."""

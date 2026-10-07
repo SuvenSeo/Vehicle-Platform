@@ -19,6 +19,7 @@ _feedback_rate_limiter = RateLimiter(
     max_requests=RATE_LIMIT_MAX_REQUESTS,
     window_seconds=RATE_LIMIT_WINDOW_SECONDS,
     message="Too many feedback submissions. Try again shortly.",
+    tier="feedback",
 )
 
 

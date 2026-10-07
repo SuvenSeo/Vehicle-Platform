@@ -26,6 +26,7 @@ _chat_rate_limiter = RateLimiter(
     max_requests=20,
     window_seconds=60,
     message="Too many chat messages. Please wait a moment before trying again.",
+    tier="chat",
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()

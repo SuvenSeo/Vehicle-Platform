@@ -10,7 +10,7 @@ from app.utils.request_access import resolve_request_access
 from db.models import HistoricalPriceObservation, ImportPriceSnapshot, MarketSignal
 from db.session import get_db
 
-_market_rate_limiter = RateLimiter(max_requests=120, window_seconds=60)
+_market_rate_limiter = RateLimiter(max_requests=120, window_seconds=60, tier="market")
 
 router = APIRouter(dependencies=[Depends(_market_rate_limiter)])
 

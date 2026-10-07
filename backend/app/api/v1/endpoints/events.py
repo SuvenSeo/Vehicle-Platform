@@ -19,6 +19,7 @@ _events_rate_limiter = RateLimiter(
     max_requests=60,
     window_seconds=60,
     message="Too many analytics events. Try again shortly.",
+    tier="events",
 )
 
 # Credential-like keys must never be persisted: they are session/alert bearer

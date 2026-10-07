@@ -120,16 +120,19 @@ _login_rate_limiter = RateLimiter(
     max_requests=10,
     window_seconds=60,
     message="Too many sign-in attempts. Try again shortly.",
+    tier="auth-login",
 )
 _me_rate_limiter = RateLimiter(
     max_requests=60,
     window_seconds=60,
     message="Too many account lookups. Try again shortly.",
+    tier="auth-me",
 )
 _signup_rate_limiter = RateLimiter(
     max_requests=10,
     window_seconds=60,
     message="Too many sign-up attempts. Try again shortly.",
+    tier="auth-signup",
 )
 
 
@@ -502,10 +505,16 @@ def _cookie_secure() -> bool:
 
 
 def _cookie_samesite() -> str:
-    raw = os.getenv("AUTH_COOKIE_SAMESITE", "none").strip().lower()
+    # Default Lax: the app is same-origin through the /api/v1 rewrite, so
+    # cross-site cookie sends are never needed. SameSite=None previously let
+    # any website a logged-in user visited ride their session (combined with
+    # the wildcard CORS reflection, authenticated reads/writes were possible
+    # cross-origin). Override with AUTH_COOKIE_SAMESITE=none only if a
+    # genuine cross-site embed needs it.
+    raw = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower()
     if raw in {"lax", "strict", "none"}:
         return raw
-    return "none"
+    return "lax"
 
 
 def _extract_token(
@@ -595,6 +604,18 @@ def login(
 
     email = payload.email.strip().lower()
     session = _session_or_none(db)
+
+    # Brute-force guard runs BEFORE password verification (and without
+    # consuming a slot): once the bucket is full, every attempt — correct
+    # password or not — gets 429. Previously bcrypt ran first and a correct
+    # guess returned 200 even while the IP was blocked, so the limit only
+    # throttled wrong guesses and never actually stopped guessing.
+    if _login_rate_limiter.is_blocked(request):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many sign-in attempts. Try again shortly.",
+        )
+
     record = resolve_user_record(email, session)
     env_record = _configured_users().get(email)
 
@@ -603,9 +624,7 @@ def login(
 
     if db_ok or env_ok:
         # Successful sign-ins never consume rate-limit budget: only failed
-        # attempts do. Otherwise a burst of bad tries from a shared IP (or an
-        # old app build auto-filling stale demo credentials) locks real
-        # accounts out of a *correct* login.
+        # attempts do.
         return _issue_login_response(env_record if (env_ok and not db_ok) else record, response, db)
 
     _login_rate_limiter(request)
@@ -902,44 +921,6 @@ def _request_origin(request: Request) -> Optional[str]:
     return _normalize_origin(request.headers.get("referer"))
 
 
-def _trusted_origin_suffixes() -> tuple[str, ...]:
-    """Team-controlled domain suffixes trusted for writes, beyond exact matches.
-
-    Vercel preview deployments get a unique hashed hostname per deployment
-    (vehicle-platform-<hash>-suvenseoras-projects.vercel.app), so exact-match
-    allowlisting cannot cover them — every write from a preview 403'd with
-    "Writes require a trusted Origin." Scoping to the team's own Vercel account
-    keeps this tight: only this team can mint hostnames under it (the team slug
-    in the hostname is the deploying team's own slug), and writes still require
-    a valid Bearer token that a third-party page cannot obtain.
-    Extend (never shrink) via TRUSTED_ORIGIN_SUFFIXES, comma-separated host
-    suffixes — e.g. "-myteam.vercel.app" for a Vercel team scope,
-    ".example.com" for a domain and its subdomains.
-    """
-    raw = os.getenv("TRUSTED_ORIGIN_SUFFIXES", "-suvenseoras-projects.vercel.app")
-    suffixes: list[str] = []
-    for entry in raw.split(","):
-        cleaned = entry.strip().lower()
-        if cleaned:
-            suffixes.append(cleaned)
-    return tuple(suffixes)
-
-
-def _is_trusted_origin(origin: Optional[str]) -> bool:
-    """True when the request origin may perform writes.
-
-    Exact matches come from `_cors_allowed_origins()` (first-party list plus
-    CORS_ORIGINS extensions, wildcards excluded); anything else must fall under
-    one of the trusted team-controlled domain suffixes.
-    """
-    if not origin:
-        return False
-    if origin in _cors_allowed_origins():
-        return True
-    host = urlparse(origin).netloc.lower()
-    return any(host.endswith(suffix) for suffix in _trusted_origin_suffixes())
-
-
 def _is_unsafe_method(request: Request) -> bool:
     return str(getattr(request, "method", "GET") or "GET").upper() in {
         "POST",
@@ -982,7 +963,8 @@ def require_authenticated(
                 detail="Writes require an Authorization Bearer token (cookie alone is not accepted).",
             )
         origin = _request_origin(request)
-        if not _is_trusted_origin(origin):
+        allowed = _cors_allowed_origins()
+        if origin is None or origin not in allowed:
             raise HTTPException(status_code=403, detail="Writes require a trusted Origin.")
     return get_current_auth_payload(request, authorization, db)
 
@@ -1033,7 +1015,8 @@ def require_pro_access(
 
     if unsafe:
         origin = _request_origin(request)
-        if not _is_trusted_origin(origin):
+        allowed = _cors_allowed_origins()
+        if origin is None or origin not in allowed:
             raise HTTPException(status_code=403, detail="Pro writes require a trusted Origin.")
 
     token = _extract_token(authorization, request)

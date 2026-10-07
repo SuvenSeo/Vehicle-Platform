@@ -622,6 +622,88 @@ def update_feedback(
     return _feedback_row(row)
 
 
+@router.get("/user-listings", response_model=dict)
+def list_user_listings(
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+    status: Optional[str] = Query(default="pending"),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    """Seller listings awaiting moderation. `status` filters by
+    user_listing_status (default pending)."""
+    del admin
+    query = db.query(CarListing).filter(CarListing.source == "motormila_user")
+    if status:
+        query = query.filter(CarListing.user_listing_status == status.strip().lower())
+    rows = query.order_by(CarListing.first_seen_at.desc()).limit(limit).all()
+    return {
+        "listings": [
+            {
+                "id": r.id,
+                "title": r.title,
+                "make": r.make,
+                "model": r.model,
+                "year": r.year,
+                "price_lkr": float(r.price_lkr) if r.price_lkr is not None else None,
+                "owner_user_id": r.owner_user_id,
+                "user_listing_status": r.user_listing_status,
+                "is_active": r.is_active,
+                "first_seen_at": r.first_seen_at.isoformat() if r.first_seen_at else None,
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.post("/user-listings/{listing_id}/publish", response_model=dict)
+def publish_user_listing(
+    listing_id: int,
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Approve a seller listing into the live market.
+
+    Seller rows are created 'pending' and excluded from public views by
+    live_listing_filter(); this is the only path that flips them to
+    'published'. Rejected listings should use /user-listings/{id}/reject.
+    """
+    del admin
+    row = (
+        db.query(CarListing)
+        .filter(CarListing.id == listing_id, CarListing.source == "motormila_user")
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Seller listing not found.")
+    if row.user_listing_status == "published":
+        return {"id": row.id, "user_listing_status": "published"}
+    row.user_listing_status = "published"
+    row.is_active = True
+    db.commit()
+    return {"id": row.id, "user_listing_status": "published"}
+
+
+@router.post("/user-listings/{listing_id}/reject", response_model=dict)
+def reject_user_listing(
+    listing_id: int,
+    admin: dict = Depends(require_admin_access),
+    db: Session = Depends(get_db),
+):
+    """Reject a seller listing: removed from public views permanently."""
+    del admin
+    row = (
+        db.query(CarListing)
+        .filter(CarListing.id == listing_id, CarListing.source == "motormila_user")
+        .first()
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Seller listing not found.")
+    row.user_listing_status = "removed"
+    row.is_active = False
+    db.commit()
+    return {"id": row.id, "user_listing_status": "removed"}
+
+
 @router.get("/dealers", response_model=dict)
 def list_dealers(
     admin: dict = Depends(require_admin_access),

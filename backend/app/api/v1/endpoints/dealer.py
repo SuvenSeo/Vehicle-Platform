@@ -16,7 +16,7 @@ from app.utils.sql_median import median_price_expr, python_median
 from db.models import CarListing, DealerProfile, live_listing_filter
 from db.session import get_db
 
-_dealer_rate_limiter = RateLimiter(max_requests=300, window_seconds=60)
+_dealer_rate_limiter = RateLimiter(max_requests=300, window_seconds=60, tier="dealer")
 
 router = APIRouter(dependencies=[Depends(_dealer_rate_limiter)])
 
