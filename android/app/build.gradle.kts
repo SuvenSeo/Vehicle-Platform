@@ -49,15 +49,22 @@ android {
         // 3. the local SDK debug key (machine-local fallback)
         create("sideload") {
             val committedKey = rootProject.file("ci-signing.keystore").takeIf { it.exists() }
-            storeFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE").orNull?.let { file(it) }
+            // GitHub Actions expands an unset secret to an EMPTY STRING, and
+            // `file("")` throws "path may not be null or empty string", which
+            // killed every release build whenever ANDROID_KEYSTORE_FILE was
+            // not configured. Blank must mean "unset" so the committed
+            // keystore (or the local debug key) is used instead. The same
+            // applies to the credential fields: `.orElse` does not rescue a
+            // variable that is present but empty.
+            fun envOrNull(name: String): String? =
+                providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+
+            storeFile = envOrNull("ANDROID_KEYSTORE_FILE")?.let { file(it) }
                 ?: committedKey
                 ?: file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
-                .orElse("android").get()
-            keyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
-                .orElse("androiddebugkey").get()
-            keyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
-                .orElse("android").get()
+            storePassword = envOrNull("ANDROID_KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = envOrNull("ANDROID_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = envOrNull("ANDROID_KEY_PASSWORD") ?: "android"
         }
     }
 
