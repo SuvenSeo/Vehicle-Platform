@@ -58,7 +58,9 @@ _PUBLIC_BROWSE_PATHS = frozenset(
     }
 )
 
-# Detail + read-only sub-resources (numeric id only so /listings/estimate stays gated).
+# Detail + read-only sub-resources. The numeric-id pattern deliberately
+# excludes non-id subpaths (e.g. /listings/custom-estimate) from the
+# public match; /listings/estimate is public via the allowlist above.
 _LISTING_DETAIL_RE = re.compile(r"^/api/v1/listings/\d+$")
 _LISTING_SUB_RE = re.compile(r"^/api/v1/listings/\d+/(similar|price-history|fmv)$")
 

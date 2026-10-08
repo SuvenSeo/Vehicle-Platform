@@ -212,7 +212,15 @@ def test_first_yielded_chunk_contains_snapshot_event():
         # Disconnect on the *second* call so the loop yields one chunk first.
         req.is_disconnected = AsyncMock(side_effect=[False, True])
 
-        with _mock_session_local(stats_module), _mock_snapshot(stats_module):
+        # LIVE_STREAM_INTERVAL_SECONDS defaults to 120s (deliberate egress
+        # control). Zero it here so the second loop pass, which observes the
+        # disconnect, runs immediately instead of stalling the test for the
+        # full production interval.
+        with (
+            _mock_session_local(stats_module),
+            _mock_snapshot(stats_module),
+            patch.object(stats_module, "LIVE_STREAM_INTERVAL_SECONDS", 0),
+        ):
             response = await stats_module.stream_live_market_snapshot(req)
             chunks = []
             async for chunk in response.body_iterator:

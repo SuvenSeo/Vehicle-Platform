@@ -21,6 +21,10 @@ def test_guest_home_and_search_paths_are_public():
         "/api/v1/listings/price-drops",
         "/api/v1/listings/makes",
         "/api/v1/listings/search-suggestions",
+        # Free starter valuation: the fair-market-range read is open to guests
+        # (planLimits "Starter valuation on Free"). The advanced POST
+        # /listings/custom-estimate stays gated (asserted below).
+        "/api/v1/listings/estimate",
         "/api/v1/stats/summary",
         "/api/v1/stats/insights",
         "/api/v1/stats/fuel-mix",
@@ -38,7 +42,6 @@ def test_guest_home_and_search_paths_are_public():
 
 def test_gated_product_paths_stay_private():
     for path in (
-        "/api/v1/listings/estimate",
         "/api/v1/listings/custom-estimate",
         "/api/v1/alerts",
         "/api/v1/pro/snapshot",
