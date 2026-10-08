@@ -11,6 +11,14 @@ log = structlog.get_logger()
 # (column, postgres type/default, sqlite type/default)
 _CAR_LISTING_COLUMN_PATCHES = (
     ("thumbnail_url_cached", "TEXT", "TEXT"),
+    # Gallery image URLs. `images` was added to the ORM model after the
+    # other image columns, and long-lived production databases only get
+    # additive columns from this list (create_all is a checkfirst no-op).
+    # Omitting it left prod without the column, so every CarListing SELECT
+    # that touches `images` (stats/live, stats/insights, the public
+    # snapshot export, and any response serialising a listing) died with
+    # UndefinedColumn. Keep it here so init_db creates it on the next run.
+    ("images", "TEXT", "TEXT"),
     ("is_active", "BOOLEAN NOT NULL DEFAULT TRUE", "BOOLEAN NOT NULL DEFAULT 1"),
     ("image_phash", "VARCHAR(16)", "VARCHAR(16)"),
     ("vehicle_category", "VARCHAR(40)", "VARCHAR(40)"),

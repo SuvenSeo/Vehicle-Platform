@@ -264,3 +264,36 @@ def test_heal_platform_users_schema_adds_token_version():
     assert "token_version" in applied
     assert _column_exists(engine, "platform_users", "token_version")
     db.close()
+
+
+def test_apply_schema_patches_adds_images_column_to_legacy_table():
+    """Prod drifted: the ORM had CarListing.images but the column was never
+    patched in, so every SELECT touching it (stats/live, stats/insights, the
+    public snapshot export, any serialised listing) died with UndefinedColumn.
+    """
+    from db.schema_patches import _CAR_LISTING_COLUMN_PATCHES
+
+    patched_columns = {name for name, _pg, _sqlite in _CAR_LISTING_COLUMN_PATCHES}
+    assert "images" in patched_columns
+
+    engine = create_engine("sqlite:///:memory:")
+    metadata = MetaData()
+    Table(
+        "car_listings",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("source", String(20), nullable=False),
+        Column("source_id", String(100), nullable=False),
+        Column("make", String(50), nullable=False),
+        Column("model", String(100), nullable=False),
+    )
+    metadata.create_all(bind=engine)
+
+    apply_schema_patches(engine)
+
+    with engine.connect() as conn:
+        column_names = {
+            row[1]
+            for row in conn.exec_driver_sql("PRAGMA table_info(car_listings)")
+        }
+    assert "images" in column_names
