@@ -132,17 +132,37 @@ function matchesBackendRoute(pathname: string): boolean {
   return BACKEND_OPENAPI_PATHS.some((template) => templateToRegExp(template).test(pathname));
 }
 
+/**
+ * api.ts is snapshot-first: helpers probe the bundled/CDN JSON snapshot before
+ * falling back to the live `/api/v1` route. This contract test asserts the live
+ * route, so `/snapshots/...` requests answer 404 (snapshot not published yet)
+ * and the helper falls through to the backend path under test.
+ */
 function stubFetch(payload: unknown) {
-  const fetchMock = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => payload,
+  const fetchMock = vi.fn(async (...args: Parameters<typeof fetch>) => {
+    const [input] = args;
+    if (String(input).includes("/snapshots/")) {
+      return {
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+        json: async () => ({}),
+        text: async () => "",
+      };
+    }
+    return {
+      ok: true,
+      json: async () => payload,
+    };
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
 
+/** First request that reached the live `/api/v1` backend (skips snapshot probes). */
 function firstPathname(fetchMock: ReturnType<typeof vi.fn>): string {
-  const raw = String(fetchMock.mock.calls[0]?.[0] ?? "");
+  const liveCall = fetchMock.mock.calls.find((call) => !String(call[0]).includes("/snapshots/"));
+  const raw = String(liveCall?.[0] ?? "");
   return new URL(raw, "http://localhost").pathname;
 }
 

@@ -23,9 +23,13 @@ describe("snapshot-only mode", () => {
     expect(api.SNAPSHOT_ONLY).toBe(true);
 
     await expect(api.getStats()).rejects.toMatchObject({ status: 503 });
-    // Only the CDN snapshot fetch should run — never /stats/summary.
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("cdn.example/latest/stats-summary.json");
+    // Snapshot-only: the configured CDN base is probed first, then the
+    // same-origin bundle fallback — never the live /stats/summary route.
+    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calledUrls).toHaveLength(2);
+    expect(calledUrls[0]).toContain("cdn.example/latest/stats-summary.json");
+    expect(calledUrls[1]).toContain("/snapshots/latest/stats-summary.json");
+    expect(calledUrls.every((url) => !url.includes("/api/v1/"))).toBe(true);
   });
 
   it("returns empty listings instead of calling live API in snapshot-only mode", async () => {
@@ -47,8 +51,10 @@ describe("snapshot-only mode", () => {
     });
 
     expect(result).toEqual({ listings: [], total: 0 });
-    // Catalog fetch only — no /listings API call.
-    expect(fetchMock.mock.calls.every((call) => String(call[0]).includes("cdn.example"))).toBe(true);
+    // Snapshot reads only (CDN base, then the same-origin bundle) — no /listings API call.
+    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calledUrls.some((url) => url.includes("cdn.example"))).toBe(true);
+    expect(calledUrls.every((url) => url.includes("cdn.example") || url.includes("/snapshots/"))).toBe(true);
   });
 
   it("loads multi-part listing-catalog manifests from CDN", async () => {
@@ -127,7 +133,9 @@ describe("snapshot-only mode", () => {
         expect.stringContaining("/listing-catalog-part-001.json"),
       ]),
     );
-    expect(fetchMock.mock.calls.every((call) => String(call[0]).includes("cdn.example"))).toBe(true);
+    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calledUrls.some((url) => url.includes("cdn.example"))).toBe(true);
+    expect(calledUrls.every((url) => url.includes("cdn.example") || url.includes("/snapshots/"))).toBe(true);
   });
 
   it("sorts snapshot newest by first_seen_at, not re-scrape time", async () => {
@@ -392,6 +400,8 @@ describe("snapshot-only mode", () => {
     });
 
     expect(result).toEqual({ listings: [], total: 0 });
-    expect(fetchMock.mock.calls.every((call) => String(call[0]).includes("cdn.example"))).toBe(true);
+    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calledUrls.some((url) => url.includes("cdn.example"))).toBe(true);
+    expect(calledUrls.every((url) => url.includes("cdn.example") || url.includes("/snapshots/"))).toBe(true);
   });
 });

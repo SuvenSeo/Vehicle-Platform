@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SNAPSHOT_MISS, isSnapshotRequest, liveApiCalls, stubLiveApiFetch } from "@/test/snapshotFirstHelpers";
 
 describe("getDistrictVelocity API helper", () => {
   afterEach(() => {
@@ -30,11 +31,7 @@ describe("getDistrictVelocity API helper", () => {
       generated_at: "2026-04-19T12:00:00Z",
     };
 
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockPayload,
-    });
-    vi.stubGlobal("fetch", fetchMock);
+    const fetchMock = stubLiveApiFetch(mockPayload);
 
     const api = await import("@/services/api");
     const data = await (
@@ -53,8 +50,9 @@ describe("getDistrictVelocity API helper", () => {
       }
     ).getDistrictVelocity();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[0] ?? "")).toContain("/api/v1/stats/district-velocity");
+    const requests = liveApiCalls(fetchMock);
+    expect(requests).toHaveLength(1);
+    expect(String(requests[0]?.[0] ?? "")).toContain("/api/v1/stats/district-velocity");
 
     expect(data.points).toHaveLength(2);
     expect(data.points[0]).toMatchObject({
@@ -74,11 +72,7 @@ describe("getDistrictVelocity API helper", () => {
   });
 
   it("returns empty points array when API returns no points field", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ generated_at: "2026-04-19T12:00:00Z" }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
+    stubLiveApiFetch({ generated_at: "2026-04-19T12:00:00Z" });
 
     const api = await import("@/services/api");
     const data = await (
@@ -91,23 +85,19 @@ describe("getDistrictVelocity API helper", () => {
   });
 
   it("coerces string-typed numeric fields to numbers", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        points: [
-          {
-            district: "Gampaha",
-            lat: "7.0840",
-            lng: "80.0098",
-            listing_count: "40",
-            new_7d_count: "8",
-            velocity_score: "0.2",
-          },
-        ],
-        generated_at: "2026-04-19T12:00:00Z",
-      }),
+    stubLiveApiFetch({
+      points: [
+        {
+          district: "Gampaha",
+          lat: "7.0840",
+          lng: "80.0098",
+          listing_count: "40",
+          new_7d_count: "8",
+          velocity_score: "0.2",
+        },
+      ],
+      generated_at: "2026-04-19T12:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
@@ -126,11 +116,7 @@ describe("getDistrictVelocity API helper", () => {
   });
 
   it("returns empty points array when points field is not an array", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ points: null, generated_at: "2026-04-19T12:00:00Z" }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
+    stubLiveApiFetch({ points: null, generated_at: "2026-04-19T12:00:00Z" });
 
     const api = await import("@/services/api");
     const data = await (
@@ -159,18 +145,22 @@ describe("getDistrictVelocity API helper", () => {
       generated_at: "2026-04-19T12:00:00Z",
     };
 
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        text: async () => "error on our side",
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockPayload,
-      });
+    // Snapshot probes are 404s; the first *live* attempt fails with a 500 and
+    // the retry succeeds.
+    let liveAttempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (isSnapshotRequest(input)) return { ...SNAPSHOT_MISS };
+      liveAttempts += 1;
+      if (liveAttempts === 1) {
+        return {
+          ok: false,
+          status: 500,
+          statusText: "Internal Server Error",
+          text: async () => "error on our side",
+        };
+      }
+      return { ok: true, json: async () => mockPayload };
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
@@ -183,7 +173,7 @@ describe("getDistrictVelocity API helper", () => {
     await vi.advanceTimersByTimeAsync(1500);
     const data = await pending;
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(liveApiCalls(fetchMock)).toHaveLength(2);
     expect(data.points).toHaveLength(1);
     vi.useRealTimers();
   });

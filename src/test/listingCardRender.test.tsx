@@ -154,7 +154,14 @@ describe("ListingCard render states and interactions", () => {
   });
 
   it("eager-loads the first-screen thumbnail when priority is set", () => {
-    renderCard(<ListingCard listing={buildListing()} priority />);
+    // priority only affects a real thumbnail request; the photo-less fallback
+    // is an inline SVG data URI, so it has nothing to load eagerly.
+    renderCard(
+      <ListingCard
+        listing={buildListing({ thumbnail_url: "https://example.com/listing/11.jpg" })}
+        priority
+      />,
+    );
     const img = screen.getByRole("img", { name: "Toyota Aqua" });
     expect(img).toHaveAttribute("loading", "eager");
     expect(img).toHaveAttribute("sizes", "(max-width: 768px) 100vw, 33vw");

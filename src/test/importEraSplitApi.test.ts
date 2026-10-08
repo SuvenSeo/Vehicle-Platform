@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { liveApiCalls, stubLiveApiFetch } from "@/test/snapshotFirstHelpers";
 
 describe("getImportEraSplit API helper", () => {
   afterEach(() => {
@@ -25,26 +26,23 @@ describe("getImportEraSplit API helper", () => {
   }
 
   it("fetches /stats/import-era-split and returns normalized data", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [
-          makeEraMakeRow("Toyota", 120, 5_500_000, 30, 8_200_000),
-          makeEraMakeRow("Honda", 80, 4_800_000, 20, 7_100_000),
-        ],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    const fetchMock = stubLiveApiFetch({
+      makes: [
+        makeEraMakeRow("Toyota", 120, 5_500_000, 30, 8_200_000),
+        makeEraMakeRow("Honda", 80, 4_800_000, 20, 7_100_000),
+      ],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
       api as typeof api & { getImportEraSplit: () => Promise<import("@/types/car").ImportEraSplitData> }
     ).getImportEraSplit();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/import-era-split");
+    const requests = liveApiCalls(fetchMock);
+    expect(requests).toHaveLength(1);
+    expect(String(requests[0]?.[0] || "")).toContain("/api/v1/stats/import-era-split");
     expect(data.makes).toHaveLength(2);
     expect(data.freeze_boundary_year).toBe(2025);
     expect(data.makes[0].make).toBe("Toyota");
@@ -55,35 +53,29 @@ describe("getImportEraSplit API helper", () => {
   });
 
   it("passes top_n as query parameter when supplied", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    const fetchMock = stubLiveApiFetch({
+      makes: [],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     await (
       api as typeof api & { getImportEraSplit: (topN?: number) => Promise<import("@/types/car").ImportEraSplitData> }
     ).getImportEraSplit(5);
 
-    const url = String(fetchMock.mock.calls[0]?.[0] || "");
+    const requests = liveApiCalls(fetchMock);
+    const url = String(requests[0]?.[0] || "");
+    expect(url).toContain("/api/v1/stats/import-era-split");
     expect(url).toContain("top_n=5");
   });
 
   it("returns empty makes array when server returns empty list", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    stubLiveApiFetch({
+      makes: [],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
@@ -94,15 +86,11 @@ describe("getImportEraSplit API helper", () => {
   });
 
   it("preserves null median_price_lkr for eras with no priced listings", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [makeEraMakeRow("Suzuki", 50, 3_000_000, 0, null)],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    stubLiveApiFetch({
+      makes: [makeEraMakeRow("Suzuki", 50, 3_000_000, 0, null)],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
@@ -114,21 +102,17 @@ describe("getImportEraSplit API helper", () => {
   });
 
   it("normalizes unknown era value to pre_freeze", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [
-          {
-            make: "Nissan",
-            pre_freeze: { era: "bogus_era", label: "Bad", count: 10, median_price_lkr: 4_000_000 },
-            post_freeze: { era: "post_freeze", label: "Post-freeze (≥2025)", count: 5, median_price_lkr: 6_000_000 },
-          },
-        ],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    stubLiveApiFetch({
+      makes: [
+        {
+          make: "Nissan",
+          pre_freeze: { era: "bogus_era", label: "Bad", count: 10, median_price_lkr: 4_000_000 },
+          post_freeze: { era: "post_freeze", label: "Post-freeze (≥2025)", count: 5, median_price_lkr: 6_000_000 },
+        },
+      ],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
@@ -139,14 +123,10 @@ describe("getImportEraSplit API helper", () => {
   });
 
   it("uses default freeze_boundary_year of 2025 when server omits it", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [],
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    stubLiveApiFetch({
+      makes: [],
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
@@ -157,18 +137,14 @@ describe("getImportEraSplit API helper", () => {
   });
 
   it("filters out makes with empty make string", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [
-          makeEraMakeRow("", 10, 4_000_000, 5, 5_000_000),
-          makeEraMakeRow("Toyota", 20, 5_000_000, 8, 7_000_000),
-        ],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    stubLiveApiFetch({
+      makes: [
+        makeEraMakeRow("", 10, 4_000_000, 5, 5_000_000),
+        makeEraMakeRow("Toyota", 20, 5_000_000, 8, 7_000_000),
+      ],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (
@@ -180,15 +156,11 @@ describe("getImportEraSplit API helper", () => {
   });
 
   it("includes label fields in era entries", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        makes: [makeEraMakeRow("Mazda", 40, 4_200_000, 12, 6_800_000)],
-        freeze_boundary_year: 2025,
-        generated_at: "2026-07-13T10:00:00Z",
-      }),
+    stubLiveApiFetch({
+      makes: [makeEraMakeRow("Mazda", 40, 4_200_000, 12, 6_800_000)],
+      freeze_boundary_year: 2025,
+      generated_at: "2026-07-13T10:00:00Z",
     });
-    vi.stubGlobal("fetch", fetchMock);
 
     const api = await import("@/services/api");
     const data = await (

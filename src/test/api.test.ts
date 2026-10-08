@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SNAPSHOT_MISS, isSnapshotRequest, liveApiCalls } from "@/test/snapshotFirstHelpers";
 
 describe("api module", () => {
   afterEach(() => {
@@ -106,16 +107,14 @@ describe("api module", () => {
   });
 
   it("requests listing detail and similar listings from the backend api", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: 42 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [{ id: 7 }],
-      });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (isSnapshotRequest(url)) return { ...SNAPSHOT_MISS };
+      if (url.includes("/api/v1/listings/42/similar")) {
+        return { ok: true, json: async () => [{ id: 7 }] };
+      }
+      return { ok: true, json: async () => ({ id: 42 }) };
+    });
 
     vi.stubGlobal("fetch", fetchMock);
 
@@ -123,8 +122,9 @@ describe("api module", () => {
     const detail = await api.getListing("42");
     const similar = await api.getSimilarListings("42");
 
-    expect(fetchMock.mock.calls[0]?.[0]).toContain("/api/v1/listings/42");
-    expect(fetchMock.mock.calls[1]?.[0]).toContain("/api/v1/listings/42/similar");
+    const requests = liveApiCalls(fetchMock);
+    expect(requests[0]?.[0]).toContain("/api/v1/listings/42");
+    expect(requests[1]?.[0]).toContain("/api/v1/listings/42/similar");
     expect(detail).toMatchObject({ id: 42 });
     expect(similar[0]).toMatchObject({ id: 7 });
   });
@@ -285,15 +285,18 @@ describe("api module", () => {
   });
 
   it("falls back to deriving sources from listings when sources endpoint fails", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 422,
-        statusText: "Unprocessable Entity",
-        text: async () => JSON.stringify({ detail: [{ msg: "Input should be integer" }] }),
-      })
-      .mockResolvedValueOnce({
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (isSnapshotRequest(url)) return { ...SNAPSHOT_MISS };
+      if (url.includes("/api/v1/listings/sources")) {
+        return {
+          ok: false,
+          status: 422,
+          statusText: "Unprocessable Entity",
+          text: async () => JSON.stringify({ detail: [{ msg: "Input should be integer" }] }),
+        };
+      }
+      return {
         ok: true,
         json: async () => ({
           items: [
@@ -303,16 +306,18 @@ describe("api module", () => {
           ],
           total: 3,
         }),
-      });
+      };
+    });
 
     vi.stubGlobal("fetch", fetchMock);
 
     const api: typeof import("@/services/api") = await import("@/services/api");
     const result = await api.getListingSources();
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/listings/sources");
-    expect(String(fetchMock.mock.calls[1]?.[0] || "")).toContain("/api/v1/listings");
+    const requests = liveApiCalls(fetchMock);
+    expect(requests).toHaveLength(2);
+    expect(String(requests[0]?.[0] || "")).toContain("/api/v1/listings/sources");
+    expect(String(requests[1]?.[0] || "")).toContain("/api/v1/listings");
     expect(result).toEqual([
       { source: "ikman", label: "Ikman", count: 2 },
       { source: "autolanka", label: "AutoLanka", count: 1 },
@@ -320,18 +325,21 @@ describe("api module", () => {
   });
 
   it("keeps freshness metadata truthful in stats responses", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        total_listings: 120,
-        avg_price_lkr: 7800000,
-        listings_this_week: 11,
-        price_change_mom: -2.1,
-        good_deals_count: 9,
-        district_count: 6,
-        source_count: 4,
-        last_updated: null,
-      }),
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (isSnapshotRequest(input)) return { ...SNAPSHOT_MISS };
+      return {
+        ok: true,
+        json: async () => ({
+          total_listings: 120,
+          avg_price_lkr: 7800000,
+          listings_this_week: 11,
+          price_change_mom: -2.1,
+          good_deals_count: 9,
+          district_count: 6,
+          source_count: 4,
+          last_updated: null,
+        }),
+      };
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -339,24 +347,27 @@ describe("api module", () => {
     const api: typeof import("@/services/api") = await import("@/services/api");
     const stats = await api.getStats();
 
-    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/summary");
+    expect(String(liveApiCalls(fetchMock)[0]?.[0] || "")).toContain("/api/v1/stats/summary");
     expect(stats.source_count).toBe(4);
     expect(stats.last_updated).toBeNull();
   });
 
   it("preserves null month-over-month change when backend has no history", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        total_listings: 120,
-        avg_price_lkr: 7800000,
-        listings_this_week: 11,
-        price_change_mom: null,
-        good_deals_count: 9,
-        district_count: 6,
-        source_count: 4,
-        last_updated: "2026-07-13T10:00:00Z",
-      }),
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (isSnapshotRequest(input)) return { ...SNAPSHOT_MISS };
+      return {
+        ok: true,
+        json: async () => ({
+          total_listings: 120,
+          avg_price_lkr: 7800000,
+          listings_this_week: 11,
+          price_change_mom: null,
+          good_deals_count: 9,
+          district_count: 6,
+          source_count: 4,
+          last_updated: "2026-07-13T10:00:00Z",
+        }),
+      };
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -368,24 +379,27 @@ describe("api module", () => {
   });
 
   it("normalizes live market snapshot responses", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        generated_at: "2026-05-21T10:00:00Z",
-        total_listings: "120",
-        priced_listings: "110",
-        unavailable_price_listings: "10",
-        avg_price_lkr: "7800000",
-        latest_listing_at: "2026-05-21T09:59:00Z",
-        active_scrape_sources: ["riyahub"],
-        latest_run: {
-          source: "riyahub",
-          status: "RUNNING",
-          listings_found: "20",
-          listings_new: "3",
-        },
-        source_status: [],
-      }),
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (isSnapshotRequest(input)) return { ...SNAPSHOT_MISS };
+      return {
+        ok: true,
+        json: async () => ({
+          generated_at: "2026-05-21T10:00:00Z",
+          total_listings: "120",
+          priced_listings: "110",
+          unavailable_price_listings: "10",
+          avg_price_lkr: "7800000",
+          latest_listing_at: "2026-05-21T09:59:00Z",
+          active_scrape_sources: ["riyahub"],
+          latest_run: {
+            source: "riyahub",
+            status: "RUNNING",
+            listings_found: "20",
+            listings_new: "3",
+          },
+          source_status: [],
+        }),
+      };
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -393,7 +407,7 @@ describe("api module", () => {
     const api: typeof import("@/services/api") = await import("@/services/api");
     const snapshot = await api.getLiveMarketSnapshot();
 
-    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/live");
+    expect(String(liveApiCalls(fetchMock)[0]?.[0] || "")).toContain("/api/v1/stats/live");
     expect(snapshot).toMatchObject({
       total_listings: 120,
       priced_listings: 110,
@@ -404,22 +418,25 @@ describe("api module", () => {
   });
 
   it("maps district top-model metadata from district price aggregates", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        points: [
-          {
-            district: "Colombo",
-            avg_price_lkr: 11750000,
-            count: 3041,
-            lat: 6.9271,
-            lng: 79.8612,
-            top_make: "Toyota",
-            top_model: "Vitz",
-            top_model_count: 186,
-          },
-        ],
-      }),
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (isSnapshotRequest(input)) return { ...SNAPSHOT_MISS };
+      return {
+        ok: true,
+        json: async () => ({
+          points: [
+            {
+              district: "Colombo",
+              avg_price_lkr: 11750000,
+              count: 3041,
+              lat: 6.9271,
+              lng: 79.8612,
+              top_make: "Toyota",
+              top_model: "Vitz",
+              top_model_count: 186,
+            },
+          ],
+        }),
+      };
     });
 
     vi.stubGlobal("fetch", fetchMock);
@@ -427,7 +444,7 @@ describe("api module", () => {
     const api: typeof import("@/services/api") = await import("@/services/api");
     const districts = await api.getDistrictPrices();
 
-    expect(String(fetchMock.mock.calls[0]?.[0] || "")).toContain("/api/v1/stats/district-prices");
+    expect(String(liveApiCalls(fetchMock)[0]?.[0] || "")).toContain("/api/v1/stats/district-prices");
     expect(districts[0]).toMatchObject({
       district: "Colombo",
       listing_count: 3041,
