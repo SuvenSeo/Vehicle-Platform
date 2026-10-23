@@ -98,11 +98,15 @@ export default function EVChargers() {
         highlights={[
           {
             label: t("ev.chargersCountLabel", "Stations in radius"),
-            value: stationsQuery.isPending ? "…" : String(stationsQuery.data?.count ?? 0),
-            hint: t("ev.chargersCountHint", "{radius} km of {district}", {
-              radius: radiusKm,
-              district,
-            }),
+            // An empty cache is "not loaded yet", not a real zero: never headline "0".
+            value: stationsQuery.isPending ? "…" : (stationsQuery.data?.count ?? 0) > 0 ? String(stationsQuery.data?.count) : "—",
+            hint:
+              !stationsQuery.isPending && !(stationsQuery.data?.count ?? 0)
+                ? t("ev.chargersCountPendingHint", "Charger map updating")
+                : t("ev.chargersCountHint", "{radius} km of {district}", {
+                    radius: radiusKm,
+                    district,
+                  }),
           },
           {
             label: t("ev.chargersSourceLabel", "Source"),
@@ -122,7 +126,7 @@ export default function EVChargers() {
       <PageBody className="space-y-10 lg:space-y-14">
         <m.section variants={revealItem} className="flex flex-wrap items-end gap-4">
           <div className="min-w-[12rem]">
-            <p className="mb-2 text-[12px] font-semibold text-muted-foreground">
+            <p className="mb-2 text-caption font-semibold text-muted-foreground">
               {t("common.district", "District")}
             </p>
             <Select value={district} onValueChange={(value) => updateParam("district", value)}>
@@ -139,7 +143,7 @@ export default function EVChargers() {
             </Select>
           </div>
           <div className="min-w-[10rem]">
-            <p className="mb-2 text-[12px] font-semibold text-muted-foreground">
+            <p className="mb-2 text-caption font-semibold text-muted-foreground">
               {t("ev.chargersRadius", "Radius")}
             </p>
             <Select value={String(radiusKm)} onValueChange={(value) => updateParam("radius_km", value)}>
@@ -168,13 +172,13 @@ export default function EVChargers() {
           ) : stations.length === 0 ? (
             <div className="data-card p-8 text-center">
               <MapPin className="mx-auto mb-3 h-5 w-5 text-muted-foreground/50" aria-hidden />
-              <p className="text-[14px] font-semibold text-foreground">
+              <p className="text-body font-semibold text-foreground">
                 {t("ev.chargersEmpty", "No cached chargers in this radius")}
               </p>
-              <p className="mx-auto mt-2 max-w-md text-[13px] text-muted-foreground">
+              <p className="mx-auto mt-2 max-w-md text-footnote text-muted-foreground">
                 {t(
                   "ev.chargersEmptyHint",
-                  "The Sri Lanka Open Charge Map cache is empty or this district has no points yet. Widen the radius, or ask an admin to refresh the cache.",
+                  "We refresh the Sri Lanka charger map from Open Charge Map every week, and this area has no points yet. Try a wider radius, or check back soon.",
                 )}
               </p>
             </div>
@@ -184,26 +188,26 @@ export default function EVChargers() {
                 <li key={station.ocm_id} className="data-card p-5 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[15px] font-bold text-foreground">
+                      <p className="text-body font-bold text-foreground">
                         {station.name || t("ev.chargersUnnamed", "Unnamed station")}
                       </p>
-                      <p className="mt-1 text-[12px] font-medium text-muted-foreground">
+                      <p className="mt-1 text-caption font-medium text-muted-foreground">
                         {[station.operator, station.address || station.town].filter(Boolean).join(" · ")}
                       </p>
                     </div>
-                    <span className="num shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-bold text-foreground">
+                    <span className="num shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-caption font-bold text-foreground">
                       {station.distance_km.toFixed(1)} km
                     </span>
                   </div>
-                  <p className="mt-3 text-[12px] font-medium text-foreground">{connectorLabel(station)}</p>
+                  <p className="mt-3 text-caption font-medium text-foreground">{connectorLabel(station)}</p>
                   {station.status ? (
-                    <p className="mt-1 text-[11px] text-muted-foreground">{station.status}</p>
+                    <p className="mt-1 text-caption text-muted-foreground">{station.status}</p>
                   ) : null}
                   <a
                     href={osmStationUrl(station.lat, station.lng)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary no-underline hover:underline"
+                    className="mt-4 inline-flex items-center gap-1.5 text-caption font-semibold text-primary no-underline hover:underline"
                   >
                     {t("ev.chargersOpenMap", "Open in OpenStreetMap")}
                     <ExternalLink className="h-3 w-3" aria-hidden />
@@ -214,7 +218,7 @@ export default function EVChargers() {
           )}
         </m.section>
 
-        <p className="text-[12px] font-medium leading-relaxed text-muted-foreground">
+        <p className="text-caption font-medium leading-relaxed text-muted-foreground">
           {limitation} {attribution}
         </p>
       </PageBody>

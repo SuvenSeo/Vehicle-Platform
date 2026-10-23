@@ -135,7 +135,7 @@ export function PriceRangeFilter({ filters, onCommit, touch = false }: PriceRang
   };
 
   const inputClass = cn(
-    "num rounded-full border-transparent bg-surface/70 text-base text-foreground md:text-sm",
+    "num rounded-full border-transparent bg-surface/70 text-body text-foreground md:text-footnote",
     touch ? "h-11" : "h-9",
   );
   const loLabel = draft.min ? formatLkrCompact(draft.min) : t("search.anyMin", "No min");
@@ -163,11 +163,11 @@ export function PriceRangeFilter({ filters, onCommit, touch = false }: PriceRang
                  data changes just snap to the new height. */
               <m.div
                 key={i}
-                className={cn("flex-1 origin-bottom rounded-t-sm transition-colors duration-200", inRange ? "bg-primary/55" : "bg-muted-foreground/20")}
+                className={cn("flex-1 origin-bottom rounded-t-sm transition-colors duration-short", inRange ? "bg-primary/55" : "bg-muted-foreground/20")}
                 style={{ height: `${count === 0 ? 0 : Math.max(8, (count / histMax) * 100)}%` }}
                 initial={motionStill ? false : { scaleY: 0 }}
                 animate={{ scaleY: 1 }}
-                transition={{ duration: duration.slow, ease: ease.emphasized, delay: Math.min(i, 8) * 0.02 }}
+                transition={{ duration: duration.long, ease: ease.decelerate, delay: Math.min(i, 8) * 0.02 }}
               />
             );
           })}
@@ -200,12 +200,12 @@ export function PriceRangeFilter({ filters, onCommit, touch = false }: PriceRang
           // Thumb grab "spring": scale with an overshoot curve (transform only;
           // the primitive positions thumbs itself, which we never animate).
           !motionStill &&
-            "[&_[role=slider]]:transition-transform [&_[role=slider]]:duration-300 [&_[role=slider]]:ease-[cubic-bezier(0.34,1.56,0.64,1)] [&_[role=slider]:active]:scale-125 [&_[role=slider]:focus-visible]:scale-110",
+            "[&_[role=slider]]:transition-transform [&_[role=slider]]:duration-medium [&_[role=slider]]:ease-standard [&_[role=slider]:active]:scale-125 [&_[role=slider]:focus-visible]:scale-110",
         )}
       />
 
       {sampleSize >= 8 ? (
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           {t("search.histogramNote", "Bars: asking prices of {n} recent matches", { n: sampleSize })}
         </p>
       ) : null}
@@ -276,11 +276,11 @@ export function PriceRangeFilter({ filters, onCommit, touch = false }: PriceRang
         />
       </div>
       {inputError ? (
-        <p role="alert" className="text-[11px] font-medium text-destructive">
+        <p role="alert" className="text-caption font-medium text-destructive">
           {inputError}
         </p>
       ) : (
-        <p className="text-[11px] text-muted-foreground">{t("search.priceInputHint", "Type 8.5 Mn, 85L or Rs 7,250,000")}</p>
+        <p className="text-caption text-muted-foreground">{t("search.priceInputHint", "Type 8.5 Mn, 85L or Rs 7,250,000")}</p>
       )}
     </div>
   );

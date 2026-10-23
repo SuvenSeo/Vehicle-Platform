@@ -38,10 +38,10 @@ function humanizeStatus(status: string): string {
 function statusTone(status: string): string {
   const s = status.toLowerCase();
   if (s.includes("live") || s.includes("publish") || s.includes("approv"))
-    return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
+    return "border-deal-good/30 bg-deal-good/10 text-deal-good-text";
   if (s.includes("reject") || s.includes("declin") || s.includes("fail"))
-    return "border-red-400/30 bg-red-400/10 text-red-300";
-  return "border-amber-400/30 bg-amber-400/10 text-amber-300";
+    return "border-deal-high/30 bg-deal-high/10 text-deal-high-text";
+  return "border-deal-caution/30 bg-deal-caution/10 text-deal-caution-text";
 }
 
 function listingTitle(l: MyListing): string {
@@ -118,10 +118,10 @@ export default function Profile() {
               <UserRound className="h-5 w-5 text-primary-bright" aria-hidden />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">
+              <p className="truncate text-footnote font-semibold text-foreground">
                 {user?.email ?? t("profile.signedIn", "Signed in")}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 {t("profile.listingCount", "{count} listings").replace(
                   "{count}",
                   String(listings?.length ?? 0),
@@ -137,17 +137,17 @@ export default function Profile() {
           </motion.div>
 
           {listings === null ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-2 py-16 text-footnote text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               {t("profile.loading", "Loading your listings…")}
             </div>
           ) : error ? (
             <div className="liquid-panel rounded-2xl p-8 text-center">
-              <TriangleAlert className="mx-auto h-8 w-8 text-amber-300" aria-hidden />
-              <p className="mt-3 text-sm text-foreground">
+              <TriangleAlert className="mx-auto h-8 w-8 text-deal-caution-text" aria-hidden />
+              <p className="mt-3 text-footnote text-foreground">
                 {t("profile.loadFailed", "Couldn't load your listings.")}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+              <p className="mt-1 text-caption text-muted-foreground">{error}</p>
               <Button onClick={() => void load()} variant="outline" size="sm" className="mt-4">
                 <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
                 {t("profile.retry", "Try again")}
@@ -156,10 +156,10 @@ export default function Profile() {
           ) : listings.length === 0 ? (
             <div className="liquid-panel rounded-2xl p-10 text-center">
               <Car className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
-              <p className="mt-4 text-sm font-semibold text-foreground">
+              <p className="mt-4 text-footnote font-semibold text-foreground">
                 {t("profile.emptyTitle", "No listings yet")}
               </p>
-              <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">
+              <p className="mx-auto mt-2 max-w-xs text-caption leading-relaxed text-muted-foreground">
                 {t(
                   "profile.emptyBody",
                   "List your first vehicle — it's free, and your ad goes live after a quick review.",
@@ -183,19 +183,19 @@ export default function Profile() {
                   <div className="flex items-start gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-sm font-semibold text-foreground">
+                        <h3 className="truncate text-footnote font-semibold text-foreground">
                           {listingTitle(l)}
                         </h3>
                         <span
                           className={cn(
-                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-caption font-medium",
                             statusTone(l.status),
                           )}
                         >
                           {humanizeStatus(l.status)}
                         </span>
                       </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
+                      <p className="mt-1.5 text-caption text-muted-foreground">
                         {[l.year, l.fuelType, l.transmission, l.district]
                           .filter(Boolean)
                           .join(" · ")}
@@ -204,14 +204,14 @@ export default function Profile() {
                         )}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold text-foreground">
+                    <p className="shrink-0 text-footnote font-semibold text-foreground">
                       {formatPriceLkrMillions(l.priceLkr)}
                     </p>
                   </div>
                   <div className="mt-4 flex items-center justify-end gap-2">
                     {confirmId === l.id ? (
                       <>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-caption text-muted-foreground">
                           {t("profile.confirmDelete", "Delete this listing?")}
                         </span>
                         <Button
@@ -240,7 +240,7 @@ export default function Profile() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-muted-foreground hover:text-red-300"
+                        className="text-muted-foreground hover:text-deal-high-text"
                         onClick={() => setConfirmId(l.id)}
                       >
                         <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />

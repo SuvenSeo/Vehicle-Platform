@@ -16,15 +16,15 @@ function pct(value: number): string {
 }
 
 function metricColor(good: boolean, ok: boolean): string {
-  if (good) return "text-emerald-600 dark:text-emerald-400";
-  if (ok) return "text-amber-600 dark:text-amber-400";
-  return "text-rose-600 dark:text-rose-400";
+  if (good) return "text-deal-good-text";
+  if (ok) return "text-deal-caution-text";
+  return "text-deal-high-text";
 }
 
 function barColor(good: boolean, ok: boolean): string {
-  if (good) return "bg-emerald-500 dark:bg-emerald-400";
-  if (ok) return "bg-amber-500 dark:bg-amber-400";
-  return "bg-rose-500 dark:bg-rose-400";
+  if (good) return "bg-deal-good";
+  if (ok) return "bg-deal-caution";
+  return "bg-deal-high";
 }
 
 function buildMetrics(row: SourceQualityRow): MetricConfig[] {
@@ -68,10 +68,10 @@ function buildMetrics(row: SourceQualityRow): MetricConfig[] {
 function SourceCard({ row }: { row: SourceQualityRow }) {
   const metrics = buildMetrics(row);
   return (
-    <div className="asset-surface rounded-xl p-5 transition-all duration-300 ease-apple hover:border-primary/30 hover:shadow-soft-lg">
+    <div className="asset-surface rounded-xl p-5 transition-ui duration-medium ease-decelerate hover:border-primary/30 hover:shadow-soft-lg">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-lg font-bold text-foreground">{row.source}</p>
+          <p className="text-callout font-bold text-foreground">{row.source}</p>
           <p className="mt-1 tech-label text-muted-foreground">
             {row.listing_count.toLocaleString()} listings
           </p>
@@ -86,12 +86,12 @@ function SourceCard({ row }: { row: SourceQualityRow }) {
           return (
             <div key={metric.label}>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">{metric.label}</p>
-                <p className={`text-xs font-bold num ${metric.colorClass}`}>{metric.value}</p>
+                <p className="text-caption text-muted-foreground">{metric.label}</p>
+                <p className={`text-caption font-bold num ${metric.colorClass}`}>{metric.value}</p>
               </div>
               <div className="mt-1 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ease-apple ${barColor(good, ok)}`}
+                  className={`h-full rounded-full transition-ui duration-long ease-decelerate ${barColor(good, ok)}`}
                   style={{ width: `${metric.barWidth}%` }}
                 />
               </div>
@@ -138,7 +138,7 @@ export function SourceQualityScorecard() {
     return (
       <div className="console-empty">
         <Database className="mx-auto mb-3 h-7 w-7 text-muted-foreground" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">No source quality data available yet.</p>
+        <p className="text-footnote text-muted-foreground">No source quality data available yet.</p>
       </div>
     );
   }

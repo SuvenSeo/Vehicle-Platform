@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { SimpleSelect } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Camera, CheckCircle2, Loader2, MapPin, Phone, Tag, User } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
@@ -181,10 +182,10 @@ export default function SellYourCar() {
         <section className="mx-auto max-w-xl px-5 py-16 text-center">
           <div className="liquid-panel rounded-[2rem] p-10">
             <CheckCircle2 className="mx-auto h-14 w-14 text-primary-bright" aria-hidden />
-            <h2 className="mt-5 font-display text-2xl font-semibold tracking-tight text-foreground">
+            <h2 className="mt-5 font-display text-title2 font-semibold tracking-tight text-foreground">
               {t("sell.doneTitle", "Listing submitted!")}
             </h2>
-            <p className="mx-auto mt-3 max-w-sm text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-sm text-footnote leading-relaxed text-muted-foreground">
               {t(
                 "sell.doneBody",
                 "Your vehicle is queued for review. We'll publish it to the market shortly.",
@@ -218,7 +219,7 @@ export default function SellYourCar() {
         <section className="mx-auto max-w-3xl px-5 pb-20">
           {!isAuthenticated && (
             <div className="liquid-panel mb-6 rounded-2xl border border-primary/25 bg-primary/5 px-5 py-4">
-              <p className="text-[13px] leading-relaxed text-foreground">
+              <p className="text-footnote leading-relaxed text-foreground">
                 {t("sell.signInNotice", "You need to sign in to publish a listing.")}{" "}
                 <button
                   type="button"
@@ -233,7 +234,7 @@ export default function SellYourCar() {
 
           <form onSubmit={onSubmit} className="liquid-panel space-y-8 rounded-[2rem] p-6 sm:p-9">
             {error && (
-              <div role="alert" className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-200">
+              <div role="alert" className="rounded-2xl border border-deal-high/30 bg-deal-high/10 px-4 py-3 text-footnote text-deal-high-text">
                 {error}
               </div>
             )}
@@ -250,17 +251,13 @@ export default function SellYourCar() {
                   <span className="mb-1.5 block text-caption font-medium text-foreground">
                     {t("sell.make", "Make")} *
                   </span>
-                  <select
+                  <SimpleSelect
                     required
                     value={form.make}
-                    onChange={(e) => setField("make", e.target.value)}
-                    className="h-11 w-full rounded-full border border-border/50 bg-surface/70 px-4 text-sm text-foreground focus:ring-2 focus:ring-primary/20"
-                  >
-                    <option value="">{t("sell.selectMake", "Select make")}</option>
-                    {MAKES.map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+                    onValueChange={(v) => setField("make", v)}
+                    placeholder={t("sell.selectMake", "Select make")}
+                    options={MAKES.map((m) => ({ value: m, label: m }))}
+                  />
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">
@@ -280,16 +277,12 @@ export default function SellYourCar() {
                   <span className="mb-1.5 block text-caption font-medium text-foreground">
                     {t("sell.year", "Year")}
                   </span>
-                  <select
-                    value={form.year}
-                    onChange={(e) => setField("year", e.target.value)}
-                    className="h-11 w-full rounded-full border border-border/50 bg-surface/70 px-4 text-sm text-foreground"
-                  >
-                    <option value="">{t("sell.selectYear", "Select year")}</option>
-                    {Array.from({ length: 40 }, (_, i) => currentYear - i).map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
+                  <SimpleSelect
+                    value={String(form.year)}
+                    onValueChange={(v) => setField("year", v)}
+                    placeholder={t("sell.selectYear", "Select year")}
+                    options={Array.from({ length: 40 }, (_, i) => currentYear - i).map((y) => ({ value: String(y), label: y }))}
+                  />
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">
@@ -320,33 +313,27 @@ export default function SellYourCar() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">{t("sell.fuel", "Fuel type")}</span>
-                  <select
+                  <SimpleSelect
                     value={form.fuelType}
-                    onChange={(e) => setField("fuelType", e.target.value)}
-                    className="h-11 w-full rounded-full border border-border/50 bg-surface/70 px-4 text-sm text-foreground"
-                  >
-                    {FUEL_TYPES.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
+                    onValueChange={(v) => setField("fuelType", v)}
+                    options={FUEL_TYPES.map((f) => ({ value: f, label: f }))}
+                  />
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">{t("sell.transmission", "Transmission")}</span>
-                  <select
+                  <SimpleSelect
                     value={form.transmission}
-                    onChange={(e) => setField("transmission", e.target.value)}
-                    className="h-11 w-full rounded-full border border-border/50 bg-surface/70 px-4 text-sm text-foreground"
-                  >
-                    {TRANSMISSIONS.map((tm) => <option key={tm} value={tm}>{tm}</option>)}
-                  </select>
+                    onValueChange={(v) => setField("transmission", v)}
+                    options={TRANSMISSIONS.map((tm) => ({ value: tm, label: tm }))}
+                  />
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">{t("sell.condition", "Condition")}</span>
-                  <select
+                  <SimpleSelect
                     value={form.condition}
-                    onChange={(e) => setField("condition", e.target.value)}
-                    className="h-11 w-full rounded-full border border-border/50 bg-surface/70 px-4 text-sm text-foreground"
-                  >
-                    {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                    onValueChange={(v) => setField("condition", v)}
+                    options={CONDITIONS.map((c) => ({ value: c, label: c }))}
+                  />
                 </label>
               </div>
 
@@ -356,7 +343,7 @@ export default function SellYourCar() {
                     key={c.key}
                     type="button"
                     onClick={() => setField("vehicleCategory", c.key)}
-                    className={`rounded-full border px-3 py-1 text-caption font-medium transition-all active:scale-[0.97] ${
+                    className={`rounded-full border px-3 py-1 text-caption font-medium transition-ui active:scale-[0.97] ${
                       form.vehicleCategory === c.key
                         ? "border-primary/40 bg-primary/15 text-primary"
                         : "border-border/50 bg-surface/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -377,14 +364,12 @@ export default function SellYourCar() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">{t("sell.district", "District")}</span>
-                  <select
+                  <SimpleSelect
                     value={form.district}
-                    onChange={(e) => setField("district", e.target.value)}
-                    className="h-11 w-full rounded-full border border-border/50 bg-surface/70 px-4 text-sm text-foreground"
-                  >
-                    <option value="">{t("sell.selectDistrict", "Select district")}</option>
-                    {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                    onValueChange={(v) => setField("district", v)}
+                    placeholder={t("sell.selectDistrict", "Select district")}
+                    options={DISTRICTS.map((d) => ({ value: d, label: d }))}
+                  />
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-caption font-medium text-foreground">{t("sell.city", "City")}</span>
@@ -427,12 +412,12 @@ export default function SellYourCar() {
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
-                        className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        className="absolute right-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-caption text-white opacity-0 transition-opacity group-hover:opacity-100"
                       >
                         {t("sell.remove", "Remove")}
                       </button>
                       {i === 0 && (
-                        <span className="absolute bottom-1.5 left-1.5 rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-primary-foreground">
+                        <span className="absolute bottom-1.5 left-1.5 rounded-full bg-primary px-2 py-0.5 text-caption font-bold text-primary-foreground">
                           {t("sell.cover", "Cover")}
                         </span>
                       )}
@@ -464,7 +449,7 @@ export default function SellYourCar() {
                     "sell.descPh",
                     "Service history, condition, why you're selling, accessories, anything buyers should know…",
                   )}
-                  className="w-full rounded-3xl border border-border/50 bg-surface/70 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-3xl border border-border/50 bg-surface/70 px-4 py-3 text-footnote text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
                 />
               </label>
             </fieldset>

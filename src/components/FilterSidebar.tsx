@@ -107,7 +107,7 @@ function PillButton({
       data-pill=""
       aria-pressed={active}
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-caption font-medium transition-all duration-150 active:scale-[0.97] ${
+      className={`rounded-full border px-3 py-1 text-caption font-medium transition-ui duration-short active:scale-[0.97] ${
         active
           ? "border-primary/40 bg-primary/15 text-primary shadow-sm"
           : "border-transparent bg-surface/70 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-surface"
@@ -119,11 +119,11 @@ function PillButton({
 }
 
 function selectTriggerClass() {
-  return "h-9 rounded-full border-transparent bg-surface/70 px-3.5 text-sm text-foreground transition-all duration-150 hover:border-primary/40 focus:ring-2 focus:ring-primary/20";
+  return "h-9 rounded-full border-transparent bg-surface/70 px-3.5 text-footnote text-foreground transition-ui duration-short hover:border-primary/40 focus:ring-2 focus:ring-primary/20";
 }
 
 function selectContentClass() {
-  return "max-h-64 rounded-2xl border-transparent bg-popover/95 text-foreground backdrop-blur-2xl shadow-soft-xl";
+  return "max-h-64 rounded-2xl border-transparent bg-popover text-foreground shadow-soft-xl";
 }
 
 export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterPanelProps) {
@@ -367,17 +367,17 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
 
   return (
     <div
-      className={`space-y-3 px-3 py-3 text-sm ${
+      className={`space-y-3 px-3 py-3 text-footnote ${
         touch ? "[&_[data-pill]]:min-h-11 [&_[data-pill]]:px-3.5 [&_button[role=combobox]]:h-11" : ""
       }`}
     >
-      <div className={`${touch ? "" : "sticky top-0 z-10 "}space-y-3 rounded-[1.75rem] border border-transparent bg-card/85 px-3.5 py-3 shadow-soft backdrop-blur-xl`}>
+      <div className={`${touch ? "" : "sticky top-0 z-10 "}space-y-3 rounded-[1.75rem] border border-transparent bg-card px-3.5 py-3 shadow-soft`}>
         {/* In the drawer the sheet header already shows "Filters" + "Clear all". */}
         {/* Not rendered (rather than display:none) in the drawer: a hidden
             child still got space-y margin and left a gap above "With price". */}
         {touch ? null : (
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold tracking-tight text-foreground">{t("filter.title", "Filters")}</p>
+          <p className="text-footnote font-semibold tracking-tight text-foreground">{t("filter.title", "Filters")}</p>
           {activeChips.length > 0 ? (
             <button
               type="button"
@@ -401,7 +401,7 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
                   layout={!motionStill}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9, transition: { duration: duration.fast, ease: ease.exit } }}
+                  exit={{ opacity: 0, scale: 0.9, transition: { duration: duration.short, ease: ease.accelerate } }}
                   transition={spring.snappy}
                   whileTap={motionStill ? undefined : press.whileTap}
                   className="inline-flex max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-caption font-medium text-primary-bright"
@@ -418,7 +418,7 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
           <button
             type="button"
             onClick={() => setInventoryMode("priced")}
-            className={`flex-1 rounded-full px-2.5 py-1 text-caption font-medium transition-all ${
+            className={`flex-1 rounded-full px-2.5 py-1 text-caption font-medium transition-ui ${
               priceAvailability === "priced" ? "bg-primary/15 text-primary-bright shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -427,7 +427,7 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
           <button
             type="button"
             onClick={() => setInventoryMode("unavailable")}
-            className={`flex-1 rounded-full px-2.5 py-1 text-caption font-medium transition-all ${
+            className={`flex-1 rounded-full px-2.5 py-1 text-caption font-medium transition-ui ${
               priceAvailability === "unavailable" ? "bg-primary/15 text-primary-bright shadow-xs" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -439,9 +439,9 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
           type="button"
           onClick={() => update({ include_archive: !filters.include_archive })}
           className={cn(
-            "flex w-full items-center justify-between rounded-full border px-3 py-1.5 text-caption font-medium transition-all",
+            "flex w-full items-center justify-between rounded-full border px-3 py-1.5 text-caption font-medium transition-ui",
             filters.include_archive
-              ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold shadow-xs"
+              ? "border-deal-caution/40 bg-deal-caution/10 text-deal-caution-text font-semibold shadow-xs"
               : "border-border/60 bg-surface/80 text-muted-foreground hover:text-foreground hover:border-border",
           )}
         >
@@ -449,16 +449,16 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
             <span
               className={cn(
                 "h-2 w-2 rounded-full",
-                filters.include_archive ? "bg-amber-500" : "bg-muted-foreground/40",
+                filters.include_archive ? "bg-deal-caution" : "bg-muted-foreground/40",
               )}
             />
             {t("filter.includeArchive", "Include 360K+ price archive")}
           </span>
           <span
             className={cn(
-              "rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+              "rounded-full px-1.5 py-0.5 text-caption font-bold uppercase tracking-caps",
               filters.include_archive
-                ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                ? "bg-deal-caution/20 text-deal-caution-text"
                 : "bg-muted/50 text-muted-foreground",
             )}
           >
@@ -494,7 +494,7 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
           }}
           placeholder={t("filter.searchPlaceholder", "Make, model, year…")}
           aria-label={t("filter.searchAria", "Search listings")}
-          className="h-9 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
+          className="h-9 rounded-full border-transparent bg-surface/70 text-footnote text-foreground"
         />
       </FilterGroup>
 
@@ -519,7 +519,7 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
                 onChange={(event) => setModelSearchQuery(event.target.value)}
                 placeholder={t("filter.findModel", "Find model…")}
                 aria-label={t("common.model", "Model")}
-                className="h-9 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
+                className="h-9 rounded-full border-transparent bg-surface/70 text-footnote text-foreground"
               />
             ) : null}
             <Select value={filters.model || ALL_OPTION} onValueChange={(value) => update({ model: value === ALL_OPTION ? undefined : value })}>
@@ -646,7 +646,7 @@ export function FilterPanel({ filters, onFiltersChange, touch = false }: FilterP
               inputMode="numeric"
               placeholder={t("filter.maxKm", "Max km")}
               aria-label={t("filter.maxMileageAria", "Maximum mileage")}
-              className="h-9 flex-1 rounded-full border-transparent bg-surface/70 text-sm text-foreground"
+              className="h-9 flex-1 rounded-full border-transparent bg-surface/70 text-footnote text-foreground"
             />
             <span className="num shrink-0 text-caption font-medium text-muted-foreground">{formatMileage(mileageValue === MAX_MILEAGE ? undefined : mileageValue, t("filter.anyMileage", "Any"))}</span>
           </div>

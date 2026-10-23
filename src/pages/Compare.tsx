@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, Info, Link2, Plus, Scale, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
@@ -9,6 +9,7 @@ import { PageCanvas } from "@/components/PageCanvas";
 import { formatLkrFull } from "@/lib/price";
 import { useAppPreferences } from "@/lib/appPreferences";
 import { buildCompareLink } from "@/lib/compareTray";
+import { canonicalComparePath, fromCompareSlug } from "@/lib/compareSlug";
 import { formatSourceName } from "@/lib/sourceAttribution";
 import { howWePriceHref } from "@/lib/howWePrice";
 import { useLowData } from "@/hooks/useLowData";
@@ -61,12 +62,14 @@ export default function Compare() {
   const [onlyDiff, setOnlyDiff] = useState(false);
   const motionCalm = useReducedMotionOrLowData();
 
+  // Canonical slug path (/compare/12-vs-45) wins; legacy ?ids=12,45 still works.
+  const { slug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
   const rawIds = searchParams.get("ids") ?? "";
-  const urlIds = useMemo(
-    () =>
-      [...new Set(rawIds.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isFinite(n) && n > 0))].slice(0, MAX_COMPARE),
-    [rawIds],
-  );
+  const urlIds = useMemo(() => {
+    if (slug) return fromCompareSlug(slug).slice(0, MAX_COMPARE);
+    return [...new Set(rawIds.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isFinite(n) && n > 0))].slice(0, MAX_COMPARE);
+  }, [rawIds, slug]);
   // Direct visit to /compare (nav, bookmark): fall back to the tray selection.
   const trayKey = compare.items.map((p) => p.id).join(",");
   const ids = useMemo(
@@ -114,6 +117,10 @@ export default function Compare() {
   const removeId = (id: number) => {
     compare.remove(id);
     const remaining = ids.filter((n) => n !== id);
+    if (slug) {
+      navigate(remaining.length >= 2 ? canonicalComparePath(remaining) : remaining.length ? `/compare?ids=${remaining.join(",")}` : "/compare", { replace: true });
+      return;
+    }
     setSearchParams(remaining.length ? { ids: remaining.join(",") } : {}, { replace: true });
   };
 
@@ -161,7 +168,7 @@ export default function Compare() {
           <span>
             {lkr(v)}
             {fmv?.confidence && fmv.confidence !== "none" ? (
-              <span className="block text-[11px] font-normal text-muted-foreground">
+              <span className="block text-caption font-normal text-muted-foreground">
                 {t(`comparePage.conf.${fmv.confidence}`, `${token(fmv.confidence)} confidence`)}
               </span>
             ) : null}
@@ -172,7 +179,7 @@ export default function Compare() {
         const pct = vsFmvPct(l, fmv);
         if (pct === null) return "—";
         const gap = Math.abs((askingPrice(l) ?? 0) - (fmvFor(l, fmv) ?? 0));
-        const tone = pct <= -5 ? "text-emerald-600 dark:text-emerald-400" : pct >= 8 ? "text-rose-600 dark:text-rose-400" : "text-foreground";
+        const tone = pct <= -5 ? "text-deal-good-text" : pct >= 8 ? "text-deal-high-text" : "text-foreground";
         const label =
           Math.abs(pct) < 0.5
             ? t("comparePage.atFmv", "At FMV")
@@ -182,7 +189,7 @@ export default function Compare() {
         return (
           <span className={tone}>
             {label}
-            <span className="block text-[11px] font-normal text-muted-foreground">
+            <span className="block text-caption font-normal text-muted-foreground">
               {pct > 0 ? "+" : ""}
               {pct.toFixed(1)}%
             </span>
@@ -195,7 +202,7 @@ export default function Compare() {
         return (
           <span>
             {lkr(m.monthlyLkr)}
-            <span className="block text-[11px] font-normal text-muted-foreground">
+            <span className="block text-caption font-normal text-muted-foreground">
               {t("comparePage.monthlyDown", "after {down} down", { down: lkr(m.downLkr) })}
             </span>
           </span>
@@ -262,9 +269,9 @@ export default function Compare() {
                 <img src={l.thumbnail_url} alt="" loading="lazy" decoding="async" className="aspect-[4/3] w-full rounded-lg bg-surface object-cover" />
               ) : null}
               <div className="flex items-start justify-between gap-1">
-                <Link to={`/listing/${l.id}`} className="min-w-0 text-[13px] font-semibold leading-snug text-foreground no-underline hover:text-primary-bright">
+                <Link to={`/listing/${l.id}`} className="min-w-0 text-footnote font-semibold leading-snug text-foreground no-underline hover:text-primary-bright">
                   {l.year} {l.make} {l.model}
-                  {l.variant ? <span className="block text-[11px] font-normal text-muted-foreground">{l.variant}</span> : null}
+                  {l.variant ? <span className="block text-caption font-normal text-muted-foreground">{l.variant}</span> : null}
                 </Link>
                 <button
                   type="button"
@@ -282,7 +289,7 @@ export default function Compare() {
             const r = ctx.row.original;
             const isBest = highlight && r.best.has(index);
             return (
-              <span className={cn("block", isBest && "font-bold text-emerald-700 dark:text-emerald-400")}>
+              <span className={cn("block", isBest && "font-bold text-deal-good-text")}>
                 {renderCell(r.def.key, l)}
                 {isBest ? <span className="sr-only"> {t("comparePage.bestSr", "(best)")}</span> : null}
               </span>
@@ -312,10 +319,10 @@ export default function Compare() {
             <ArrowLeft className="h-4 w-4" aria-hidden />
           </Link>
           <div className="min-w-0">
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            <h1 className="font-display text-title2 font-semibold tracking-tight text-foreground md:text-title1">
               {t("comparePage.title", "Compare cars")}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-footnote text-muted-foreground">
               {t("comparePage.subtitle", "Side by side, up to {max} cars. Prices are asking prices from the original ads.", { max: MAX_COMPARE })}
             </p>
           </div>
@@ -329,7 +336,7 @@ export default function Compare() {
         )}
 
         {!loading && error && (
-          <div role="alert" className="rounded-2xl border border-destructive/20 bg-destructive/5 px-5 py-4 text-sm text-destructive">
+          <div role="alert" className="rounded-2xl border border-destructive/20 bg-destructive/5 px-5 py-4 text-footnote text-destructive">
             {error}
           </div>
         )}
@@ -339,13 +346,13 @@ export default function Compare() {
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary-bright">
               <Scale className="h-7 w-7" aria-hidden />
             </div>
-            <h2 className="mb-2 font-display text-xl font-semibold text-foreground">
+            <h2 className="mb-2 font-display text-title3 font-semibold text-foreground">
               {listings.length === 1 ? t("comparePage.needOneMore", "Add one more car to compare") : t("comparePage.emptyTitle", "No cars selected yet")}
             </h2>
-            <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+            <p className="mb-6 max-w-sm text-footnote text-muted-foreground">
               {t("comparePage.emptyBody", "Tap “Compare” on any listing to add it here. You can pick up to {max}.", { max: MAX_COMPARE })}
             </p>
-            <Link to="/" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-5 text-[13px] font-semibold text-foreground no-underline hover:bg-surface">
+            <Link to="/" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-5 text-footnote font-semibold text-foreground no-underline hover:bg-surface">
               <Search className="h-4 w-4" aria-hidden />
               {t("comparePage.browse", "Browse listings")}
             </Link>
@@ -356,23 +363,23 @@ export default function Compare() {
           <>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground">
+                <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-3 text-caption font-semibold text-foreground">
                   <input type="checkbox" className="h-4 w-4 accent-[hsl(var(--primary))]" checked={highlight} onChange={(e) => setHighlight(e.target.checked)} />
                   {t("comparePage.highlight", "Highlight differences")}
                 </label>
-                <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground">
+                <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-3 text-caption font-semibold text-foreground">
                   <input type="checkbox" className="h-4 w-4 accent-[hsl(var(--primary))]" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} />
                   {t("comparePage.onlyDiff", "Hide identical rows")}
                 </label>
               </div>
               <div className="flex items-center gap-2">
                 {listings.length < MAX_COMPARE ? (
-                  <Link to="/" className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground no-underline hover:border-primary/40">
+                  <Link to="/" className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-caption font-semibold text-foreground no-underline hover:border-primary/40">
                     <Plus className="h-3.5 w-3.5" aria-hidden />
                     {t("comparePage.addMore", "Add a car")}
                   </Link>
                 ) : null}
-                <button type="button" onClick={copyLink} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-foreground hover:border-primary/40">
+                <button type="button" onClick={copyLink} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-caption font-semibold text-foreground hover:border-primary/40">
                   <Link2 className="h-3.5 w-3.5" aria-hidden />
                   {t("comparePage.share", "Share")}
                 </button>
@@ -380,7 +387,7 @@ export default function Compare() {
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-soft">
-              <table className="w-full border-separate border-spacing-0 text-left text-[13px]">
+              <table className="w-full border-separate border-spacing-0 text-left text-footnote">
                 <caption className="sr-only">{t("comparePage.caption", "Specification comparison")}</caption>
                 <thead>
                   {table.getHeaderGroups().map((hg) => (
@@ -415,10 +422,10 @@ export default function Compare() {
                         key={r.def.key}
                         layout={motionCalm ? false : "position"}
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 1, transition: { duration: motionCalm ? 0 : duration.base, ease: ease.standard } }}
-                        exit={{ opacity: 0, transition: { duration: motionCalm ? 0 : duration.fast, ease: ease.exit } }}
+                        animate={{ opacity: 1, transition: { duration: motionCalm ? 0 : duration.medium, ease: ease.standard } }}
+                        exit={{ opacity: 0, transition: { duration: motionCalm ? 0 : duration.short, ease: ease.accelerate } }}
                         transition={motionCalm ? { duration: 0 } : spring.snappy}
-                        className={cn("transition-colors duration-200", dim && "text-muted-foreground")}
+                        className={cn("transition-colors duration-short", dim && "text-muted-foreground")}
                       >
                         {row.getVisibleCells().map((cell, i) =>
                           i === 0 ? (
@@ -426,7 +433,7 @@ export default function Compare() {
                               key={cell.id}
                               scope="row"
                               className={cn(
-                                "sticky left-0 border-b border-border/70 bg-card p-3 text-[12px] font-semibold transition-colors duration-200",
+                                "sticky left-0 border-b border-border/70 bg-card p-3 text-caption font-semibold transition-colors duration-short",
                                 tint ? "text-foreground" : "text-muted-foreground",
                               )}
                               style={{ zIndex: "var(--z-base, 1)" as unknown as number }}
@@ -450,7 +457,7 @@ export default function Compare() {
               </table>
             </div>
 
-            <div className="mt-3 space-y-1.5 text-[12px] text-muted-foreground">
+            <div className="mt-3 space-y-1.5 text-caption text-muted-foreground">
               <p className="flex items-start gap-1.5">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                 <span>

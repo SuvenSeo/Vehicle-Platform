@@ -1,6 +1,7 @@
 import { LazyMotion, MotionConfig, domAnimation } from "motion/react";
 import { Suspense, useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, unstable_HistoryRouter as HistoryRouter, useLocation } from "react-router-dom";
+import { createViewTransitionHistory } from "@/lib/viewTransition";
 import { ScrollRestoration } from "@/components/ScrollRestoration";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
@@ -27,7 +28,6 @@ const FeedbackWidget = lazyWithRetry(() =>
   import("@/components/FeedbackWidget").then((m) => ({ default: m.FeedbackWidget }))
 );
 import { CompareTray, CompareProvider } from "@/components/compare/CompareTray";
-import { FontStudioBar } from "@/components/FontStudioBar";
 // Trial banner lives in Pricing to avoid a new chunk; lazy keeps it out of first paint.
 const TrialCountdownBanner = lazyWithRetry(() =>
   import("./pages/Pricing").then((m) => ({ default: m.TrialCountdownBanner }))
@@ -94,16 +94,18 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Browser history whose route swaps run through a View Transition. */
+const appHistory = createViewTransitionHistory();
+
 const MinimalLoader = () => <RouteFallback />;
 
 /**
- * Internal hero A/B lab. It is a design tool, not a product surface, so it
- * stays reachable in dev (or with `?heroLab=1`) and redirects home otherwise.
+ * Internal hero A/B lab. It is a design tool, not a product surface: dev
+ * builds only. Production has no route for it (falls through to 404) and no
+ * `?heroLab=1` escape hatch.
  */
 function HeroLabGate() {
-  const { search } = useLocation();
-  const enabled = import.meta.env.DEV || new URLSearchParams(search).get("heroLab") === "1";
-  return enabled ? <HeroLab /> : <Navigate to="/" replace />;
+  return import.meta.env.DEV ? <HeroLab /> : <Navigate to="/" replace />;
 }
 
 function TrialBannerSlot() {  const { user } = useAuth();
@@ -164,7 +166,6 @@ function AppShell() {
       <MobileAppPromo />
       <CompareTray />
       <MobileBottomNav />
-      <FontStudioBar />
     </div>
   );
 }
@@ -210,7 +211,7 @@ const App = () => {
             <ScrollProgressBar />
             {/* Toasts sit under the header, clear of the bottom dock (nav, compare). */}
             <Sonner position="top-center" offset={76} mobileOffset={{ top: 72 }} />
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <HistoryRouter history={appHistory} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <ScrollRestoration />
               <RouteMeta />
               <CompareProvider>
@@ -249,6 +250,7 @@ const App = () => {
                   <Route path="/insurance" element={<LeadRequest kind="insurance" />} />
                   <Route path="/checkout/return" element={<CheckoutReturn />} />
                   <Route path="/compare" element={<Compare />} />
+                  <Route path="/compare/:slug" element={<Compare />} />
                   <Route path="/how-we-price" element={<HowWePrice />} />
                   {/** Legacy valuation path: header/footer now point at /estimate. */}
                   <Route path="/valuation" element={<Navigate to="/estimate" replace />} />
@@ -274,11 +276,13 @@ const App = () => {
                     <SignUp />
                   </Suspense>
                 } />
-                <Route path="/hero-lab" element={
-                  <Suspense fallback={<MinimalLoader />}>
-                    <HeroLabGate />
-                  </Suspense>
-                } />
+                {import.meta.env.DEV ? (
+                  <Route path="/hero-lab" element={
+                    <Suspense fallback={<MinimalLoader />}>
+                      <HeroLabGate />
+                    </Suspense>
+                  } />
+                ) : null}
                 {/**
                  * Admin console: unlisted, credential-gated, and deliberately
                  * outside the marketing shell — no navbar, no footer, no links
@@ -303,7 +307,7 @@ const App = () => {
                 } />
               </Routes>
               </CompareProvider>
-            </BrowserRouter>
+            </HistoryRouter>
           </MotionConfig>
           </LazyMotion>
         </TooltipProvider>

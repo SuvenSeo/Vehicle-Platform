@@ -99,15 +99,15 @@ export default function PriceIndexPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/92 to-background" />
       </div>
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[radial-gradient(circle,hsl(var(--primary)/0.08),transparent_70%)] rounded-full pointer-events-none" />
 
-      <m.section variants={itemVariants} className="border-b border-border bg-surface/40 backdrop-blur-md relative z-10">
+      <m.section variants={itemVariants} className="border-b border-border bg-surface relative z-10">
         <div className="mx-auto max-w-[1320px] px-5 py-10 sm:px-6 sm:py-12">
-          <p className="text-[12px] font-semibold text-primary-bright">{t("index.eyebrow", "Market benchmark")}</p>
-          <h1 className="mt-3 font-display text-[2rem] font-bold tracking-tight leading-[1.05] text-white sm:text-[2.75rem] lg:text-[3rem]">
+          <p className="text-caption font-semibold text-primary-bright">{t("index.eyebrow", "Market benchmark")}</p>
+          <h1 className="mt-3 font-display text-title1 font-bold tracking-tight leading-[1.05] text-white sm:text-large lg:text-hero">
             {t("index.title", "SL Used Vehicle Price Index.")}
           </h1>
-          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted-foreground font-medium">
+          <p className="mt-2 max-w-xl text-body leading-relaxed text-muted-foreground font-medium">
             {t("index.description", "One number for the whole used-car market, mix-adjusted so it tracks real price movement — not whichever cars happened to be for sale that month.")}
           </p>
         </div>
@@ -120,21 +120,21 @@ export default function PriceIndexPage() {
           <div role="status" aria-label={t("index.loading", "Loading price index")} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-3" aria-hidden="true">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
+                <div key={i} className="rounded-xl border border-border bg-foreground/[0.01] p-5">
                   <div className="skeleton-shimmer h-3 w-24 rounded-full" />
                   <div className="skeleton-shimmer mt-3 h-9 w-32 rounded-xl" />
                   <div className="skeleton-shimmer mt-2 h-3 w-20 rounded-full" />
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5" aria-hidden="true">
+            <div className="rounded-xl border border-border bg-foreground/[0.01] p-5" aria-hidden="true">
               <div className="skeleton-shimmer h-[320px] w-full rounded-xl" />
             </div>
           </div>
         ) : error || !data || activePoints.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-white/10 py-16 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
             <LineChart className="h-5 w-5 text-muted-foreground" />
-            <p className="max-w-md text-[13px] text-muted-foreground font-medium">
+            <p className="max-w-md text-footnote text-muted-foreground font-medium">
               {t("index.empty", "The index needs a few months of accumulated market aggregates before it can plot a like-for-like trend. It will populate as daily scans build history.")}
             </p>
           </div>
@@ -143,17 +143,17 @@ export default function PriceIndexPage() {
             {/* Headline stats */}
             <m.div variants={itemVariants} className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
-                <p className="text-[12px] font-semibold text-muted-foreground">{t("index.current", "Current index")}</p>
-                <p className="num mt-2 text-3xl font-bold text-white">
+                <p className="text-caption font-semibold text-muted-foreground">{t("index.current", "Current index")}</p>
+                <p className="num mt-2 text-title1 font-bold text-white">
                   <NumberFlow value={Number(latest?.index_value ?? 0)} format={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground font-medium">
+                <p className="mt-1 text-caption text-muted-foreground font-medium">
                   {t("index.baseEquals100", "base {period} = 100", { period: data.base_period ? formatPeriod(data.base_period) : "—" })}
                 </p>
               </div>
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
-                <p className="text-[12px] font-semibold text-muted-foreground">{t("index.sinceBase", "Since base")}</p>
-                <p className={`num mt-2 flex items-center gap-1.5 text-3xl font-bold ${up ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className="rounded-xl border border-border bg-foreground/[0.01] p-5">
+                <p className="text-caption font-semibold text-muted-foreground">{t("index.sinceBase", "Since base")}</p>
+                <p className={`num mt-2 flex items-center gap-1.5 text-title1 font-bold ${up ? "text-deal-good-text" : "text-deal-high-text"}`}>
                   {up ? <ArrowUpRight className="h-6 w-6" /> : <ArrowDownRight className="h-6 w-6" />}
                   {totalChange == null || !Number.isFinite(totalChange) ? "—" : (
                     <NumberFlow
@@ -163,11 +163,11 @@ export default function PriceIndexPage() {
                     />
                   )}
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground font-medium">{t("index.wholeWindow", "whole tracked window")}</p>
+                <p className="mt-1 text-caption text-muted-foreground font-medium">{t("index.wholeWindow", "whole tracked window")}</p>
               </div>
-              <div className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
-                <p className="text-[12px] font-semibold text-muted-foreground">{t("index.mom", "Month-on-month")}</p>
-                <p className="num mt-2 text-3xl font-bold text-white">
+              <div className="rounded-xl border border-border bg-foreground/[0.01] p-5">
+                <p className="text-caption font-semibold text-muted-foreground">{t("index.mom", "Month-on-month")}</p>
+                <p className="num mt-2 text-title1 font-bold text-white">
                   {latest?.mom_change_pct == null ? "—" : (
                     <NumberFlow
                       value={latest.mom_change_pct}
@@ -176,7 +176,7 @@ export default function PriceIndexPage() {
                     />
                   )}
                 </p>
-                <p className="mt-1 text-[11px] text-muted-foreground font-medium">
+                <p className="mt-1 text-caption text-muted-foreground font-medium">
                   latest: {latest ? formatPeriod(latest.period) : "—"}
                 </p>
               </div>
@@ -197,12 +197,12 @@ export default function PriceIndexPage() {
                       }}
                       aria-pressed={activeSegment === seg}
                       title={locked ? freePlanCopy.indexBody : undefined}
-                      className={`rounded-2xl border px-3.5 py-1.5 text-[12px] font-semibold transition-all ${
+                      className={`rounded-2xl border px-3.5 py-1.5 text-caption font-semibold transition-ui ${
                         activeSegment === seg
                           ? "border-primary/30 bg-primary/10 text-primary-bright"
                           : locked
-                            ? "cursor-not-allowed border-white/5 bg-white/[0.01] text-muted-foreground/50"
-                            : "border-white/5 bg-white/[0.01] text-muted-foreground hover:text-white"
+                            ? "cursor-not-allowed border-border bg-foreground/[0.01] text-muted-foreground/50"
+                            : "border-border bg-foreground/[0.01] text-muted-foreground hover:text-white"
                       }`}
                     >
                       {seg === "overall" ? t("index.allVehicles", "All vehicles") : seg}
@@ -214,7 +214,7 @@ export default function PriceIndexPage() {
             )}
 
             {/* Chart */}
-            <m.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+            <m.div variants={itemVariants} className="rounded-xl border border-border bg-foreground/[0.01] p-5">
               <div
                 role="img"
                 aria-label={`${activeSegment === "overall" ? "Overall" : activeSegment} price index: ${chartData.length} months, currently ${latest?.index_value.toFixed(1)} (${formatPct(totalChange)} since base)`}
@@ -229,8 +229,8 @@ export default function PriceIndexPage() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} width={44} />
+                    <XAxis dataKey="label" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickLine={false} axisLine={false} domain={["auto", "auto"]} width={44} />
                     <Tooltip
                       contentStyle={{ background: "#0e0e11", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 12 }}
                       labelStyle={{ color: "#fff", fontWeight: 700 }}
@@ -246,10 +246,10 @@ export default function PriceIndexPage() {
             </m.div>
 
             {/* Month-on-month momentum — Bklit bar chart (#14 UI review) */}
-            <m.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5 backdrop-blur-md">
+            <m.div variants={itemVariants} className="rounded-xl border border-border bg-foreground/[0.01] p-5">
               <div className="mb-1 flex items-baseline justify-between">
-                <h2 className="text-[13px] font-bold text-white">{t("index.momTitle", "Monthly momentum")}</h2>
-                <p className="text-[11px] text-muted-foreground font-medium">{t("index.momHint", "month-on-month index change")}</p>
+                <h2 className="text-footnote font-bold text-white">{t("index.momTitle", "Monthly momentum")}</h2>
+                <p className="text-caption text-muted-foreground font-medium">{t("index.momHint", "month-on-month index change")}</p>
               </div>
               <div className="h-[220px] w-full" role="img" aria-label={t("index.momAria", "Bar chart of month-on-month index changes")}>
                 <BarChart data={momChartData} xDataKey="label" margin={{ top: 12, right: 8, bottom: 8, left: 8 }}>
@@ -270,12 +270,12 @@ export default function PriceIndexPage() {
             ) : null}
 
             {/* Methodology */}
-            <m.div variants={itemVariants} className="rounded-xl border border-white/5 bg-white/[0.01] p-5">
+            <m.div variants={itemVariants} className="rounded-xl border border-border bg-foreground/[0.01] p-5">
               <div className="flex items-start gap-2.5">
                 <Info className="h-4 w-4 text-primary-bright shrink-0 mt-0.5" />
                 <div>
-                  <h2 className="text-[13px] font-bold text-white">{t("index.methodology", "Methodology")}</h2>
-                  <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground font-medium">{data.methodology}</p>
+                  <h2 className="text-footnote font-bold text-white">{t("index.methodology", "Methodology")}</h2>
+                  <p className="mt-1.5 text-caption leading-relaxed text-muted-foreground font-medium">{data.methodology}</p>
                 </div>
               </div>
             </m.div>

@@ -43,8 +43,8 @@ export function CompareTray({ className }: { className?: string }) {
         <m.div
           key="compare-tray"
           initial={calm ? "hidden" : { opacity: 0, y: 96 }}
-          animate={calm ? "show" : { opacity: 1, y: 0, transition: spring.gentle }}
-          exit={calm ? "exit" : { opacity: 0, y: 96, transition: { duration: duration.base, ease: ease.exit } }}
+          animate={calm ? "show" : { opacity: 1, y: 0, transition: spring.smooth }}
+          exit={calm ? "exit" : { opacity: 0, y: 96, transition: { duration: duration.medium, ease: ease.accelerate } }}
           variants={fadeIn}
           style={TRAY_STYLE}
           className="fixed inset-x-3 mx-auto max-w-md md:inset-x-auto md:left-6 md:mx-0 md:w-[420px]"
@@ -71,7 +71,7 @@ function CompareTrayPanel({ className }: { className?: string }) {
     <div
       role="region"
       aria-label={t("compareTray.region", "Compare tray")}
-      className={cn("rounded-2xl border border-border bg-card/95 shadow-soft-xl backdrop-blur", className)}
+      className={cn("rounded-2xl border border-border bg-card shadow-soft-xl", className)}
     >
       {expanded && (
         <ul className="relative max-h-[50vh] space-y-1.5 overflow-auto border-b border-border p-2.5" aria-label={t("compareTray.listAria", "Selected vehicles")}>
@@ -82,16 +82,16 @@ function CompareTrayPanel({ className }: { className?: string }) {
               layout={!calm}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96, transition: { duration: duration.fast, ease: ease.exit } }}
+              exit={{ opacity: 0, scale: 0.96, transition: { duration: duration.short, ease: ease.accelerate } }}
               transition={layoutT}
               className="flex items-center gap-2 rounded-xl bg-surface/60 px-2.5 py-2"
             >
               <div className="min-w-0 flex-1">
-                <Link to={`/listing/${p.id}`} className="block truncate text-[13px] font-semibold text-foreground no-underline hover:text-primary-bright">
+                <Link to={`/listing/${p.id}`} className="block truncate text-footnote font-semibold text-foreground no-underline hover:text-primary-bright">
                   {p.year ? `${p.year} ` : ""}
                   {p.make} {p.model}
                 </Link>
-                <p className="num text-[11px] text-muted-foreground">
+                <p className="num text-caption text-muted-foreground">
                   {p.price_lkr ? formatPriceLkrMillions(p.price_lkr) : t("compareTray.noPrice", "No price")}
                   {p.mileage_km != null ? ` · ${Number(p.mileage_km).toLocaleString()} km` : ""}
                   {p.district ? ` · ${p.district}` : ""}
@@ -114,7 +114,7 @@ function CompareTrayPanel({ className }: { className?: string }) {
                 clear();
                 setExpanded(false);
               }}
-              className="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl text-caption font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               <Trash2 className="h-3.5 w-3.5" aria-hidden />
               {t("compareTray.clear", "Clear all")}
@@ -140,8 +140,8 @@ function CompareTrayPanel({ className }: { className?: string }) {
                   key={p.id}
                   layout={!calm}
                   initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1, transition: calm ? { duration: 0 } : spring.bouncy }}
-                  exit={{ opacity: 0, scale: 0.5, transition: { duration: duration.fast, ease: ease.exit } }}
+                  animate={{ opacity: 1, scale: 1, transition: calm ? { duration: 0 } : spring.expressive }}
+                  exit={{ opacity: 0, scale: 0.5, transition: { duration: duration.short, ease: ease.accelerate } }}
                   transition={layoutT}
                   className="relative inline-flex"
                 >
@@ -156,7 +156,7 @@ function CompareTrayPanel({ className }: { className?: string }) {
                     className="h-8 w-8 rounded-lg border-2 border-card bg-surface object-cover"
                   />
                 ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-card bg-primary/15 text-[10px] font-bold text-primary-bright">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-card bg-primary/15 text-caption font-bold text-primary-bright">
                     {initials(p.make, p.model)}
                   </span>
                 )}
@@ -172,15 +172,15 @@ function CompareTrayPanel({ className }: { className?: string }) {
             )}
             </AnimatePresence>
           </span>
-          <span className="ml-1 flex min-w-0 items-center gap-1.5 truncate text-[12px] font-semibold text-foreground">
+          <span className="ml-1 flex min-w-0 items-center gap-1.5 truncate text-caption font-semibold text-foreground">
             {/* Count badge pops on every change. */}
             <m.span
               key={count}
               aria-hidden
               initial={calm ? false : { scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={spring.bouncy}
-              className="num inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground"
+              transition={spring.expressive}
+              className="num inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-caption font-bold text-primary-foreground"
             >
               {count}
             </m.span>
@@ -191,13 +191,13 @@ function CompareTrayPanel({ className }: { className?: string }) {
         {canCompare ? (
           <Link
             to={href}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 text-[13px] font-bold text-primary-foreground no-underline hover:bg-primary/90"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 text-footnote font-bold text-primary-foreground no-underline hover:bg-primary/90"
           >
             <Scale className="h-4 w-4" aria-hidden />
             {t("compareTray.compare", "Compare")}
           </Link>
         ) : (
-          <span className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-dashed border-border px-3 text-[12px] font-semibold text-muted-foreground">
+          <span className="inline-flex min-h-11 shrink-0 items-center rounded-xl border border-dashed border-border px-3 text-caption font-semibold text-muted-foreground">
             {t("compareTray.addOneMore", "Add 1 more")}
           </span>
         )}
