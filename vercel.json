@@ -162,5 +162,10 @@
       ]
     }
   ],
+  "git": {
+    "deploymentEnabled": {
+      "hoplite/*": false
+    }
+  },
   "cleanUrls": true
 }
